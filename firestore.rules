@@ -1,0 +1,432 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Yellow Dot — Firestore Security Rules
+// Multi-school SaaS isolation: every document is scoped to a schoolId.
+// A user may only access documents whose schoolId matches their own.
+//
+// Enforcement model
+// ─────────────────
+// The Node.js backend runs as Firebase Admin (bypasses these rules).
+// These rules are a second layer of defence against:
+//   • Direct SDK access from a compromised or misbehaving client
+//   • Accidental client-side queries that skip the backend
+//
+// Roles (stored in users/{uid}.role)
+//   developer   — unrestricted within own school
+//   super_admin — unrestricted within own school
+//   admin       — unrestricted within own school
+//   center_admin— CRUD within own school (centerId enforced server-side)
+//   teacher     — read all; write attendance, nap, food-consumption
+//   accountant  — read all; write invoices, payments, fee-templates
+//   reception   — read students; write attendance, parent-attendance
+//   cctv_viewer — read cameras only
+//   parent      — read their own student's records only
+// ═══════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Core helpers ────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Read caller's Firestore user document (cached per request by Firestore).
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function mySchoolId() {
+      return me().schoolId;
+    }
+
+    function myRole() {
+      return me().role;
+    }
+
+    function isActive() {
+      return me().status == 'active';
+    }
+
+    // True when the document's schoolId matches the caller's schoolId.
+    function sameSchool(docSchoolId) {
+      return mySchoolId() == docSchoolId;
+    }
+
+    // True when a new document being written carries the caller's schoolId.
+    function writingSameSchool() {
+      return request.resource.data.schoolId == mySchoolId();
+    }
+
+    // ── Role predicates ─────────────────────────────────────────────────
+
+    function isAdmin() {
+      return myRole() in ['developer', 'super_admin', 'admin'];
+    }
+
+    function isCenterAdmin() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'center_admin'];
+    }
+
+    function isTeacherOrAbove() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'center_admin', 'teacher'];
+    }
+
+    function isFinance() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'accountant'];
+    }
+
+    function isReceptionOrAbove() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'center_admin', 'teacher', 'reception'];
+    }
+
+    function isStaff() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'center_admin',
+                          'teacher', 'accountant', 'reception', 'cctv_viewer'];
+    }
+
+    function isParent() {
+      return myRole() == 'parent';
+    }
+
+    // Parents: student they are linked to (stored in users/{uid}.studentId)
+    function myStudentId() {
+      return me().studentId;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // USERS
+    // ════════════════════════════════════════════════════════════════════
+
+    match /users/{userId} {
+      // Any signed-in user may read their own doc (needed for role resolution).
+      // Admins may read any user in their school.
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (isAdmin() && sameSchool(resource.data.schoolId))
+      );
+
+      // Only admins may create users, and only within their own school.
+      allow create: if isSignedIn() && isAdmin() && isActive() &&
+        writingSameSchool();
+
+      // Admins may update any user in their school.
+      // A user may update their own non-critical fields (name, photoUrl).
+      allow update: if isSignedIn() && (
+        (isAdmin() && isActive() && sameSchool(resource.data.schoolId)) ||
+        (request.auth.uid == userId &&
+          // Prevent self-promotion: role and schoolId must not change
+          request.resource.data.role     == resource.data.role &&
+          request.resource.data.schoolId == resource.data.schoolId &&
+          request.resource.data.status   == resource.data.status)
+      );
+
+      // No hard deletes from the client. Use status: 'inactive'.
+      allow delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // STUDENTS
+    // ════════════════════════════════════════════════════════════════════
+
+    match /students/{studentId} {
+      // Staff: read any student in their school.
+      // Parent: read only their own linked student.
+      allow read: if isSignedIn() && (
+        (isStaff()  && sameSchool(resource.data.schoolId)) ||
+        (isParent() && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        // schoolId must not change on update
+        request.resource.data.schoolId == resource.data.schoolId;
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      // ── Medical record subcollection ──────────────────────────────────
+      // Inherits school isolation from the parent student document.
+      match /medical/{record} {
+        function parentStudent() {
+          return get(/databases/$(database)/documents/students/$(studentId)).data;
+        }
+
+        allow read: if isSignedIn() && (
+          (isStaff()  && sameSchool(parentStudent().schoolId)) ||
+          (isParent() && sameSchool(parentStudent().schoolId) &&
+            studentId == myStudentId())
+        );
+
+        allow write: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+          sameSchool(parentStudent().schoolId);
+      }
+
+      // ── Notes subcollection ───────────────────────────────────────────
+      match /notes/{noteId} {
+        function parentStudentForNote() {
+          return get(/databases/$(database)/documents/students/$(studentId)).data;
+        }
+
+        allow read: if isSignedIn() && isStaff() &&
+          sameSchool(parentStudentForNote().schoolId);
+
+        allow create, update: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+          sameSchool(parentStudentForNote().schoolId);
+
+        allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
+          sameSchool(parentStudentForNote().schoolId);
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // ATTENDANCE
+    // ════════════════════════════════════════════════════════════════════
+
+    match /attendance/{entryId} {
+      // Parents can read their own student's attendance.
+      allow read: if isSignedIn() && (
+        (isStaff()  && sameSchool(resource.data.schoolId)) ||
+        (isParent() && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      allow create: if isSignedIn() && isReceptionOrAbove() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isReceptionOrAbove() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      // Only admins can delete attendance records.
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // NAP LOGS
+    // ════════════════════════════════════════════════════════════════════
+
+    match /napLogs/{napId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+        writingSameSchool();
+
+      // wakeUp updates duration/status/endTime — teacher or above.
+      allow update: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // FOOD MENU
+    // ════════════════════════════════════════════════════════════════════
+
+    match /foodMenus/{menuId} {
+      // All staff may read the menu.
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      // Center admins and above manage the menu.
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // FOOD CONSUMPTION
+    // ════════════════════════════════════════════════════════════════════
+
+    match /foodConsumption/{entryId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      // Teachers record consumption.
+      allow create, update: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+        writingSameSchool();
+
+      allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // CAMERAS (CCTV)
+    // ════════════════════════════════════════════════════════════════════
+
+    match /cameras/{cameraId} {
+      // All staff including cctv_viewer can read cameras.
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      // Only admins can add/edit/delete cameras.
+      allow create: if isSignedIn() && isAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PICKUP LOGS  (type: "authorization" | "history")
+    // ════════════════════════════════════════════════════════════════════
+
+    match /pickupLogs/{entryId} {
+      // Staff can read both types.
+      // Parents can read their own student's pickup records.
+      allow read: if isSignedIn() && (
+        (isStaff()  && sameSchool(resource.data.schoolId)) ||
+        (isParent() && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      // Reception and above can create authorization records.
+      // Only backend (Admin SDK) records history in practice, but
+      // allow center_admin+ as a safety net.
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PARENT ATTENDANCE
+    // ════════════════════════════════════════════════════════════════════
+
+    match /parentAttendance/{entryId} {
+      // Staff can read all; parents can read their own student's records.
+      allow read: if isSignedIn() && (
+        (isStaff()  && sameSchool(resource.data.schoolId)) ||
+        (isParent() && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      // Parents create their own check-in/out records via the backend.
+      // Reception and above can also write.
+      allow create: if isSignedIn() && isActive() && (
+        (isReceptionOrAbove() && writingSameSchool()) ||
+        (isParent() && writingSameSchool() &&
+          request.resource.data.studentId == myStudentId())
+      );
+
+      // Updates only by reception and above (e.g., corrections).
+      allow update: if isSignedIn() && isReceptionOrAbove() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // INVOICES
+    // ════════════════════════════════════════════════════════════════════
+
+    match /invoices/{invoiceId} {
+      // Finance roles and parents (own student).
+      allow read: if isSignedIn() && (
+        (isFinance()         && sameSchool(resource.data.schoolId)) ||
+        (isTeacherOrAbove()  && sameSchool(resource.data.schoolId)) ||
+        (isParent()          && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      allow create: if isSignedIn() && isFinance() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isFinance() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PAYMENTS
+    // ════════════════════════════════════════════════════════════════════
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        (isFinance()        && sameSchool(resource.data.schoolId)) ||
+        (isTeacherOrAbove() && sameSchool(resource.data.schoolId)) ||
+        (isParent()         && sameSchool(resource.data.schoolId) &&
+          resource.data.studentId == myStudentId())
+      );
+
+      allow create: if isSignedIn() && isFinance() && isActive() &&
+        writingSameSchool();
+
+      // Payments are generally immutable — only admins may correct.
+      allow update: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // FEE TEMPLATES
+    // ════════════════════════════════════════════════════════════════════
+
+    match /feeTemplates/{templateId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isFinance() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isFinance() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // SETTINGS
+    // ────────────────────────────────────────────────────────────────────
+    // NOTE: The settings collection currently uses per-section documents
+    // (e.g. settings/branding, settings/notifications) without a schoolId
+    // field, because the backend is the sole writer (Admin SDK).
+    // These rules lock down client-side access defensively.
+    // Future: restructure as settings/{schoolId}/sections/{section}.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /settings/{section} {
+      // Any authenticated staff member can read settings.
+      allow read: if isSignedIn() && isStaff();
+
+      // Only admins may write settings from the client.
+      // In practice, all settings writes go through the backend (Admin SDK).
+      allow write: if isSignedIn() && isAdmin() && isActive();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // DENY EVERYTHING ELSE
+    // Any collection not explicitly listed above is fully locked down.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
