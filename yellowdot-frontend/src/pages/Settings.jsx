@@ -1,0 +1,1270 @@
+/**
+ * Settings.jsx — Yellow Dot full settings module
+ * ───────────────────────────────────────────────
+ * 10 sections: School Profile · Academic Year · Fee Settings ·
+ * Attendance Rules · CCTV Settings · User Management ·
+ * Role Permissions · Branding · Notifications · Parent App
+ *
+ * Developer role has unrestricted access to every section.
+ * Admin/Center Admin can access all except Role Permissions.
+ */
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { Modal, useToast } from "../components/ui";
+import settingsService, { DEFAULT_SETTINGS } from "../services/settingsService";
+import {
+  ROUTES, ROLE_LABELS, ROLE_HIERARCHY, ROLE_PERMISSIONS,
+  isBypassRole,
+} from "../config/permissions";
+
+// ══════════════════════════════════════════════════════════════════
+// ICONS  (Lucide-style SVG, 16×16)
+// ══════════════════════════════════════════════════════════════════
+
+const IC = { w: 16, h: 16, fill: "none", stroke: "currentColor", sw: "1.75", lc: "round", lj: "round" };
+const svg = (paths) => (
+  <svg width={IC.w} height={IC.h} viewBox="0 0 24 24" fill={IC.fill}
+    stroke={IC.stroke} strokeWidth={IC.sw} strokeLinecap={IC.lc} strokeLinejoin={IC.lj}>
+    {paths}
+  </svg>
+);
+
+const Icons = {
+  Building:    () => svg(<><path d="M3 9h18v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M3 9V5a2 2 0 012-2h14a2 2 0 012 2v4"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><line x1="9" y1="13" x2="15" y2="13"/></>),
+  Calendar:    () => svg(<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>),
+  CreditCard:  () => svg(<><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></>),
+  Clock:       () => svg(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>),
+  Camera:      () => svg(<><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></>),
+  Users:       () => svg(<><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.85"/></>),
+  Shield:      () => svg(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>),
+  Palette:     () => svg(<><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></>),
+  Bell:        () => svg(<><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></>),
+  Smartphone:  () => svg(<><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></>),
+  Settings:    () => svg(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></>),
+  Plus:        () => svg(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>),
+  Trash:       () => svg(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>),
+  Check:       () => svg(<><polyline points="20 6 9 17 4 12"/></>),
+  Info:        () => svg(<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
+  Mail:        () => svg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>),
+  Save:        () => svg(<><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>),
+  UserPlus:    () => svg(<><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>),
+  AlertTriangle: () => svg(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
+};
+
+// ══════════════════════════════════════════════════════════════════
+// SECTIONS CONFIG
+// ══════════════════════════════════════════════════════════════════
+
+const SECTIONS = [
+  { id: "school",        label: "School Profile",   icon: "Building",   desc: "Basic info, contact details, logo" },
+  { id: "academic",      label: "Academic Year",    icon: "Calendar",   desc: "Year label, dates, and terms" },
+  { id: "fees",          label: "Fee Settings",     icon: "CreditCard", desc: "GST, late fees, payment modes" },
+  { id: "attendance",    label: "Attendance Rules", icon: "Clock",      desc: "Check-in windows and thresholds" },
+  { id: "cctv",          label: "CCTV Settings",    icon: "Camera",     desc: "Camera streams and retention" },
+  { id: "users",         label: "User Management",  icon: "Users",      desc: "Staff accounts and roles" },
+  { id: "permissions",   label: "Role Permissions", icon: "Shield",     desc: "Access control matrix" },
+  { id: "branding",      label: "Branding",         icon: "Palette",    desc: "Logo, colors, report styles" },
+  { id: "notifications", label: "Notifications",    icon: "Bell",       desc: "Alerts and delivery channels" },
+  { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
+];
+
+// ══════════════════════════════════════════════════════════════════
+// PARSE HELPERS  (sheets sends everything as strings)
+// ══════════════════════════════════════════════════════════════════
+
+const toBool = (v) => v === true || v === "true";
+const toNum  = (v, def = 0) => { const n = Number(v); return isNaN(n) ? def : n; };
+const toArr  = (v) => (typeof v === "string" && v ? v.split(",") : Array.isArray(v) ? v : []);
+const toJSON = (v, def = []) => { try { return JSON.parse(v); } catch { return def; } };
+const fromArr= (arr) => arr.join(",");
+
+// ══════════════════════════════════════════════════════════════════
+// SHARED SUB-COMPONENTS
+// ══════════════════════════════════════════════════════════════════
+
+/** Animated toggle switch */
+function Toggle({ checked, onChange, disabled }) {
+  return (
+    <label className="yd-switch">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+      />
+      <span className="yd-switch-track" />
+      <span className="yd-switch-thumb" />
+    </label>
+  );
+}
+
+/** Single toggle row with label + optional subtitle */
+function ToggleRow({ label, sub, checked, onChange, disabled }) {
+  return (
+    <div className="yd-toggle-row">
+      <div className="yd-toggle-info">
+        <div className="yd-toggle-label">{label}</div>
+        {sub && <div className="yd-toggle-sub">{sub}</div>}
+      </div>
+      <Toggle checked={checked} onChange={onChange} disabled={disabled} />
+    </div>
+  );
+}
+
+/** Labelled text/select/textarea input */
+function Field({ label, hint, children, span2 }) {
+  return (
+    <div className={`yd-stg-field${span2 ? " yd-stg-span2" : ""}`}>
+      <label className="yd-stg-label">{label}</label>
+      {children}
+      {hint && <span className="yd-stg-hint">{hint}</span>}
+    </div>
+  );
+}
+
+/** Section wrapper card */
+function Card({ title, icon, children }) {
+  const I = icon ? Icons[icon] : null;
+  return (
+    <div className="yd-stg-card">
+      {title && (
+        <div className="yd-stg-card-hd">
+          {I && <span className="yd-stg-card-hd-icon"><I /></span>}
+          {title}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/** Section page header with save button */
+function SectionHeader({ title, desc, dirty, saving, onSave, children }) {
+  return (
+    <div className="yd-stg-sec-hd">
+      <div className="yd-stg-sec-info">
+        <div className="yd-stg-sec-title">{title}</div>
+        <div className="yd-stg-sec-desc">{desc}</div>
+      </div>
+      <div className="yd-stg-sec-actions">
+        {children}
+        {dirty && !saving && (
+          <span className="yd-stg-dirty">● Unsaved</span>
+        )}
+        {onSave && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onSave}
+            disabled={saving}
+          >
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 1 — SCHOOL PROFILE
+// ══════════════════════════════════════════════════════════════════
+
+function SchoolSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.school, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.school, ...data });
+  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+
+  return (
+    <>
+      <SectionHeader
+        title="School Profile"
+        desc="Public-facing information about your school — shown on invoices and reports."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("school", d)}
+      />
+
+      <Card title="Identity" icon="Building">
+        <div className="yd-stg-grid">
+          <Field label="School Name" span2>
+            <input className="yd-input" value={d.name} onChange={set("name")} placeholder="Yellow Dot Preschool" />
+          </Field>
+          <Field label="Tagline / Motto">
+            <input className="yd-input" value={d.tagline} onChange={set("tagline")} placeholder="Where Little Minds Grow" />
+          </Field>
+          <Field label="Established Year">
+            <input className="yd-input" type="number" value={d.establishedYear} onChange={set("establishedYear")} placeholder="2010" min="1900" max="2030" />
+          </Field>
+          <Field label="Principal Name">
+            <input className="yd-input" value={d.principalName} onChange={set("principalName")} placeholder="Dr. Anita Sharma" />
+          </Field>
+          <Field label="Affiliation / Reg. Number">
+            <input className="yd-input" value={d.affiliationNumber} onChange={set("affiliationNumber")} placeholder="CBSE / State Board number" />
+          </Field>
+          <Field label="Address" span2>
+            <textarea
+              className="yd-input"
+              value={d.address}
+              onChange={set("address")}
+              rows={3}
+              placeholder="123 MG Road, Bengaluru, Karnataka 560001"
+              style={{ resize: "vertical" }}
+            />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Contact" icon="Mail">
+        <div className="yd-stg-grid">
+          <Field label="Phone">
+            <input className="yd-input" type="tel" value={d.phone} onChange={set("phone")} placeholder="+91 98765 43210" />
+          </Field>
+          <Field label="Email">
+            <input className="yd-input" type="email" value={d.email} onChange={set("email")} placeholder="admin@yellowdot.school" />
+          </Field>
+          <Field label="Website" span2>
+            <input className="yd-input" type="url" value={d.website} onChange={set("website")} placeholder="https://yellowdot.school" />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Logo" icon="Palette">
+        <Field label="Logo URL" hint="Paste a direct image URL. Used on invoices and reports.">
+          <input className="yd-input" type="url" value={d.logoUrl} onChange={set("logoUrl")} placeholder="https://cdn.example.com/logo.png" />
+        </Field>
+        {d.logoUrl ? (
+          <div className="yd-stg-logo-preview">
+            <img src={d.logoUrl} alt="Logo" className="yd-stg-logo-img" onError={(e) => { e.target.style.display = "none"; }} />
+            <span className="yd-stg-logo-label">Logo preview — will be used on invoices and report headers.</span>
+          </div>
+        ) : (
+          <div className="yd-stg-logo-preview">
+            <div className="yd-stg-logo-placeholder">Y</div>
+            <span className="yd-stg-logo-label">No logo URL set — default Yellow Dot mark will be used.</span>
+          </div>
+        )}
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 2 — ACADEMIC YEAR
+// ══════════════════════════════════════════════════════════════════
+
+function AcademicSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.academic, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.academic, ...data });
+  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+  const terms = toNum(d.termCount, 2);
+
+  return (
+    <>
+      <SectionHeader
+        title="Academic Year"
+        desc="Define the current year, its dates, and how it is divided into terms."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("academic", d)}
+      />
+
+      <Card title="Year" icon="Calendar">
+        <div className="yd-stg-grid">
+          <Field label="Year Label" hint='e.g. "2024-25"'>
+            <input className="yd-input" value={d.yearLabel} onChange={set("yearLabel")} placeholder="2024-25" />
+          </Field>
+          <Field label="Number of Terms">
+            <select className="yd-input" value={d.termCount} onChange={set("termCount")}>
+              <option value="1">1 Term</option>
+              <option value="2">2 Terms</option>
+              <option value="3">3 Terms</option>
+            </select>
+          </Field>
+          <Field label="Year Start Date">
+            <input className="yd-input" type="date" value={d.startDate} onChange={set("startDate")} />
+          </Field>
+          <Field label="Year End Date">
+            <input className="yd-input" type="date" value={d.endDate} onChange={set("endDate")} />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Term Dates" icon="Calendar">
+        <div className="yd-stg-grid">
+          {[1, 2, 3].filter((t) => t <= terms).map((t) => (
+            <div key={t} className="yd-stg-span2 yd-stg-grid" style={{ gridTemplateColumns: "auto 1fr 1fr", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--yd-text-muted)", whiteSpace: "nowrap", paddingTop: 20 }}>Term {t}</span>
+              <Field label={`Term ${t} Start`}>
+                <input className="yd-input" type="date" value={d[`term${t}Start`]} onChange={set(`term${t}Start`)} />
+              </Field>
+              <Field label={`Term ${t} End`}>
+                <input className="yd-input" type="date" value={d[`term${t}End`]} onChange={set(`term${t}End`)} />
+              </Field>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 3 — FEE SETTINGS
+// ══════════════════════════════════════════════════════════════════
+
+const PAYMENT_OPTIONS = [
+  { id: "cash",          label: "Cash" },
+  { id: "upi",           label: "UPI" },
+  { id: "bank_transfer", label: "Bank Transfer" },
+  { id: "cheque",        label: "Cheque" },
+  { id: "card",          label: "Card" },
+];
+
+function FeeSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.fees, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.fees, ...data });
+  const set    = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
+
+  const methods = toArr(d.paymentMethods);
+  const toggleMethod = (id) => {
+    const next = methods.includes(id) ? methods.filter((m) => m !== id) : [...methods, id];
+    setD((p) => ({ ...p, paymentMethods: fromArr(next) }));
+  };
+
+  return (
+    <>
+      <SectionHeader
+        title="Fee Settings"
+        desc="Configure GST, late fees, due dates, and accepted payment methods."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("fees", d)}
+      />
+
+      <Card title="Taxation" icon="CreditCard">
+        <ToggleRow
+          label="GST Applicable"
+          sub="Adds GST to all invoices"
+          checked={toBool(d.gstEnabled)}
+          onChange={toggle("gstEnabled")}
+        />
+        {toBool(d.gstEnabled) && (
+          <div style={{ marginTop: 14 }}>
+            <Field label="GST Rate">
+              <select className="yd-input" value={d.gstRate} onChange={set("gstRate")}>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18">18%</option>
+                <option value="28">28%</option>
+              </select>
+            </Field>
+          </div>
+        )}
+      </Card>
+
+      <Card title="Late Fees" icon="Clock">
+        <ToggleRow
+          label="Charge Late Fee"
+          sub="Applied when payment is received after the due date + grace period"
+          checked={toBool(d.lateFeeEnabled)}
+          onChange={toggle("lateFeeEnabled")}
+        />
+        {toBool(d.lateFeeEnabled) && (
+          <div className="yd-stg-grid" style={{ marginTop: 14 }}>
+            <Field label="Late Fee Type">
+              <select className="yd-input" value={d.lateFeeType} onChange={set("lateFeeType")}>
+                <option value="percentage">Percentage of outstanding</option>
+                <option value="fixed">Fixed amount (₹)</option>
+              </select>
+            </Field>
+            <Field label={d.lateFeeType === "percentage" ? "Rate (%)" : "Amount (₹)"}>
+              <input className="yd-input" type="number" value={d.lateFeeValue} onChange={set("lateFeeValue")} min="0" step={d.lateFeeType === "percentage" ? "0.5" : "1"} />
+            </Field>
+          </div>
+        )}
+      </Card>
+
+      <Card title="Invoice & Reminders" icon="Bell">
+        <div className="yd-stg-grid">
+          <Field label="Due Day of Month" hint="Day invoices are due each month (1–28)">
+            <input className="yd-input" type="number" value={d.dueDayOfMonth} onChange={set("dueDayOfMonth")} min="1" max="28" />
+          </Field>
+          <Field label="Grace Period (days)" hint="Extra days before late fee kicks in">
+            <input className="yd-input" type="number" value={d.gracePeriodDays} onChange={set("gracePeriodDays")} min="0" max="30" />
+          </Field>
+          <Field label="Remind Before Due (days)" hint="Send reminder N days before due date">
+            <input className="yd-input" type="number" value={d.remindDaysBefore} onChange={set("remindDaysBefore")} min="0" max="14" />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Accepted Payment Methods">
+        <label className="yd-stg-label" style={{ display: "block", marginBottom: 8 }}>Select all methods you accept</label>
+        <div className="yd-check-grid">
+          {PAYMENT_OPTIONS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={`yd-check-pill${methods.includes(id) ? " on" : ""}`}
+              onClick={() => toggleMethod(id)}
+            >
+              {methods.includes(id) && <Icons.Check />}
+              {label}
+            </button>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 4 — ATTENDANCE RULES
+// ══════════════════════════════════════════════════════════════════
+
+const DAYS = [
+  { id: "mon", label: "Mo" },
+  { id: "tue", label: "Tu" },
+  { id: "wed", label: "We" },
+  { id: "thu", label: "Th" },
+  { id: "fri", label: "Fr" },
+  { id: "sat", label: "Sa" },
+  { id: "sun", label: "Su" },
+];
+
+function AttendanceSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.attendance, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.attendance, ...data });
+  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+
+  const workingDays = toArr(d.workingDays);
+  const toggleDay = (id) => {
+    const next = workingDays.includes(id) ? workingDays.filter((x) => x !== id) : [...workingDays, id];
+    setD((p) => ({ ...p, workingDays: fromArr(next) }));
+  };
+
+  const pct = toNum(d.minAttendancePercent, 75);
+
+  return (
+    <>
+      <SectionHeader
+        title="Attendance Rules"
+        desc="Define working days, check-in windows, late thresholds, and minimum attendance."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("attendance", d)}
+      />
+
+      <Card title="Working Days" icon="Calendar">
+        <label className="yd-stg-label" style={{ display: "block", marginBottom: 10 }}>Select school working days</label>
+        <div className="yd-days-row">
+          {DAYS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={`yd-day-pill${workingDays.includes(id) ? " on" : ""}`}
+              onClick={() => toggleDay(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Check-In Windows" icon="Clock">
+        <div className="yd-stg-grid">
+          <Field label="Check-In Opens" hint="QR scanner and manual mark enabled from this time">
+            <input className="yd-input" type="time" value={d.checkinOpens} onChange={set("checkinOpens")} />
+          </Field>
+          <Field label="Late Arrival After" hint="Students arriving after this time are marked Late">
+            <input className="yd-input" type="time" value={d.lateAfter} onChange={set("lateAfter")} />
+          </Field>
+          <Field label="Absent After" hint="No check-in after this time counts as Absent">
+            <input className="yd-input" type="time" value={d.absentAfter} onChange={set("absentAfter")} />
+          </Field>
+          <Field label="Early Leave Before" hint="Check-out before this time is flagged as Early Leave">
+            <input className="yd-input" type="time" value={d.earlyLeaveBefore} onChange={set("earlyLeaveBefore")} />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Attendance Threshold" icon="Check">
+        <Field label="Minimum Attendance %" hint="Students below this level get a low-attendance alert">
+          <div className="yd-stg-range-row" style={{ marginTop: 6 }}>
+            <input
+              className="yd-stg-range"
+              type="range"
+              min="50"
+              max="100"
+              step="5"
+              value={pct}
+              onChange={(e) => setD((p) => ({ ...p, minAttendancePercent: e.target.value }))}
+            />
+            <span className="yd-stg-range-val">{pct}%</span>
+          </div>
+        </Field>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 5 — CCTV SETTINGS
+// ══════════════════════════════════════════════════════════════════
+
+function CCTVSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.cctv, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.cctv, ...data });
+  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
+
+  const cameras = toJSON(d.cameras, []);
+  const setCameras = (cams) => setD((p) => ({ ...p, cameras: JSON.stringify(cams) }));
+
+  const camCounter = useRef(1000);
+  const addCamera = () => {
+    camCounter.current += 1;
+    setCameras([...cameras, { id: camCounter.current, name: "", url: "", location: "" }]);
+  };
+
+  const updateCamera = (idx, field, val) => {
+    const next = cameras.map((c, i) => (i === idx ? { ...c, [field]: val } : c));
+    setCameras(next);
+  };
+
+  const removeCamera = (idx) => setCameras(cameras.filter((_, i) => i !== idx));
+
+  return (
+    <>
+      <SectionHeader
+        title="CCTV Settings"
+        desc="Configure camera streams, retention, and motion detection."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("cctv", d)}
+      />
+
+      <Card title="Cameras" icon="Camera">
+        <div className="yd-cam-list">
+          {cameras.length === 0 && (
+            <div style={{ textAlign: "center", color: "var(--yd-text-muted)", fontSize: 13, padding: "16px 0" }}>
+              No cameras added yet. Click below to add one.
+            </div>
+          )}
+          {cameras.map((cam, idx) => (
+            <div key={cam.id || idx} className="yd-cam-card">
+              <div className="yd-cam-hd">
+                <span className="yd-cam-num">Camera {idx + 1}</span>
+                <button className="yd-cam-del" onClick={() => removeCamera(idx)} title="Remove camera">
+                  <Icons.Trash />
+                </button>
+              </div>
+              <div className="yd-cam-fields">
+                <Field label="Camera Name">
+                  <input className="yd-input" value={cam.name} onChange={(e) => updateCamera(idx, "name", e.target.value)} placeholder="Main Entrance" />
+                </Field>
+                <Field label="Location / Room">
+                  <input className="yd-input" value={cam.location} onChange={(e) => updateCamera(idx, "location", e.target.value)} placeholder="Ground Floor Lobby" />
+                </Field>
+                <Field label="Stream URL" span2>
+                  <input className="yd-input" value={cam.url} onChange={(e) => updateCamera(idx, "url", e.target.value)} placeholder="rtsp://192.168.1.101/stream1 or https://..." />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={addCamera} style={{ width: "100%" }}>
+          <Icons.Plus /> Add Camera
+        </button>
+      </Card>
+
+      <Card title="Recording & Detection" icon="Settings">
+        <div className="yd-stg-grid">
+          <Field label="Base Stream URL" hint="Shared base URL prefix (optional)">
+            <input className="yd-input" value={d.streamBaseUrl} onChange={set("streamBaseUrl")} placeholder="http://192.168.1.100" />
+          </Field>
+          <Field label="Recording Retention (days)" hint="How long recordings are kept">
+            <input className="yd-input" type="number" value={d.retentionDays} onChange={set("retentionDays")} min="1" max="365" />
+          </Field>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <ToggleRow
+            label="Motion Detection Alerts"
+            sub="Send alert when camera detects motion outside school hours"
+            checked={toBool(d.motionDetection)}
+            onChange={toggle("motionDetection")}
+          />
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 6 — USER MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+
+const MANAGEABLE_ROLES = ROLE_HIERARCHY.filter((r) => !["developer", "super_admin"].includes(r));
+
+function UserRow({ user, onRoleChange, onDeactivate }) {
+  const initials = (user.name || user.email || "?")
+    .split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <tr>
+      <td>
+        <div className="yd-usr-name-cell">
+          {user.photoUrl
+            ? <img src={user.photoUrl} style={{ width: 28, height: 28, borderRadius: 7, objectFit: "cover" }} alt="" onError={(e) => { e.target.style.display = "none"; }} />
+            : <span className="yd-usr-avatar">{initials}</span>
+          }
+          <div>
+            <div className="yd-usr-name">{user.name || "—"}</div>
+            <div className="yd-usr-email">{user.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <select
+          className="yd-usr-role-sel"
+          value={user.role}
+          onChange={(e) => onRoleChange(user.userId || user.id, e.target.value)}
+        >
+          {MANAGEABLE_ROLES.map((r) => (
+            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+          ))}
+        </select>
+      </td>
+      <td style={{ color: "var(--yd-text-muted)", fontSize: 12 }}>
+        {user.center || user.centers?.[0] || "—"}
+      </td>
+      <td>
+        <span className={`yd-usr-status ${user.status === "inactive" ? "inactive" : "active"}`}>
+          {user.status === "inactive" ? "Inactive" : "Active"}
+        </span>
+      </td>
+      <td>
+        <button
+          className={`yd-usr-action-btn${user.status === "inactive" ? " restore" : ""}`}
+          onClick={() => onDeactivate(user.userId || user.id, user.status)}
+        >
+          {user.status === "inactive" ? "Restore" : "Deactivate"}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function UsersSection({ isBypass }) {
+  const { show: toast } = useToast();
+  const [users, setUsers]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviting, setInviting]   = useState(false);
+  const [form, setForm]           = useState({ name: "", email: "", role: "teacher", center: "" });
+
+  useEffect(() => {
+    settingsService.getUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleRoleChange(userId, newRole) {
+    try {
+      await settingsService.updateUser(userId, { role: newRole });
+      setUsers((prev) => prev.map((u) => (u.userId === userId || u.id === userId) ? { ...u, role: newRole } : u));
+      toast("Role updated", "success");
+    } catch { toast("Failed to update role", "error"); }
+  }
+
+  async function handleDeactivate(userId, currentStatus) {
+    const action = currentStatus === "inactive" ? "restore" : "deactivate";
+    try {
+      await settingsService.updateUser(userId, { status: currentStatus === "inactive" ? "active" : "inactive" });
+      setUsers((prev) => prev.map((u) =>
+        (u.userId === userId || u.id === userId)
+          ? { ...u, status: currentStatus === "inactive" ? "active" : "inactive" }
+          : u
+      ));
+      toast(`User ${action}d`, "success");
+    } catch { toast(`Failed to ${action} user`, "error"); }
+  }
+
+  async function handleInvite(e) {
+    e.preventDefault();
+    if (!form.email || !form.role) return;
+    setInviting(true);
+    try {
+      const newUser = await settingsService.inviteUser(form);
+      setUsers((prev) => [...prev, newUser.user || newUser]);
+      setInviteOpen(false);
+      setForm({ name: "", email: "", role: "teacher", center: "" });
+      toast("User invited successfully", "success");
+    } catch (err) {
+      toast(err.message || "Failed to invite user", "error");
+    }
+    setInviting(false);
+  }
+
+  return (
+    <>
+      <SectionHeader
+        title="User Management"
+        desc="Manage staff accounts, roles, and access for your school."
+        dirty={false}
+        saving={false}
+      >
+        {isBypass && (
+          <button className="btn btn-primary btn-sm" onClick={() => setInviteOpen(true)}>
+            <Icons.UserPlus /> Invite User
+          </button>
+        )}
+      </SectionHeader>
+
+      <Card>
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[1, 2, 3].map((i) => <div key={i} className="yd-stg-skeleton" style={{ height: 48 }} />)}
+          </div>
+        ) : users.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 16px", color: "var(--yd-text-muted)", fontSize: 13 }}>
+            No staff users found. <br />
+            <span style={{ fontSize: 11 }}>Backend /api/settings/users must be configured.</span>
+          </div>
+        ) : (
+          <div className="yd-usr-table-wrap">
+            <table className="yd-usr-table">
+              <thead>
+                <tr>
+                  <th>Name / Email</th>
+                  <th>Role</th>
+                  <th>Center</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <UserRow
+                    key={u.userId || u.id || i}
+                    user={u}
+                    onRoleChange={handleRoleChange}
+                    onDeactivate={handleDeactivate}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Invite User Modal */}
+      <Modal
+        isOpen={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        title="Invite New User"
+        footer={
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setInviteOpen(false)}>Cancel</button>
+            <button className="btn btn-primary btn-sm" onClick={handleInvite} disabled={inviting}>
+              {inviting ? "Inviting…" : "Send Invite"}
+            </button>
+          </div>
+        }
+      >
+        <form onSubmit={handleInvite}>
+          <div className="yd-invite-grid">
+            <Field label="Full Name">
+              <input className="yd-input" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Priya Sharma" required />
+            </Field>
+            <Field label="Email Address">
+              <input className="yd-input" type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="priya@school.com" required />
+            </Field>
+            <Field label="Role">
+              <select className="yd-input" value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
+                {MANAGEABLE_ROLES.map((r) => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Center">
+              <input className="yd-input" value={form.center} onChange={(e) => setForm((p) => ({ ...p, center: e.target.value }))} placeholder="Main Branch" />
+            </Field>
+          </div>
+        </form>
+      </Modal>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 7 — ROLE PERMISSIONS
+// ══════════════════════════════════════════════════════════════════
+
+// Human-readable route labels
+const ROUTE_LABELS = {
+  [ROUTES.DASHBOARD]:            "Dashboard",
+  [ROUTES.STUDENTS]:             "Students",
+  [ROUTES.ATTENDANCE]:           "Attendance",
+  [ROUTES.FEES]:                 "Fees",
+  [ROUTES.INVOICE]:              "Invoices",
+  [ROUTES.ANALYTICS]:            "Analytics",
+  [ROUTES.NAP_TRACKER]:          "Nap Tracker",
+  [ROUTES.FOOD_MENU]:            "Food Menu",
+  [ROUTES.FOOD_CONSUMPTION]:     "Food Log",
+  [ROUTES.LIVE_CCTV]:            "Live CCTV",
+  [ROUTES.CCTV_SETTINGS]:        "CCTV Settings",
+  [ROUTES.PARENT_CHECKIN]:       "Parent Check-In",
+  [ROUTES.PICKUP_AUTHORIZATION]: "Pickup Auth",
+  [ROUTES.PICKUP_HISTORY]:       "Pickup History",
+  [ROUTES.SETTINGS]:             "Settings",
+};
+
+const VISIBLE_ROUTES = Object.keys(ROUTE_LABELS);
+
+function PermissionsSection({ isBypass }) {
+  const { show: toast } = useToast();
+  // Build mutable state from ROLE_PERMISSIONS
+  const [matrix, setMatrix] = useState(() => {
+    const m = {};
+    ROLE_HIERARCHY.forEach((role) => {
+      m[role] = {};
+      VISIBLE_ROUTES.forEach((route) => {
+        const perms = ROLE_PERMISSIONS[role] || [];
+        m[role][route] = perms.includes("*") || perms.includes(route);
+      });
+    });
+    return m;
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (role, route) => {
+    if (isBypassRole(role)) return; // bypass roles are immutable
+    setMatrix((prev) => ({
+      ...prev,
+      [role]: { ...prev[role], [route]: !prev[role][route] },
+    }));
+  };
+
+  async function handleSave() {
+    setSaving(true);
+    // Convert matrix back to arrays for storage
+    const data = {};
+    ROLE_HIERARCHY.forEach((role) => {
+      if (isBypassRole(role)) return;
+      data[role] = VISIBLE_ROUTES.filter((r) => matrix[role][r]);
+    });
+    try {
+      await settingsService.save("permissions", data);
+      toast("Permissions saved — backend restart may be required to apply changes", "success", 6000);
+    } catch {
+      toast("Failed to save permissions", "error");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <>
+      <SectionHeader
+        title="Role Permissions"
+        desc="Control which features each staff role can access."
+        dirty={false}
+        saving={saving}
+        onSave={isBypass ? handleSave : undefined}
+      />
+
+      {!isBypass && (
+        <div className="yd-stg-warn-banner">
+          <Icons.AlertTriangle />
+          <span>Only <strong>Developer</strong> and <strong>Super Admin</strong> accounts can modify role permissions.</span>
+        </div>
+      )}
+
+      <div className="yd-stg-info-banner">
+        <Icons.Info />
+        <span>
+          <strong>Developer</strong> and <strong>Super Admin</strong> roles always have full access and cannot be restricted. Changes here are saved to the Settings sheet and require a backend sync to take effect.
+        </span>
+      </div>
+
+      <Card>
+        <div className="yd-perm-wrap">
+          <table className="yd-perm-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                {VISIBLE_ROUTES.map((r) => (
+                  <th key={r}>{ROUTE_LABELS[r]}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ROLE_HIERARCHY.map((role) => {
+                const bypass = isBypassRole(role);
+                return (
+                  <tr key={role} className={bypass ? "bypass-row" : ""}>
+                    <td>
+                      {ROLE_LABELS[role]}
+                      {bypass && (
+                        <span style={{ fontSize: 10, color: "var(--yd-yellow-dark)", marginLeft: 4, fontWeight: 700 }}>●</span>
+                      )}
+                    </td>
+                    {VISIBLE_ROUTES.map((route) => (
+                      <td key={route}>
+                        <input
+                          type="checkbox"
+                          className="yd-perm-cb"
+                          checked={bypass ? true : (matrix[role]?.[route] ?? false)}
+                          onChange={() => toggle(role, route)}
+                          disabled={bypass || !isBypass}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 8 — BRANDING
+// ══════════════════════════════════════════════════════════════════
+
+const ACCENT_COLORS = [
+  { hex: "#F4C400", label: "Yellow Dot (default)" },
+  { hex: "#F97316", label: "Warm Orange" },
+  { hex: "#22C55E", label: "Success Green" },
+  { hex: "#3B82F6", label: "Blue" },
+  { hex: "#8B5CF6", label: "Purple" },
+  { hex: "#EC4899", label: "Pink" },
+  { hex: "#1E1E1E", label: "Charcoal" },
+];
+
+function BrandingSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.branding, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.branding, ...data });
+  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+
+  return (
+    <>
+      <SectionHeader
+        title="Branding"
+        desc="Customize your logo, accent color, and report styles."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("branding", d)}
+      />
+
+      <Card title="Logo & Favicon" icon="Palette">
+        <div className="yd-stg-grid">
+          <Field label="Logo URL" hint="Used on invoice headers and reports">
+            <input className="yd-input" type="url" value={d.logoUrl} onChange={set("logoUrl")} placeholder="https://cdn.example.com/logo.png" />
+          </Field>
+          <Field label="Favicon URL" hint="Browser tab icon">
+            <input className="yd-input" type="url" value={d.faviconUrl} onChange={set("faviconUrl")} placeholder="https://cdn.example.com/favicon.ico" />
+          </Field>
+        </div>
+        {d.logoUrl && (
+          <div className="yd-stg-logo-preview" style={{ marginTop: 12 }}>
+            <img src={d.logoUrl} alt="Logo" className="yd-stg-logo-img" onError={(e) => { e.target.style.display = "none"; }} />
+            <span className="yd-stg-logo-label">Logo preview</span>
+          </div>
+        )}
+      </Card>
+
+      <Card title="Accent Color" icon="Palette">
+        <div className="yd-stg-info-banner" style={{ marginBottom: 14 }}>
+          <Icons.Info />
+          <span>Accent color is applied to buttons, highlights, and report headings. Full theme customization will be in a future update.</span>
+        </div>
+        <label className="yd-stg-label" style={{ display: "block", marginBottom: 10 }}>Choose accent color</label>
+        <div className="yd-color-swatch">
+          {ACCENT_COLORS.map(({ hex, label }) => (
+            <button
+              key={hex}
+              type="button"
+              className={`yd-color-chip${d.accentColor === hex ? " selected" : ""}`}
+              style={{ background: hex }}
+              title={label}
+              onClick={() => setD((p) => ({ ...p, accentColor: hex }))}
+            />
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Report Text" icon="Settings">
+        <div className="yd-stg-grid yd-stg-grid-1">
+          <Field label="Report Header" hint="Appears at the top of PDF reports and invoices">
+            <input className="yd-input" value={d.reportHeader} onChange={set("reportHeader")} placeholder="Yellow Dot Preschool" />
+          </Field>
+          <Field label="School Motto" hint="Displayed below header on formal documents">
+            <input className="yd-input" value={d.motto} onChange={set("motto")} placeholder="Where Little Minds Grow" />
+          </Field>
+          <Field label="Report Footer" hint="Appears at the bottom of each invoice">
+            <textarea
+              className="yd-input"
+              value={d.reportFooter}
+              onChange={set("reportFooter")}
+              rows={2}
+              style={{ resize: "vertical" }}
+              placeholder="Thank you for trusting us with your child's education."
+            />
+          </Field>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 9 — NOTIFICATIONS
+// ══════════════════════════════════════════════════════════════════
+
+const NOTIF_EVENTS = [
+  { id: "attendance",    label: "Attendance Marked",       sub: "When a student is checked in or out" },
+  { id: "feeReminder",   label: "Fee Reminder",            sub: "N days before invoice due date" },
+  { id: "invoice",       label: "Invoice Generated",       sub: "When a new invoice is created" },
+  { id: "pickup",        label: "Pickup Notification",     sub: "When a student is picked up" },
+  { id: "lowAttendance", label: "Low Attendance Alert",    sub: `When attendance drops below threshold` },
+];
+
+const CHANNELS = [
+  { id: "Email",     label: "Email" },
+  { id: "Whatsapp",  label: "WhatsApp" },
+  { id: "Sms",       label: "SMS" },
+];
+
+function NotifSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.notifications, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.notifications, ...data });
+  const key = (event, ch) => `${event}${ch}`;
+  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
+
+  return (
+    <>
+      <SectionHeader
+        title="Notification Settings"
+        desc="Choose which events trigger notifications and through which channels."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("notifications", d)}
+      />
+
+      <div className="yd-stg-info-banner">
+        <Icons.Info />
+        <span>Channel delivery requires backend configuration of SMS/WhatsApp provider. Email uses the configured SMTP server.</span>
+      </div>
+
+      <Card>
+        <div className="yd-notif-matrix">
+          {/* Header row */}
+          <div className="yd-notif-matrix-hd" style={{ textAlign: "left" }}>Event</div>
+          {CHANNELS.map((ch) => (
+            <div key={ch.id} className="yd-notif-matrix-hd">{ch.label}</div>
+          ))}
+
+          {/* Event rows */}
+          {NOTIF_EVENTS.map((ev) => (
+            <>
+              <div key={ev.id + "_label"} className="yd-notif-event">
+                <div>
+                  <div style={{ fontWeight: 500, color: "var(--yd-text)" }}>{ev.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--yd-text-muted)", marginTop: 1 }}>{ev.sub}</div>
+                </div>
+              </div>
+              {CHANNELS.map((ch) => (
+                <div key={ev.id + ch.id} className="yd-notif-cell">
+                  <Toggle
+                    checked={toBool(d[key(ev.id, ch.id)])}
+                    onChange={toggle(key(ev.id, ch.id))}
+                  />
+                </div>
+              ))}
+            </>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTION 10 — PARENT APP CONTROLS
+// ══════════════════════════════════════════════════════════════════
+
+const PARENT_TOGGLES = [
+  { key: "showAttendance",     label: "Attendance History",    sub: "Parents can view their child's daily attendance record" },
+  { key: "showFees",           label: "Fee Details",           sub: "Show outstanding balance and invoice history" },
+  { key: "showCctv",           label: "Live Camera Access",    sub: "Allow parents to view CCTV live feed (read-only)" },
+  { key: "showFoodMenu",       label: "Food Menu",             sub: "Display today's and weekly food menu" },
+  { key: "showNapLog",         label: "Nap Log",               sub: "Show nap times and durations for the day" },
+  { key: "showSiblingInfo",    label: "Sibling Information",   sub: "Show enrolled siblings on the parent portal" },
+  { key: "allowCheckinSelfie", label: "Check-In Selfie",       sub: "Require parent selfie photo during check-in" },
+  { key: "showPickupHistory",  label: "Pickup History",        sub: "Show pickup log with timestamps and authorizer" },
+  { key: "parentNotifications","label": "Push Notifications",  sub: "Enable real-time push notifications for parents" },
+];
+
+function ParentSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.parent, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.parent, ...data });
+  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
+
+  return (
+    <>
+      <SectionHeader
+        title="Parent App Controls"
+        desc="Manage what parents can see and do through the parent portal."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("parent", d)}
+      />
+
+      <Card title="Visibility & Permissions" icon="Smartphone">
+        {PARENT_TOGGLES.map(({ key: k, label, sub }) => (
+          <ToggleRow
+            key={k}
+            label={label}
+            sub={sub}
+            checked={toBool(d[k])}
+            onChange={toggle(k)}
+          />
+        ))}
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LOADING SKELETON
+// ══════════════════════════════════════════════════════════════════
+
+function SettingsSkeleton() {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, paddingBottom: 18, borderBottom: "1px solid var(--yd-border-light)" }}>
+        <div>
+          <div className="yd-stg-skeleton" style={{ height: 22, width: 180, marginBottom: 8 }} />
+          <div className="yd-stg-skeleton" style={{ height: 14, width: 280 }} />
+        </div>
+        <div className="yd-stg-skeleton" style={{ height: 32, width: 110 }} />
+      </div>
+      {[1, 2].map((i) => (
+        <div key={i} className="yd-stg-card" style={{ marginBottom: 14 }}>
+          <div className="yd-stg-skeleton" style={{ height: 16, width: 120, marginBottom: 16 }} />
+          <div className="yd-stg-grid">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j}>
+                <div className="yd-stg-skeleton" style={{ height: 10, width: 80, marginBottom: 6 }} />
+                <div className="yd-stg-skeleton" style={{ height: 36 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MAIN SETTINGS PAGE
+// ══════════════════════════════════════════════════════════════════
+
+export default function Settings() {
+  const { role, devRole, isDeveloper } = useAuth();
+  const { show: toast } = useToast();
+
+  const effectiveRole = devRole || role;
+  const isFullAccess  = isBypassRole(effectiveRole) || isDeveloper;
+
+  const [activeId,  setActiveId]  = useState("school");
+  const [settings,  setSettings]  = useState(null);   // null = loading
+  const [saving,    setSaving]    = useState(false);
+
+  // Load all settings on mount
+  useEffect(() => {
+    settingsService.getAll().then(setSettings);
+  }, []);
+
+  // Save a single section
+  const handleSave = useCallback(async (section, data) => {
+    setSaving(true);
+    try {
+      await settingsService.save(section, data);
+      setSettings((prev) => ({ ...prev, [section]: data }));
+      toast("Settings saved successfully", "success");
+    } catch (err) {
+      toast(err.message || "Failed to save — check backend connectivity", "error");
+    }
+    setSaving(false);
+  }, [toast]);
+
+  // Render the active section component
+  const renderSection = () => {
+    if (!settings) return <SettingsSkeleton />;
+    const props = { data: settings[activeId] || {}, onSave: handleSave, saving, isBypass: isFullAccess };
+    switch (activeId) {
+      case "school":        return <SchoolSection      {...props} />;
+      case "academic":      return <AcademicSection    {...props} />;
+      case "fees":          return <FeeSection         {...props} />;
+      case "attendance":    return <AttendanceSection  {...props} />;
+      case "cctv":          return <CCTVSection        {...props} />;
+      case "users":         return <UsersSection       isBypass={isFullAccess} />;
+      case "permissions":   return <PermissionsSection isBypass={isFullAccess} />;
+      case "branding":      return <BrandingSection    {...props} />;
+      case "notifications": return <NotifSection       {...props} />;
+      case "parent":        return <ParentSection      {...props} />;
+      default:              return null;
+    }
+  };
+
+  return (
+    <div className="yd-stg-shell">
+
+      {/* ── Left sidebar nav ─────────────────────────────────────── */}
+      <nav className="yd-stg-nav">
+        <div className="yd-stg-nav-hd">
+          <div className="yd-stg-nav-title">Settings</div>
+          <div className="yd-stg-nav-sub">System configuration</div>
+        </div>
+
+        <div className="yd-stg-nav-list">
+          {SECTIONS.map((sec, idx) => {
+            const I = Icons[sec.icon];
+            // Separator before User Management group
+            const needsSep = idx === 5;
+            return (
+              <>
+                {needsSep && <div key={sec.id + "_sep"} className="yd-stg-nav-sep" />}
+                <button
+                  key={sec.id}
+                  className={`yd-stg-nav-btn${activeId === sec.id ? " active" : ""}`}
+                  onClick={() => setActiveId(sec.id)}
+                >
+                  <span className="yd-stg-nav-icon">{I && <I />}</span>
+                  {sec.label}
+                </button>
+              </>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* ── Right content pane ───────────────────────────────────── */}
+      <div className="yd-stg-content">
+        <div className="yd-stg-inner">
+          {renderSection()}
+        </div>
+      </div>
+
+    </div>
+  );
+}

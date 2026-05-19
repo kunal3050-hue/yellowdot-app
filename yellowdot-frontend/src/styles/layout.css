@@ -1,0 +1,1201 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Yellow Dot CRM — Layout System
+   Shell, Sidebar, Topbar, Command Palette
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Shell ──────────────────────────────────────────────────────────── */
+
+.yd-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--yd-bg);
+}
+
+.yd-layout-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.yd-layout-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yd-border) transparent;
+}
+
+@media (max-width: 768px) {
+  .yd-layout-content {
+    padding: 20px 16px;
+  }
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+
+.yd-sl {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--yd-sidebar-bg);
+  border-right: 1px solid var(--yd-border);
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+  z-index: 20;
+}
+
+.yd-sl--collapsed {
+  width: 64px;
+}
+
+@media (max-width: 768px) {
+  .yd-sl {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px !important;
+    transform: translateX(-100%);
+    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 50;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .yd-sl--mobile-open {
+    transform: translateX(0);
+  }
+}
+
+/* Mobile backdrop */
+.yd-sl-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  animation: yd-fade-in 200ms ease;
+}
+
+/* Logo */
+.yd-sl-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 56px;
+  border-bottom: 1px solid var(--yd-border);
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.yd-sl-logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--yd-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--yd-black);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px var(--yd-yellow-shadow);
+  letter-spacing: -0.5px;
+}
+
+.yd-sl-logo-text {
+  overflow: hidden;
+  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 140px;
+}
+
+.yd-sl--collapsed .yd-sl-logo-text {
+  opacity: 0;
+  max-width: 0;
+}
+
+.yd-sl-logo-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--yd-charcoal);
+  line-height: 1;
+  letter-spacing: -0.3px;
+}
+
+.yd-sl-logo-sub {
+  font-size: 10px;
+  color: var(--yd-text-soft);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Nav */
+.yd-sl-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yd-border) transparent;
+}
+
+.yd-sl-group {
+  margin-bottom: 2px;
+}
+
+.yd-sl-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--yd-text-muted);
+  padding: 10px 18px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 180ms;
+}
+
+.yd-sl--collapsed .yd-sl-group-label {
+  opacity: 0;
+}
+
+.yd-sl-items {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.yd-sl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--yd-text-soft);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 140ms, color 140ms;
+  position: relative;
+  overflow: hidden;
+}
+
+.yd-sl-item:hover {
+  background: var(--yd-sidebar-hover);
+  color: var(--yd-text-warm);
+}
+
+.yd-sl-item.active {
+  background: var(--yd-yellow-light);
+  color: var(--yd-charcoal);
+  font-weight: 600;
+}
+
+.yd-sl-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--yd-yellow-dark);
+}
+
+.yd-sl-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--yd-text-muted);
+  transition: color 140ms, background 140ms;
+}
+
+.yd-sl-item:hover .yd-sl-item-icon {
+  color: var(--yd-text-warm);
+}
+
+.yd-sl-item.active .yd-sl-item-icon {
+  background: rgba(244, 196, 0, 0.2);
+  color: var(--yd-yellow-dark);
+}
+
+.yd-sl-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 120px;
+}
+
+.yd-sl--collapsed .yd-sl-item-label {
+  opacity: 0;
+  max-width: 0;
+}
+
+/* Footer */
+.yd-sl-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--yd-border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yd-sl-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 140ms;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.yd-sl-profile:hover {
+  background: var(--yd-sidebar-hover);
+}
+
+.yd-sl-profile-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 120px;
+}
+
+.yd-sl--collapsed .yd-sl-profile-info {
+  opacity: 0;
+  max-width: 0;
+}
+
+.yd-sl-profile-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--yd-charcoal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yd-sl-profile-role {
+  font-size: 10px;
+  color: var(--yd-text-soft);
+  margin-top: 1px;
+}
+
+.yd-sl-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--yd-text-muted);
+  transition: background 140ms, color 140ms;
+  font-family: var(--yd-font);
+}
+
+.yd-sl-collapse-btn:hover {
+  background: var(--yd-sidebar-hover);
+  color: var(--yd-charcoal);
+}
+
+@media (max-width: 768px) {
+  .yd-sl-collapse-btn {
+    display: none;
+  }
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────────── */
+
+.yd-tb {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--yd-border-light);
+  background: rgba(255, 253, 247, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  gap: 8px;
+  position: relative;
+  z-index: var(--yd-z-raised);
+}
+
+.yd-tb-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.yd-tb-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.yd-tb-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--yd-text-soft);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 140ms;
+}
+
+.yd-tb-menu-btn:hover {
+  background: var(--yd-soft);
+  color: var(--yd-charcoal);
+}
+
+@media (max-width: 768px) {
+  .yd-tb-menu-btn {
+    display: flex;
+  }
+}
+
+.yd-tb-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--yd-border);
+  background: var(--yd-soft);
+  cursor: pointer;
+  color: var(--yd-text-muted);
+  font-size: 12px;
+  font-family: var(--yd-font);
+  font-weight: 500;
+  transition: border-color 140ms, background 140ms, color 140ms, box-shadow 140ms;
+  max-width: 300px;
+  flex: 1;
+}
+
+.yd-tb-search-btn:hover {
+  border-color: var(--yd-border-warm);
+  background: var(--yd-white);
+  color: var(--yd-text-soft);
+  box-shadow: var(--yd-shadow-xs);
+}
+
+.yd-tb-search-text {
+  flex: 1;
+  text-align: left;
+}
+
+.yd-tb-search-hint {
+  font-size: 10px;
+  color: var(--yd-text-muted);
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .yd-tb-search-hint {
+    display: none;
+  }
+}
+
+.yd-tb-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--yd-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 140ms, color 140ms;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.yd-tb-icon-btn:hover {
+  background: var(--yd-soft);
+  color: var(--yd-charcoal);
+}
+
+.yd-tb-notif-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--yd-yellow);
+  border: 1.5px solid var(--yd-surface);
+  box-shadow: 0 0 0 1px rgba(244,196,0,0.4);
+}
+
+.yd-tb-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--yd-border);
+  flex-shrink: 0;
+}
+
+.yd-tb-profile-wrap {
+  position: relative;
+}
+
+.yd-tb-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+  font-family: var(--yd-font);
+}
+
+.yd-tb-profile-btn:hover {
+  background: var(--yd-soft);
+  border-color: var(--yd-border);
+}
+
+.yd-tb-profile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--yd-charcoal);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .yd-tb-profile-name {
+    display: none;
+  }
+}
+
+.yd-tb-chevron {
+  color: var(--yd-text-muted);
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.yd-tb-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* Profile / notification dropdown */
+.yd-tb-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--yd-border-light);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(236, 231, 216, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.09),
+    0 2px 8px rgba(244, 196, 0, 0.05);
+  padding: 6px;
+  z-index: var(--yd-z-dropdown);
+  animation: yd-dropdown-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.yd-tb-drop-header {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--yd-border-light);
+  margin-bottom: 4px;
+}
+
+.yd-tb-drop-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--yd-charcoal);
+  line-height: 1.2;
+}
+
+.yd-tb-drop-email {
+  font-size: 11px;
+  color: var(--yd-text-soft);
+  margin-top: 2px;
+}
+
+.yd-tb-drop-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--yd-text);
+  text-decoration: none;
+  transition: background 110ms;
+  background: transparent;
+  border: none;
+  width: 100%;
+  font-family: var(--yd-font);
+  font-weight: 500;
+  text-align: left;
+}
+
+.yd-tb-drop-item:hover {
+  background: var(--yd-soft);
+  color: var(--yd-charcoal);
+}
+
+.yd-tb-drop-item--danger {
+  color: var(--yd-danger);
+}
+
+.yd-tb-drop-item--danger:hover {
+  background: var(--yd-danger-soft);
+  color: var(--yd-danger);
+}
+
+.yd-tb-drop-sep {
+  height: 1px;
+  background: var(--yd-border-light);
+  margin: 4px 0;
+}
+
+/* ── Command palette ───────────────────────────────────────────────── */
+
+.yd-cmd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.40);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: var(--yd-z-modal);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 13vh;
+  animation: yd-fade-in 120ms ease;
+}
+
+.yd-cmd-modal {
+  width: 100%;
+  max-width: 560px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid var(--yd-border);
+  box-shadow:
+    0 0 0 1px rgba(236, 231, 216, 0.5),
+    0 24px 80px rgba(0, 0, 0, 0.16),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: yd-scale-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  margin: 0 16px;
+}
+
+.yd-cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--yd-border-light);
+}
+
+.yd-cmd-search-icon {
+  color: var(--yd-text-soft);
+  flex-shrink: 0;
+}
+
+.yd-cmd-input {
+  flex: 1;
+  height: 52px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--yd-font);
+  color: var(--yd-charcoal);
+  background: transparent;
+  letter-spacing: -0.01em;
+}
+
+.yd-cmd-input::placeholder {
+  color: var(--yd-text-muted);
+  font-weight: 400;
+}
+
+.yd-cmd-esc {
+  font-size: 10px;
+  color: var(--yd-text-muted);
+  background: var(--yd-soft);
+  border: 1px solid var(--yd-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  line-height: 1.5;
+  flex-shrink: 0;
+  font-family: "SF Mono", ui-monospace, monospace;
+}
+
+.yd-cmd-results {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yd-border) transparent;
+}
+
+.yd-cmd-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--yd-text-muted);
+  padding: 10px 10px 5px;
+}
+
+.yd-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 90ms;
+  text-decoration: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--yd-font);
+}
+
+.yd-cmd-item:hover,
+.yd-cmd-item--active {
+  background: var(--yd-yellow-light);
+}
+
+.yd-cmd-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--yd-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: background 90ms;
+}
+
+.yd-cmd-item--active .yd-cmd-item-icon,
+.yd-cmd-item:hover .yd-cmd-item-icon {
+  background: rgba(244, 196, 0, 0.18);
+}
+
+.yd-cmd-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--yd-charcoal);
+  flex: 1;
+  text-align: left;
+  letter-spacing: -0.01em;
+}
+
+.yd-cmd-item-group {
+  font-size: 10px;
+  color: var(--yd-text-muted);
+  flex-shrink: 0;
+}
+
+.yd-cmd-empty {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--yd-text-muted);
+  font-size: 13px;
+}
+
+.yd-cmd-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--yd-border-light);
+  font-size: 11px;
+  color: var(--yd-text-muted);
+  background: var(--yd-soft);
+}
+
+.yd-cmd-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.yd-cmd-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  font-size: 10px;
+  color: var(--yd-text-soft);
+  font-family: "SF Mono", ui-monospace, monospace;
+  box-shadow: 0 1px 0 var(--yd-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEW LAYOUT SHELL  (MainLayout uses .yd-page / .yd-content / .yd-scroll-area)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Page root ───────────────────────────────────────────────────── */
+
+.yd-page {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--yd-bg);
+}
+
+/* Right column: topbar + scrollable content */
+.yd-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.yd-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yd-border) transparent;
+}
+
+@media (max-width: 768px) {
+  .yd-scroll-area {
+    padding: 20px 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEW SIDEBAR CONTAINER  (new Sidebar.jsx uses .yd-sidebar)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.yd-sidebar {
+  width: var(--yd-sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--yd-sidebar-bg);
+  border-right: 1px solid var(--yd-border);
+  overflow: hidden;
+  position: relative;
+  z-index: var(--yd-z-sticky);
+}
+
+@media (max-width: 768px) {
+  .yd-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--yd-z-modal);
+    transform: translateX(-100%);
+    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .yd-sidebar--mobile-open {
+    transform: translateX(0);
+  }
+}
+
+/* ── Mobile close button ─────────────────────────────────────────── */
+
+.yd-sl-mobile-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--yd-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 120ms, color 120ms;
+}
+
+.yd-sl-mobile-close:hover {
+  background: var(--yd-sidebar-hover);
+  color: var(--yd-charcoal);
+}
+
+/* ── Dev role override banner ────────────────────────────────────── */
+
+.yd-sl-dev-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.10),
+    rgba(37, 99, 235, 0.05)
+  );
+  border-bottom: 1px solid rgba(37, 99, 235, 0.14);
+  font-size: 11px;
+  color: var(--yd-info);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.yd-sl-dev-banner-clear {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--yd-info);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 120ms;
+}
+
+.yd-sl-dev-banner-clear:hover {
+  opacity: 1;
+}
+
+/* ── Group header (section label row) ───────────────────────────── */
+
+.yd-sl-group-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 4px;
+  gap: 6px;
+}
+
+/* When label is inside a header, the header provides the padding */
+.yd-sl-group-header .yd-sl-group-label {
+  padding: 0;
+}
+
+/* Makes the entire header clickable with hover feedback */
+.yd-sl-group-header--toggle {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms;
+}
+
+.yd-sl-group-header--toggle:hover {
+  background: var(--yd-sidebar-hover);
+}
+
+/* Chevron icon — rotates when section opens */
+.yd-sl-group-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--yd-text-muted);
+  margin-left: auto;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: rotate(0deg);
+}
+
+.yd-sl-group-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* ── Collapsible section body ────────────────────────────────────── */
+/*
+   max-height animation: browser can't transition to "auto", so we use
+   a generous fixed max. 600px covers 8+ items with room to spare.
+*/
+.yd-sl-section-body {
+  overflow: hidden;
+  transition:
+    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity    180ms ease;
+}
+
+.yd-sl-section-body--open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+.yd-sl-section-body--closed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ── Item badges ─────────────────────────────────────────────────── */
+
+.yd-sl-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: var(--yd-radius-full);
+  line-height: 1;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Numeric count — yellow pill */
+.yd-sl-badge--count {
+  background: var(--yd-yellow);
+  color: var(--yd-black);
+  min-width: 18px;
+  justify-content: center;
+}
+
+/* Pulsing red LIVE dot */
+.yd-sl-badge--live {
+  background: #EF4444;
+  color: #FFFFFF;
+  animation: yd-pulse 2s ease-in-out infinite;
+}
+
+/* Blue NEW pill */
+.yd-sl-badge--new {
+  background: var(--yd-info);
+  color: #FFFFFF;
+}
+
+/* Yellow SOON pill */
+.yd-sl-badge--soon {
+  background: var(--yd-yellow);
+  color: var(--yd-black);
+}
+
+/* ── Developer group styling ─────────────────────────────────────── */
+
+.yd-sl-group--dev {
+  border-top: 1px solid var(--yd-border-light);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.yd-sl-group--dev .yd-sl-group-label,
+.yd-sl-group-label--dev {
+  color: var(--yd-info);
+  opacity: 0.85;
+}
+
+/* ── Sidebar item — button reset ─────────────────────────────────── */
+/*
+   SidebarItem renders as either <Link> or <button>.
+   The base .yd-sl-item styles cover both, but buttons need extra reset.
+*/
+button.yd-sl-item {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-family: var(--yd-font);
+  text-align: left;
+}
+
+/* ── Footer section (wraps dev toggle + dev panel) ───────────────── */
+
+.yd-sl-footer-section {
+  flex-shrink: 0;
+  border-top: 1px solid var(--yd-border-light);
+}
+
+/* ── Dev panel toggle button ─────────────────────────────────────── */
+
+.yd-sl-dev-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--yd-info);
+  font-family: var(--yd-font);
+  transition: background 120ms;
+  text-align: left;
+}
+
+.yd-sl-dev-toggle:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.yd-sl-dev-toggle.active {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* ── Dev panel (role switcher) ───────────────────────────────────── */
+
+.yd-sl-dev-panel {
+  padding: 6px 10px 10px;
+}
+
+.yd-sl-dev-panel-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--yd-text-muted);
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.yd-sl-dev-panel-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.yd-sl-dev-role-btn {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--yd-font);
+  color: var(--yd-text-soft);
+  text-align: left;
+  transition: background 100ms, color 100ms, border-color 100ms;
+}
+
+.yd-sl-dev-role-btn:hover {
+  background: var(--yd-soft);
+  color: var(--yd-charcoal);
+}
+
+.yd-sl-dev-role-btn.active {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.22);
+  color: var(--yd-info);
+  font-weight: 600;
+}
+
+.yd-sl-dev-reset {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--yd-border-warm);
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--yd-font);
+  color: var(--yd-text-muted);
+  text-align: center;
+  transition: background 100ms, color 100ms, border-color 100ms;
+}
+
+.yd-sl-dev-reset:hover {
+  background: var(--yd-danger-soft);
+  border-color: var(--yd-danger-border);
+  color: var(--yd-danger);
+}
+
+/* ── User footer row ─────────────────────────────────────────────── */
+
+.yd-sl-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 8px;
+}
+
+.yd-sl-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.yd-sl-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--yd-charcoal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.yd-sl-user-role {
+  font-size: 10px;
+  color: var(--yd-text-soft);
+  margin-top: 1px;
+}
+
+/* Logout icon button */
+.yd-sl-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--yd-text-muted);
+  flex-shrink: 0;
+  transition: background 120ms, color 120ms;
+}
+
+.yd-sl-logout-btn:hover {
+  background: var(--yd-danger-soft);
+  color: var(--yd-danger);
+}

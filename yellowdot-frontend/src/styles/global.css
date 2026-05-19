@@ -1,0 +1,243 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   YELLOW DOT CRM — GLOBAL BASE STYLES
+   Reset · Base elements · Typography scale · Layout primitives · Utilities
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Tailwind base layers */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts ────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────── */
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--yd-font);
+  font-size: var(--yd-font-size-base);
+  line-height: var(--yd-leading-normal);
+  color: var(--yd-text);
+  background: var(--yd-bg);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: var(--yd-font);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--yd-font);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ── Typography Scale ────────────────────────────────────────────────── */
+
+/* Display — hero text */
+.yd-display {
+  font-size: var(--yd-font-size-4xl);
+  font-weight: var(--yd-weight-black);
+  line-height: var(--yd-leading-tight);
+  letter-spacing: var(--yd-tracking-tight);
+  color: var(--yd-black);
+}
+
+/* Page title — 28–32px */
+.yd-title-page {
+  font-size: 32px;
+  font-weight: var(--yd-weight-extra);
+  line-height: var(--yd-leading-tight);
+  letter-spacing: var(--yd-tracking-snug);
+  color: var(--yd-charcoal);
+}
+
+/* Section title — 18px */
+.yd-title-section {
+  font-size: var(--yd-font-size-lg);
+  font-weight: var(--yd-weight-bold);
+  line-height: var(--yd-leading-snug);
+  color: var(--yd-charcoal);
+}
+
+/* Card / module title — 15px */
+.yd-title-card {
+  font-size: var(--yd-font-size-md);
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-charcoal);
+}
+
+/* Modal title */
+.yd-title-modal {
+  font-size: var(--yd-font-size-md);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-charcoal);
+}
+
+/* Body text */
+.yd-text-primary   { font-size: var(--yd-font-size-base); font-weight: var(--yd-weight-medium); color: var(--yd-text); }
+.yd-text-secondary { font-size: var(--yd-font-size-sm);   color: var(--yd-text-soft); }
+.yd-text-caption   { font-size: var(--yd-font-size-xs);   color: var(--yd-text-muted); }
+.yd-text-label {
+  font-size: var(--yd-font-size-xs);
+  font-weight: var(--yd-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--yd-tracking-wider);
+  color: var(--yd-text-muted);
+}
+
+/* ── Layout Primitives ───────────────────────────────────────────────── */
+
+/* Full-height page shell (sidebar + content) */
+.yd-page {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--yd-bg);
+}
+
+/* Content area — right of sidebar */
+.yd-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Sticky compact page header bar */
+.yd-page-header {
+  flex-shrink: 0;
+  background: var(--yd-surface);
+  border-bottom: 1px solid var(--yd-border-light);
+  padding: var(--yd-space-3) var(--yd-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(244,196,0,0.05);
+}
+
+.yd-page-header h1 {
+  font-size: var(--yd-font-size-md);
+  font-weight: var(--yd-weight-extra);
+  color: var(--yd-charcoal);
+  line-height: 1;
+}
+
+.yd-page-header p {
+  font-size: var(--yd-font-size-xs);
+  color: var(--yd-text-muted);
+  margin-top: 2px;
+}
+
+/* Scrollable main content zone */
+.yd-scroll-area {
+  flex: 1;
+  overflow: auto;
+  padding: var(--yd-space-4);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+
+.yd-sidebar {
+  width: var(--yd-sidebar-width);
+  flex-shrink: 0;
+  background: var(--yd-sidebar-bg);
+  border-right: 1px solid var(--yd-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 1px 0 8px rgba(244,196,0,0.06);
+}
+
+.yd-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--yd-space-2);
+  padding: 9px var(--yd-space-3);
+  border-radius: var(--yd-radius-sm);
+  font-size: var(--yd-font-size-sm);
+  font-weight: var(--yd-weight-medium);
+  color: var(--yd-text-soft);
+  transition: var(--yd-transition);
+  text-decoration: none;
+  position: relative;
+  cursor: pointer;
+}
+.yd-nav-item:hover {
+  background: var(--yd-sidebar-hover);
+  color: var(--yd-charcoal);
+}
+.yd-nav-item.active {
+  background: var(--yd-yellow-light);
+  color: var(--yd-charcoal);
+  font-weight: var(--yd-weight-bold);
+  box-shadow: inset 3px 0 0 var(--yd-yellow), 0 2px 8px var(--yd-yellow-glow);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────── */
+
+.yd-divider {
+  height: 1px;
+  background: var(--yd-border-light);
+  margin: var(--yd-space-3) 0;
+}
+
+/* ── Truncate ────────────────────────────────────────────────────────── */
+
+.yd-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Tag ─────────────────────────────────────────────────────────────── */
+
+.yd-tag {
+  display: inline-block;
+  padding: 2px var(--yd-space-2);
+  border-radius: var(--yd-radius-xs);
+  font-size: var(--yd-font-size-xs);
+  font-weight: var(--yd-weight-semi);
+  background: var(--yd-yellow-light);
+  color: var(--yd-charcoal);
+  border: 1px solid var(--yd-yellow);
+}
+
+/* ── Screen reader only ──────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

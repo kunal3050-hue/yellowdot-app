@@ -1,0 +1,154 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   YELLOW DOT CRM — DESIGN TOKENS
+   Single source of truth for every visual value in the system.
+   ═══════════════════════════════════════════════════════════════════════
+   Usage: var(--yd-{token})
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+
+  /* ── Brand Yellows ───────────────────────────────────────────────── */
+  --yd-yellow:         #F4C400;
+  --yd-yellow-dark:    #D9AE00;
+  --yd-yellow-light:   #FFF4BF;
+  --yd-yellow-pale:    #FFFDF7;
+  --yd-yellow-glow:    rgba(244, 196, 0, 0.18);
+  --yd-yellow-shadow:  rgba(244, 196, 0, 0.35);
+
+  /* ── Neutrals ────────────────────────────────────────────────────── */
+  --yd-white:          #FFFFFF;
+  --yd-cream:          #FFFDF7;
+  --yd-soft:           #F8F6EF;
+  --yd-black:          #111111;
+  --yd-charcoal:       #1E1E1E;
+
+  /* ── Surfaces ────────────────────────────────────────────────────── */
+  --yd-surface:        #FFFFFF;
+  --yd-surface-raised: #FFFFFF;
+  --yd-bg:             #FFFDF7;
+  --yd-sidebar-bg:     #FFFBEA;
+  --yd-sidebar-hover:  #FFF4BF;
+
+  /* ── Borders ─────────────────────────────────────────────────────── */
+  --yd-border:         #ECE7D8;
+  --yd-border-light:   #F0EBD8;
+  --yd-border-warm:    #E8DFC8;
+
+  /* ── Text ────────────────────────────────────────────────────────── */
+  --yd-text:           #2A2A2A;
+  --yd-text-soft:      #6B7280;
+  --yd-text-muted:     #9CA3AF;
+  --yd-text-warm:      #4A3F2A;
+
+  /* ── Semantic — Success ──────────────────────────────────────────── */
+  --yd-success:        #16A34A;
+  --yd-success-soft:   #F0FDF4;
+  --yd-success-border: #BBF7D0;
+
+  /* ── Semantic — Danger ───────────────────────────────────────────── */
+  --yd-danger:         #DC2626;
+  --yd-danger-soft:    #FEF2F2;
+  --yd-danger-border:  #FECACA;
+
+  /* ── Semantic — Warning ──────────────────────────────────────────── */
+  --yd-warning:        #D97706;
+  --yd-warning-soft:   #FFFBEB;
+  --yd-warning-border: #FDE68A;
+
+  /* ── Semantic — Info ─────────────────────────────────────────────── */
+  --yd-info:           #2563EB;
+  --yd-info-soft:      #EFF6FF;
+  --yd-info-border:    #BFDBFE;
+
+  /* ── Typography ──────────────────────────────────────────────────── */
+  --yd-font:           "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --yd-font-size-xs:   10px;
+  --yd-font-size-sm:   12px;
+  --yd-font-size-base: 14px;
+  --yd-font-size-md:   15px;
+  --yd-font-size-lg:   18px;
+  --yd-font-size-xl:   22px;
+  --yd-font-size-2xl:  28px;
+  --yd-font-size-3xl:  36px;
+  --yd-font-size-4xl:  46px;
+
+  --yd-weight-regular: 400;
+  --yd-weight-medium:  500;
+  --yd-weight-semi:    600;
+  --yd-weight-bold:    700;
+  --yd-weight-extra:   800;
+  --yd-weight-black:   900;
+
+  --yd-leading-tight:  1.1;
+  --yd-leading-snug:   1.3;
+  --yd-leading-normal: 1.5;
+  --yd-leading-relaxed:1.65;
+
+  --yd-tracking-tight: -0.03em;
+  --yd-tracking-snug:  -0.02em;
+  --yd-tracking-normal: 0;
+  --yd-tracking-wide:  0.04em;
+  --yd-tracking-wider: 0.06em;
+
+  /* ── Spacing Scale ───────────────────────────────────────────────── */
+  --yd-space-1:  4px;
+  --yd-space-2:  8px;
+  --yd-space-3:  12px;
+  --yd-space-4:  16px;
+  --yd-space-5:  20px;
+  --yd-space-6:  24px;
+  --yd-space-8:  32px;
+  --yd-space-10: 40px;
+  --yd-space-12: 48px;
+  --yd-space-16: 64px;
+  --yd-space-20: 80px;
+
+  /* ── Border Radius ───────────────────────────────────────────────── */
+  --yd-radius-xs:  4px;
+  --yd-radius-sm:  6px;
+  --yd-radius:     10px;
+  --yd-radius-md:  14px;
+  --yd-radius-lg:  18px;
+  --yd-radius-xl:  24px;
+  --yd-radius-2xl: 32px;
+  --yd-radius-full: 9999px;
+
+  /* ── Shadows — warm yellow-tinted, never blue ────────────────────── */
+  --yd-shadow-xs:     0 1px 2px rgba(0, 0, 0, 0.04);
+  --yd-shadow-sm:     0 1px 3px rgba(244,196,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --yd-shadow:        0 4px 16px rgba(244,196,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+  --yd-shadow-md:     0 8px 24px rgba(244,196,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+  --yd-shadow-lg:     0 16px 48px rgba(244,196,0,0.12), 0 8px 16px rgba(0,0,0,0.07);
+  --yd-shadow-xl:     0 24px 80px rgba(244,196,0,0.14), 0 12px 32px rgba(0,0,0,0.08);
+  --yd-shadow-yellow: 0 4px 16px rgba(244,196,0,0.40);
+  --yd-shadow-card:   0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(236,231,216,0.8);
+  --yd-shadow-inset:  inset 0 1px 3px rgba(0,0,0,0.06);
+
+  /* ── Transitions ─────────────────────────────────────────────────── */
+  --yd-ease:         cubic-bezier(0.4, 0, 0.2, 1);
+  --yd-ease-spring:  cubic-bezier(0.22, 1, 0.36, 1);
+  --yd-ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --yd-duration-fast:    0.12s;
+  --yd-duration:         0.18s;
+  --yd-duration-slow:    0.28s;
+  --yd-transition:       all var(--yd-duration) var(--yd-ease);
+  --yd-transition-fast:  all var(--yd-duration-fast) var(--yd-ease);
+
+  /* ── Z-Index Scale ───────────────────────────────────────────────── */
+  --yd-z-below:    -1;
+  --yd-z-base:      0;
+  --yd-z-raised:   10;
+  --yd-z-sticky:   20;
+  --yd-z-dropdown: 100;
+  --yd-z-modal:    200;
+  --yd-z-toast:    300;
+  --yd-z-top:      400;
+
+  /* ── Layout ──────────────────────────────────────────────────────── */
+  --yd-sidebar-width:      220px;
+  --yd-sidebar-collapsed:   64px;
+  --yd-topbar-height:       60px;
+  --yd-content-max:       1120px;
+  --yd-card-max:            540px;
+  --yd-auth-card-max:       460px;
+}

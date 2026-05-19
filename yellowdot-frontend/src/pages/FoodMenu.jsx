@@ -1,0 +1,567 @@
+// ─────────────────────────────────────────────────────────────────
+// FoodMenu — /food-menu
+//
+// Layout:
+//   • Sticky header (title + stats + Enter Menu button)
+//   • Premium table — last 30 days, newest first
+//     Columns: Date | 6 meal types | Actions (Edit · Delete)
+//     Each row always shows all 6 columns (empty = "—")
+//   • MenuEntryModal for enter/edit
+//   • DeleteConfirmModal for delete
+// ─────────────────────────────────────────────────────────────────
+
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Sidebar           from "../components/Sidebar";
+import MenuEntryModal, { MEAL_TYPES } from "../components/food/MenuEntryModal";
+import DeleteConfirmModal from "../components/food/DeleteConfirmModal";
+import foodMenuService    from "../services/foodMenuService";
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+function todayISO() { return new Date().toISOString().split("T")[0]; }
+
+function cutoffISO() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().split("T")[0];
+}
+
+function fmtTableDate(iso) {
+  if (!iso) return iso;
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
+    weekday: "short", day: "2-digit", month: "short",
+  });
+}
+
+function isToday(iso)     { return iso === todayISO(); }
+function isYesterday(iso) {
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  return iso === y.toISOString().split("T")[0];
+}
+
+// ── Toast hook ────────────────────────────────────────────────────
+
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const dismiss = useCallback(id => setToasts(t => t.filter(x => x.id !== id)), []);
+  const add = useCallback((type, message) => {
+    const id = Date.now() + Math.random();
+    setToasts(t => [...t, { id, type, message }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4500);
+  }, []);
+  const success = useCallback(msg => add("success", msg), [add]);
+  const error   = useCallback(msg => add("error",   msg), [add]);
+  return { toasts, success, error, dismiss };
+}
+
+// ── Toast stack ───────────────────────────────────────────────────
+
+function ToastStack({ toasts, onDismiss }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:left-auto sm:right-6 z-[100] flex flex-col gap-2 sm:gap-3 p-4 sm:p-0 pointer-events-none">
+      {toasts.map(t => (
+        <div
+          key={t.id}
+          className={`
+            flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4 rounded-2xl shadow-2xl
+            text-sm font-semibold w-full sm:min-w-[280px] sm:max-w-sm
+            pointer-events-auto animate-toast-in
+            ${t.type === "success" ? "bg-yd-navy text-white" : "bg-rose-600 text-white"}
+          `}
+        >
+          <span className="text-xl flex-shrink-0 leading-none select-none">
+            {t.type === "success" ? "✅" : "❌"}
+          </span>
+          <span className="flex-1 leading-snug">{t.message}</span>
+          <button
+            onClick={() => onDismiss(t.id)}
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-all text-white/80 hover:text-white font-bold"
+          >×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Skeleton row ──────────────────────────────────────────────────
+
+function SkeletonTable() {
+  return (
+    <div className="animate-pulse">
+      {[0, 1, 2, 3].map(i => (
+        <div
+          key={i}
+          className="flex items-center gap-4 px-6 py-4 border-b border-gray-50"
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <div className="w-28 h-3 bg-gray-100 rounded-full" />
+          {MEAL_TYPES.map(mt => (
+            <div key={mt.type} className="flex-1 h-3 bg-gray-100 rounded-full" />
+          ))}
+          <div className="w-20 h-7 bg-gray-100 rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Empty state ───────────────────────────────────────────────────
+
+function EmptyState({ onEnter }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="relative w-20 h-20 flex items-center justify-center mb-5 select-none">
+        <div className="absolute inset-0 rounded-full bg-[#FFFBEA]" />
+        <div className="absolute inset-3 rounded-full bg-[#FFF0A0]/60" />
+        <span className="text-3xl relative z-10">🍽️</span>
+      </div>
+      <p className="text-lg font-black text-gray-800">No Menus Yet</p>
+      <p className="text-gray-400 mt-1.5 text-sm max-w-[260px] leading-relaxed">
+        Start adding daily menus — they'll appear here.
+      </p>
+      <button
+        onClick={onEnter}
+        className="mt-5 px-6 py-2.5 bg-[var(--yd-yellow-light)] hover:bg-yd-yellow-hover text-yd-navy font-black text-sm rounded-2xl transition-all active:scale-95 shadow-sm"
+      >
+        ✏️ Enter First Menu
+      </button>
+    </div>
+  );
+}
+
+// ── Error state ───────────────────────────────────────────────────
+
+function ErrorState({ onRetry }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm select-none">⚠️</div>
+      <p className="text-lg font-black text-gray-800">Connection Error</p>
+      <p className="text-gray-400 mt-1.5 text-sm max-w-[260px] leading-relaxed">
+        Could not reach the server. Make sure the backend is running on port 5000.
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-5 px-6 py-2.5 bg-[var(--yd-yellow-light)] hover:bg-yd-yellow-hover text-yd-navy font-black text-sm rounded-2xl transition-all active:scale-95 shadow-sm"
+      >
+        ↺ Retry
+      </button>
+    </div>
+  );
+}
+
+// ── Meal cell content ─────────────────────────────────────────────
+
+const MEAL_PILL = {
+  "Breakfast":   "bg-orange-50 text-orange-600",
+  "Mid-Morning": "bg-green-50  text-green-600",
+  "Roti Sabzi":  "bg-amber-50  text-amber-600",
+  "Dal Rice":    "bg-yellow-50 text-yellow-700",
+  "Milk":        "bg-sky-50    text-sky-600",
+  "Snacks":      "bg-violet-50 text-violet-600",
+};
+
+function MealCell({ mealType, itemName, unitType }) {
+  if (!itemName) {
+    return <span className="text-gray-200 text-xs select-none">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <span className="text-[13px] font-semibold text-gray-700 truncate leading-tight" title={itemName}>
+        {itemName}
+      </span>
+      <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${MEAL_PILL[mealType] || "bg-gray-50 text-gray-500"}`}>
+        {unitType}
+      </span>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────
+
+export default function FoodMenu() {
+  const [menus,     setMenus]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [bootError, setBootError] = useState(false);
+
+  // Modal state
+  const [showEntryModal, setShowEntryModal] = useState(false);
+  const [editTarget,     setEditTarget]     = useState(null);  // { date, mealMap }
+  const [deleteTarget,   setDeleteTarget]   = useState(null);  // { date, count }
+
+  const toast        = useToast();
+  const mountedRef   = useRef(true);
+  const fetchingRef  = useRef(false);   // guard: prevent concurrent/loop fetches
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ── Load menus ──────────────────────────────────────────────────
+  // Stable callback ([] deps) — never gets a new reference between renders,
+  // so the useEffect below fires exactly once on mount (not on every render).
+  // fetchingRef prevents a second in-flight request if React StrictMode
+  // double-fires the effect in development.
+
+  const loadMenus = useCallback(async () => {
+    if (fetchingRef.current) return;      // already in flight — skip
+    if (!mountedRef.current) return;
+    fetchingRef.current = true;
+    setLoading(true);
+    setBootError(false);
+    try {
+      const data = await foodMenuService.getMenus();
+      if (!mountedRef.current) return;
+      setMenus(Array.isArray(data) ? data : []);
+    } catch {
+      if (!mountedRef.current) return;
+      setBootError(true);
+      // No toast here — toast.error() changes toast state → triggers re-render
+      // → new toast ref → new loadMenus ref → useEffect fires again → loop.
+      // ErrorState component handles the UI for connection failures instead.
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+        fetchingRef.current = false;
+      }
+    }
+  }, []); // ← empty deps: stable reference, zero re-subscription loop risk
+
+  useEffect(() => { loadMenus(); }, [loadMenus]);
+
+  // ── Derived: table rows ─────────────────────────────────────────
+  // Groups flat meal rows by date, keeps only last 30 days,
+  // and reconstructs all 6 meal slots (even if empty) per date.
+
+  const tableRows = useMemo(() => {
+    const cutoff = cutoffISO();
+
+    // Build { date → { mealType → { itemName, unitType } } }
+    const byDate = {};
+    menus.forEach(m => {
+      if (m.date < cutoff) return;
+      if (!byDate[m.date]) byDate[m.date] = {};
+      byDate[m.date][m.mealType] = { itemName: m.itemName, unitType: m.unitType };
+    });
+
+    return Object.entries(byDate)
+      .sort(([a], [b]) => b.localeCompare(a))  // newest first
+      .map(([date, mealMap]) => ({ date, mealMap }));
+  }, [menus]);
+
+  // ── Stats ───────────────────────────────────────────────────────
+  const totalMenus   = tableRows.length;
+  const thisWeekCount = useMemo(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const cutoff = weekAgo.toISOString().split("T")[0];
+    return tableRows.filter(r => r.date >= cutoff).length;
+  }, [tableRows]);
+
+  // ── Enter Menu ──────────────────────────────────────────────────
+
+  const openEnterModal = () => {
+    setEditTarget(null);
+    setShowEntryModal(true);
+  };
+
+  const handleEnterSave = async (date, mealsArray) => {
+    try {
+      const result = await foodMenuService.saveMenu({ date, meals: mealsArray });
+      toast.success(result.message || "Menu saved! 🍽️");
+      setShowEntryModal(false);
+      await loadMenus();
+    } catch (err) {
+      toast.error(err.message || "Could not save menu.");
+      throw err;  // keep modal open
+    }
+  };
+
+  // ── Edit ────────────────────────────────────────────────────────
+
+  const openEditModal = useCallback((row) => {
+    setShowEntryModal(false);
+    setEditTarget(row);   // { date, mealMap }
+  }, []);
+
+  const handleEditSave = async (date, mealsArray) => {
+    try {
+      const result = await foodMenuService.updateMenu(date, { meals: mealsArray });
+      toast.success(result.message || "Menu updated! ✓");
+      setEditTarget(null);
+      await loadMenus();
+    } catch (err) {
+      toast.error(err.message || "Could not update menu.");
+      throw err;
+    }
+  };
+
+  // ── Delete ──────────────────────────────────────────────────────
+
+  const openDeleteModal = useCallback((row) => {
+    const count = Object.values(row.mealMap).filter(m => m.itemName).length;
+    setDeleteTarget({ date: row.date, count });
+  }, []);
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await foodMenuService.deleteMenu(deleteTarget.date);
+      toast.success(`Menu for ${deleteTarget.date} deleted.`);
+      setDeleteTarget(null);
+      await loadMenus();
+    } catch (err) {
+      toast.error(err.message || "Could not delete menu.");
+      throw err;
+    }
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // RENDER
+  // ────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="flex h-screen bg-gradient-to-br from-[#F8F9FF] via-[#F7F8FC] to-[#FFFDF5] overflow-hidden">
+      <Sidebar />
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+
+        {/* ── STICKY HEADER ──────────────────────────────────────── */}
+        <div className="flex-shrink-0 bg-white/[0.98] backdrop-blur-2xl border-b border-gray-100 shadow-sm z-20">
+          <div className="px-6 md:px-10 py-4 md:py-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+              {/* Left: title */}
+              <div className="flex-shrink-0">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+                  Yellow Dot · Staff View
+                </p>
+                <h1 className="text-3xl md:text-4xl font-black text-yd-navy tracking-tight leading-none mt-0.5">
+                  Food Menu
+                </h1>
+                <p className="text-gray-400 text-sm mt-1 font-medium">
+                  Manage daily meal plans · last 30 days
+                </p>
+              </div>
+
+              {/* Right: stats + CTA */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="hidden sm:flex items-center gap-3">
+                  <div className="bg-yd-bg border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[80px]">
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">This Week</p>
+                    <p className="text-2xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
+                      {loading ? "—" : thisWeekCount}
+                    </p>
+                  </div>
+                  <div className="bg-yd-bg border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[80px]">
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
+                    <p className="text-2xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
+                      {loading ? "—" : totalMenus}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Enter Menu CTA */}
+                <button
+                  onClick={openEnterModal}
+                  className="
+                    group relative overflow-hidden
+                    flex items-center gap-2 px-5 py-3 rounded-2xl
+                    bg-gradient-to-r from-[var(--yd-yellow-light)] to-yd-yellow-hover
+                    text-yd-navy text-sm font-black
+                    shadow-md shadow-yellow-200/60
+                    hover:shadow-lg hover:shadow-yellow-300/50
+                    active:scale-[0.98] transition-all duration-200
+                  "
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                  />
+                  <span className="relative flex items-center gap-2">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                    </svg>
+                    Enter Menu
+                  </span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ── TABLE SECTION ───────────────────────────────────────── */}
+        <div className="flex-1 overflow-auto px-6 md:px-10 py-7">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-w-[900px]">
+
+            {/* ── Table header ── */}
+            <div className="bg-gradient-to-r from-yd-navy via-yd-navy-2 to-yd-navy-2 px-6 py-4 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-[var(--yd-yellow-light)]/6 rounded-full blur-2xl pointer-events-none" />
+              <div className="relative grid gap-3" style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}>
+                <span className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest">Date</span>
+                {MEAL_TYPES.map(mt => (
+                  <span key={mt.type} className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="text-sm leading-none">{mt.emoji}</span>
+                    {mt.type}
+                  </span>
+                ))}
+                <span className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest text-right">Actions</span>
+              </div>
+            </div>
+
+            {/* ── Table body ── */}
+            {loading ? (
+              <SkeletonTable />
+            ) : bootError ? (
+              <ErrorState onRetry={loadMenus} />
+            ) : tableRows.length === 0 ? (
+              <EmptyState onEnter={openEnterModal} />
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {tableRows.map((row, rowIdx) => {
+                  const today     = isToday(row.date);
+                  const yesterday = isYesterday(row.date);
+                  return (
+                    <div
+                      key={row.date}
+                      className={`
+                        group grid gap-3 px-6 py-4 transition-colors duration-150
+                        hover:bg-[#FAFBFF]
+                        ${today ? "bg-[#FFFDF0]" : ""}
+                      `}
+                      style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}
+                    >
+                      {/* Date column */}
+                      <div className="flex flex-col justify-center min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-sm font-black leading-tight ${today ? "text-yd-navy" : "text-gray-700"}`}>
+                            {fmtTableDate(row.date)}
+                          </span>
+                          {today && (
+                            <span className="px-1.5 py-0.5 rounded-lg bg-[var(--yd-yellow-light)] text-yd-navy text-[9px] font-black uppercase tracking-wide">
+                              Today
+                            </span>
+                          )}
+                          {yesterday && (
+                            <span className="px-1.5 py-0.5 rounded-lg bg-gray-100 text-gray-500 text-[9px] font-black uppercase tracking-wide">
+                              Yesterday
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                          {row.date}
+                        </span>
+                      </div>
+
+                      {/* 6 meal columns — always all 6, empty = "—" */}
+                      {MEAL_TYPES.map(mt => (
+                        <div key={mt.type} className="flex items-center min-w-0">
+                          <MealCell
+                            mealType={mt.type}
+                            itemName={row.mealMap[mt.type]?.itemName || ""}
+                            unitType={row.mealMap[mt.type]?.unitType || ""}
+                          />
+                        </div>
+                      ))}
+
+                      {/* Actions column */}
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openEditModal(row)}
+                          title="Edit menu"
+                          className="
+                            w-8 h-8 flex items-center justify-center rounded-xl
+                            text-gray-400 hover:text-yd-navy hover:bg-[var(--yd-yellow-light)]/20
+                            transition-all duration-150
+                          "
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+
+                        <button
+                          onClick={() => openDeleteModal(row)}
+                          title="Delete menu"
+                          className="
+                            w-8 h-8 flex items-center justify-center rounded-xl
+                            text-gray-300 hover:text-rose-500 hover:bg-rose-50
+                            transition-all duration-150
+                          "
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"
+                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Table footer ── */}
+            {!loading && !bootError && tableRows.length > 0 && (
+              <div className="px-6 py-3.5 border-t border-gray-50 bg-[#FAFBFF] flex items-center justify-between">
+                <p className="text-xs text-gray-400 font-medium">
+                  Showing {tableRows.length} menu{tableRows.length !== 1 ? "s" : ""} · last 30 days
+                </p>
+                <button
+                  onClick={openEnterModal}
+                  className="text-xs font-bold text-yd-navy hover:text-[var(--yd-yellow-light)] transition-colors"
+                >
+                  + Add menu
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── MODALS ─────────────────────────────────────────────────── */}
+
+      {/* Enter Menu modal */}
+      {showEntryModal && (
+        <MenuEntryModal
+          mode="enter"
+          initialDate={todayISO()}
+          initialMeals={null}
+          allMenus={menus}
+          onSave={handleEnterSave}
+          onClose={() => setShowEntryModal(false)}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editTarget && (
+        <MenuEntryModal
+          mode="edit"
+          initialDate={editTarget.date}
+          initialMeals={editTarget.mealMap}
+          allMenus={menus}
+          onSave={handleEditSave}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
+
+      {/* Delete confirm modal */}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          date={deleteTarget.date}
+          mealCount={deleteTarget.count}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* Toast notifications */}
+      <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
+    </div>
+  );
+}
+

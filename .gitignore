@@ -1,0 +1,41 @@
+# ── Dependencies ──────────────────────────────────────────────────
+node_modules/
+
+# ── Environment & secrets — NEVER commit these ────────────────────
+.env
+.env.*
+!.env.example
+*.env
+
+# ── Firebase / Google service account keys ────────────────────────
+serviceAccountKey.json
+credentials.json
+*-service-account*.json
+*-credentials*.json
+firebase-adminsdk*.json
+
+# ── Runtime logs & output ─────────────────────────────────────────
+*.log
+*.err
+server-out.log
+server-err.log
+yellowdot-backend/server.log
+yellowdot-backend/server.err
+
+# ── HLS / media output ────────────────────────────────────────────
+yellowdot-backend/hls-output/
+
+# ── Build output ──────────────────────────────────────────────────
+dist/
+dist-ssr/
+
+# ── Editor ────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
+.DS_Store
+
+# ── Claude session files ──────────────────────────────────────────
+.claude/
