@@ -12,6 +12,7 @@ import Unauthorized from "./pages/Unauthorized";
 // App pages
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
+import NewAdmission from "./pages/NewAdmission";
 import Attendance from "./pages/Attendance";
 import Fees from "./pages/Fees";
 import StudentProfile from "./pages/StudentProfile";
@@ -30,11 +31,16 @@ import CCTVSettings from "./pages/CCTVSettings";
 import LiveCCTV from "./pages/LiveCCTV";
 import MainLayout from "./layouts/MainLayout";
 import InvoiceView from "./pages/InvoiceView";
+import ReceiptView  from "./pages/ReceiptView";
 import ParentCheckIn from "./pages/ParentCheckIn";
 import PickupAuthorization from "./pages/PickupAuthorization";
 import PickupHistory from "./pages/PickupHistory";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
+import RolesPermissions from "./pages/RolesPermissions";
+import Holidays from "./pages/Holidays";
+import Notices from "./pages/Notices";
+import Announcements from "./pages/Announcements";
 
 function App() {
   return (
@@ -104,7 +110,15 @@ function App() {
             path="/invoice-view/:invoiceNumber"
             element={
               <ProtectedRoute routeKey="invoice">
-                <MainLayout><InvoiceView /></MainLayout>
+                <InvoiceView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/receipt/:receiptId"
+            element={
+              <ProtectedRoute routeKey="invoice">
+                <ReceiptView />
               </ProtectedRoute>
             }
           />
@@ -222,6 +236,14 @@ function App() {
             }
           />
           <Route
+            path="/students/new"
+            element={
+              <ProtectedRoute routeKey="students">
+                <NewAdmission />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/add-student"
             element={
               <ProtectedRoute routeKey="students">
@@ -270,10 +292,42 @@ function App() {
             }
           />
           <Route
+            path="/roles-permissions"
+            element={
+              <ProtectedRoute routeKey="roles-permissions">
+                <MainLayout><RolesPermissions /></MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute routeKey="settings">
                 <MainLayout><Settings /></MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/holidays"
+            element={
+              <ProtectedRoute routeKey="holidays">
+                <Holidays />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notices"
+            element={
+              <ProtectedRoute routeKey="notices">
+                <Notices />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute routeKey="announcements">
+                <Announcements />
               </ProtectedRoute>
             }
           />

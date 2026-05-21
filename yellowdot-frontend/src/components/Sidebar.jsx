@@ -173,6 +173,44 @@ const ICONS = {
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
     </svg>
   ),
+  // Premium briefcase — staff / team management
+  Briefcase: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+      <line x1="12" y1="12" x2="12" y2="12" />
+      <path d="M2 12h20" />
+    </svg>
+  ),
+  // Shield — roles & permissions
+  Shield: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+  // CalendarOff — holidays / school closures
+  CalendarOff: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="9" y1="15" x2="15" y2="15" />
+    </svg>
+  ),
+  // Bell — notices / circulars
+  Bell: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 01-3.46 0" />
+    </svg>
+  ),
+  // Megaphone — announcements / live feed
+  Megaphone: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <path d="M3 11l19-9-9 19-2-8-8-2z" />
+    </svg>
+  ),
 };
 
 function Icon({ name, className }) {
@@ -388,8 +426,10 @@ function Avatar({ user, size = 30 }) {
         src={user.photoUrl}
         alt={user.name}
         style={{
-          width: size, height: size, borderRadius: 8,
+          width: size, height: size, borderRadius: Math.round(size * 0.28),
           objectFit: "cover", flexShrink: 0, display: "block",
+          border: "1.5px solid rgba(236,231,216,0.80)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
         }}
         onError={() => setErr(true)}
       />
@@ -398,14 +438,15 @@ function Avatar({ user, size = 30 }) {
 
   return (
     <div style={{
-      width: size, height: size, borderRadius: 8,
-      background: "var(--yd-yellow)",
-      color: "var(--yd-black)",
+      width: size, height: size, borderRadius: Math.round(size * 0.28),
+      background: "linear-gradient(145deg, #fde047 0%, #f59e0b 60%, #d97706 100%)",
+      color: "#78350f",
       fontWeight: 800,
       fontSize: Math.round(size * 0.36),
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0,
       letterSpacing: "-0.5px",
+      boxShadow: "0 2px 8px rgba(234,179,8,0.30)",
     }}>
       {initials}
     </div>
@@ -478,13 +519,44 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
       <aside className={`yd-sidebar${mobileOpen ? " yd-sidebar--mobile-open" : ""}`}>
 
         {/* ── Brand logo ───────────────────────────────────────────────── */}
-        <div className="yd-sl-logo">
-          <div className="yd-sl-logo-mark">Y</div>
-          <div>
-            <div className="yd-sl-logo-name">Yellow Dot</div>
-            <div className="yd-sl-logo-sub">Preschool CRM</div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 13,
+          padding: "20px 20px 18px",
+          borderBottom: "1px solid rgba(236,231,216,0.55)",
+          flexShrink: 0, position: "relative", zIndex: 1,
+          overflow: "hidden", whiteSpace: "nowrap",
+        }}>
+          {/* Premium gold logo tile */}
+          <div style={{
+            width: 42, height: 42,
+            borderRadius: 14,
+            background: "linear-gradient(145deg, #fde047 0%, #f59e0b 55%, #d97706 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 900, fontSize: 20, color: "#78350f",
+            flexShrink: 0,
+            boxShadow: [
+              "0 4px 14px rgba(234,179,8,0.38)",
+              "inset 0 1px 0 rgba(255,255,255,0.45)",
+              "inset 0 -1px 0 rgba(0,0,0,0.10)",
+            ].join(", "),
+            letterSpacing: "-0.5px",
+          }}>
+            Y
           </div>
-          {/* Mobile close button */}
+          {/* Brand name + sub */}
+          <div>
+            <div style={{
+              fontSize: 15, fontWeight: 800,
+              color: "#1a1a1a", lineHeight: 1.1,
+              letterSpacing: "-0.03em",
+            }}>Yellow Dot</div>
+            <div style={{
+              fontSize: 10, color: "#b0946a",
+              marginTop: 3, fontWeight: 500,
+              letterSpacing: "0.025em",
+            }}>Preschool CRM</div>
+          </div>
+          {/* Mobile close */}
           {mobileOpen && (
             <button
               className="yd-sl-mobile-close"
@@ -528,8 +600,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
           </nav>
         )}
 
-        {/* Spacer pushes footer to bottom */}
-        <div style={{ flex: 1 }} />
 
         {/* ── Developer panel ──────────────────────────────────────────── */}
         {isDeveloper && (
@@ -558,21 +628,31 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
         {/* ── User footer ──────────────────────────────────────────────── */}
         <div className="yd-sl-footer">
           <div className="yd-sl-user-row">
-            <Avatar user={user} size={30} />
+            <Avatar user={user} size={36} />
             <div className="yd-sl-user-info">
               <div className="yd-sl-user-name">{user?.name || "User"}</div>
               <div className="yd-sl-user-role">
                 {ROLE_LABELS[effectiveRole] || effectiveRole}
               </div>
             </div>
-            <button
-              className="yd-sl-logout-btn"
-              onClick={() => logout()}
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <Icon name="LogOut" />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <button
+                className="yd-sl-logout-btn yd-sl-logout-btn--settings"
+                onClick={() => navigate("/settings")}
+                aria-label="Settings"
+                title="Settings"
+              >
+                <Icon name="Settings" />
+              </button>
+              <button
+                className="yd-sl-logout-btn"
+                onClick={() => logout()}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <Icon name="LogOut" />
+              </button>
+            </div>
           </div>
         </div>
 

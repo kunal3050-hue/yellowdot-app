@@ -23,6 +23,8 @@ const streamRoutes           = require("./routes/streamRoutes");
 const attendanceRoutes       = require("./routes/attendanceRoutes");
 const parentAttendanceRoutes = require("./routes/parentAttendanceRoutes");
 const pickupRoutes           = require("./routes/pickupRoutes");
+const roleRoutes             = require("./routes/roleRoutes");
+const communicationRoutes    = require("./routes/communicationRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -46,6 +48,8 @@ app.use(streamRoutes);
 app.use(attendanceRoutes);
 app.use(parentAttendanceRoutes);
 app.use(pickupRoutes);
+app.use(roleRoutes);
+app.use(communicationRoutes);
 
 // ── HLS static files — served with no-cache ────────────────────────
 app.use("/stream/live", (req, res, next) => {

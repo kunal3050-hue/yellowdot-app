@@ -91,6 +91,21 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.ATTENDANCE,
         icon:     "Calendar",
       },
+      {
+        id:         "staff",
+        label:      "Staff",
+        path:       "/user-management",
+        routeKey:   ROUTES.USER_MANAGEMENT,
+        icon:       "Briefcase",
+        matchPaths: ["/user-management/"],
+      },
+      {
+        id:       "roles_permissions",
+        label:    "Roles & Permissions",
+        path:     "/roles-permissions",
+        routeKey: ROUTES.ROLES_PERMISSIONS,
+        icon:     "Shield",
+      },
     ],
   },
 
@@ -178,6 +193,37 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Communications ────────────────────────────────────────────────────────
+  {
+    id:          "communications",
+    label:       "Communications",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "holidays",
+        label:    "Holidays",
+        path:     "/holidays",
+        routeKey: ROUTES.HOLIDAYS,
+        icon:     "CalendarOff",
+      },
+      {
+        id:       "notices",
+        label:    "Notices",
+        path:     "/notices",
+        routeKey: ROUTES.NOTICES,
+        icon:     "Bell",
+      },
+      {
+        id:       "announcements",
+        label:    "Announcements",
+        path:     "/announcements",
+        routeKey: ROUTES.ANNOUNCEMENTS,
+        icon:     "Megaphone",
+      },
+    ],
+  },
+
   // ── Security ───────────────────────────────────────────────────────────────
   {
     id:          "security",
@@ -210,13 +256,6 @@ export const SIDEBAR_GROUPS = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      {
-        id:         "user_management",
-        label:      "Users",
-        path:       "/user-management",
-        routeKey:   ROUTES.USER_MANAGEMENT,
-        icon:       "Users",
-      },
       {
         id:         "settings",
         label:      "Settings",
