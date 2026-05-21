@@ -29,6 +29,9 @@ const QUICK_NAV = [
   { label: "Food",           path: "/food-consumption",    icon: "🥣", desc: "Meal tracking & menu" },
   { label: "Pickup Auth",    path: "/pickup-authorization",icon: "🚗", desc: "Authorized pickup persons" },
   { label: "Live CCTV",      path: "/live-cctv",           icon: "📹", desc: "Camera monitoring" },
+  { label: "Holidays",       path: "/holidays",            icon: "📅", desc: "Manage holidays & closures" },
+  { label: "Notices",        path: "/notices",             icon: "🔔", desc: "Parent notices & circulars" },
+  { label: "Announcements",  path: "/announcements",       icon: "📢", desc: "School-wide updates" },
 ];
 
 export default function Dashboard() {
@@ -218,7 +221,7 @@ export default function Dashboard() {
       {/* ── Quick navigation grid ────────────────────────────────── */}
       <div className="yd-card p-4">
         <h2 className="yd-title-card mb-3">Quick Navigation</h2>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {QUICK_NAV.map(nav => (
             <Link key={nav.path} to={nav.path}
               className="flex items-start gap-2.5 p-3 rounded-yd border border-yd-border-light hover:border-yd-yellow hover:bg-yd-yellow-pale transition-all group">

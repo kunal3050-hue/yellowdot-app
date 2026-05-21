@@ -205,7 +205,7 @@ export const SIDEBAR_GROUPS = [
         label:    "Holidays",
         path:     "/holidays",
         routeKey: ROUTES.HOLIDAYS,
-        icon:     "CalendarOff",
+        icon:     "CalendarDays",
       },
       {
         id:       "notices",
