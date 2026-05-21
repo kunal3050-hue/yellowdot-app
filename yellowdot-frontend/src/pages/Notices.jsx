@@ -18,6 +18,16 @@ const TYPE_STYLE = {
   "Urgent":    "bg-[#fee8e2] text-[#7a2018] border-[#e0a898]",
 };
 
+const ACCENT_LEFT = {
+  "General":   "#e8d49a",
+  "Academic":  "#c9a830",
+  "Fees":      "#c9a830",
+  "Transport": "#d4b830",
+  "Event":     "#c8a028",
+  "Safety":    "#e8a860",
+  "Urgent":    "#e0a898",
+};
+
 const STATUS_STYLE = {
   draft:     "bg-[#f0ebe0] text-[#8b7d65] border-[#e0d4b8]",
   published: "bg-[#f8f4d8] text-[#5a4d18] border-[#d4bc58]",
@@ -45,7 +55,8 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
   const statusStyle = STATUS_STYLE[notice.status]|| STATUS_STYLE["draft"];
 
   return (
-    <div className="group p-5 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d080] hover:shadow-[0_6px_24px_rgba(212,170,31,0.10)] hover:-translate-y-0.5 transition-all duration-[190ms]">
+    <div className="group p-5 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d4a0] hover:shadow-[0_8px_28px_rgba(212,170,31,0.12)] hover:-translate-y-1 transition-all duration-[200ms]"
+      style={{ borderLeftWidth: "3px", borderLeftColor: ACCENT_LEFT[notice.type] || "#e8d49a" }}>
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -65,7 +76,7 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
       </div>
 
       {/* Title */}
-      <h3 className="mt-2.5 text-[#2a1c06] font-bold text-[15px] leading-snug">{notice.title}</h3>
+      <h3 className="mt-2.5 text-[#2a1c06] font-bold text-base leading-snug">{notice.title}</h3>
 
       {/* Body preview */}
       {notice.body && (
@@ -404,19 +415,34 @@ export default function Notices() {
           ) : filtered.length === 0 ? (
             <EmptyState tab={tab} onAdd={() => setModal({ mode: "add", data: null })} />
           ) : (
-            <div className="max-w-3xl space-y-3">
+            <div className="max-w-4xl columns-1 md:columns-2" style={{ columnGap: "1.25rem" }}>
               {filtered.map(n => (
-                <NoticeCard key={n.id} notice={n}
-                  onEdit={n => setModal({ mode: "edit", data: n })}
-                  onDelete={handleDelete}
-                  onPublish={handlePublish}
-                />
+                <div key={n.id} className="mb-4 break-inside-avoid">
+                  <NoticeCard notice={n}
+                    onEdit={n => setModal({ mode: "edit", data: n })}
+                    onDelete={handleDelete}
+                    onPublish={handlePublish}
+                  />
+                </div>
               ))}
             </div>
           )}
           <div className="h-6" />
         </div>
       </div>
+
+      {/* Floating compose FAB */}
+      <button
+        onClick={() => setModal({ mode: "add", data: null })}
+        title="Create notice"
+        className="fixed bottom-8 right-8 w-14 h-14 flex items-center justify-center rounded-2xl z-30
+                   transition-all duration-[200ms] hover:scale-110 active:scale-95"
+        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 8px 28px rgba(212,170,31,0.42), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a4010" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
 
       {modal && (
         <NoticeModal

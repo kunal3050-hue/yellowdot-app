@@ -52,22 +52,26 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
 
   return (
     <div className={`
-      group flex gap-4 p-5 rounded-3xl border transition-all duration-[190ms]
-      hover:shadow-[0_6px_24px_rgba(212,170,31,0.12)] hover:-translate-y-0.5
-      ${isToday ? "bg-[#fffdf0] border-[#e8d89a]" : "bg-[#fffdf8] border-[#ece7d8] hover:border-[#e0d080]"}
+      group flex gap-5 p-6 rounded-3xl border transition-all duration-[200ms]
+      hover:shadow-[0_10px_36px_rgba(212,170,31,0.13)] hover:-translate-y-1
+      ${isToday ? "bg-[#fffdf0] border-[#e8d89a]" : "bg-[#fffdf8] border-[#ece7d8] hover:border-[#e0d4a0] hover:bg-white"}
     `}>
-      {/* Date block */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-2xl"
-        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 3px 10px rgba(212,170,31,0.25)" }}>
-        <span className="text-[#5a4010] text-[11px] font-semibold leading-none">
+      {/* Date block — large gold tile */}
+      <div className="flex-shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] rounded-3xl"
+        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 16px rgba(212,170,31,0.32), inset 0 1px 0 rgba(255,255,255,0.55)" }}>
+        <span className="text-[#7a5010] text-[10px] font-bold leading-none tracking-widest uppercase">
           {holiday.startDate ? MONTHS[new Date(holiday.startDate + "T00:00:00").getMonth()] : ""}
         </span>
-        <span className="text-[#3a2a06] text-xl font-black leading-tight">{dayNum(holiday.startDate)}</span>
+        <span className="text-[#3a2a06] text-[26px] font-black leading-tight tabular-nums">{dayNum(holiday.startDate)}</span>
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2 flex-wrap">
+      <div className="flex-1 min-w-0 py-0.5">
+        <h3 className="text-[#2a1c06] font-bold text-base leading-snug">{holiday.title}</h3>
+        <p className="text-[#a3957e] text-[13px] font-normal mt-1 mb-2.5">
+          {isSingle ? fmtDate(holiday.startDate) : `${fmtDate(holiday.startDate)} — ${fmtDate(holiday.endDate)}`}
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-semibold ${typeStyle}`}>
             {holiday.type}
           </span>
@@ -82,12 +86,8 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
             </span>
           )}
         </div>
-        <h3 className="mt-1 text-[#2a1c06] font-bold text-[15px] leading-snug">{holiday.title}</h3>
-        <p className="text-[#a3957e] text-xs mt-0.5 font-normal">
-          {isSingle ? fmtDate(holiday.startDate) : `${fmtDate(holiday.startDate)} — ${fmtDate(holiday.endDate)}`}
-        </p>
         {holiday.description && (
-          <p className="text-[#8b7d65] text-xs mt-1.5 leading-relaxed line-clamp-2">{holiday.description}</p>
+          <p className="text-[#8b7d65] text-[13px] mt-2 leading-relaxed line-clamp-2">{holiday.description}</p>
         )}
       </div>
 
@@ -372,6 +372,9 @@ export default function Holidays() {
   const filtered = holidays
     .filter(h => typeFilter === "All" || h.type === typeFilter)
     .filter(h => !search || h.title.toLowerCase().includes(search.toLowerCase()));
+  const todayStr = todayISO();
+  const upcoming = filtered.filter(h => (h.endDate || h.startDate) >= todayStr);
+  const past     = filtered.filter(h => (h.endDate || h.startDate) <  todayStr);
 
   return (
     <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
@@ -455,12 +458,35 @@ export default function Holidays() {
           ) : filtered.length === 0 ? (
             <EmptyState onAdd={() => setModal({ mode: "add", data: null })} />
           ) : (
-            <div className="max-w-3xl space-y-2.5">
-              {filtered.map(h => (
-                <HolidayCard key={h.id} holiday={h}
-                  onEdit={h => setModal({ mode: "edit", data: h })}
-                  onDelete={handleDelete} />
-              ))}
+            <div className="max-w-3xl space-y-10">
+              {upcoming.length > 0 && (
+                <section>
+                  <p className="text-[11px] font-semibold text-[#a3957e] uppercase tracking-[0.18em] mb-4">
+                    Upcoming · {upcoming.length}
+                  </p>
+                  <div className="space-y-3">
+                    {upcoming.map(h => (
+                      <HolidayCard key={h.id} holiday={h}
+                        onEdit={h => setModal({ mode: "edit", data: h })}
+                        onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {past.length > 0 && (
+                <section className="opacity-55">
+                  <p className="text-[11px] font-semibold text-[#c4b090] uppercase tracking-[0.18em] mb-4">
+                    Past · {past.length}
+                  </p>
+                  <div className="space-y-3">
+                    {past.map(h => (
+                      <HolidayCard key={h.id} holiday={h}
+                        onEdit={h => setModal({ mode: "edit", data: h })}
+                        onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
           <div className="h-6" />

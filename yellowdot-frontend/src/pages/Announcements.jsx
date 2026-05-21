@@ -36,6 +36,42 @@ function timeAgo(isoStr) {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+// ── QuickComposer — "What would you like to share?" ──────────────────────────
+
+function QuickComposer({ onOpen }) {
+  return (
+    <div className="max-w-2xl mb-6">
+      <div
+        onClick={onOpen}
+        className="flex items-center gap-3 p-4 rounded-3xl border border-[#ece7d8] bg-[#fffdf8]
+                   hover:border-[#e0d4a0] hover:shadow-[0_6px_22px_rgba(212,170,31,0.10)] hover:bg-white
+                   transition-all duration-[200ms] cursor-pointer group"
+      >
+        {/* School avatar orb */}
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-stone-700
+                        flex items-center justify-center flex-shrink-0
+                        group-hover:scale-105 transition-transform duration-[200ms]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+          </svg>
+        </div>
+
+        {/* Placeholder */}
+        <div className="flex-1 px-4 py-2.5 rounded-xl bg-[#faf6ea] border border-[#ece7d8] text-sm text-[#c4b090] select-none
+                        group-hover:bg-[#fff9ee] group-hover:border-[#e0d4a0] transition-all">
+          What would you like to share today?
+        </div>
+
+        {/* Post chip */}
+        <div className="flex-shrink-0 px-4 py-2 rounded-xl text-[#5a4010] text-xs font-semibold select-none flex-shrink-0"
+          style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 2px 8px rgba(212,170,31,0.25)" }}>
+          Post
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── AnnouncementCard ──────────────────────────────────────────────────────────
 
 function AnnouncementCard({ ann, onEdit, onDelete }) {
@@ -43,7 +79,7 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
   const emoji     = TYPE_EMOJI[ann.type] || "📢";
 
   return (
-    <div className="group p-5 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d080] hover:shadow-[0_6px_24px_rgba(212,170,31,0.10)] hover:-translate-y-0.5 transition-all duration-[190ms]">
+    <div className="group p-5 sm:p-6 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d4a0] hover:shadow-[0_8px_30px_rgba(212,170,31,0.11)] hover:-translate-y-1 transition-all duration-[200ms]">
       {/* Top row */}
       <div className="flex items-start gap-3">
         {/* Emoji orb */}
@@ -59,19 +95,19 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
             </span>
             <span className="text-[10px] text-[#c4b090] font-normal flex-shrink-0">{timeAgo(ann.createdAt)}</span>
           </div>
-          <h3 className="mt-1.5 text-[#2a1c06] font-bold text-[15px] leading-snug">{ann.title}</h3>
+          <h3 className="mt-1.5 text-[#2a1c06] font-bold text-base leading-snug">{ann.title}</h3>
         </div>
       </div>
 
       {/* Body */}
       {ann.body && (
-        <p className="mt-3 text-[#8b7d65] text-sm leading-relaxed pl-14 line-clamp-3">{ann.body}</p>
+        <p className="mt-3 text-[#8b7d65] text-sm leading-relaxed line-clamp-3">{ann.body}</p>
       )}
 
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-[#f0ebe0] flex items-center justify-between">
         {/* Stats */}
-        <div className="flex items-center gap-4 pl-14">
+        <div className="flex items-center gap-4">
           {ann.seenCount > 0 && (
             <div className="flex items-center gap-1.5 text-[#a3957e] text-xs">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -334,6 +370,7 @@ export default function Announcements() {
 
         {/* Feed */}
         <div className="flex-1 overflow-auto px-6 md:px-10 py-5">
+          <QuickComposer onOpen={() => setModal({ mode: "add", data: null })} />
           {loading ? (
             <div className="space-y-3 animate-pulse max-w-2xl">
               {[0,1,2].map(i => (
