@@ -15,6 +15,7 @@ import Sidebar           from "../components/Sidebar";
 import MenuEntryModal, { MEAL_TYPES } from "../components/food/MenuEntryModal";
 import DeleteConfirmModal from "../components/food/DeleteConfirmModal";
 import foodMenuService    from "../services/foodMenuService";
+import { useAuth }        from "../contexts/AuthContext";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -67,11 +68,11 @@ function ToastStack({ toasts, onDismiss }) {
             flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4 rounded-2xl shadow-2xl
             text-sm font-semibold w-full sm:min-w-[280px] sm:max-w-sm
             pointer-events-auto animate-toast-in
-            ${t.type === "success" ? "bg-yd-navy text-white" : "bg-rose-600 text-white"}
+            ${t.type === "success" ? "bg-[#1f1a17] text-white" : "bg-[#c0402a] text-white"}
           `}
         >
           <span className="text-xl flex-shrink-0 leading-none select-none">
-            {t.type === "success" ? "✅" : "❌"}
+            {t.type === "success" ? "✨" : "⚠️"}
           </span>
           <span className="flex-1 leading-snug">{t.message}</span>
           <button
@@ -92,14 +93,14 @@ function SkeletonTable() {
       {[0, 1, 2, 3].map(i => (
         <div
           key={i}
-          className="flex items-center gap-4 px-6 py-4 border-b border-gray-50"
+          className="flex items-center gap-4 px-6 py-4 border-b border-[#f0ebe0]"
           style={{ animationDelay: `${i * 80}ms` }}
         >
-          <div className="w-28 h-3 bg-gray-100 rounded-full" />
+          <div className="w-28 h-3 bg-[#f0e8d4] rounded-full" />
           {MEAL_TYPES.map(mt => (
-            <div key={mt.type} className="flex-1 h-3 bg-gray-100 rounded-full" />
+            <div key={mt.type} className="flex-1 h-3 bg-[#f0e8d4] rounded-full" />
           ))}
-          <div className="w-20 h-7 bg-gray-100 rounded-xl" />
+          <div className="w-20 h-7 bg-[#f0e8d4] rounded-xl" />
         </div>
       ))}
     </div>
@@ -112,17 +113,17 @@ function EmptyState({ onEnter }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="relative w-20 h-20 flex items-center justify-center mb-5 select-none">
-        <div className="absolute inset-0 rounded-full bg-[#FFFBEA]" />
-        <div className="absolute inset-3 rounded-full bg-[#FFF0A0]/60" />
+        <div className="absolute inset-0 rounded-full bg-[#fff8e2]" />
+        <div className="absolute inset-3 rounded-full bg-[#fff4c2]/70" />
         <span className="text-3xl relative z-10">🍽️</span>
       </div>
-      <p className="text-lg font-black text-gray-800">No Menus Yet</p>
-      <p className="text-gray-400 mt-1.5 text-sm max-w-[260px] leading-relaxed">
+      <p className="text-lg font-bold text-[#2a221d]">No Menus Yet</p>
+      <p className="text-[#8b7d65] mt-1.5 text-sm max-w-[260px] leading-relaxed">
         Start adding daily menus — they'll appear here.
       </p>
       <button
         onClick={onEnter}
-        className="mt-5 px-6 py-2.5 bg-[var(--yd-yellow-light)] hover:bg-yd-yellow-hover text-yd-navy font-black text-sm rounded-2xl transition-all active:scale-95 shadow-sm"
+        className="mt-5 px-6 py-2.5 bg-[#fff4c2] hover:bg-[#ffeea0] text-[#1f1a17] font-bold text-sm rounded-2xl transition-all active:scale-95 shadow-[0_2px_8px_rgba(180,140,0,0.15)]"
       >
         ✏️ Enter First Menu
       </button>
@@ -135,14 +136,14 @@ function EmptyState({ onEnter }) {
 function ErrorState({ onRetry }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm select-none">⚠️</div>
-      <p className="text-lg font-black text-gray-800">Connection Error</p>
-      <p className="text-gray-400 mt-1.5 text-sm max-w-[260px] leading-relaxed">
+      <div className="w-16 h-16 bg-[#fee8e2] rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm select-none">⚠️</div>
+      <p className="text-lg font-bold text-[#2a221d]">Connection Error</p>
+      <p className="text-[#8b7d65] mt-1.5 text-sm max-w-[260px] leading-relaxed">
         Could not reach the server. Make sure the backend is running on port 5000.
       </p>
       <button
         onClick={onRetry}
-        className="mt-5 px-6 py-2.5 bg-[var(--yd-yellow-light)] hover:bg-yd-yellow-hover text-yd-navy font-black text-sm rounded-2xl transition-all active:scale-95 shadow-sm"
+        className="mt-5 px-6 py-2.5 bg-[#fff4c2] hover:bg-[#ffeea0] text-[#1f1a17] font-bold text-sm rounded-2xl transition-all active:scale-95 shadow-[0_2px_8px_rgba(180,140,0,0.15)]"
       >
         ↺ Retry
       </button>
@@ -153,21 +154,21 @@ function ErrorState({ onRetry }) {
 // ── Meal cell content ─────────────────────────────────────────────
 
 const MEAL_PILL = {
-  "Breakfast":   "bg-orange-50 text-orange-600",
-  "Mid-Morning": "bg-green-50  text-green-600",
-  "Roti Sabzi":  "bg-amber-50  text-amber-600",
-  "Dal Rice":    "bg-yellow-50 text-yellow-700",
-  "Milk":        "bg-sky-50    text-sky-600",
-  "Snacks":      "bg-violet-50 text-violet-600",
+  "Breakfast":   "bg-amber-50   text-amber-700",
+  "Mid-Morning": "bg-stone-100  text-stone-600",
+  "Roti Sabzi":  "bg-amber-100  text-amber-800",
+  "Dal Rice":    "bg-yellow-50  text-yellow-700",
+  "Milk":        "bg-[#faf6ea]  text-[#7a6e5e]",
+  "Snacks":      "bg-[#f8f0d8]  text-[#8b6a18]",
 };
 
 function MealCell({ mealType, itemName, unitType }) {
   if (!itemName) {
-    return <span className="text-gray-200 text-xs select-none">—</span>;
+    return <span className="text-[#d4c8b0] text-xs select-none">—</span>;
   }
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
-      <span className="text-[13px] font-semibold text-gray-700 truncate leading-tight" title={itemName}>
+      <span className="text-[13px] font-semibold text-[#4a3f2a] truncate leading-tight" title={itemName}>
         {itemName}
       </span>
       <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${MEAL_PILL[mealType] || "bg-gray-50 text-gray-500"}`}>
@@ -180,6 +181,12 @@ function MealCell({ mealType, itemName, unitType }) {
 // ── Main page ─────────────────────────────────────────────────────
 
 export default function FoodMenu() {
+  const { canDo } = useAuth();
+  const perm = {
+    create: canDo("food_menu", "create"),
+    edit:   canDo("food_menu", "edit"),
+    delete: canDo("food_menu", "delete"),
+  };
   const [menus,     setMenus]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [bootError, setBootError] = useState(false);
@@ -321,25 +328,25 @@ export default function FoodMenu() {
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#F8F9FF] via-[#F7F8FC] to-[#FFFDF5] overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-[#FFFDF6] via-[#FAF6EA] to-[#F5F0E2] overflow-hidden">
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* ── STICKY HEADER ──────────────────────────────────────── */}
-        <div className="flex-shrink-0 bg-white/[0.98] backdrop-blur-2xl border-b border-gray-100 shadow-sm z-20">
+        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-4 md:py-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
               {/* Left: title */}
               <div className="flex-shrink-0">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+                <p className="text-[10px] font-semibold text-[#a3957e] uppercase tracking-[0.2em]">
                   Yellow Dot · Staff View
                 </p>
-                <h1 className="text-3xl md:text-4xl font-black text-yd-navy tracking-tight leading-none mt-0.5">
+                <h1 className="text-3xl md:text-4xl font-black text-[#1f1a17] tracking-tight leading-none mt-0.5">
                   Food Menu
                 </h1>
-                <p className="text-gray-400 text-sm mt-1 font-medium">
+                <p className="text-[#8b7d65] text-sm mt-1 font-medium">
                   Manage daily meal plans · last 30 days
                 </p>
               </div>
@@ -347,44 +354,46 @@ export default function FoodMenu() {
               {/* Right: stats + CTA */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="hidden sm:flex items-center gap-3">
-                  <div className="bg-yd-bg border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[80px]">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">This Week</p>
-                    <p className="text-2xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
+                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
+                    <p className="text-[9px] font-bold text-[#a3957e] uppercase tracking-widest">This Week</p>
+                    <p className="text-2xl font-black text-[#1f1a17] tabular-nums leading-none mt-0.5">
                       {loading ? "—" : thisWeekCount}
                     </p>
                   </div>
-                  <div className="bg-yd-bg border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[80px]">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
-                    <p className="text-2xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
+                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
+                    <p className="text-[9px] font-bold text-[#a3957e] uppercase tracking-widest">Total</p>
+                    <p className="text-2xl font-black text-[#1f1a17] tabular-nums leading-none mt-0.5">
                       {loading ? "—" : totalMenus}
                     </p>
                   </div>
                 </div>
 
                 {/* Enter Menu CTA */}
-                <button
-                  onClick={openEnterModal}
-                  className="
-                    group relative overflow-hidden
-                    flex items-center gap-2 px-5 py-3 rounded-2xl
-                    bg-gradient-to-r from-[var(--yd-yellow-light)] to-yd-yellow-hover
-                    text-yd-navy text-sm font-black
-                    shadow-md shadow-yellow-200/60
-                    hover:shadow-lg hover:shadow-yellow-300/50
-                    active:scale-[0.98] transition-all duration-200
-                  "
-                >
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-                  />
-                  <span className="relative flex items-center gap-2">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                    </svg>
-                    Enter Menu
-                  </span>
-                </button>
+                {perm.create && (
+                  <button
+                    onClick={openEnterModal}
+                    className="
+                      group relative overflow-hidden
+                      flex items-center gap-2 px-5 py-3 rounded-2xl
+                      bg-gradient-to-r from-[var(--yd-yellow-light)] to-yd-yellow-hover
+                      text-yd-navy text-sm font-black
+                      shadow-md shadow-yellow-200/60
+                      hover:shadow-lg hover:shadow-yellow-300/50
+                      active:scale-[0.98] transition-all duration-200
+                    "
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                    />
+                    <span className="relative flex items-center gap-2">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                      </svg>
+                      Enter Menu
+                    </span>
+                  </button>
+                )}
               </div>
 
             </div>
@@ -393,20 +402,20 @@ export default function FoodMenu() {
 
         {/* ── TABLE SECTION ───────────────────────────────────────── */}
         <div className="flex-1 overflow-auto px-6 md:px-10 py-7">
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-w-[900px]">
+          <div className="bg-white rounded-3xl border border-[#ece7d8] shadow-[0_2px_16px_rgba(180,140,0,0.06)] overflow-hidden min-w-[900px]">
 
             {/* ── Table header ── */}
-            <div className="bg-gradient-to-r from-yd-navy via-yd-navy-2 to-yd-navy-2 px-6 py-4 relative overflow-hidden">
-              <div className="absolute -top-8 -right-8 w-32 h-32 bg-[var(--yd-yellow-light)]/6 rounded-full blur-2xl pointer-events-none" />
+            <div className="bg-gradient-to-r from-[#1f1a17] via-[#2a221d] to-[#2a221d] px-6 py-4 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-[#f4c430]/10 rounded-full blur-2xl pointer-events-none" />
               <div className="relative grid gap-3" style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}>
-                <span className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest">Date</span>
+                <span className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest">Date</span>
                 {MEAL_TYPES.map(mt => (
-                  <span key={mt.type} className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest flex items-center gap-1.5">
+                  <span key={mt.type} className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest flex items-center gap-1.5">
                     <span className="text-sm leading-none">{mt.emoji}</span>
                     {mt.type}
                   </span>
                 ))}
-                <span className="text-[10px] font-bold text-blue-200/70 uppercase tracking-widest text-right">Actions</span>
+                <span className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest text-right">Actions</span>
               </div>
             </div>
 
@@ -418,7 +427,7 @@ export default function FoodMenu() {
             ) : tableRows.length === 0 ? (
               <EmptyState onEnter={openEnterModal} />
             ) : (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#f0ebe0]">
                 {tableRows.map((row, rowIdx) => {
                   const today     = isToday(row.date);
                   const yesterday = isYesterday(row.date);
@@ -427,7 +436,7 @@ export default function FoodMenu() {
                       key={row.date}
                       className={`
                         group grid gap-3 px-6 py-4 transition-colors duration-150
-                        hover:bg-[#FAFBFF]
+                        hover:bg-[#FFFBEE]
                         ${today ? "bg-[#FFFDF0]" : ""}
                       `}
                       style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}
@@ -435,21 +444,21 @@ export default function FoodMenu() {
                       {/* Date column */}
                       <div className="flex flex-col justify-center min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-sm font-black leading-tight ${today ? "text-yd-navy" : "text-gray-700"}`}>
+                          <span className={`text-sm font-bold leading-tight ${today ? "text-[#1f1a17]" : "text-[#4a3f2a]"}`}>
                             {fmtTableDate(row.date)}
                           </span>
                           {today && (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-[var(--yd-yellow-light)] text-yd-navy text-[9px] font-black uppercase tracking-wide">
+                            <span className="px-1.5 py-0.5 rounded-lg bg-[#fff4c2] text-[#8b6a18] text-[9px] font-black uppercase tracking-wide">
                               Today
                             </span>
                           )}
                           {yesterday && (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-gray-100 text-gray-500 text-[9px] font-black uppercase tracking-wide">
+                            <span className="px-1.5 py-0.5 rounded-lg bg-[#f5f0e2] text-[#8b7d65] text-[9px] font-black uppercase tracking-wide">
                               Yesterday
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                        <span className="text-[10px] text-[#a3957e] font-medium mt-0.5">
                           {row.date}
                         </span>
                       </div>
@@ -467,37 +476,41 @@ export default function FoodMenu() {
 
                       {/* Actions column */}
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => openEditModal(row)}
-                          title="Edit menu"
-                          className="
-                            w-8 h-8 flex items-center justify-center rounded-xl
-                            text-gray-400 hover:text-yd-navy hover:bg-[var(--yd-yellow-light)]/20
-                            transition-all duration-150
-                          "
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
+                        {perm.edit && (
+                          <button
+                            onClick={() => openEditModal(row)}
+                            title="Edit menu"
+                            className="
+                              w-8 h-8 flex items-center justify-center rounded-xl
+                              text-[#c4b090] hover:text-[#1f1a17] hover:bg-[#fff4c2]/60
+                              transition-all duration-150
+                            "
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => openDeleteModal(row)}
-                          title="Delete menu"
-                          className="
-                            w-8 h-8 flex items-center justify-center rounded-xl
-                            text-gray-300 hover:text-rose-500 hover:bg-rose-50
-                            transition-all duration-150
-                          "
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"
-                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
+                        {perm.delete && (
+                          <button
+                            onClick={() => openDeleteModal(row)}
+                            title="Delete menu"
+                            className="
+                              w-8 h-8 flex items-center justify-center rounded-xl
+                              text-gray-300 hover:text-rose-500 hover:bg-rose-50
+                              transition-all duration-150
+                            "
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -507,13 +520,13 @@ export default function FoodMenu() {
 
             {/* ── Table footer ── */}
             {!loading && !bootError && tableRows.length > 0 && (
-              <div className="px-6 py-3.5 border-t border-gray-50 bg-[#FAFBFF] flex items-center justify-between">
-                <p className="text-xs text-gray-400 font-medium">
+              <div className="px-6 py-3.5 border-t border-[#f0ebe0] bg-[#fffbf0] flex items-center justify-between">
+                <p className="text-xs text-[#a3957e] font-medium">
                   Showing {tableRows.length} menu{tableRows.length !== 1 ? "s" : ""} · last 30 days
                 </p>
                 <button
                   onClick={openEnterModal}
-                  className="text-xs font-bold text-yd-navy hover:text-[var(--yd-yellow-light)] transition-colors"
+                  className="text-xs font-bold text-[#1f1a17] hover:text-[#b09830] transition-colors"
                 >
                   + Add menu
                 </button>

@@ -112,26 +112,26 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(4,17,75,0.45)", backdropFilter: "blur(6px)" }}
+      style={{ backgroundColor: "rgba(31,26,23,0.52)", backdropFilter: "blur(6px)" }}
       onClick={handleBackdrop}
     >
       <div
         className="
           w-full max-w-2xl max-h-[92vh] overflow-hidden
-          bg-white rounded-3xl shadow-2xl shadow-[#04114B]/20
+          bg-white rounded-3xl shadow-2xl shadow-[rgba(31,26,23,0.20)]
           flex flex-col
         "
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-[#04114B] via-[#071d6e] to-[#0d2580] px-7 pt-6 pb-5 relative overflow-hidden">
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#1f1a17] via-[#2a221d] to-[#342922] px-7 pt-6 pb-5 relative overflow-hidden">
           {/* ambient glows */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#FFD600]/8 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-sky-400/6 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#f4c430]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-[#f4c430]/6 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <p className="text-blue-300/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
+              <p className="text-[#c9a830]/75 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
                 {isEdit ? "Edit Menu" : "Menu Builder"}
               </p>
               <h2 className="text-white font-black text-xl leading-tight">
@@ -163,7 +163,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
           {/* Date picker (only in enter mode) */}
           {!isEdit && (
             <div className="relative mt-4">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#04114B]/50 text-sm pointer-events-none">📅</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a3957e] text-sm pointer-events-none">📅</span>
               <input
                 type="date"
                 value={date}
@@ -171,8 +171,8 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
                 onChange={e => setDate(e.target.value)}
                 className="
                   bg-white rounded-2xl pl-9 pr-4 py-2.5
-                  text-[#04114B] text-sm font-semibold
-                  outline-none border-2 border-transparent focus:border-[#FFD600]/60
+                  text-[#1f1a17] text-sm font-semibold
+                  outline-none border-2 border-transparent focus:border-[#f4c430]/60
                   transition-all cursor-pointer shadow-sm
                 "
               />
@@ -181,17 +181,17 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
         </div>
 
         {/* ── Column labels ── */}
-        <div className="flex-shrink-0 hidden sm:grid grid-cols-[auto_1fr_auto_auto] gap-3 px-7 pt-4 pb-1 border-b border-gray-50">
-          <span className="w-44 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Meal Type</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Food Item</span>
-          <span className="w-28 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Unit</span>
+        <div className="flex-shrink-0 hidden sm:grid grid-cols-[auto_1fr_auto_auto] gap-3 px-7 pt-4 pb-1 border-b border-[#f0ebe0]">
+          <span className="w-44 text-[10px] font-bold text-[#a3957e] uppercase tracking-widest">Meal Type</span>
+          <span className="text-[10px] font-bold text-[#a3957e] uppercase tracking-widest">Food Item</span>
+          <span className="w-28 text-[10px] font-bold text-[#a3957e] uppercase tracking-widest">Unit</span>
           <span className="w-8" />
         </div>
 
         {/* ── Meal rows (scrollable) ── */}
         <div className="flex-1 overflow-y-auto px-7 py-4 space-y-2.5">
           {validated && filledCount === 0 && (
-            <div className="flex items-center gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-sm text-rose-600 font-medium">
+            <div className="flex items-center gap-2.5 p-3.5 bg-[#fee8e2] border border-[#e0a898] rounded-2xl text-sm text-[#7a2018] font-medium">
               <span>⚠️</span> Add at least one food item before saving.
             </div>
           )}
@@ -211,7 +211,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex-shrink-0 px-7 pb-6 pt-3 border-t border-gray-100">
+        <div className="flex-shrink-0 px-7 pb-6 pt-3 border-t border-[#ece7d8]">
           {/* Progress */}
           <div className="flex items-center gap-2 mb-4">
             {meals.map((m, i) => (
@@ -219,18 +219,18 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
                 key={i}
                 className={`rounded-full transition-all duration-300 ${
                   m.itemName.trim() !== ""
-                    ? "w-2.5 h-2.5 bg-[#FFD600] scale-110"
-                    : "w-2 h-2 bg-gray-200"
+                    ? "w-2.5 h-2.5 bg-[#f4c430] scale-110"
+                    : "w-2 h-2 bg-[#e8dfc8]"
                 }`}
               />
             ))}
-            <span className="ml-1.5 text-xs text-gray-400 font-medium">
+            <span className="ml-1.5 text-xs text-[#a3957e] font-medium">
               {filledCount} / {MEAL_TYPES.length} meals filled
             </span>
             {filledCount > 0 && (
               <button
                 onClick={clearAll}
-                className="ml-auto text-xs text-gray-400 hover:text-rose-500 underline underline-offset-2 transition-colors"
+                className="ml-auto text-xs text-[#a3957e] hover:text-[#c0402a] underline underline-offset-2 transition-colors"
               >
                 Clear all
               </button>
@@ -243,8 +243,8 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
               onClick={onClose}
               disabled={saving}
               className="
-                flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-600
-                hover:bg-gray-50 hover:border-gray-300 transition-all duration-150
+                flex-1 py-3 rounded-2xl border border-[#ece7d8] text-sm font-bold text-[#6f624f]
+                hover:bg-[#faf6ea] hover:border-[#d4c8b0] transition-all duration-150
                 disabled:opacity-50
               "
             >
@@ -257,7 +257,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
               disabled={saving}
               className="
                 relative flex-[2] overflow-hidden group
-                py-3 rounded-2xl text-sm font-black text-[#04114B]
+                py-3 rounded-2xl text-sm font-black text-[#1f1a17]
                 bg-gradient-to-r from-[#FFD600] to-[#FFBE00]
                 shadow-md shadow-yellow-200/60
                 hover:shadow-lg hover:shadow-yellow-300/50
