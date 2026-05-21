@@ -329,27 +329,22 @@ export default function FoodMenu() {
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{
-      background: "radial-gradient(ellipse at 20% 10%, rgba(244,196,48,0.07) 0%, transparent 45%), radial-gradient(ellipse at 85% 85%, rgba(244,196,48,0.05) 0%, transparent 45%), linear-gradient(135deg, #FFFDF6 0%, #FAF6EA 55%, #F5F0E2 100%)"
-    }}>
+    <div className="flex h-screen overflow-hidden bg-[#fffdf7]">
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* ── STICKY HEADER ──────────────────────────────────────── */}
         <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
-          <div className="px-6 md:px-10 py-4 md:py-5">
+          <div className="px-6 md:px-10 py-3 md:py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
               {/* Left: title */}
               <div className="flex-shrink-0">
-                <p className="text-[10px] font-semibold text-[#a3957e] uppercase tracking-[0.2em]">
-                  Yellow Dot · Staff View
-                </p>
-                <h1 className="text-3xl md:text-4xl font-black text-[#1f1a17] tracking-tight leading-none mt-0.5">
+                <h1 className="text-3xl md:text-4xl font-black text-[#2a1c06] tracking-tight leading-none">
                   Food Menu
                 </h1>
-                <p className="text-[#8b7d65] text-sm mt-1 font-medium">
+                <p className="text-[#a3957e] text-sm mt-1 font-normal">
                   Manage daily meal plans · last 30 days
                 </p>
               </div>
