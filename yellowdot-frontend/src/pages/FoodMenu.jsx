@@ -153,13 +153,14 @@ function ErrorState({ onRetry }) {
 
 // ── Meal cell content ─────────────────────────────────────────────
 
+// All pills: same warm gold family — only opacity/depth varies
 const MEAL_PILL = {
-  "Breakfast":   "bg-amber-50   text-amber-700",
-  "Mid-Morning": "bg-stone-100  text-stone-600",
-  "Roti Sabzi":  "bg-amber-100  text-amber-800",
-  "Dal Rice":    "bg-yellow-50  text-yellow-700",
-  "Milk":        "bg-[#faf6ea]  text-[#7a6e5e]",
-  "Snacks":      "bg-[#f8f0d8]  text-[#8b6a18]",
+  "Breakfast":   "bg-[#f5e8b8] text-[#7a5e18]",
+  "Mid-Morning": "bg-[#f8f0d4] text-[#8b7228]",
+  "Roti Sabzi":  "bg-[#f5e8b8] text-[#7a5e18]",
+  "Dal Rice":    "bg-[#f8f0d4] text-[#8b7228]",
+  "Milk":        "bg-[#faf5e4] text-[#9a8248]",
+  "Snacks":      "bg-[#f5e8b8] text-[#7a5e18]",
 };
 
 function MealCell({ mealType, itemName, unitType }) {
@@ -168,7 +169,7 @@ function MealCell({ mealType, itemName, unitType }) {
   }
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
-      <span className="text-[13px] font-semibold text-[#4a3f2a] truncate leading-tight" title={itemName}>
+      <span className="text-[13px] font-medium text-[#4a3f2a] truncate leading-tight" title={itemName}>
         {itemName}
       </span>
       <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${MEAL_PILL[mealType] || "bg-gray-50 text-gray-500"}`}>
@@ -328,7 +329,9 @@ export default function FoodMenu() {
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#FFFDF6] via-[#FAF6EA] to-[#F5F0E2] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{
+      background: "radial-gradient(ellipse at 20% 10%, rgba(244,196,48,0.07) 0%, transparent 45%), radial-gradient(ellipse at 85% 85%, rgba(244,196,48,0.05) 0%, transparent 45%), linear-gradient(135deg, #FFFDF6 0%, #FAF6EA 55%, #F5F0E2 100%)"
+    }}>
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
@@ -374,24 +377,21 @@ export default function FoodMenu() {
                     onClick={openEnterModal}
                     className="
                       group relative overflow-hidden
-                      flex items-center gap-2 px-5 py-3 rounded-2xl
-                      bg-gradient-to-r from-[var(--yd-yellow-light)] to-yd-yellow-hover
-                      text-yd-navy text-sm font-black
-                      shadow-md shadow-yellow-200/60
-                      hover:shadow-lg hover:shadow-yellow-300/50
-                      active:scale-[0.98] transition-all duration-200
+                      flex items-center gap-2 px-5 py-2.5 rounded-xl
+                      text-[#5a4010] text-sm font-semibold
+                      active:scale-[0.97] transition-all duration-200
                     "
+                    style={{
+                      background: "linear-gradient(160deg, #f9dc5a 0%, #f0c930 100%)",
+                      boxShadow: "0 4px 16px rgba(212,170,31,0.28), inset 0 1px 0 rgba(255,255,255,0.4)",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 24px rgba(212,170,31,0.40), inset 0 1px 0 rgba(255,255,255,0.4)"}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(212,170,31,0.28), inset 0 1px 0 rgba(255,255,255,0.4)"}
                   >
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-                    />
-                    <span className="relative flex items-center gap-2">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                      </svg>
-                      Enter Menu
-                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                    Enter Menu
                   </button>
                 )}
               </div>
@@ -402,20 +402,22 @@ export default function FoodMenu() {
 
         {/* ── TABLE SECTION ───────────────────────────────────────── */}
         <div className="flex-1 overflow-auto px-6 md:px-10 py-7">
-          <div className="bg-white rounded-3xl border border-[#ece7d8] shadow-[0_2px_16px_rgba(180,140,0,0.06)] overflow-hidden min-w-[900px]">
+          <div className="max-w-[1400px] mx-auto">
+          <div className="bg-[#fffdf8] rounded-3xl border border-[#e8ddb8] overflow-hidden min-w-[900px]"
+            style={{ boxShadow: "0 10px 30px rgba(212,170,31,0.08), 0 2px 8px rgba(212,170,31,0.05)" }}>
 
-            {/* ── Table header ── */}
-            <div className="bg-gradient-to-r from-[#1f1a17] via-[#2a221d] to-[#2a221d] px-6 py-4 relative overflow-hidden">
-              <div className="absolute -top-8 -right-8 w-32 h-32 bg-[#f4c430]/10 rounded-full blur-2xl pointer-events-none" />
+            {/* ── Table header — soft warm gold ── */}
+            <div className="px-6 py-3.5 border-b border-[#e8d898] relative overflow-hidden"
+              style={{ background: "linear-gradient(180deg, #fff7d6 0%, #f8ebbf 100%)" }}>
+              <div className="absolute inset-0 bg-white/30 pointer-events-none" />
               <div className="relative grid gap-3" style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}>
-                <span className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest">Date</span>
+                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide">Date</span>
                 {MEAL_TYPES.map(mt => (
-                  <span key={mt.type} className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest flex items-center gap-1.5">
-                    <span className="text-sm leading-none">{mt.emoji}</span>
+                  <span key={mt.type} className="text-[10px] font-semibold text-[#9a7a18] tracking-wide">
                     {mt.type}
                   </span>
                 ))}
-                <span className="text-[10px] font-bold text-[#c9a830]/75 uppercase tracking-widest text-right">Actions</span>
+                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide text-right">Actions</span>
               </div>
             </div>
 
@@ -427,7 +429,7 @@ export default function FoodMenu() {
             ) : tableRows.length === 0 ? (
               <EmptyState onEnter={openEnterModal} />
             ) : (
-              <div className="divide-y divide-[#f0ebe0]">
+              <div className="p-3 space-y-1.5">
                 {tableRows.map((row, rowIdx) => {
                   const today     = isToday(row.date);
                   const yesterday = isYesterday(row.date);
@@ -435,9 +437,11 @@ export default function FoodMenu() {
                     <div
                       key={row.date}
                       className={`
-                        group grid gap-3 px-6 py-4 transition-colors duration-150
-                        hover:bg-[#FFFBEE]
-                        ${today ? "bg-[#FFFDF0]" : ""}
+                        group grid gap-3 px-5 py-3.5 rounded-2xl transition-all duration-[190ms]
+                        border hover:shadow-[0_4px_20px_rgba(212,170,31,0.12)] hover:-translate-y-px
+                        ${today
+                          ? "bg-[#fffdf0] border-[#f0e4a0]"
+                          : "bg-[#fffdf8] border-transparent hover:bg-[#fffbee] hover:border-[#e8d898]"}
                       `}
                       style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}
                     >
@@ -482,8 +486,8 @@ export default function FoodMenu() {
                             title="Edit menu"
                             className="
                               w-8 h-8 flex items-center justify-center rounded-xl
-                              text-[#c4b090] hover:text-[#1f1a17] hover:bg-[#fff4c2]/60
-                              transition-all duration-150
+                              text-[#c4b090] hover:text-[#7a5e18] hover:bg-[#f5e8b8]
+                              transition-all duration-[190ms]
                             "
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -501,8 +505,8 @@ export default function FoodMenu() {
                             title="Delete menu"
                             className="
                               w-8 h-8 flex items-center justify-center rounded-xl
-                              text-gray-300 hover:text-rose-500 hover:bg-rose-50
-                              transition-all duration-150
+                              text-[#d4c8b0] hover:text-[#c0402a] hover:bg-[#fee8e2]
+                              transition-all duration-[190ms]
                             "
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -520,18 +524,19 @@ export default function FoodMenu() {
 
             {/* ── Table footer ── */}
             {!loading && !bootError && tableRows.length > 0 && (
-              <div className="px-6 py-3.5 border-t border-[#f0ebe0] bg-[#fffbf0] flex items-center justify-between">
-                <p className="text-xs text-[#a3957e] font-medium">
+              <div className="px-6 py-3 border-t border-[#e8d898] bg-[#fffbee]/60 flex items-center justify-between">
+                <p className="text-xs text-[#a3957e] font-normal">
                   Showing {tableRows.length} menu{tableRows.length !== 1 ? "s" : ""} · last 30 days
                 </p>
                 <button
                   onClick={openEnterModal}
-                  className="text-xs font-bold text-[#1f1a17] hover:text-[#b09830] transition-colors"
+                  className="text-xs font-medium text-[#b09830] hover:text-[#8b6a18] transition-colors duration-150"
                 >
                   + Add menu
                 </button>
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

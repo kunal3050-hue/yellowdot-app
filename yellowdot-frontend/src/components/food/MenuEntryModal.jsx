@@ -123,22 +123,22 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
         "
         onClick={e => e.stopPropagation()}
       >
-        {/* ── Header ── */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-[#1f1a17] via-[#2a221d] to-[#342922] px-7 pt-6 pb-5 relative overflow-hidden">
-          {/* ambient glows */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#f4c430]/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-[#f4c430]/6 rounded-full blur-3xl pointer-events-none" />
+        {/* ── Header — warm gold gradient, light & airy ── */}
+        <div className="flex-shrink-0 px-7 pt-6 pb-5 border-b border-[#e8d898] relative overflow-hidden"
+          style={{ background: "linear-gradient(160deg, #fff7d6 0%, #f8ebbf 50%, #f5e4a8 100%)" }}>
+          <div className="absolute inset-0 bg-white/25 pointer-events-none" />
+          <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#f4c430]/12 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <p className="text-[#c9a830]/75 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
+              <p className="text-[#9a7a18] text-[10px] font-semibold tracking-[0.18em] mb-1">
                 {isEdit ? "Edit Menu" : "Menu Builder"}
               </p>
-              <h2 className="text-white font-black text-xl leading-tight">
+              <h2 className="text-[#3a2a08] font-bold text-xl leading-tight">
                 {isEdit ? fmtDateLabel(date) : "Enter Daily Menu"}
               </h2>
               {dateHasMenu && (
-                <p className="flex items-center gap-1.5 text-[#FFD600]/90 text-xs font-semibold mt-1.5">
+                <p className="flex items-center gap-1.5 text-[#8b6a18] text-xs font-medium mt-1.5">
                   <span>⚡</span> Menu exists for this date — saving will replace it
                 </p>
               )}
@@ -150,8 +150,8 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
               disabled={saving}
               className="
                 flex-shrink-0 w-8 h-8 flex items-center justify-center
-                rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white
-                transition-all duration-150
+                rounded-xl bg-[#f0d880]/40 hover:bg-[#f0d880]/80 text-[#8b6a18]
+                transition-all duration-[190ms]
               "
             >
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -163,16 +163,16 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
           {/* Date picker (only in enter mode) */}
           {!isEdit && (
             <div className="relative mt-4">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a3957e] text-sm pointer-events-none">📅</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9a7a18] text-sm pointer-events-none select-none">📅</span>
               <input
                 type="date"
                 value={date}
                 max={maxFutureDate()}
                 onChange={e => setDate(e.target.value)}
                 className="
-                  bg-white rounded-2xl pl-9 pr-4 py-2.5
-                  text-[#1f1a17] text-sm font-semibold
-                  outline-none border-2 border-transparent focus:border-[#f4c430]/60
+                  bg-white/80 rounded-xl pl-9 pr-4 py-2
+                  text-[#3a2a08] text-sm font-medium
+                  outline-none border border-[#e8d898] focus:border-[#c9a830] focus:bg-white
                   transition-all cursor-pointer shadow-sm
                 "
               />
@@ -256,22 +256,23 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
               onClick={handleSave}
               disabled={saving}
               className="
-                relative flex-[2] overflow-hidden group
-                py-3 rounded-2xl text-sm font-black text-[#1f1a17]
-                bg-gradient-to-r from-[#FFD600] to-[#FFBE00]
-                shadow-md shadow-yellow-200/60
-                hover:shadow-lg hover:shadow-yellow-300/50
-                active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed
-                transition-all duration-200
+                relative flex-[2] overflow-hidden
+                py-3 rounded-xl text-sm font-semibold text-[#5a4010]
+                active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
+                transition-all duration-[190ms]
               "
+              style={{
+                background: "linear-gradient(160deg, #f9dc5a 0%, #f0c930 100%)",
+                boxShadow: "0 4px 14px rgba(212,170,31,0.30), inset 0 1px 0 rgba(255,255,255,0.45)",
+              }}
             >
               {/* shimmer */}
               <span
                 aria-hidden
                 className="
                   pointer-events-none absolute inset-0
-                  bg-gradient-to-r from-transparent via-white/30 to-transparent
-                  -translate-x-full group-hover:translate-x-full
+                  bg-gradient-to-r from-transparent via-white/25 to-transparent
+                  -translate-x-full hover:translate-x-full
                   transition-transform duration-700
                 "
               />
@@ -285,7 +286,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
                     Saving…
                   </>
                 ) : (
-                  <>{isEdit ? "✓ Save Changes" : "💾 Save Menu"}</>
+                  <>{isEdit ? "✓ Save Changes" : "Save Menu"}</>
                 )}
               </span>
             </button>
