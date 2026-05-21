@@ -1,21 +1,23 @@
-﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// FoodConsumption â€” /food-consumption
+// ─────────────────────────────────────────────────────────────────────────────
+// FoodConsumption — /food-consumption
 //
 // Teacher tool to track daily student meal intake.
+// One meal category at a time via segment control for reduced cognitive load.
 //
 // Workflow:
 //   1. Teacher selects class + date
-//   2. Students for that class load; food menu for the date loads
-//   3. Teacher taps quantity buttons â†’ autosave (debounced 800ms)
-//   4. Consumption summary renders below the tracking area
+//   2. Segment control appears with available meal categories
+//   3. Teacher selects a category → only that meal visible for all students
+//   4. Teacher taps quantity chips → autosave (debounced 800ms)
+//   5. Summary section shows all recorded entries
 //
 // Quota safety:
 //   - Students: 1 fetch on mount, cached in state
 //   - Menu: 1 fetch when date changes
 //   - Consumption: 1 fetch when date or class changes
 //   - Autosave: 1 append per cell change (no reads during save)
-//   - No polling, no re-render loops, no toast in useCallback deps
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//   - No polling, no re-render loops
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
@@ -24,40 +26,33 @@ import foodMenuService        from "../services/foodMenuService";
 import foodConsumptionService from "../services/foodConsumptionService";
 import { api } from "../services/authService";
 
-// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Constants ─────────────────────────────────────────────────────────────
 
 const CLASSES     = ["Playgroup", "Nursery", "Junior K.G.", "Senior K.G.", "Daycare"];
 const QTY_OPTIONS = [0, 0.5, 1, 1.5, 2];
 
-const MEAL_EMOJIS = {
-  "Breakfast":   "ðŸŒ…",
-  "Mid-Morning": "ðŸŽ",
-  "Roti Sabzi":  "ðŸ«“",
-  "Dal Rice":    "ðŸš",
-  "Milk":        "ðŸ¥›",
-  "Snacks":      "ðŸª",
-};
-
+// All warm stone/amber/yellow — no violet/sky/emerald/rose/teal/indigo/fuchsia
 const AVATAR_GRADIENTS = [
-  "from-violet-400 to-purple-600",
-  "from-sky-400    to-blue-600",
-  "from-emerald-400 to-green-600",
-  "from-rose-400   to-pink-600",
-  "from-amber-400  to-orange-500",
-  "from-teal-400   to-cyan-600",
-  "from-indigo-400 to-blue-700",
-  "from-fuchsia-400 to-pink-600",
+  "from-stone-600 to-stone-800",
+  "from-amber-600 to-amber-900",
+  "from-yellow-700 to-amber-800",
+  "from-stone-500 to-amber-700",
+  "from-amber-700 to-stone-700",
+  "from-yellow-600 to-stone-700",
+  "from-stone-700 to-amber-600",
+  "from-amber-500 to-stone-600",
 ];
 
+// All warm gold tonal — no pink/violet/sky/teal
 const CLASS_PILLS = {
-  "Playgroup":   "bg-pink-50   text-pink-700   border border-pink-100",
-  "Nursery":     "bg-violet-50 text-violet-700 border border-violet-100",
-  "Junior K.G.": "bg-sky-50    text-sky-700    border border-sky-100",
-  "Senior K.G.": "bg-teal-50   text-teal-700   border border-teal-100",
-  "Daycare":     "bg-amber-50  text-amber-700  border border-amber-100",
+  "Playgroup":   "bg-[#f5e8b8] text-[#7a5e18] border border-[#e8d49a]",
+  "Nursery":     "bg-[#f8f0d4] text-[#8b7228] border border-[#e8daa0]",
+  "Junior K.G.": "bg-[#faf5e4] text-[#8b7228] border border-[#ece0b4]",
+  "Senior K.G.": "bg-[#f5e8b8] text-[#7a5e18] border border-[#e8d49a]",
+  "Daycare":     "bg-[#f8f0d4] text-[#9a8248] border border-[#e8daa0]",
 };
 
-// â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Utilities ─────────────────────────────────────────────────────────────
 
 function todayISO() { return new Date().toISOString().split("T")[0]; }
 
@@ -80,13 +75,12 @@ function fmtDateDisplay(iso) {
 function timeAgo(ts) {
   if (!ts) return "";
   const diff = Date.now() - ts;
-  if (diff < 60_000)   return "Just now";
+  if (diff < 60_000)    return "Just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   return `${Math.floor(diff / 3_600_000)}h ago`;
 }
 
-// â”€â”€ Toast hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Stable callbacks â€” no references in useCallback deps â†’ no loops.
+// ── Toast hook ────────────────────────────────────────────────────────────
 
 function useToast() {
   const [toasts, setToasts] = useState([]);
@@ -101,7 +95,7 @@ function useToast() {
   return { toasts, success, error, dismiss };
 }
 
-// â”€â”€ Toast stack â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Toast stack ───────────────────────────────────────────────────────────
 
 function ToastStack({ toasts, onDismiss }) {
   if (!toasts.length) return null;
@@ -112,32 +106,32 @@ function ToastStack({ toasts, onDismiss }) {
         <div
           key={t.id}
           className={`
-            flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold
+            flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-xl text-sm font-semibold
             w-full sm:min-w-[280px] sm:max-w-sm pointer-events-auto
-            ${t.type === "success" ? "bg-yd-navy text-white" : "bg-rose-600 text-white"}
+            ${t.type === "success" ? "bg-[#2a1c06] text-white" : "bg-[#c0402a] text-white"}
           `}
         >
           <span className="text-xl flex-shrink-0 select-none">
-            {t.type === "success" ? "âœ…" : "âŒ"}
+            {t.type === "success" ? "✨" : "⚠️"}
           </span>
           <span className="flex-1 leading-snug">{t.message}</span>
           <button
             onClick={() => onDismiss(t.id)}
             className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full
                        bg-white/15 hover:bg-white/25 transition-all text-white/80 hover:text-white font-bold"
-          >Ã—</button>
+          >×</button>
         </div>
       ))}
     </div>
   );
 }
 
-// â”€â”€ SaveIndicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SaveIndicator ─────────────────────────────────────────────────────────
 
 function SaveIndicator({ saving, saved }) {
   if (saving) {
     return (
-      <svg className="w-3.5 h-3.5 text-gray-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+      <svg className="w-3.5 h-3.5 text-[#c9a830] animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
@@ -145,7 +139,7 @@ function SaveIndicator({ saving, saved }) {
   }
   if (saved) {
     return (
-      <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+      <svg className="w-3.5 h-3.5 text-[#8b7a28] flex-shrink-0" fill="none" viewBox="0 0 24 24">
         <path stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           d="M5 13l4 4L19 7" />
       </svg>
@@ -154,28 +148,33 @@ function SaveIndicator({ saving, saved }) {
   return <div className="w-3.5 h-3.5 flex-shrink-0" />;
 }
 
-// â”€â”€ QuantitySelector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── QuantitySelector — premium warm chips ────────────────────────────────
 
 function QuantitySelector({ value, onChange, disabled }) {
   return (
-    <div className={`flex items-center gap-0.5 bg-gray-50 rounded-xl p-0.5 border border-gray-100
-                     transition-opacity ${disabled ? "opacity-40 pointer-events-none" : ""}`}>
+    <div className={`flex items-center gap-1 transition-opacity duration-150
+                     ${disabled ? "opacity-35 pointer-events-none" : ""}`}>
       {QTY_OPTIONS.map(q => {
         const isActive = value !== null && value !== undefined && Number(value) === q;
+        const isZero   = q === 0;
         return (
           <button
             key={q}
             type="button"
             onClick={() => onChange(q)}
             className={`
-              w-9 h-7 text-xs font-bold rounded-[8px] transition-all duration-150 select-none
-              ${isActive
-                ? q === 0
-                  ? "bg-rose-100 text-rose-600 shadow-sm"
-                  : "bg-yd-navy text-white shadow-sm"
-                : "text-gray-400 hover:text-yd-navy hover:bg-white/80"
-              }
+              w-9 h-7 text-xs font-semibold rounded-lg transition-all duration-[180ms] select-none
+              ${isActive ? "scale-[1.06]" : "text-[#c4b090] hover:text-[#7a5e18] hover:bg-[#f5e8b8]"}
             `}
+            style={isActive ? {
+              background: isZero
+                ? "linear-gradient(160deg,#fee8e2 0%,#fdd4c8 100%)"
+                : "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)",
+              color:      isZero ? "#7a2018" : "#5a4010",
+              boxShadow:  isZero
+                ? "0 2px 6px rgba(192,64,42,0.22)"
+                : "0 2px 8px rgba(212,170,31,0.30),inset 0 1px 0 rgba(255,255,255,0.45)",
+            } : {}}
           >
             {q}
           </button>
@@ -185,76 +184,113 @@ function QuantitySelector({ value, onChange, disabled }) {
   );
 }
 
-// â”€â”€ StatusPill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── StatusPill ────────────────────────────────────────────────────────────
 
 function StatusPill({ status }) {
-  if (!status) return <span className="text-gray-200 text-xs select-none">â€”</span>;
+  if (!status) return <span className="text-[#d4c8b0] text-xs select-none">—</span>;
   if (status === "Ate") {
     return (
-      <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold
-                       border border-emerald-100 whitespace-nowrap">
-        âœ“ Ate
+      <span className="px-2 py-0.5 rounded-lg bg-[#f8f4d8] text-[#5a4d18] text-[10px] font-semibold
+                       border border-[#d4bc58] whitespace-nowrap">
+        Ate
       </span>
     );
   }
   return (
-    <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold
-                     border border-rose-100 whitespace-nowrap">
-      âœ— Didn't Eat
+    <span className="px-2 py-0.5 rounded-lg bg-[#fee8e2] text-[#7a2018] text-[10px] font-semibold
+                     border border-[#e0a898] whitespace-nowrap">
+      Skipped
     </span>
   );
 }
 
-// â”€â”€ SkeletonCards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── MealSegmentControl — Apple-style pill tabs ────────────────────────────
+
+function MealSegmentControl({ meals, active, onSelect }) {
+  return (
+    <div
+      className="flex items-center gap-1 p-1 rounded-2xl border border-[#e8d898] overflow-x-auto flex-shrink-0"
+      style={{
+        background:  "linear-gradient(180deg,#fdf8e8 0%,#f8f0d4 100%)",
+        boxShadow:   "inset 0 1px 3px rgba(180,140,0,0.10)",
+        scrollbarWidth: "none",
+      }}
+    >
+      {meals.map(m => {
+        const isActive = active === m.mealType;
+        return (
+          <button
+            key={m.mealType}
+            onClick={() => onSelect(m.mealType)}
+            className={`
+              flex-shrink-0 px-4 py-1.5 rounded-xl text-xs font-semibold
+              transition-all duration-[180ms] whitespace-nowrap
+              ${isActive ? "scale-[1.01]" : "text-[#a3957e] hover:text-[#7a5e18] hover:bg-[#fff7dc]/70"}
+            `}
+            style={isActive ? {
+              background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)",
+              color:      "#5a4010",
+              boxShadow:  "0 2px 10px rgba(212,170,31,0.28),inset 0 1px 0 rgba(255,255,255,0.5)",
+            } : {}}
+          >
+            {m.mealType}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── SkeletonCards ─────────────────────────────────────────────────────────
 
 function SkeletonCards() {
   return (
-    <div className="space-y-4 animate-pulse">
-      {[0, 1, 2].map(i => (
-        <div key={i} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4"
-             style={{ animationDelay: `${i * 80}ms` }}>
-          <div className="flex items-center gap-4 pb-4 border-b border-gray-50">
-            <div className="w-11 h-11 rounded-2xl bg-gray-100" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 bg-gray-100 rounded-full w-36" />
-              <div className="h-2 bg-gray-100 rounded-full w-20" />
-            </div>
-            <div className="h-5 w-20 bg-gray-100 rounded-xl" />
+    <div className="space-y-2 animate-pulse">
+      {[0, 1, 2, 3, 4].map(i => (
+        <div key={i}
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-[#fffdf8] border border-[#f0ebe0]"
+          style={{ animationDelay: `${i * 60}ms` }}
+        >
+          <div className="w-9 h-9 rounded-xl bg-[#f0e8d4] flex-shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 bg-[#f0e8d4] rounded-full w-32" />
+            <div className="h-2 bg-[#f0e8d4] rounded-full w-20" />
           </div>
-          {[0, 1, 2, 3].map(j => (
-            <div key={j} className="flex items-center gap-4 py-1">
-              <div className="h-2 bg-gray-100 rounded-full w-28" />
-              <div className="h-2 bg-gray-100 rounded-full flex-1" />
-              <div className="h-7 bg-gray-100 rounded-xl w-48" />
-              <div className="h-2 bg-gray-100 rounded-full w-10" />
-              <div className="h-5 bg-gray-100 rounded-lg w-20" />
-            </div>
-          ))}
+          <div className="h-7 w-52 bg-[#f0e8d4] rounded-xl" />
+          <div className="h-5 w-12 bg-[#f0e8d4] rounded-lg" />
         </div>
       ))}
     </div>
   );
 }
 
-// â”€â”€ Empty states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Empty / error states ──────────────────────────────────────────────────
 
 function NoMenuState({ date }) {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
-      <div className="w-16 h-16 bg-[#FFFBEA] rounded-3xl flex items-center justify-center text-3xl mx-auto mb-5 select-none">
-        ðŸ½ï¸
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="relative w-20 h-20 flex items-center justify-center mb-5 select-none">
+        <div className="absolute inset-0 rounded-full bg-[#fff8e2]" />
+        <div className="absolute inset-3 rounded-full bg-[#fff4c2]/70" />
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#c79b12"
+          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+          <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+          <path d="M7 2v20"/>
+          <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/>
+          <path d="M21 15v7"/>
+        </svg>
       </div>
-      <p className="text-lg font-black text-gray-800">No Menu for {fmtDateDisplay(date)}</p>
-      <p className="text-gray-400 mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
-        Add today's food menu before you can track consumption.
+      <p className="text-lg font-bold text-[#2a1c06]">No Menu for {fmtDateDisplay(date)}</p>
+      <p className="text-[#8b7d65] mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
+        Add a food menu for this date before tracking consumption.
       </p>
       <Link
         to="/food-menu"
-        className="inline-flex items-center gap-2 mt-5 px-6 py-2.5
-                   bg-[var(--yd-yellow-light)] hover:bg-yellow-300 text-yd-navy font-black text-sm
-                   rounded-2xl transition-all active:scale-95 shadow-sm"
+        className="inline-flex items-center gap-2 mt-5 px-6 py-2.5 rounded-xl
+                   text-[#5a4010] font-semibold text-sm transition-all active:scale-95"
+        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}
       >
-        Go to Food Menu â†’
+        Go to Food Menu
       </Link>
     </div>
   );
@@ -262,12 +298,17 @@ function NoMenuState({ date }) {
 
 function NoStudentsState({ cls }) {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
-      <div className="w-16 h-16 bg-[#F0F4FF] rounded-3xl flex items-center justify-center text-3xl mx-auto mb-5 select-none">
-        ðŸŽ“
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 bg-[#faf5e4] border border-[#e8daa0] rounded-3xl flex items-center justify-center mb-5 select-none">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c79b12"
+          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
       </div>
-      <p className="text-lg font-black text-gray-800">No Students in {cls}</p>
-      <p className="text-gray-400 mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
+      <p className="text-lg font-bold text-[#2a1c06]">No Students in {cls}</p>
+      <p className="text-[#8b7d65] mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
         No active students are enrolled in this class yet.
       </p>
     </div>
@@ -276,202 +317,139 @@ function NoStudentsState({ cls }) {
 
 function ErrorState({ onRetry }) {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
-      <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-5 select-none">
-        âš ï¸
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 bg-[#fee8e2] border border-[#e0a898] rounded-3xl flex items-center justify-center mb-5 select-none">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c0402a"
+          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
       </div>
-      <p className="text-lg font-black text-gray-800">Connection Error</p>
-      <p className="text-gray-400 mt-2 text-sm max-w-[260px] mx-auto leading-relaxed">
-        Could not reach the server. Make sure the backend is running on port 5000.
+      <p className="text-lg font-bold text-[#2a1c06]">Connection Error</p>
+      <p className="text-[#8b7d65] mt-2 text-sm max-w-[260px] mx-auto leading-relaxed">
+        Could not reach the server. Make sure the backend is running.
       </p>
       <button
         onClick={onRetry}
-        className="mt-5 px-6 py-2.5 bg-[var(--yd-yellow-light)] hover:bg-yellow-300 text-yd-navy
-                   font-black text-sm rounded-2xl transition-all active:scale-95 shadow-sm"
+        className="mt-5 px-6 py-2.5 rounded-xl text-[#5a4010] font-semibold text-sm transition-all active:scale-95"
+        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}
       >
-        â†º Retry
+        Retry
       </button>
     </div>
   );
 }
 
-// â”€â”€ MealRow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── StudentCard — compact floating row, single meal ───────────────────────
 
-function MealRow({ meal, value, status, saving, saved, onChange }) {
-  const hasValue = value !== null && value !== undefined && value !== "";
+function StudentCard({ student, meal, entry, saving, saved, onQuantityChange }) {
+  const grad   = avatarGradient(student.Student_Name);
+  const cls    = student.Class || "";
+  const qty    = entry?.quantity ?? null;
+  const status = entry?.status  ?? "";
+  const hasQty = qty !== null && qty !== undefined && qty !== "";
+  const hasMeal = !!meal?.itemName;
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-t border-gray-50 first:border-t-0">
-      {/* Meal type */}
-      <div className="flex items-center gap-2 w-[130px] flex-shrink-0">
-        <span className="text-base leading-none select-none">{MEAL_EMOJIS[meal.mealType] || "ðŸ´"}</span>
-        <span className="text-xs font-semibold text-gray-500 truncate">{meal.mealType}</span>
+    <div className={`
+      flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-[190ms]
+      hover:shadow-[0_4px_16px_rgba(212,170,31,0.10)] hover:-translate-y-px
+      ${hasQty
+        ? "bg-[#fffdf0] border-[#e8d89a]"
+        : "bg-[#fffdf8] border-transparent hover:bg-[#fffbee] hover:border-[#e8d898]"}
+    `}>
+      {/* Avatar */}
+      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad}
+                       flex items-center justify-center flex-shrink-0`}>
+        <span className="text-white font-bold text-xs select-none">{initials(student.Student_Name)}</span>
       </div>
 
-      {/* Food item */}
+      {/* Name + food item */}
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-semibold text-gray-700 truncate block" title={meal.itemName}>
-          {meal.itemName || <span className="text-gray-300">â€”</span>}
-        </span>
+        <p className="text-sm font-bold text-[#2a1c06] truncate leading-tight">{student.Student_Name}</p>
+        {hasMeal
+          ? <p className="text-[11px] text-[#a3957e] font-normal truncate">{meal.itemName}</p>
+          : <p className="text-[11px] text-[#d4c8b0] font-normal">No item for this meal</p>
+        }
       </div>
 
-      {/* Quantity selector */}
-      <div className="flex-shrink-0">
-        <QuantitySelector value={value} onChange={onChange} />
-      </div>
+      {/* Class pill */}
+      <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-lg text-[10px] font-semibold
+                        flex-shrink-0 ${CLASS_PILLS[cls] || "bg-[#f8f0d4] text-[#8b7228] border border-[#e8daa0]"}`}>
+        {cls}
+      </span>
+
+      {/* Quantity chips */}
+      <QuantitySelector value={qty} onChange={onQuantityChange} disabled={!hasMeal} />
 
       {/* Unit */}
-      <div className="w-12 flex-shrink-0 text-right">
-        {hasValue && (
-          <span className="text-xs text-gray-400 font-medium">{meal.unitType || "pcs"}</span>
-        )}
-      </div>
+      {hasQty && meal?.unitType && (
+        <span className="text-[10px] text-[#a3957e] font-normal flex-shrink-0 w-8 text-right hidden sm:block">
+          {meal.unitType}
+        </span>
+      )}
 
       {/* Status */}
-      <div className="w-[92px] flex-shrink-0">
+      <div className="flex-shrink-0 w-[68px] text-right">
         <StatusPill status={status} />
       </div>
 
       {/* Save indicator */}
-      <div className="w-5 flex-shrink-0 flex items-center justify-center">
+      <div className="w-4 flex-shrink-0 flex items-center justify-center">
         <SaveIndicator saving={saving} saved={saved} />
       </div>
     </div>
   );
 }
 
-// â”€â”€ StudentCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function StudentCard({ student, menuSlots, consumptionMap, savingCells, savedCells, onQuantityChange }) {
-  const grad = avatarGradient(student.Student_Name);
-  const cls  = student.Class || "";
-
-  // How many meals recorded for this student
-  const recordedMeals = menuSlots.filter(m => {
-    const key = `${student.Student_ID}__${m.mealType}`;
-    const e   = consumptionMap[key];
-    return e && e.quantity !== null && e.quantity !== undefined && e.quantity !== "";
-  }).length;
-
-  return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-
-      {/* Card header */}
-      <div className="flex items-center gap-4 px-6 py-4 bg-gradient-to-r from-[#F8F9FF] to-white border-b border-gray-50">
-        {/* Avatar */}
-        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${grad} flex items-center justify-center flex-shrink-0`}>
-          <span className="text-white font-black text-sm select-none">{initials(student.Student_Name)}</span>
-        </div>
-
-        {/* Name + ID */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-yd-navy truncate">{student.Student_Name}</p>
-          <p className="text-[10px] text-gray-400 font-medium">{student.Student_ID}</p>
-        </div>
-
-        {/* Meals progress */}
-        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-          <div className="text-right">
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Recorded</p>
-            <p className="text-sm font-black text-yd-navy tabular-nums leading-tight">
-              {recordedMeals}
-              <span className="text-gray-300 font-medium">/{menuSlots.length}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Class pill */}
-        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold flex-shrink-0
-                          ${CLASS_PILLS[cls] || "bg-gray-100 text-gray-600"}`}>
-          {cls}
-        </span>
-      </div>
-
-      {/* Meal rows */}
-      <div className="px-6 py-2 pb-3">
-        {menuSlots.map(meal => {
-          const key    = `${student.Student_ID}__${meal.mealType}`;
-          const entry  = consumptionMap[key];
-          const qty    = entry?.quantity ?? null;
-          const status = entry?.status   ?? "";
-          return (
-            <MealRow
-              key={meal.mealType}
-              meal={meal}
-              value={qty}
-              status={status}
-              saving={savingCells.has(key)}
-              saved={savedCells.has(key)}
-              onChange={newQty => onQuantityChange(student, meal, newQty)}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// â”€â”€ RecentSection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── RecentSection ─────────────────────────────────────────────────────────
 
 function RecentSection({ entries }) {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Section header */}
-      <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+    <div className="rounded-3xl border border-[#e8ddb8] overflow-hidden"
+      style={{ boxShadow: "0 4px 20px rgba(212,170,31,0.07)", background: "#fffdf8" }}>
+      <div className="px-6 py-4 border-b border-[#f0ebe0] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-black text-yd-navy">Consumption Summary</h2>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-            All recorded entries for this date Â· class
+          <h2 className="text-sm font-bold text-[#2a1c06]">Consumption Summary</h2>
+          <p className="text-[10px] text-[#a3957e] font-normal mt-0.5">
+            All recorded entries for this date · class
           </p>
         </div>
-        <span className="px-2.5 py-1 rounded-xl bg-yd-bg text-yd-navy text-xs font-black border border-gray-100">
+        <span className="px-2.5 py-1 rounded-xl bg-[#f8f0d4] text-[#7a5e18] text-xs font-semibold
+                         border border-[#e8d49a]">
           {entries.length} {entries.length === 1 ? "entry" : "entries"}
         </span>
       </div>
 
-      {/* Entry list */}
-      <div className="divide-y divide-gray-50 max-h-80 overflow-auto">
+      <div className="divide-y divide-[#f0ebe0] max-h-72 overflow-auto">
         {entries.map(e => (
-          <div
-            key={e.key}
-            className="flex items-center gap-4 px-6 py-3 hover:bg-[#FAFBFF] transition-colors"
-          >
-            {/* Student avatar */}
-            <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${avatarGradient(e.studentName)}
+          <div key={e.key}
+            className="flex items-center gap-3 px-6 py-2.5 hover:bg-[#fffbee] transition-colors duration-150">
+            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${avatarGradient(e.studentName)}
                              flex items-center justify-center flex-shrink-0`}>
-              <span className="text-white text-[10px] font-black select-none">{initials(e.studentName)}</span>
+              <span className="text-white text-[9px] font-bold select-none">{initials(e.studentName)}</span>
             </div>
-
-            {/* Name + meal */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-700 truncate">{e.studentName}</p>
-              <p className="text-[10px] text-gray-400 font-medium">
-                {MEAL_EMOJIS[e.mealType] || "ðŸ´"} {e.mealType}
-                {e.foodItem ? ` Â· ${e.foodItem}` : ""}
+              <p className="text-sm font-semibold text-[#2a1c06] truncate">{e.studentName}</p>
+              <p className="text-[10px] text-[#a3957e] font-normal">
+                {e.mealType}{e.foodItem ? ` · ${e.foodItem}` : ""}
               </p>
             </div>
-
-            {/* Qty + unit */}
-            <div className="text-sm font-black text-yd-navy whitespace-nowrap flex-shrink-0">
+            <div className="text-sm font-bold text-[#2a1c06] whitespace-nowrap flex-shrink-0">
               {e.quantity}
               {e.quantity !== null && e.quantity !== "" && (
-                <span className="text-gray-400 font-medium text-xs ml-1">{e.unit || "pcs"}</span>
+                <span className="text-[#a3957e] font-normal text-xs ml-1">{e.unit || "pcs"}</span>
               )}
             </div>
-
-            {/* Status */}
             <div className="flex-shrink-0">
               <StatusPill status={e.status} />
             </div>
-
-            {/* Time (only for session changes) */}
-            <div className="w-16 flex-shrink-0 text-right">
-              {e.lastUpdated && (
-                <span className="text-[10px] text-gray-400 font-medium">
-                  {timeAgo(e.lastUpdated)}
-                </span>
-              )}
-            </div>
+            {e.lastUpdated && (
+              <span className="text-[10px] text-[#c4b090] font-normal flex-shrink-0 w-14 text-right">
+                {timeAgo(e.lastUpdated)}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -479,13 +457,14 @@ function RecentSection({ entries }) {
   );
 }
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────────────────────
 
 export default function FoodConsumption() {
   const [selectedDate,  setSelectedDate]  = useState(todayISO);
   const [selectedClass, setSelectedClass] = useState(CLASSES[0]);
+  const [activeMeal,    setActiveMeal]    = useState(null);
 
-  // Students (loaded once on mount â€” class filter is client-side)
+  // Students (loaded once on mount — class filter is client-side)
   const [students,        setStudents]        = useState([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [bootError,       setBootError]       = useState(false);
@@ -494,7 +473,7 @@ export default function FoodConsumption() {
   const [menuSlots,   setMenuSlots]   = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
 
-  // Consumption map: { "${studentId}__${mealType}" â†’ { quantity, status, lastUpdated } }
+  // Consumption map: { "${studentId}__${mealType}" → { quantity, status, lastUpdated } }
   const [consumptionMap,     setConsumptionMap]     = useState({});
   const [consumptionLoading, setConsumptionLoading] = useState(true);
 
@@ -504,19 +483,18 @@ export default function FoodConsumption() {
 
   const toast        = useToast();
   const mountedRef   = useRef(true);
-  const fetchingRef  = useRef(false);    // guards the initial student load
-  const debounceRefs = useRef({});       // { cellKey â†’ timeoutId }
+  const fetchingRef  = useRef(false);
+  const debounceRefs = useRef({});
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      // Cancel all pending autosaves on unmount
       Object.values(debounceRefs.current).forEach(clearTimeout);
     };
   }, []);
 
-  // â”€â”€ Load students (once, stable [] deps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load students (once, stable [] deps) ────────────────────────────────
 
   const loadStudents = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -536,9 +514,9 @@ export default function FoodConsumption() {
       if (mountedRef.current) setStudentsLoading(false);
       fetchingRef.current = false;
     }
-  }, []); // stable â€” no deps
+  }, []);
 
-  // â”€â”€ Load food menu for date (stable [] deps, receives date as arg) â”€
+  // ── Load food menu for date (stable, receives date as arg) ───────────────
 
   const loadMenu = useCallback(async (date) => {
     setMenuLoading(true);
@@ -552,9 +530,9 @@ export default function FoodConsumption() {
     } finally {
       if (mountedRef.current) setMenuLoading(false);
     }
-  }, []); // stable
+  }, []);
 
-  // â”€â”€ Load consumption for date + class (stable [] deps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load consumption for date + class (stable) ───────────────────────────
 
   const loadConsumption = useCallback(async (date, cls) => {
     setConsumptionLoading(true);
@@ -564,11 +542,7 @@ export default function FoodConsumption() {
       const map = {};
       (Array.isArray(data) ? data : []).forEach(e => {
         const key = `${e.student_id}__${e.meal_type}`;
-        map[key]  = {
-          quantity:    e.quantity,
-          status:      e.status,
-          lastUpdated: null, // null = pre-loaded (not a session change)
-        };
+        map[key]  = { quantity: e.quantity, status: e.status, lastUpdated: null };
       });
       setConsumptionMap(map);
     } catch {
@@ -577,22 +551,29 @@ export default function FoodConsumption() {
     } finally {
       if (mountedRef.current) setConsumptionLoading(false);
     }
-  }, []); // stable
+  }, []);
 
-  // â”€â”€ Effects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Effects ───────────────────────────────────────────────────────────────
 
-  // Students â€” once on mount
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
-  // Menu â€” whenever date changes; clear old menu while loading
+  // Date change: clear menu + reset active meal tab
   useEffect(() => {
     setMenuSlots([]);
     setMenuLoading(true);
+    setActiveMeal(null);
     loadMenu(selectedDate);
   }, [selectedDate, loadMenu]);
 
-  // Consumption â€” whenever date or class changes
-  // Also cancel pending debounced saves (stale date/class)
+  // Auto-select first meal when menuSlots loads (or after reset)
+  useEffect(() => {
+    if (menuSlots.length > 0 && !activeMeal) {
+      setActiveMeal(menuSlots[0].mealType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuSlots]); // intentionally excludes activeMeal — only runs when slots load
+
+  // Consumption — whenever date or class changes
   useEffect(() => {
     Object.values(debounceRefs.current).forEach(clearTimeout);
     debounceRefs.current = {};
@@ -601,47 +582,57 @@ export default function FoodConsumption() {
     loadConsumption(selectedDate, selectedClass);
   }, [selectedDate, selectedClass, loadConsumption]);
 
-  // â”€â”€ Derived data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived data ──────────────────────────────────────────────────────────
 
   const filteredStudents = useMemo(
     () => students.filter(s => s.Class === selectedClass),
     [students, selectedClass]
   );
 
-  // How many filtered students have at least one meal recorded
-  const recordedCount = useMemo(() => {
+  // Active meal slot object
+  const activeMealSlot = useMemo(
+    () => menuSlots.find(m => m.mealType === activeMeal) || null,
+    [menuSlots, activeMeal]
+  );
+
+  // How many students recorded for the active meal
+  const activeMealRecordedCount = useMemo(() => {
+    if (!activeMeal) return 0;
+    return filteredStudents.filter(s => {
+      const key = `${s.Student_ID}__${activeMeal}`;
+      const e   = consumptionMap[key];
+      return e && e.quantity !== null && e.quantity !== undefined && e.quantity !== "";
+    }).length;
+  }, [consumptionMap, filteredStudents, activeMeal]);
+
+  // Total unique students with at least one meal recorded (header stat)
+  const totalRecordedCount = useMemo(() => {
     const sids = new Set(filteredStudents.map(s => s.Student_ID));
     const seen = new Set();
     Object.keys(consumptionMap).forEach(key => {
       const [sid] = key.split("__");
-      const entry = consumptionMap[key];
-      if (sids.has(sid) && entry.quantity !== null && entry.quantity !== undefined && entry.quantity !== "") {
+      const e     = consumptionMap[key];
+      if (sids.has(sid) && e.quantity !== null && e.quantity !== undefined && e.quantity !== "") {
         seen.add(sid);
       }
     });
     return seen.size;
   }, [consumptionMap, filteredStudents]);
 
-  // Recent entries for the summary section (all recorded, session-changes first)
+  // Summary entries (all recorded, session-changes first)
   const recentEntries = useMemo(() => {
-    const studentNameMap = {};
-    students.forEach(s => { studentNameMap[s.Student_ID] = s.Student_Name; });
-
+    const nameMap = {};
+    students.forEach(s => { nameMap[s.Student_ID] = s.Student_Name; });
     return Object.entries(consumptionMap)
       .filter(([, v]) => v.quantity !== null && v.quantity !== undefined && v.quantity !== "")
       .map(([key, v]) => {
         const [sid, mealType] = key.split("__");
         const meal = menuSlots.find(m => m.mealType === mealType);
         return {
-          key,
-          studentId:   sid,
-          studentName: studentNameMap[sid] || sid,
-          mealType,
-          foodItem:    meal?.itemName  || "",
-          quantity:    v.quantity,
-          unit:        meal?.unitType  || "pcs",
-          status:      v.status,
-          lastUpdated: v.lastUpdated,
+          key, studentId: sid, studentName: nameMap[sid] || sid,
+          mealType, foodItem: meal?.itemName || "",
+          quantity: v.quantity, unit: meal?.unitType || "pcs",
+          status: v.status, lastUpdated: v.lastUpdated,
         };
       })
       .sort((a, b) => {
@@ -653,34 +644,27 @@ export default function FoodConsumption() {
       .slice(0, 25);
   }, [consumptionMap, students, menuSlots]);
 
-  // â”€â”€ Autosave (debounced, append-only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Autosave (debounced 800ms, append-only) ───────────────────────────────
 
   function scheduleAutosave(key, payload) {
-    // Clear any existing timer for this cell
     if (debounceRefs.current[key]) clearTimeout(debounceRefs.current[key]);
-
     debounceRefs.current[key] = setTimeout(async () => {
       delete debounceRefs.current[key];
       if (!mountedRef.current) return;
-
       setSavingCells(prev => { const n = new Set(prev); n.add(key); return n; });
-
       try {
         await foodConsumptionService.saveConsumption(payload);
         if (!mountedRef.current) return;
-        // Show green checkmark briefly
         setSavedCells(prev => { const n = new Set(prev); n.add(key); return n; });
         setTimeout(() => {
           if (!mountedRef.current) return;
           setSavedCells(prev => { const n = new Set(prev); n.delete(key); return n; });
         }, 2000);
       } catch (err) {
-        // Silent fail â€” don't toast; teacher UI stays responsive
         console.error("[food-consumption] autosave failed:", err.message);
       } finally {
-        if (mountedRef.current) {
+        if (mountedRef.current)
           setSavingCells(prev => { const n = new Set(prev); n.delete(key); return n; });
-        }
       }
     }, 800);
   }
@@ -689,14 +673,7 @@ export default function FoodConsumption() {
     const key    = `${student.Student_ID}__${meal.mealType}`;
     const status = Number(newQty) > 0 ? "Ate" : "Didn't Eat";
     const now    = Date.now();
-
-    // Optimistic update â€” instant UI response
-    setConsumptionMap(prev => ({
-      ...prev,
-      [key]: { quantity: String(newQty), status, lastUpdated: now },
-    }));
-
-    // Debounced save (800ms after last tap)
+    setConsumptionMap(prev => ({ ...prev, [key]: { quantity: String(newQty), status, lastUpdated: now } }));
     scheduleAutosave(key, {
       date:         selectedDate,
       student_id:   student.Student_ID,
@@ -711,53 +688,47 @@ export default function FoodConsumption() {
     });
   }
 
-  // â”€â”€ Render-state helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render-state helpers ──────────────────────────────────────────────────
 
-  // Show full skeleton only on initial load (students not yet fetched)
   const showSkeleton     = studentsLoading;
-  // Dim cards while consumption reloads (class/date switch)
   const dimOverlay       = consumptionLoading && !studentsLoading;
-  // Show menu skeleton when menu is loading and there's no prior menu data
   const showMenuSkeleton = !studentsLoading && menuLoading && menuSlots.length === 0;
 
-  // â”€â”€ RENDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#F8F9FF] via-[#F7F8FC] to-[#FFFDF5] overflow-hidden">
+    <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
-        {/* â”€â”€ STICKY HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="flex-shrink-0 bg-white/[0.98] backdrop-blur-2xl border-b border-gray-100 shadow-sm z-20">
-          <div className="px-6 md:px-10 py-4 md:py-5">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8]
+                        shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
+          <div className="px-6 md:px-10 py-3 md:py-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
 
               {/* Title */}
               <div className="flex-shrink-0">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-                  Yellow Dot Â· Teacher View
-                </p>
-                <h1 className="text-3xl md:text-4xl font-black text-yd-navy tracking-tight leading-none mt-0.5">
+                <h1 className="text-3xl md:text-4xl font-black text-[#2a1c06] tracking-tight leading-none">
                   Food Consumption
                 </h1>
-                <p className="text-gray-400 text-sm mt-1 font-medium">
-                  Track daily meal intake Â· autosaves instantly
+                <p className="text-[#a3957e] text-sm mt-0.5 font-normal">
+                  Track daily meal intake · autosaves instantly
                 </p>
               </div>
 
               {/* Controls */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
 
-                {/* Recorded stat chip */}
+                {/* Recorded stat */}
                 {!studentsLoading && filteredStudents.length > 0 && (
-                  <div className="bg-yd-bg border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[108px]">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Recorded</p>
-                    <p className="text-xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
-                      {recordedCount}
-                      <span className="text-gray-300 font-medium text-base">
-                        /{filteredStudents.length}
-                      </span>
+                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2 text-center
+                                  min-w-[96px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
+                    <p className="text-[9px] font-semibold text-[#a3957e] uppercase tracking-widest">Recorded</p>
+                    <p className="text-xl font-black text-[#2a1c06] tabular-nums leading-none mt-0.5">
+                      {totalRecordedCount}
+                      <span className="text-[#d4c8b0] font-normal text-base">/{filteredStudents.length}</span>
                     </p>
                   </div>
                 )}
@@ -768,19 +739,19 @@ export default function FoodConsumption() {
                   value={selectedDate}
                   max={todayISO()}
                   onChange={e => setSelectedDate(e.target.value)}
-                  className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white
-                             text-yd-navy font-semibold text-sm
-                             focus:ring-2 focus:ring-[var(--yd-yellow-light)] focus:border-[var(--yd-yellow-light)]
+                  className="px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white
+                             text-[#2a1c06] font-medium text-sm
+                             focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                              outline-none cursor-pointer"
                 />
 
-                {/* Class dropdown */}
+                {/* Class selector */}
                 <select
                   value={selectedClass}
                   onChange={e => setSelectedClass(e.target.value)}
-                  className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white
-                             text-yd-navy font-semibold text-sm min-w-[145px]
-                             focus:ring-2 focus:ring-[var(--yd-yellow-light)] focus:border-[var(--yd-yellow-light)]
+                  className="px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white
+                             text-[#2a1c06] font-medium text-sm min-w-[140px]
+                             focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                              outline-none cursor-pointer"
                 >
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -788,12 +759,30 @@ export default function FoodConsumption() {
               </div>
             </div>
           </div>
+
+          {/* ── Segment control — sticky below header ────────────────────── */}
+          {!studentsLoading && !menuLoading && menuSlots.length > 0 && (
+            <div className="px-6 md:px-10 pb-3">
+              <div className="flex items-center gap-3">
+                <MealSegmentControl
+                  meals={menuSlots}
+                  active={activeMeal}
+                  onSelect={setActiveMeal}
+                />
+                {activeMeal && (
+                  <span className="text-xs text-[#a3957e] font-normal flex-shrink-0">
+                    {activeMealRecordedCount}/{filteredStudents.length} recorded
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* â”€â”€ MAIN SCROLL AREA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="flex-1 overflow-auto px-6 md:px-10 py-7 space-y-6">
+        {/* ── MAIN SCROLL AREA ──────────────────────────────────────────── */}
+        <div className="flex-1 overflow-auto px-6 md:px-10 py-5 space-y-5">
 
-          {/* â”€â”€ Tracking area â”€â”€ */}
+          {/* Tracking area */}
           {showSkeleton || showMenuSkeleton ? (
             <SkeletonCards />
           ) : bootError ? (
@@ -803,29 +792,53 @@ export default function FoodConsumption() {
           ) : filteredStudents.length === 0 ? (
             <NoStudentsState cls={selectedClass} />
           ) : (
-            <div
-              className={`space-y-4 transition-opacity duration-200 ${dimOverlay ? "opacity-60 pointer-events-none" : ""}`}
-            >
-              {filteredStudents.map(student => (
-                <StudentCard
-                  key={student.Student_ID}
-                  student={student}
-                  menuSlots={menuSlots}
-                  consumptionMap={consumptionMap}
-                  savingCells={savingCells}
-                  savedCells={savedCells}
-                  onQuantityChange={handleQuantityChange}
-                />
-              ))}
+            <div className={`max-w-[860px] transition-opacity duration-200
+                             ${dimOverlay ? "opacity-60 pointer-events-none" : ""}`}>
+
+              {/* Active meal context breadcrumb */}
+              {activeMealSlot && (
+                <div className="mb-2.5 flex items-center gap-2">
+                  <span className="text-xs text-[#a3957e] font-normal">{activeMeal}</span>
+                  {activeMealSlot.itemName && (
+                    <>
+                      <span className="text-[#e0d4a8]">·</span>
+                      <span className="text-xs font-medium text-[#7a5e18]">{activeMealSlot.itemName}</span>
+                      <span className="text-[#e0d4a8]">·</span>
+                      <span className="text-xs text-[#a3957e]">{activeMealSlot.unitType}</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Student rows */}
+              <div className="space-y-1.5">
+                {filteredStudents.map(student => {
+                  const key   = `${student.Student_ID}__${activeMeal}`;
+                  const entry = consumptionMap[key];
+                  const fallbackMeal = activeMealSlot || { mealType: activeMeal || "", itemName: "", unitType: "pcs" };
+                  return (
+                    <StudentCard
+                      key={student.Student_ID}
+                      student={student}
+                      meal={fallbackMeal}
+                      entry={entry}
+                      saving={savingCells.has(key)}
+                      saved={savedCells.has(key)}
+                      onQuantityChange={newQty => handleQuantityChange(student, fallbackMeal, newQty)}
+                    />
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {/* â”€â”€ Consumption summary section â”€â”€ */}
+          {/* Summary section */}
           {!studentsLoading && !menuLoading && recentEntries.length > 0 && (
-            <RecentSection entries={recentEntries} />
+            <div className="max-w-[860px]">
+              <RecentSection entries={recentEntries} />
+            </div>
           )}
 
-          {/* Bottom spacer for comfortable scrolling */}
           <div className="h-6" />
         </div>
       </div>
@@ -834,4 +847,3 @@ export default function FoodConsumption() {
     </div>
   );
 }
-
