@@ -42,7 +42,8 @@
   display: flex;
   flex-direction: column;
   background: var(--yd-sidebar-bg);
-  border-right: 1px solid var(--yd-border);
+  border-right: 1px solid rgba(236, 231, 216, 0.28);
+  box-shadow: 2px 0 18px rgba(31, 26, 23, 0.04), 1px 0 0 rgba(255, 255, 255, 0.60) inset;
   transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   position: relative;
@@ -86,8 +87,8 @@
   align-items: center;
   gap: 10px;
   padding: 0 16px;
-  height: 56px;
-  border-bottom: 1px solid var(--yd-border);
+  height: 60px;
+  border-bottom: 1px solid rgba(236, 231, 216, 0.22);
   flex-shrink: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -122,17 +123,18 @@
 
 .yd-sl-logo-name {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--yd-charcoal);
   line-height: 1;
   letter-spacing: -0.3px;
 }
 
 .yd-sl-logo-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--yd-text-soft);
   margin-top: 2px;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 /* Nav */
@@ -140,25 +142,26 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 0;
+  padding: 10px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--yd-border) transparent;
 }
 
 .yd-sl-group {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .yd-sl-group-label {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
   color: var(--yd-text-muted);
-  padding: 10px 18px 4px;
+  padding: 12px 20px 5px;
   white-space: nowrap;
   overflow: hidden;
   transition: opacity 180ms;
+  opacity: 0.65;
 }
 
 .yd-sl--collapsed .yd-sl-group-label {
@@ -166,71 +169,79 @@
 }
 
 .yd-sl-items {
-  padding: 0 8px;
+  padding: 0 9px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .yd-sl-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 8px;
-  height: 36px;
-  border-radius: 8px;
+  padding: 0 9px;
+  height: 38px;
+  border-radius: 10px;
   cursor: pointer;
   text-decoration: none;
   color: var(--yd-text-soft);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 450;
   white-space: nowrap;
-  transition: background 140ms, color 140ms;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
   position: relative;
   overflow: hidden;
 }
 
 .yd-sl-item:hover {
-  background: var(--yd-sidebar-hover);
+  background: rgba(244, 196, 0, 0.08);
   color: var(--yd-text-warm);
 }
 
 .yd-sl-item.active {
-  background: var(--yd-yellow-light);
+  background: linear-gradient(135deg, rgba(255, 248, 200, 0.90) 0%, rgba(255, 244, 191, 0.80) 100%);
   color: var(--yd-charcoal);
-  font-weight: 600;
+  font-weight: 550;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.80) inset,
+    0 2px 8px rgba(224, 177, 0, 0.12),
+    0 1px 3px rgba(31, 26, 23, 0.06);
 }
 
 .yd-sl-item.active::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 6px;
-  bottom: 6px;
+  top: 7px;
+  bottom: 7px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--yd-yellow-dark);
+  background: linear-gradient(180deg, #f4c430 0%, #d9ae00 100%);
+  box-shadow: 0 0 8px rgba(244, 196, 0, 0.50), 0 0 3px rgba(244, 196, 0, 0.30);
 }
 
 .yd-sl-item-icon {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: var(--yd-text-muted);
-  transition: color 140ms, background 140ms;
+  transition: color 180ms ease, background 180ms ease;
+  opacity: 0.70;
 }
 
 .yd-sl-item:hover .yd-sl-item-icon {
   color: var(--yd-text-warm);
+  opacity: 0.90;
 }
 
 .yd-sl-item.active .yd-sl-item-icon {
-  background: rgba(244, 196, 0, 0.2);
+  background: rgba(244, 196, 0, 0.18);
   color: var(--yd-yellow-dark);
+  opacity: 1;
 }
 
 .yd-sl-item-label {
@@ -249,8 +260,8 @@
 /* Footer */
 .yd-sl-footer {
   flex-shrink: 0;
-  border-top: 1px solid var(--yd-border);
-  padding: 8px;
+  border-top: 1px solid rgba(236, 231, 216, 0.18);
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -821,8 +832,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NEW SIDEBAR CONTAINER  (new Sidebar.jsx uses .yd-sidebar)
+   PREMIUM SIDEBAR  (Sidebar.jsx → .yd-sidebar + .yd-sl-* classes)
    ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Container ───────────────────────────────────────────────────── */
 
 .yd-sidebar {
   width: var(--yd-sidebar-width);
@@ -830,11 +843,25 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--yd-sidebar-bg);
-  border-right: 1px solid var(--yd-border);
+  background: linear-gradient(180deg, #fffef8 0%, #fffbee 50%, #fff8e2 100%);
+  border-right: 1px solid rgba(236, 231, 216, 0.26);
+  box-shadow: 2px 0 24px rgba(31, 26, 23, 0.05), 1px 0 0 rgba(255, 255, 255, 0.70) inset;
   overflow: hidden;
   position: relative;
   z-index: var(--yd-z-sticky);
+}
+
+/* Ambient warm radial overlays for depth — pointer-events:none so they
+   don't interfere with clicks. Sits above background, below content. */
+.yd-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 260px 180px at 0% 0%,   rgba(244,196,0,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 220px 220px at 0% 100%, rgba(244,196,0,0.05) 0%, transparent 70%);
+  z-index: 0;
 }
 
 @media (max-width: 768px) {
@@ -845,8 +872,8 @@
     height: 100vh;
     z-index: var(--yd-z-modal);
     transform: translateX(-100%);
-    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 6px 0 40px rgba(0, 0, 0, 0.16);
   }
 
   .yd-sidebar--mobile-open {
@@ -854,46 +881,56 @@
   }
 }
 
+/* ── Mobile backdrop ─────────────────────────────────────────────── */
+
+.yd-sl-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: calc(var(--yd-z-modal) - 1);
+  animation: yd-fade-in 200ms ease;
+}
+
 /* ── Mobile close button ─────────────────────────────────────────── */
 
 .yd-sl-mobile-close {
   margin-left: auto;
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(236, 231, 216, 0.80);
   cursor: pointer;
-  color: var(--yd-text-muted);
+  color: #9e8e75;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: 8px;
   flex-shrink: 0;
-  transition: background 120ms, color 120ms;
+  transition: background 160ms, color 160ms;
 }
 
 .yd-sl-mobile-close:hover {
-  background: var(--yd-sidebar-hover);
-  color: var(--yd-charcoal);
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f1f1f;
 }
 
-/* ── Dev role override banner ────────────────────────────────────── */
+/* ── Dev role banner ─────────────────────────────────────────────── */
 
 .yd-sl-dev-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(37, 99, 235, 0.10),
-    rgba(37, 99, 235, 0.05)
-  );
-  border-bottom: 1px solid rgba(37, 99, 235, 0.14);
+  padding: 6px 16px;
+  background: rgba(251, 191, 36, 0.10);
+  border-bottom: 1px solid rgba(234, 179, 8, 0.18);
   font-size: 11px;
-  color: var(--yd-info);
-  font-weight: 500;
+  color: #92400e;
+  font-weight: 600;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .yd-sl-dev-banner-clear {
@@ -901,12 +938,12 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--yd-info);
+  color: #b45309;
   display: flex;
   align-items: center;
   padding: 2px;
   border-radius: 4px;
-  opacity: 0.6;
+  opacity: 0.70;
   transition: opacity 120ms;
 }
 
@@ -914,38 +951,83 @@
   opacity: 1;
 }
 
+/* ── Nav scroll area ─────────────────────────────────────────────── */
+
+.yd-sl-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0 12px;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(234, 179, 8, 0.28) transparent;
+}
+
+.yd-sl-nav::-webkit-scrollbar          { width: 3px; }
+.yd-sl-nav::-webkit-scrollbar-track    { background: transparent; }
+.yd-sl-nav::-webkit-scrollbar-thumb    {
+  background: rgba(234, 179, 8, 0.28);
+  border-radius: 99px;
+}
+
+/* ── Section group ───────────────────────────────────────────────── */
+
+.yd-sl-group {
+  margin-bottom: 2px;
+  position: relative;
+  z-index: 1;
+}
+
 /* ── Group header (section label row) ───────────────────────────── */
 
 .yd-sl-group-header {
   display: flex;
   align-items: center;
-  padding: 10px 16px 4px;
+  padding: 8px 20px 4px;
   gap: 6px;
 }
 
-/* When label is inside a header, the header provides the padding */
 .yd-sl-group-header .yd-sl-group-label {
   padding: 0;
 }
 
-/* Makes the entire header clickable with hover feedback */
 .yd-sl-group-header--toggle {
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 120ms;
+  border-radius: 8px;
+  padding-left: 16px;
+  transition: background 160ms;
 }
 
 .yd-sl-group-header--toggle:hover {
-  background: var(--yd-sidebar-hover);
+  background: rgba(244, 196, 0, 0.07);
 }
 
-/* Chevron icon — rotates when section opens */
+/* ── Section label ───────────────────────────────────────────────── */
+
+.yd-sl-group-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #c0a86a;
+  opacity: 0.70;
+  padding: 10px 20px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 180ms;
+  line-height: 1;
+}
+
+/* ── Chevron ─────────────────────────────────────────────────────── */
+
 .yd-sl-group-chevron {
   display: flex;
   align-items: center;
-  color: var(--yd-text-muted);
+  color: #c0a86a;
   margin-left: auto;
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0.65;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
   transform: rotate(0deg);
 }
 
@@ -953,36 +1035,126 @@
   transform: rotate(180deg);
 }
 
-/* ── Collapsible section body ────────────────────────────────────── */
-/*
-   max-height animation: browser can't transition to "auto", so we use
-   a generous fixed max. 600px covers 8+ items with room to spare.
-*/
-.yd-sl-section-body {
-  overflow: hidden;
-  transition:
-    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity    180ms ease;
+/* ── Items container ─────────────────────────────────────────────── */
+
+.yd-sl-items {
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.yd-sl-section-body--open {
-  max-height: 600px;
+/* ── Nav item ────────────────────────────────────────────────────── */
+
+.yd-sl-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 10px;
+  height: 38px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #7a6f62;
+  font-size: 13px;
+  font-weight: 430;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+  transition:
+    background  220ms cubic-bezier(0.4, 0, 0.2, 1),
+    color       220ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow  220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.yd-sl-item:hover {
+  background: rgba(244, 196, 0, 0.07);
+  color: #3d3120;
+}
+
+/* Premium floating card active state */
+.yd-sl-item.active {
+  background: linear-gradient(135deg, rgba(255, 253, 240, 0.96) 0%, rgba(255, 248, 210, 0.88) 100%);
+  color: #1a1a1a;
+  font-weight: 530;
+  letter-spacing: -0.015em;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.90) inset,
+    0 0 0 1px rgba(234, 179, 8, 0.14),
+    0 2px 8px rgba(224, 177, 0, 0.10),
+    0 4px 14px rgba(31, 26, 23, 0.05);
+}
+
+/* Left glowing gold accent */
+.yd-sl-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #f4c430 0%, #d9ae00 100%);
+  box-shadow: 0 0 8px rgba(244, 196, 0, 0.45), 0 0 3px rgba(244, 196, 0, 0.25);
+}
+
+/* ── Item icon container ─────────────────────────────────────────── */
+
+.yd-sl-item-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #a89880;
+  opacity: 0.72;
+  transition: color 220ms, background 220ms, opacity 220ms;
+}
+
+.yd-sl-item:hover .yd-sl-item-icon {
+  color: #5a4e3a;
+  opacity: 0.90;
+}
+
+.yd-sl-item.active .yd-sl-item-icon {
+  background: rgba(244, 196, 0, 0.14);
+  color: #b07800;
   opacity: 1;
 }
 
-.yd-sl-section-body--closed {
-  max-height: 0;
-  opacity: 0;
+/* ── Item label ──────────────────────────────────────────────────── */
+
+.yd-sl-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* ── Collapsible section body ────────────────────────────────────── */
+
+.yd-sl-section-body {
+  overflow: hidden;
+  transition:
+    max-height 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity    220ms ease;
+}
+
+.yd-sl-section-body--open  { max-height: 600px; opacity: 1; }
+.yd-sl-section-body--closed { max-height: 0;    opacity: 0; }
 
 /* ── Item badges ─────────────────────────────────────────────────── */
 
 .yd-sl-badge {
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 2px 5px;
-  border-radius: var(--yd-radius-full);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 99px;
   line-height: 1;
   flex-shrink: 0;
   text-transform: uppercase;
@@ -990,52 +1162,48 @@
   align-items: center;
 }
 
-/* Numeric count — yellow pill */
 .yd-sl-badge--count {
-  background: var(--yd-yellow);
-  color: var(--yd-black);
+  background: rgba(251, 191, 36, 0.18);
+  color: #92400e;
+  border: 1px solid rgba(234, 179, 8, 0.22);
   min-width: 18px;
   justify-content: center;
 }
 
-/* Pulsing red LIVE dot */
 .yd-sl-badge--live {
   background: #EF4444;
   color: #FFFFFF;
   animation: yd-pulse 2s ease-in-out infinite;
 }
 
-/* Blue NEW pill */
 .yd-sl-badge--new {
-  background: var(--yd-info);
-  color: #FFFFFF;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 
-/* Yellow SOON pill */
 .yd-sl-badge--soon {
-  background: var(--yd-yellow);
-  color: var(--yd-black);
+  background: rgba(251, 191, 36, 0.14);
+  color: #92400e;
+  border: 1px solid rgba(234, 179, 8, 0.18);
 }
 
-/* ── Developer group styling ─────────────────────────────────────── */
+/* ── Developer group ─────────────────────────────────────────────── */
 
 .yd-sl-group--dev {
-  border-top: 1px solid var(--yd-border-light);
+  border-top: 1px solid rgba(236, 231, 216, 0.18);
   margin-top: 4px;
   padding-top: 4px;
 }
 
 .yd-sl-group--dev .yd-sl-group-label,
 .yd-sl-group-label--dev {
-  color: var(--yd-info);
-  opacity: 0.85;
+  color: #d97706;
+  opacity: 0.80;
 }
 
-/* ── Sidebar item — button reset ─────────────────────────────────── */
-/*
-   SidebarItem renders as either <Link> or <button>.
-   The base .yd-sl-item styles cover both, but buttons need extra reset.
-*/
+/* ── Button reset for item as <button> ───────────────────────────── */
+
 button.yd-sl-item {
   border: none;
   background: transparent;
@@ -1048,7 +1216,9 @@ button.yd-sl-item {
 
 .yd-sl-footer-section {
   flex-shrink: 0;
-  border-top: 1px solid var(--yd-border-light);
+  border-top: 1px solid rgba(236, 231, 216, 0.18);
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Dev panel toggle button ─────────────────────────────────────── */
@@ -1058,38 +1228,33 @@ button.yd-sl-item {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 14px;
+  padding: 9px 16px;
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: var(--yd-info);
+  color: #d97706;
   font-family: var(--yd-font);
-  transition: background 120ms;
+  transition: background 160ms;
   text-align: left;
 }
 
-.yd-sl-dev-toggle:hover {
-  background: rgba(37, 99, 235, 0.06);
-}
-
-.yd-sl-dev-toggle.active {
-  background: rgba(37, 99, 235, 0.08);
-}
+.yd-sl-dev-toggle:hover  { background: rgba(251, 191, 36, 0.08); }
+.yd-sl-dev-toggle.active { background: rgba(251, 191, 36, 0.12); }
 
 /* ── Dev panel (role switcher) ───────────────────────────────────── */
 
 .yd-sl-dev-panel {
-  padding: 6px 10px 10px;
+  padding: 4px 12px 12px;
 }
 
 .yd-sl-dev-panel-title {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--yd-text-muted);
+  letter-spacing: 0.11em;
+  color: #c0a86a;
   margin-bottom: 6px;
   padding: 0 4px;
 }
@@ -1103,41 +1268,41 @@ button.yd-sl-item {
 
 .yd-sl-dev-role-btn {
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
   font-family: var(--yd-font);
-  color: var(--yd-text-soft);
+  color: #6b6357;
   text-align: left;
   transition: background 100ms, color 100ms, border-color 100ms;
 }
 
 .yd-sl-dev-role-btn:hover {
-  background: var(--yd-soft);
-  color: var(--yd-charcoal);
+  background: rgba(255, 251, 235, 0.95);
+  color: #1f1f1f;
 }
 
 .yd-sl-dev-role-btn.active {
-  background: rgba(37, 99, 235, 0.10);
-  border-color: rgba(37, 99, 235, 0.22);
-  color: var(--yd-info);
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(234, 179, 8, 0.25);
+  color: #92400e;
   font-weight: 600;
 }
 
 .yd-sl-dev-reset {
   width: 100%;
   padding: 5px 8px;
-  border-radius: 6px;
-  border: 1px dashed var(--yd-border-warm);
+  border-radius: 8px;
+  border: 1px dashed rgba(236, 231, 216, 0.80);
   background: transparent;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
   font-family: var(--yd-font);
-  color: var(--yd-text-muted);
+  color: #9e8e75;
   text-align: center;
   transition: background 100ms, color 100ms, border-color 100ms;
 }
@@ -1148,14 +1313,28 @@ button.yd-sl-item {
   color: var(--yd-danger);
 }
 
-/* ── User footer row ─────────────────────────────────────────────── */
+/* ── User footer ─────────────────────────────────────────────────── */
 
+.yd-sl-footer {
+  flex-shrink: 0;
+  padding: 10px 12px 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Premium glassmorphism profile card */
 .yd-sl-user-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 4px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,254,248,0.97) 0%, rgba(255,250,228,0.96) 100%);
+  border: 1px solid rgba(236, 231, 216, 0.38);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 8px rgba(31, 26, 23, 0.05),
+    0 6px 18px rgba(31, 26, 23, 0.04);
 }
 
 .yd-sl-user-info {
@@ -1164,38 +1343,48 @@ button.yd-sl-item {
 }
 
 .yd-sl-user-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--yd-charcoal);
+  color: #1f1f1f;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
+  letter-spacing: -0.02em;
 }
 
 .yd-sl-user-role {
   font-size: 10px;
-  color: var(--yd-text-soft);
-  margin-top: 1px;
+  color: #9e8e75;
+  margin-top: 2px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
-/* Logout icon button */
+/* Settings / Logout icon buttons */
 .yd-sl-logout-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(236, 231, 216, 0.70);
+  background: rgba(255, 255, 255, 0.70);
   cursor: pointer;
-  color: var(--yd-text-muted);
+  color: #9e8e75;
   flex-shrink: 0;
-  transition: background 120ms, color 120ms;
+  transition: background 160ms, color 160ms, border-color 160ms;
 }
 
 .yd-sl-logout-btn:hover {
   background: var(--yd-danger-soft);
   color: var(--yd-danger);
+  border-color: var(--yd-danger-border);
+}
+
+.yd-sl-logout-btn--settings:hover {
+  background: rgba(251, 191, 36, 0.12);
+  color: #b07800;
+  border-color: rgba(234, 179, 8, 0.30);
 }
