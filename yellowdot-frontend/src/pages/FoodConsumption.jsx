@@ -29,7 +29,7 @@ import { api } from "../services/authService";
 // ── Constants ─────────────────────────────────────────────────────────────
 
 const CLASSES     = ["Playgroup", "Nursery", "Junior K.G.", "Senior K.G.", "Daycare"];
-const QTY_OPTIONS = [0, 0.5, 1, 1.5, 2];
+const QTY_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5];
 
 // All warm stone/amber/yellow — no violet/sky/emerald/rose/teal/indigo/fuchsia
 const AVATAR_GRADIENTS = [
@@ -163,7 +163,7 @@ function QuantitySelector({ value, onChange, disabled }) {
             type="button"
             onClick={() => onChange(q)}
             className={`
-              w-9 h-7 text-xs font-semibold rounded-lg transition-all duration-[180ms] select-none
+              min-w-[30px] h-7 px-2 text-xs font-semibold rounded-lg transition-all duration-[180ms] select-none
               ${isActive ? "scale-[1.06]" : "text-[#c4b090] hover:text-[#7a5e18] hover:bg-[#f5e8b8]"}
             `}
             style={isActive ? {
@@ -345,7 +345,6 @@ function ErrorState({ onRetry }) {
 
 function StudentCard({ student, meal, entry, saving, saved, onQuantityChange }) {
   const grad   = avatarGradient(student.Student_Name);
-  const cls    = student.Class || "";
   const qty    = entry?.quantity ?? null;
   const status = entry?.status  ?? "";
   const hasQty = qty !== null && qty !== undefined && qty !== "";
@@ -365,20 +364,10 @@ function StudentCard({ student, meal, entry, saving, saved, onQuantityChange }) 
         <span className="text-white font-bold text-xs select-none">{initials(student.Student_Name)}</span>
       </div>
 
-      {/* Name + food item */}
+      {/* Name only */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-[#2a1c06] truncate leading-tight">{student.Student_Name}</p>
-        {hasMeal
-          ? <p className="text-[11px] text-[#a3957e] font-normal truncate">{meal.itemName}</p>
-          : <p className="text-[11px] text-[#d4c8b0] font-normal">No item for this meal</p>
-        }
       </div>
-
-      {/* Class pill */}
-      <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-lg text-[10px] font-semibold
-                        flex-shrink-0 ${CLASS_PILLS[cls] || "bg-[#f8f0d4] text-[#8b7228] border border-[#e8daa0]"}`}>
-        {cls}
-      </span>
 
       {/* Quantity chips */}
       <QuantitySelector value={qty} onChange={onQuantityChange} disabled={!hasMeal} />
