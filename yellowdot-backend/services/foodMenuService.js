@@ -43,7 +43,9 @@ async function getMenus({ date, branch, schoolId = SCHOOL_ID, centerId } = {}) {
 }
 
 async function createMenu(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId = "system" } = {}) {
-  const menuId          = `MENU-${Date.now()}`;
+  // Include random suffix — Promise.all fires multiple calls in the same ms,
+  // so Date.now() alone produces collisions causing overwrites (snacks bug).
+  const menuId          = `MENU-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const resolvedCenter  = centerId || data.centerId || data.center || "";
   const doc = {
     id:        menuId,

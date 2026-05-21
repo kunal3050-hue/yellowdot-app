@@ -151,6 +151,29 @@ function ErrorState({ onRetry }) {
   );
 }
 
+// ── Monochrome warm-gold column icons ────────────────────────────
+const COL_ICONS = {
+  "Date":        "M3 4h18v18H3V4zM16 2v4M8 2v4M3 10h18",
+  "Breakfast":   "M18 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z",
+  "Mid-Morning": "M12 3v1.5M16.2 5.8l-1.1 1M18 10h-1.5M16.2 14.2l-1.1-1M12 16.5V15M7.8 14.2l1.1-1M6 10h1.5M7.8 5.8l1.1 1M12 7a3 3 0 0 1 0 6 3 3 0 0 1 0-6z",
+  "Roti Sabzi":  "M4 7h16M4 12h16M4 17h10",
+  "Dal Rice":    "M3 11h18M5 11c0 4.4 3.1 8 7 8s7-3.6 7-8M8 11V9a4 4 0 0 1 8 0v2",
+  "Milk":        "M9 3h6l2 6H7L9 3zM7 9h10v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V9z",
+  "Snacks":      "M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4-4-1.8-4-4z",
+  "Actions":     "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z",
+};
+function ColIcon({ name }) {
+  const d = COL_ICONS[name];
+  if (!d) return null;
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+      stroke="rgba(199,155,18,0.9)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"
+      className="flex-shrink-0">
+      <path d={d} />
+    </svg>
+  );
+}
+
 // ── Meal cell content ─────────────────────────────────────────────
 
 // All pills: same warm gold family — only opacity/depth varies
@@ -341,9 +364,18 @@ export default function FoodMenu() {
 
               {/* Left: title */}
               <div className="flex-shrink-0">
-                <h1 className="text-3xl md:text-4xl font-black text-[#2a1c06] tracking-tight leading-none">
-                  Food Menu
-                </h1>
+                <div className="flex items-center gap-2.5">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="#c79b12" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+                    <path d="M7 2v20"/>
+                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/>
+                    <path d="M21 15v7"/>
+                  </svg>
+                  <h1 className="text-3xl md:text-4xl font-black text-[#2a1c06] tracking-tight leading-none">
+                    Food Menu
+                  </h1>
+                </div>
                 <p className="text-[#a3957e] text-sm mt-1 font-normal">
                   Manage daily meal plans · last 30 days
                 </p>
@@ -406,13 +438,18 @@ export default function FoodMenu() {
               style={{ background: "linear-gradient(180deg, #fff7d6 0%, #f8ebbf 100%)" }}>
               <div className="absolute inset-0 bg-white/30 pointer-events-none" />
               <div className="relative grid gap-3" style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}>
-                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide">Date</span>
+                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide flex items-center gap-[7px]">
+                  <ColIcon name="Date" />Date
+                </span>
                 {MEAL_TYPES.map(mt => (
-                  <span key={mt.type} className="text-[10px] font-semibold text-[#9a7a18] tracking-wide">
+                  <span key={mt.type} className="text-[10px] font-semibold text-[#9a7a18] tracking-wide flex items-center gap-[7px]">
+                    <ColIcon name={mt.type} />
                     {mt.type}
                   </span>
                 ))}
-                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide text-right">Actions</span>
+                <span className="text-[10px] font-semibold text-[#9a7a18] tracking-wide flex items-center justify-end gap-[7px]">
+                  <ColIcon name="Actions" />
+                </span>
               </div>
             </div>
 

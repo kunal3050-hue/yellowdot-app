@@ -12,14 +12,14 @@
 
 export const UNITS = ["pcs", "bowl", "cup", "glass", "plate", "packet"];
 
-// Per-meal colour tokens — pill label + left accent
+// Per-meal colour tokens — all warm gold tonal family only
 const MEAL_STYLE = {
-  "Breakfast":   { pill: "bg-orange-50 text-orange-600 border-orange-100", accent: "border-l-orange-300" },
-  "Mid-Morning": { pill: "bg-green-50  text-green-600  border-green-100",  accent: "border-l-green-300"  },
-  "Roti Sabzi":  { pill: "bg-amber-50  text-amber-600  border-amber-100",  accent: "border-l-amber-300"  },
-  "Dal Rice":    { pill: "bg-yellow-50 text-yellow-700 border-yellow-100", accent: "border-l-yellow-300" },
-  "Milk":        { pill: "bg-sky-50    text-sky-600    border-sky-100",    accent: "border-l-sky-300"    },
-  "Snacks":      { pill: "bg-violet-50 text-violet-600 border-violet-100", accent: "border-l-violet-300" },
+  "Breakfast":   { pill: "bg-[#f5e8b8] text-[#7a5e18] border-[#e8d49a]", accent: "border-l-[#c9a830]" },
+  "Mid-Morning": { pill: "bg-[#f8f0d4] text-[#8b7228] border-[#e8daa0]", accent: "border-l-[#d4aa1f]" },
+  "Roti Sabzi":  { pill: "bg-[#f5e8b8] text-[#7a5e18] border-[#e8d49a]", accent: "border-l-[#c9a830]" },
+  "Dal Rice":    { pill: "bg-[#faf5e4] text-[#8b7228] border-[#ece0b4]", accent: "border-l-[#d4b830]" },
+  "Milk":        { pill: "bg-[#faf5e4] text-[#9a8248] border-[#ece0b4]", accent: "border-l-[#c8a028]" },
+  "Snacks":      { pill: "bg-[#f8f0d4] text-[#7a5e18] border-[#e8daa0]", accent: "border-l-[#c9a030]" },
 };
 
 export default function MealRow({ emoji, mealType, itemName, unitType, hasError, onChange, onClear }) {
@@ -31,11 +31,11 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
     <div
       className={`
         group flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3
-        p-3.5 sm:p-4 rounded-2xl border-l-[3px] border border-gray-100
+        p-3.5 sm:p-4 rounded-2xl border-l-[3px] border border-[#ece7d8]
         transition-all duration-200
         ${style.accent}
-        ${showError  ? "bg-rose-50/70  border-rose-200"              : ""}
-        ${!showError ? "bg-[#FAFBFF] hover:bg-white hover:shadow-sm hover:border-gray-200" : ""}
+        ${showError  ? "bg-[#fee8e2]/70 border-[#e0a898]"             : ""}
+        ${!showError ? "bg-[#fffdf8] hover:bg-white hover:shadow-sm hover:border-[#e8d898]" : ""}
       `}
     >
       {/* ── Meal type label ── */}
@@ -53,10 +53,10 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
         onChange={e => onChange("itemName", e.target.value)}
         placeholder={`Enter ${mealType.toLowerCase()} item…`}
         className={`
-          flex-1 min-w-0 bg-white rounded-xl px-4 py-2.5 text-sm text-gray-700
-          placeholder-gray-300 outline-none border transition-all duration-150
-          focus:ring-2 focus:ring-[#FFD600]/40 focus:border-[#FFD600]/50
-          ${showError ? "border-rose-300 bg-rose-50/40" : "border-gray-200"}
+          flex-1 min-w-0 bg-white rounded-xl px-4 py-2.5 text-sm text-[#4a3f2a]
+          placeholder-[#c4b090] outline-none border transition-all duration-150
+          focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
+          ${showError ? "border-[#e0a898] bg-[#fee8e2]/30" : "border-[#ece7d8]"}
         `}
       />
 
@@ -65,9 +65,9 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
         <select
           value={unitType}
           onChange={e => onChange("unitType", e.target.value)}
-          className="sm:w-28 w-full appearance-none bg-white border border-gray-200 rounded-xl
-                     pl-3.5 pr-8 py-2.5 text-sm text-gray-600 font-medium outline-none
-                     focus:ring-2 focus:ring-[#FFD600]/40 focus:border-[#FFD600]/50
+          className="sm:w-28 w-full appearance-none bg-white border border-[#ece7d8] rounded-xl
+                     pl-3.5 pr-8 py-2.5 text-sm text-[#5a4010] font-medium outline-none
+                     focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                      transition-all cursor-pointer"
         >
           {UNITS.map(u => (
@@ -75,7 +75,7 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
           ))}
         </select>
         {/* dropdown chevron */}
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">▼</span>
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c9a830] text-[10px]">▼</span>
       </div>
 
       {/* ── Clear button ── */}
@@ -86,9 +86,9 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
         title="Clear this row"
         className="
           flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl
-          text-gray-300 hover:text-rose-400 hover:bg-rose-50
+          text-[#d4c8b0] hover:text-[#c0402a] hover:bg-[#fee8e2]
           disabled:opacity-25 disabled:cursor-not-allowed
-          transition-all duration-150
+          transition-all duration-[190ms]
         "
       >
         {/* × icon */}
