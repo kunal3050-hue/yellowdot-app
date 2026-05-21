@@ -35,15 +35,15 @@
   --yd-border-warm:    #E8DFC8;
 
   /* ── Text ────────────────────────────────────────────────────────── */
-  --yd-text:           #2A2A2A;
-  --yd-text-soft:      #6B7280;
-  --yd-text-muted:     #9CA3AF;
+  --yd-text:           #2A231A;
+  --yd-text-soft:      #7a6e5e;
+  --yd-text-muted:     #a3957e;
   --yd-text-warm:      #4A3F2A;
 
-  /* ── Semantic — Success ──────────────────────────────────────────── */
-  --yd-success:        #16A34A;
-  --yd-success-soft:   #F0FDF4;
-  --yd-success-border: #BBF7D0;
+  /* ── Semantic — Success (muted olive-gold, no green) ─────────────── */
+  --yd-success:        #8b7a28;
+  --yd-success-soft:   #f8f4d8;
+  --yd-success-border: #d4bc58;
 
   /* ── Semantic — Danger ───────────────────────────────────────────── */
   --yd-danger:         #DC2626;
@@ -55,10 +55,10 @@
   --yd-warning-soft:   #FFFBEB;
   --yd-warning-border: #FDE68A;
 
-  /* ── Semantic — Info ─────────────────────────────────────────────── */
-  --yd-info:           #2563EB;
-  --yd-info-soft:      #EFF6FF;
-  --yd-info-border:    #BFDBFE;
+  /* ── Semantic — Info (warm amber, no blue) ──────────────────────── */
+  --yd-info:           #d97706;
+  --yd-info-soft:      #fffbeb;
+  --yd-info-border:    #fde68a;
 
   /* ── Typography ──────────────────────────────────────────────────── */
   --yd-font:           "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
@@ -144,11 +144,64 @@
   --yd-z-toast:    300;
   --yd-z-top:      400;
 
+  /* ── Brand Charcoal (replaces navy — no blue) ───────────────────── */
+  --yd-navy:           #1f1f1f;
+  --yd-navy-2:         #2d2d2d;
+  --yd-navy-3:         #3d3d3d;
+  --yd-navy-light:     #4d4d4d;
+  --yd-navy-glow:      rgba(234,179,8,0.12);
+  --yd-navy-shadow:    0 4px 20px rgba(234,179,8,0.20);
+
+  /* ── Extended warm palette ───────────────────────────────────────── */
+  /* Olive-gold — for success, "paid", active, presence */
+  --yd-olive:          #8b7a28;
+  --yd-olive-soft:     #f8f4d8;
+  --yd-olive-border:   #d4bc58;
+
+  /* Deep amber — for secondary actions, "live" indicators */
+  --yd-amber:          #b08030;
+  --yd-amber-soft:     #faf1d6;
+  --yd-amber-border:   #dcc060;
+
+  /* ── Page-level backgrounds ──────────────────────────────────────── */
+  --yd-bg-page:        #F6F4EE;    /* slightly cooler than cream */
+  --yd-bg-sunken:      #F0EDE4;    /* inset / tray areas */
+
+  /* ── Card shadows (warm, not blue) ──────────────────────────────── */
+  --yd-shadow-card:    0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(236,231,216,0.80);
+
   /* ── Layout ──────────────────────────────────────────────────────── */
-  --yd-sidebar-width:      220px;
+  --yd-sidebar-width:      280px;
   --yd-sidebar-collapsed:   64px;
   --yd-topbar-height:       60px;
   --yd-content-max:       1120px;
   --yd-card-max:            540px;
   --yd-auth-card-max:       460px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES  (add class="dark" to <html>)
+   ═══════════════════════════════════════════════════════════════════ */
+.dark {
+  --yd-bg:             #0F1117;
+  --yd-bg-page:        #0B0D12;
+  --yd-bg-sunken:      #080A0F;
+  --yd-surface:        #1A1D26;
+  --yd-surface-raised: #21242F;
+  --yd-sidebar-bg:     #111318;
+  --yd-sidebar-hover:  rgba(244,196,0,0.08);
+  --yd-cream:          #161922;
+  --yd-soft:           #1E2330;
+  --yd-border:         rgba(255,255,255,0.08);
+  --yd-border-light:   rgba(255,255,255,0.05);
+  --yd-border-warm:    rgba(255,255,255,0.10);
+  --yd-text:           #E2E8F0;
+  --yd-text-soft:      #94A3B8;
+  --yd-text-muted:     #64748B;
+  --yd-text-warm:      #CBD5E1;
+  --yd-charcoal:       #E2E8F0;
+  --yd-black:          #F1F5F9;
+  --yd-shadow-sm:      0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --yd-shadow:         0 4px 16px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.20);
+  --yd-shadow-card:    0 1px 4px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.06);
 }

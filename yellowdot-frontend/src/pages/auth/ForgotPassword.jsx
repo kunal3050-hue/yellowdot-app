@@ -186,9 +186,9 @@ const styles = {
   successBlock: { textAlign: "center", paddingBottom: 8 },
   successIcon: {
     width: 60, height: 60, borderRadius: 20,
-    background: "#F0FDF4", border: "1px solid #BBF7D0",
+    background: "#f8f4d8", border: "1px solid #d4bc58",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 24, color: "#16A34A", fontWeight: 800,
+    fontSize: 24, color: "#6a5c18", fontWeight: 800,
     margin: "0 auto 20px",
   },
   retryBtn: {

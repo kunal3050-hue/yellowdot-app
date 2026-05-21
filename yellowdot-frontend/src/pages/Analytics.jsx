@@ -104,10 +104,10 @@ export default function Analytics() {
 
   // ── Invoice status distribution ────────────────────────────────
   const statusData = useMemo(() => [
-    { name: "Paid",      value: stats.paid,    fill: "#16A34A" },
+    { name: "Paid",      value: stats.paid,    fill: "#b09830" },
     { name: "Pending",   value: stats.pending, fill: "#B45309" },
-    { name: "Partial",   value: stats.partial, fill: "#1D4ED8" },
-    { name: "Overdue",   value: stats.overdue, fill: "#DC2626" },
+    { name: "Partial",   value: stats.partial, fill: "#d4a828" },
+    { name: "Overdue",   value: stats.overdue, fill: "#c0402a" },
   ].filter(d => d.value > 0), [stats]);
 
   // ── Payment mode breakdown ─────────────────────────────────────

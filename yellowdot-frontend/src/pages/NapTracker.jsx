@@ -103,11 +103,11 @@ const NAP_CSS = `
     0%   { background-position: -200% center; }
     100% { background-position:  200% center; }
   }
-  /* ── Live pulse ring ── */
+  /* ── Live pulse ring (gold, not green) ── */
   @keyframes nt-ring {
-    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.35); }
-    70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    0%   { box-shadow: 0 0 0 0 rgba(244,196,48,0.40); }
+    70%  { box-shadow: 0 0 0 8px rgba(244,196,48,0); }
+    100% { box-shadow: 0 0 0 0 rgba(244,196,48,0); }
   }
   /* ── Moon float (empty state) ── */
   @keyframes nt-moon-float {
@@ -261,23 +261,25 @@ const REFUSED_REASONS = [
   { id: "skipped",  label: "Skipped",     emoji: "⏭️" },
 ];
 
+// Avatar gradients — all within warm Yellow Dot palette (stone / amber / yellow)
 const AVATAR_GRADIENTS = [
-  "from-violet-500 to-purple-600",
-  "from-amber-500 to-orange-500",
-  "from-emerald-500 to-green-600",
-  "from-rose-500 to-pink-600",
-  "from-teal-500 to-cyan-600",
-  "from-orange-400 to-red-500",
-  "from-indigo-400 to-violet-500",
-  "from-fuchsia-500 to-rose-500",
+  "from-stone-600 to-stone-800",
+  "from-amber-600 to-amber-900",
+  "from-yellow-700 to-amber-800",
+  "from-stone-500 to-amber-700",
+  "from-amber-700 to-stone-700",
+  "from-yellow-600 to-stone-700",
+  "from-stone-700 to-amber-600",
+  "from-amber-500 to-stone-600",
 ];
 
+// Class color chips — warm amber / stone / yellow tonal family only
 const CLASS_COLORS = {
-  "Playgroup":   { pill: "bg-pink-50 text-pink-700 border border-pink-100",          dark: "bg-rose-400/18 text-rose-200"    },
-  "Nursery":     { pill: "bg-violet-50 text-violet-700 border border-violet-100",    dark: "bg-purple-400/18 text-purple-200" },
-  "Junior K.G.": { pill: "bg-amber-50 text-amber-700 border border-amber-100",       dark: "bg-amber-400/18 text-amber-200"  },
-  "Senior K.G.": { pill: "bg-teal-50 text-teal-700 border border-teal-100",          dark: "bg-teal-400/18 text-teal-200"    },
-  "Daycare":     { pill: "bg-orange-50 text-orange-700 border border-orange-100",    dark: "bg-orange-400/18 text-orange-200" },
+  "Playgroup":   { pill: "bg-amber-50 text-amber-800 border border-amber-200",        dark: "bg-amber-400/15 text-amber-200"   },
+  "Nursery":     { pill: "bg-stone-100 text-stone-700 border border-stone-200",       dark: "bg-stone-300/20 text-stone-200"   },
+  "Junior K.G.": { pill: "bg-yellow-50 text-yellow-800 border border-yellow-200",     dark: "bg-yellow-400/15 text-yellow-200" },
+  "Senior K.G.": { pill: "bg-amber-100 text-amber-900 border border-amber-300",       dark: "bg-amber-300/18 text-amber-100"   },
+  "Daycare":     { pill: "bg-stone-50 text-stone-600 border border-stone-200",        dark: "bg-stone-400/18 text-stone-200"   },
 };
 const classPill = cls => CLASS_COLORS[cls]?.pill ?? "bg-stone-100 text-stone-600 border border-stone-200";
 const classDark = cls => CLASS_COLORS[cls]?.dark ?? "bg-white/12 text-white/80";
@@ -641,8 +643,8 @@ export default function NapTracker() {
 
                 {stats.currentlySleeping > 0 && (
                   <span className="absolute top-5 right-5 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: W.gold1 }} />
+                    <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: W.gold2 }} />
                   </span>
                 )}
                 <div className="text-3xl mb-4 select-none relative z-10">😴</div>
@@ -778,12 +780,12 @@ export default function NapTracker() {
                   </div>
                   {!loading && activeNaps.length > 0 && (
                     <div className="flex items-center gap-2 rounded-full px-3 py-1.5"
-                      style={{ background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.20)" }}>
+                      style={{ background: "rgba(180,140,0,0.10)", border: `1px solid rgba(180,140,0,0.22)` }}>
                       <span className="flex h-2 w-2 relative flex-shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: W.gold1 }} />
+                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: W.gold1 }} />
                       </span>
-                      <span className="text-emerald-700 text-[11px] font-bold tabular-nums">{activeNaps.length} live</span>
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: W.muted2 }}>{activeNaps.length} live</span>
                     </div>
                   )}
                 </div>
@@ -1196,9 +1198,9 @@ function ActiveNapCard({ nap, duration, onWakeUp }) {
           </span>
         </div>
         <div className="flex items-center gap-1.5 rounded-full px-2 py-1 flex-shrink-0"
-          style={{ background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.18)" }}>
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block flex-shrink-0 bg-emerald-400" />
-          <span className="text-emerald-700 text-[9px] font-bold uppercase tracking-wide">Live</span>
+          style={{ background: "rgba(180,140,0,0.10)", border: "1px solid rgba(180,140,0,0.20)" }}>
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block flex-shrink-0" style={{ background: W.gold1 }} />
+          <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: W.muted2 }}>Live</span>
         </div>
       </div>
 
@@ -1438,7 +1440,8 @@ function StatusBadge({ status, mini = false }) {
     );
   }
   return (
-    <span className={`inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-100 whitespace-nowrap ${mini ? "px-2 py-0.5 text-[9px]" : "px-3 py-1.5 text-xs"}`}>
+    <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap ${mini ? "px-2 py-0.5 text-[9px]" : "px-3 py-1.5 text-xs"}`}
+      style={{ background: "rgba(176,152,48,0.10)", color: "#5a4d18", border: "1px solid rgba(180,150,40,0.22)" }}>
       <span className={`leading-none select-none ${mini ? "text-[10px]" : "text-sm"}`}>☀️</span>
       {mini ? "Done" : "Complete"}
     </span>
@@ -1459,7 +1462,7 @@ function ToastStack({ toasts, onDismiss }) {
           style={t.type === "success"
             ? { background: W.charcoal1, color: W.goldPale, boxShadow: `0 8px 32px rgba(31,26,23,0.35), 0 1px 0 rgba(244,196,48,0.08) inset` }
             : { background: "#b91c1c", color: "#fff" }}>
-          <span className="text-xl flex-shrink-0 leading-none select-none">{t.type === "success" ? "✅" : "❌"}</span>
+          <span className="text-xl flex-shrink-0 leading-none select-none">{t.type === "success" ? "✨" : "⚠️"}</span>
           <span className="flex-1 leading-snug">{t.message}</span>
           <button onClick={() => onDismiss(t.id)} aria-label="Dismiss"
             className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all text-base font-bold leading-none active:scale-90"

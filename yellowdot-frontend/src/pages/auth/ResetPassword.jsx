@@ -151,8 +151,8 @@ function getStrength(pw) {
   const map = [
     { score: 1, label: "Weak",    color: "#DC2626" },
     { score: 2, label: "Fair",    color: "#D97706" },
-    { score: 3, label: "Good",    color: "#2563EB" },
-    { score: 4, label: "Strong",  color: "#16A34A" },
+    { score: 3, label: "Good",    color: "#b08030" },
+    { score: 4, label: "Strong",  color: "#8b7a28" },
   ];
   return { score, ...(map[score - 1] || map[0]) };
 }
@@ -189,11 +189,11 @@ const styles = {
   logoMark: { width: 36, height: 36, borderRadius: 11, background: "#FFFBEA", border: "1px solid #ECE7D8", display: "flex", alignItems: "center", justifyContent: "center" },
   logoText: { fontSize: 16, fontWeight: 800, color: "#111111", letterSpacing: "-0.02em" },
   title: { fontSize: 22, fontWeight: 800, color: "#111111", letterSpacing: "-0.02em", marginBottom: 8 },
-  sub: { fontSize: 14, color: "#6B7280", lineHeight: 1.6, fontWeight: 500, marginBottom: 28 },
+  sub: { fontSize: 14, color: "#8b7d65", lineHeight: 1.6, fontWeight: 400, marginBottom: 28 },
   successIcon: {
-    width: 60, height: 60, borderRadius: 20, background: "#F0FDF4",
-    border: "1px solid #BBF7D0", display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 24, color: "#16A34A", fontWeight: 800, margin: "0 auto 20px",
+    width: 60, height: 60, borderRadius: 20, background: "#f8f4d8",
+    border: "1px solid #d4bc58", display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 24, color: "#6a5c18", fontWeight: 800, margin: "0 auto 20px",
   },
   form: { display: "flex", flexDirection: "column", gap: 18 },
   field: { display: "flex", flexDirection: "column", gap: 6 },
