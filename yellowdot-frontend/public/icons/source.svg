@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="92" fill="#F4C400"/>
-  <path d="M317.44,43.52 L158.72,268.8 H253.44 L192,476.16 L348.16,245.76 H256 Z" fill="#1E1B4B"/>
-</svg>
+<!-- Source icon is logo-original.png (1024×1024 PNG). Run scripts/generate-icons.mjs to regenerate. -->
