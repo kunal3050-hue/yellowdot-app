@@ -10,6 +10,7 @@ import MainLayout        from "./layouts/MainLayout";
 import ParentLayout      from "./layouts/ParentLayout";
 import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
+import SplashScreen      from "./components/SplashScreen";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
@@ -54,16 +55,6 @@ const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
 
-// ── Page loading fallback ─────────────────────────────────────────────────────
-function PageLoader() {
-  return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"#FFFDF7" }}>
-      <div style={{ width:32, height:32, borderRadius:"50%", border:"3px solid #F1C933", borderTopColor:"transparent", animation:"spin 0.7s linear infinite" }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
-
 function App() {
   return (
     <BrowserRouter>
@@ -72,7 +63,9 @@ function App() {
         <DevRoleSwitch />
         {/* PWA install banner (shows after 2.5s, respects 30-day dismissal) */}
         <InstallPrompt />
-        <Suspense fallback={<PageLoader />}>
+        {/* SplashScreen shown while Firebase auth resolves, then fades out */}
+        <AuthSplash />
+        <Suspense fallback={<SplashScreen />}>
           <Routes>
 
             {/* ── Public ───────────────────────────────────────────────────── */}
@@ -392,11 +385,19 @@ function App() {
 
 export default App;
 
+// ── AuthSplash — shows the branded splash while Firebase auth initialises ─────
+// Mounted once above <Routes>; passes live `loading` to SplashScreen which
+// plays its own fade-out animation when loading flips false, then self-removes.
+function AuthSplash() {
+  const { loading } = useAuth();
+  return <SplashScreen authLoading={loading} />;
+}
+
 // ── Smart root redirect ───────────────────────────────────────────────────────
 // Parents → /parent-home  |  Staff → /dashboard
 function RootRedirect() {
   const { role, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
   return (

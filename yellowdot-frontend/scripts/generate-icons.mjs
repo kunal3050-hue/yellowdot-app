@@ -29,7 +29,6 @@ await mkdir(outDir, { recursive: true });
 await mkdir(join(outDir, 'splash'), { recursive: true });
 
 const WHITE  = { r: 255, g: 255, b: 255, alpha: 1 };
-const YELLOW = { r: 244, g: 196, b: 0,   alpha: 1 };
 
 // ── Pre-trim the logo once so every icon uses the same tight source ────────────
 const trimmedBuf = await sharp(srcLogo).trim().png().toBuffer();
@@ -136,8 +135,8 @@ const SPLASHES = [
 ];
 
 for (const [w, h] of SPLASHES) {
-  // Logo fills 32 % of the shorter dimension
-  const logoSize = Math.round(Math.min(w, h) * 0.32);
+  // Logo fills ~25 % of the shorter dimension (matches the React SplashScreen)
+  const logoSize = Math.round(Math.min(w, h) * 0.25);
   const logoBuf  = await sharp(trimmedBuf)
     .resize(logoSize, logoSize, {
       fit: 'contain',
@@ -146,12 +145,40 @@ for (const [w, h] of SPLASHES) {
     .png()
     .toBuffer();
 
-  const left = Math.round((w - logoSize) / 2);
-  const top  = Math.round(h / 2 - logoSize / 2 - h * 0.04); // slightly above centre
+  // Centre logo slightly above mid-screen (same visual as the React component)
+  const logoLeft = Math.round((w - logoSize) / 2);
+  const logoTop  = Math.round(h / 2 - logoSize / 2 - h * 0.06);
+
+  // SVG wordmark — "Yellow Dot" bold + "Preschool Daycare" light
+  // Positioned just below the logo with generous gap
+  const wordmarkTop  = logoTop + logoSize + Math.round(h * 0.028);
+  const titleSize    = Math.round(Math.min(w, h) * 0.042);  // ~54px on iPhone
+  const subtitleSize = Math.round(titleSize * 0.62);          // ~33px
+  const lineGap      = Math.round(titleSize * 1.35);
+
+  const wordmarkSvg = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
+    // "Yellow Dot" — bold, near-black
+    `<text x="${w / 2}" y="${wordmarkTop + titleSize}" ` +
+    `text-anchor="middle" ` +
+    `font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" ` +
+    `font-size="${titleSize}" font-weight="700" fill="#111111" ` +
+    `letter-spacing="-0.02em">Yellow Dot</text>` +
+    // "Preschool Daycare" — regular, gray
+    `<text x="${w / 2}" y="${wordmarkTop + titleSize + lineGap}" ` +
+    `text-anchor="middle" ` +
+    `font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" ` +
+    `font-size="${subtitleSize}" font-weight="400" fill="#9CA3AF" ` +
+    `letter-spacing="0.01em">Preschool Daycare</text>` +
+    `</svg>`
+  );
 
   const fname = `apple-splash-${w}-${h}.png`;
-  await sharp({ create: { width: w, height: h, channels: 4, background: YELLOW } })
-    .composite([{ input: logoBuf, left, top }])
+  await sharp({ create: { width: w, height: h, channels: 4, background: WHITE } })
+    .composite([
+      { input: logoBuf,     left: logoLeft, top: logoTop },
+      { input: wordmarkSvg, left: 0,        top: 0       },
+    ])
     .png({ compressionLevel: 9 })
     .toFile(join(outDir, 'splash', fname));
 
@@ -164,4 +191,4 @@ await writeFile(
   `<!-- Source: logo-original.png (1024×1024 PNG). Run scripts/generate-icons.mjs to regenerate. -->`
 );
 
-console.log('\n✅  Done. All icons use trimmed logo at 90 % canvas fill.');
+console.log('\n✅  Done. Icons at 90% fill; splash screens: white bg + logo + wordmark.');
