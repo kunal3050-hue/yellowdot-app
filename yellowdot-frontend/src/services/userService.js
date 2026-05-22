@@ -64,11 +64,13 @@ const userService = {
   /**
    * Create a new staff user.
    * Backend creates the Firebase Auth account and Firestore document.
+   * Returns the full response so callers can access tempPassword, note, etc.
    * @param {{ name, email, mobile?, role, centers?, status? }} data
+   * @returns {{ user, tempPassword?, passwordResetSent?, note? }}
    */
   create(data) {
     return api.post(BASE, data)
-      .then((r) => r.data?.user ?? r.data)
+      .then((r) => r.data)
       .catch((err) => { throw new Error(extractError(err, "Failed to create user")); });
   },
 

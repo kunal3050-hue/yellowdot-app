@@ -569,6 +569,9 @@ export default function UserManagement() {
   const [confirm,     setConfirm]     = useState(null);   // { user, action }
   const [confirmWork, setConfirmWork] = useState(false);
 
+  // ── New user temp-password reveal ────────────────────────────────
+  const [newUserInfo, setNewUserInfo] = useState(null);  // { name, email, tempPassword }
+
   // ── Inline working states (optimistic) ──────────────────────────
   const [toggling,    setToggling]    = useState(new Set()); // userId set
 
@@ -684,9 +687,21 @@ export default function UserManagement() {
         );
         toast("User updated", "success");
       } else {
-        const created = await userService.create(payload);
+        const result = await userService.create(payload);
+        const created = result?.user ?? result;
         setUsers((prev) => [created, ...prev]);
-        toast("User added successfully", "success");
+        setFormOpen(false);
+        // Show temp password modal if backend generated one
+        if (result?.tempPassword) {
+          setNewUserInfo({
+            name:        created?.name || payload.name,
+            email:       created?.email || payload.email,
+            tempPassword: result.tempPassword,
+          });
+        } else {
+          toast("User added successfully", "success");
+        }
+        return; // skip the setFormOpen(false) below (already called)
       }
       setFormOpen(false);
     } catch (e) {
@@ -1019,6 +1034,91 @@ export default function UserManagement() {
         danger
         loading={confirmWork}
       />
+
+      {/* ── New-user temp-password reveal ─────────────────────────── */}
+      {newUserInfo && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)",
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "32px 28px",
+            width: "min(420px, 92vw)", boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            display: "flex", flexDirection: "column", gap: 18,
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: "#F4C400", display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke="#1E1E1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#111" }}>
+                  User Created Successfully
+                </div>
+                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                  {newUserInfo.name} · {newUserInfo.email}
+                </div>
+              </div>
+            </div>
+
+            {/* Temp password block */}
+            <div style={{
+              background: "#FFFBEB", border: "1.5px solid #FCD34D",
+              borderRadius: 10, padding: "14px 16px",
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#92400E", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Temporary Password
+              </div>
+              <div style={{
+                fontFamily: "monospace", fontSize: 20, fontWeight: 700,
+                color: "#1E1E1E", letterSpacing: "0.08em",
+                userSelect: "all",
+              }}>
+                {newUserInfo.tempPassword}
+              </div>
+              <div style={{ fontSize: 12, color: "#B45309", marginTop: 8 }}>
+                Share this with {newUserInfo.name}. Ask them to log in and reset their password immediately.
+              </div>
+            </div>
+
+            {/* Copy button + dismiss */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(newUserInfo.tempPassword).catch(() => {});
+                  toast("Password copied to clipboard", "success");
+                }}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10,
+                  background: "#F4C400", border: "none", cursor: "pointer",
+                  fontWeight: 700, fontSize: 14, color: "#1E1E1E",
+                }}
+              >
+                Copy Password
+              </button>
+              <button
+                onClick={() => setNewUserInfo(null)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10,
+                  background: "#F3F4F6", border: "none", cursor: "pointer",
+                  fontWeight: 600, fontSize: 14, color: "#374151",
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
