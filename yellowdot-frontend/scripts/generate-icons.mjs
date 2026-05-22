@@ -1,6 +1,17 @@
 /**
- * generate-icons.mjs
- * Generates ALL Yellow Dot PWA icons and splash screens from the real logo PNG.
+ * generate-icons.mjs — Yellow Dot PWA icon generator
+ *
+ * Strategy:
+ *   1. trim() removes the transparent border from the original 1024×1024 logo
+ *      (sun occupies ~81 % of original; trimming recovers that space)
+ *   2. Regular icons — trimmed sun scaled to 90 % of canvas side
+ *      → sun visually fills ~90 % of the square / stays inside the
+ *        inscribed circle on circular launchers (radius 230 px vs 256 px)
+ *   3. Maskable (Android adaptive) — trimmed sun at 62 % of canvas
+ *      → safely inside the 72 % guaranteed-visible safe zone (368 px)
+ *   4. Splash screens — trimmed sun at 32 % of shorter screen dimension,
+ *      centred slightly above mid-screen on a full yellow background
+ *
  * Run: node scripts/generate-icons.mjs
  */
 
@@ -17,13 +28,16 @@ const srcLogo = join(outDir, 'logo-original.png');
 await mkdir(outDir, { recursive: true });
 await mkdir(join(outDir, 'splash'), { recursive: true });
 
-// White background — the sun logo is yellow, so white gives maximum contrast
-const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
-// Yellow for splash screens (full-bleed brand background)
-const YELLOW = { r: 244, g: 196, b: 0, alpha: 1 };
+const WHITE  = { r: 255, g: 255, b: 255, alpha: 1 };
+const YELLOW = { r: 244, g: 196, b: 0,   alpha: 1 };
 
-// ─── Rounded-corner mask ──────────────────────────────────────────────────────
-function roundedMaskSvg(size, radius) {
+// ── Pre-trim the logo once so every icon uses the same tight source ────────────
+const trimmedBuf = await sharp(srcLogo).trim().png().toBuffer();
+const trimmedMeta = await sharp(trimmedBuf).metadata();
+console.log(`Logo trimmed: ${trimmedMeta.width}×${trimmedMeta.height} px (was 1024×1024)`);
+
+// ── Rounded-corner SVG mask ────────────────────────────────────────────────────
+function maskSvg(size, radius) {
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
     `<rect width="${size}" height="${size}" rx="${radius}" ry="${radius}" fill="white"/>` +
@@ -31,71 +45,75 @@ function roundedMaskSvg(size, radius) {
   );
 }
 
-// ─── Helper: logo composited on white square, with rounded corners ────────────
-// logoFraction: what fraction of canvasSize the logo occupies (0–1)
+// ── Core icon builder ──────────────────────────────────────────────────────────
+// logoFraction : fraction of `canvasSize` that the trimmed logo should fill
+// radius       : corner radius in px (0 = sharp corners, for maskable)
 async function makeIcon(canvasSize, logoFraction, { radius = 0 } = {}) {
   const logoSize = Math.round(canvasSize * logoFraction);
   const offset   = Math.round((canvasSize - logoSize) / 2);
 
-  // Step 1 — resize logo
-  const logoBuf = await sharp(srcLogo)
-    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  // Resize trimmed logo to target size, preserving aspect ratio
+  const resizedLogo = await sharp(trimmedBuf)
+    .resize(logoSize, logoSize, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 
-  // Step 2 — composite logo onto white square → intermediate PNG buffer
-  const composite1 = await sharp({
+  // Composite onto white canvas
+  const flat = await sharp({
     create: { width: canvasSize, height: canvasSize, channels: 4, background: WHITE },
   })
-    .composite([{ input: logoBuf, left: offset, top: offset }])
+    .composite([{ input: resizedLogo, left: offset, top: offset }])
     .png()
     .toBuffer();
 
-  if (radius <= 0) return composite1;
+  if (radius <= 0) return flat;
 
-  // Step 3 — apply rounded-corner mask via dest-in on the intermediate buffer
-  const maskBuf = await sharp(roundedMaskSvg(canvasSize, radius)).png().toBuffer();
-
-  return sharp(composite1)
+  // Apply rounded-corner mask
+  const maskBuf = await sharp(maskSvg(canvasSize, radius)).png().toBuffer();
+  return sharp(flat)
     .composite([{ input: maskBuf, blend: 'dest-in' }])
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
 
-// ─── 1. App icons ─────────────────────────────────────────────────────────────
-console.log('Generating app icons…');
+// ── 1. App icons ───────────────────────────────────────────────────────────────
+console.log('\nGenerating app icons…');
 
-const ICON_DEFS = [
-  { canvas: 64,  frac: 0.88, name: 'pwa-64x64.png',               radius: 12 },
-  { canvas: 180, frac: 0.88, name: 'apple-touch-icon-180x180.png', radius: 32 },
-  { canvas: 192, frac: 0.88, name: 'pwa-192x192.png',              radius: 35 },
-  { canvas: 512, frac: 0.88, name: 'pwa-512x512.png',              radius: 92 },
+// logoFraction = 0.90 → sun fills ~90 % of the canvas after trimming.
+// Corner radius ≈ 18 % of canvas (matches iOS / Android squircle shape).
+const ICONS = [
+  { canvas: 64,  frac: 0.90, radius: 12,  name: 'pwa-64x64.png' },
+  { canvas: 180, frac: 0.90, radius: 32,  name: 'apple-touch-icon-180x180.png' },
+  { canvas: 192, frac: 0.90, radius: 35,  name: 'pwa-192x192.png' },
+  { canvas: 512, frac: 0.90, radius: 92,  name: 'pwa-512x512.png' },
 ];
 
-for (const { canvas, frac, name, radius } of ICON_DEFS) {
-  const buf = await makeIcon(canvas, frac, { radius });
-  await writeFile(join(outDir, name), buf);
-  console.log(`  ✔ ${name}`);
+for (const { canvas, frac, radius, name } of ICONS) {
+  await writeFile(join(outDir, name), await makeIcon(canvas, frac, { radius }));
+  console.log(`  ✔ ${name}  (logo = ${Math.round(canvas * frac)} px on ${canvas} px canvas)`);
 }
 
-// Maskable — logo in 60 % of canvas so it stays within the 80 % safe zone
+// Maskable — 62 % keeps the sun comfortably inside the 72 % Android safe zone
 {
-  const buf = await makeIcon(512, 0.60, { radius: 0 });
+  const buf = await makeIcon(512, 0.62, { radius: 0 });
   await writeFile(join(outDir, 'maskable-icon-512x512.png'), buf);
-  console.log('  ✔ maskable-icon-512x512.png');
+  console.log('  ✔ maskable-icon-512x512.png  (62 % safe-zone fill)');
 }
 
-// favicon.ico — 64 px PNG (browsers accept PNG inside the .ico slot)
+// favicon.ico — 64 px PNG wrapped in an .ico container
 {
-  const buf = await makeIcon(64, 0.88, { radius: 12 });
+  const buf = await makeIcon(64, 0.90, { radius: 12 });
   await writeFile(join(outDir, 'favicon.ico'), buf);
   console.log('  ✔ favicon.ico');
 }
 
-// ─── 2. favicon.svg — embeds 512-px icon as base64 ───────────────────────────
+// ── 2. favicon.svg — base64-embeds the 512-px icon ────────────────────────────
 {
-  const iconBuf = await makeIcon(512, 0.88, { radius: 92 });
-  const b64     = iconBuf.toString('base64');
+  const iconBuf = await makeIcon(512, 0.90, { radius: 92 });
+  const b64 = iconBuf.toString('base64');
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
     `viewBox="0 0 512 512" width="512" height="512">` +
@@ -105,22 +123,26 @@ for (const { canvas, frac, name, radius } of ICON_DEFS) {
   console.log('  ✔ favicon.svg');
 }
 
-// ─── 3. Splash screens (yellow bg, logo centred, slightly above middle) ───────
-console.log('Generating splash screens…');
+// ── 3. Splash screens ──────────────────────────────────────────────────────────
+console.log('\nGenerating splash screens…');
 
-const SPLASH_SIZES = [
-  [1290, 2796],  // iPhone 16 Pro Max
-  [1179, 2556],  // iPhone 16 / 15 Pro
-  [1284, 2778],  // iPhone 14 Plus / 15 Plus
-  [750,  1334],  // iPhone SE
-  [1668, 2388],  // iPad Pro 11″
-  [2048, 2732],  // iPad Pro 12.9″
+const SPLASHES = [
+  [1290, 2796],   // iPhone 16 Pro Max
+  [1179, 2556],   // iPhone 16 / 15 Pro
+  [1284, 2778],   // iPhone 14 Plus / 15 Plus
+  [750,  1334],   // iPhone SE
+  [1668, 2388],   // iPad Pro 11″
+  [2048, 2732],   // iPad Pro 12.9″
 ];
 
-for (const [w, h] of SPLASH_SIZES) {
-  const logoSize = Math.round(Math.min(w, h) * 0.30);
-  const logoBuf  = await sharp(srcLogo)
-    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+for (const [w, h] of SPLASHES) {
+  // Logo fills 32 % of the shorter dimension
+  const logoSize = Math.round(Math.min(w, h) * 0.32);
+  const logoBuf  = await sharp(trimmedBuf)
+    .resize(logoSize, logoSize, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 
@@ -136,11 +158,10 @@ for (const [w, h] of SPLASH_SIZES) {
   console.log(`  ✔ ${fname}`);
 }
 
-// ─── 4. Update source reference ───────────────────────────────────────────────
-// Keep source.svg as a note — actual source is logo-original.png
+// ── 4. Refresh source note ─────────────────────────────────────────────────────
 await writeFile(
   join(outDir, 'source.svg'),
-  `<!-- Source icon is logo-original.png (1024×1024 PNG). Run scripts/generate-icons.mjs to regenerate. -->`
+  `<!-- Source: logo-original.png (1024×1024 PNG). Run scripts/generate-icons.mjs to regenerate. -->`
 );
 
-console.log('\n✅  All Yellow Dot icons generated from real logo.');
+console.log('\n✅  Done. All icons use trimmed logo at 90 % canvas fill.');
