@@ -479,7 +479,9 @@ export default function FoodConsumption() {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      Object.values(debounceRefs.current).forEach(clearTimeout);
+      // NOTE: debounce timers are intentionally NOT cancelled here.
+      // Pending saves must fire even after the component unmounts so data
+      // is never silently lost when the teacher navigates away quickly.
     };
   }, []);
 
@@ -530,11 +532,16 @@ export default function FoodConsumption() {
       if (!mountedRef.current) return;
       const map = {};
       (Array.isArray(data) ? data : []).forEach(e => {
-        const key = `${e.student_id}__${e.meal_type}`;
-        map[key]  = { quantity: e.quantity, status: e.status, lastUpdated: null };
+        // Backend returns camelCase (studentId, mealType) — support both forms defensively
+        const sid  = e.studentId  || e.student_id  || "";
+        const meal = e.mealType   || e.meal_type   || "";
+        if (!sid || !meal) return;
+        const key  = `${sid}__${meal}`;
+        map[key]   = { quantity: e.quantity, status: e.status, lastUpdated: null };
       });
       setConsumptionMap(map);
-    } catch {
+    } catch (err) {
+      console.error("[food-consumption] GET failed:", err.message);
       if (!mountedRef.current) return;
       setConsumptionMap({});
     } finally {
@@ -564,7 +571,9 @@ export default function FoodConsumption() {
 
   // Consumption — whenever date or class changes
   useEffect(() => {
-    Object.values(debounceRefs.current).forEach(clearTimeout);
+    // Do NOT cancel pending timers — in-flight saves for the previous context
+    // must still reach the backend. Timer refs are cleared so new keys can
+    // start fresh debounce windows.
     debounceRefs.current = {};
     setConsumptionMap({});
     setConsumptionLoading(true);
@@ -634,26 +643,39 @@ export default function FoodConsumption() {
   }, [consumptionMap, students, menuSlots]);
 
   // ── Autosave (debounced 800ms, append-only) ───────────────────────────────
+  // IMPORTANT: mountedRef.current only gates state updates, NOT the API call.
+  // The save must reach the backend even if the teacher navigates away quickly.
 
   function scheduleAutosave(key, payload) {
     if (debounceRefs.current[key]) clearTimeout(debounceRefs.current[key]);
     debounceRefs.current[key] = setTimeout(async () => {
       delete debounceRefs.current[key];
-      if (!mountedRef.current) return;
-      setSavingCells(prev => { const n = new Set(prev); n.add(key); return n; });
+
+      // Show spinner only if still on page
+      if (mountedRef.current) {
+        setSavingCells(prev => { const n = new Set(prev); n.add(key); return n; });
+      }
+
       try {
-        await foodConsumptionService.saveConsumption(payload);
+        const result = await foodConsumptionService.saveConsumption(payload);
+
+        // Update UI only if still mounted
         if (!mountedRef.current) return;
         setSavedCells(prev => { const n = new Set(prev); n.add(key); return n; });
         setTimeout(() => {
           if (!mountedRef.current) return;
           setSavedCells(prev => { const n = new Set(prev); n.delete(key); return n; });
         }, 2000);
+
       } catch (err) {
-        console.error("[food-consumption] autosave failed:", err.message);
+        console.error("[food-consumption] save FAILED ✗", err.message, "payload:", payload);
+        if (!mountedRef.current) return;
+        toast.error("Save failed — please check connection and retry.");
+
       } finally {
-        if (mountedRef.current)
+        if (mountedRef.current) {
           setSavingCells(prev => { const n = new Set(prev); n.delete(key); return n; });
+        }
       }
     }, 800);
   }

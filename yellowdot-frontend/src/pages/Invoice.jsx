@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { INR, sumAmounts } from "../utils/currency";
 import { api } from "../services/authService";
+import PaymentDrawer from "../components/PaymentDrawer";
+import { useAuth } from "../contexts/AuthContext";
 
 const get  = url      => api.get(url).then(r => r.data);
 const post = (url, d) => api.post(url, d).then(r => r.data);
@@ -82,13 +84,18 @@ function StatCard({ label, value, sub, onClick, active }) {
   return (
     <button
       onClick={onClick}
+      style={active ? {
+        background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)",
+        border: "1px solid rgba(234,179,8,0.50)",
+        boxShadow: "0 4px 16px rgba(234,179,8,0.30)",
+      } : {}}
       className={`flex flex-col items-start px-4 py-3 rounded-xl border transition-all text-left
         ${active
-          ? "bg-yd-navy text-white border-yd-navy shadow-md"
+          ? "border-transparent shadow-md"
           : "bg-white border-yd-border-light hover:border-yd-border hover:shadow-sm"}`}>
-      <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${active ? "text-white/70" : "text-yd-text-3"}`}>{label}</span>
-      <span className={`text-xl font-black leading-none ${active ? "text-white" : "text-yd-navy"}`}>{value}</span>
-      {sub && <span className={`text-[10px] mt-0.5 ${active ? "text-white/60" : "text-yd-text-3"}`}>{sub}</span>}
+      <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${active ? "text-[#7a5c00]" : "text-yd-text-3"}`}>{label}</span>
+      <span className={`text-xl font-black leading-none ${active ? "text-[#1f1f1f]" : "text-yd-charcoal"}`}>{value}</span>
+      {sub && <span className={`text-[10px] mt-0.5 ${active ? "text-[#7a5c00]" : "text-yd-text-3"}`}>{sub}</span>}
     </button>
   );
 }
@@ -98,46 +105,317 @@ function SortTh({ col, label, sortCol, sortDir, onSort, className = "" }) {
   return (
     <th
       className={`px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider cursor-pointer select-none whitespace-nowrap
-        ${active ? "text-yd-yellow" : "text-white/80"} hover:text-white ${className}`}
+        ${active ? "text-[#1f1f1f]" : "text-[#1f1f1f]/70"} hover:text-[#1f1f1f] ${className}`}
       onClick={() => onSort(col)}>
-      {label} {active ? (sortDir === "asc" ? "↑" : "↓") : <span className="opacity-30">↕</span>}
+      {label} {active ? (sortDir === "asc" ? "↑" : "↓") : <span className="opacity-40">↕</span>}
     </th>
   );
 }
 
-function ActionMenu({ inv, onView, onPay, onDelete, onWhatsApp, onPrint }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  const items = [
-    { label: "View Details",   action: onView },
-    { label: "Record Payment", action: onPay,    hide: inv.status === "Paid" || inv.status === "Cancelled" },
-    { label: "WhatsApp Share", action: onWhatsApp },
-    { label: "Print / PDF",    action: onPrint },
-    { label: "Delete Invoice", action: onDelete, danger: true },
-  ].filter(i => !i.hide);
+/* ══════════════════════════════════════════════════════════════════
+   PREMIUM ACTION MENU — Stripe / Linear quality grouped actions
+   ══════════════════════════════════════════════════════════════════ */
+
+function MenuSectionLabel({ children }) {
   return (
-    <div className="relative" ref={ref}>
+    <div style={{
+      padding:"7px 16px 2px", fontSize:9, fontWeight:800,
+      letterSpacing:"0.14em", textTransform:"uppercase",
+      color:"#b8ac9a", userSelect:"none", fontFamily:"inherit",
+    }}>{children}</div>
+  );
+}
+
+function MenuDivider() {
+  return <div style={{ height:1, background:"#f5f0e8", margin:"4px 0" }} />;
+}
+
+function MenuItem({ icon, label, desc, shortcut, danger, disabled, onClick }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      disabled={disabled}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={disabled ? undefined : onClick}
+      style={{
+        display:"flex", width:"100%", alignItems:"center",
+        gap:10, padding:"7px 16px",
+        background: disabled ? "transparent" : hov ? (danger ? "#fff5f5" : "#fffbeb") : "transparent",
+        border:"none", cursor: disabled ? "default" : "pointer",
+        textAlign:"left", transition:"background 0.1s ease",
+        opacity: disabled ? 0.40 : 1, fontFamily:"inherit",
+      }}
+    >
+      <span style={{ fontSize:14, width:20, textAlign:"center", flexShrink:0, lineHeight:1 }}>
+        {icon}
+      </span>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
+          <span style={{
+            fontSize:12.5, fontWeight:600, lineHeight:1.3,
+            color: disabled ? "#9ca3af" : danger ? "#dc2626" : "#1f1f1f",
+          }}>{label}</span>
+          {shortcut && !disabled && (
+            <kbd style={{
+              fontSize:9, fontWeight:700, color:"#b0a898",
+              background:"#f8f6ef", border:"1px solid #ece7d8",
+              borderRadius:4, padding:"1px 5px",
+              fontFamily:"monospace", flexShrink:0, lineHeight:1.5,
+            }}>{shortcut}</kbd>
+          )}
+        </div>
+        {desc && (
+          <div style={{
+            fontSize:10, marginTop:1.5, lineHeight:1.3,
+            color: disabled ? "#c0b8a8" : danger ? "#f87171" : "#9ca3af",
+          }}>{desc}</div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function ActionMenu({
+  inv, invPayments, navigate, toast,
+  onView, onCollect, onDelete, onPrint,
+  onMarkPaid, onVoid, onDuplicate,
+  canEdit = true, canDelete = true,
+}) {
+  const [open,        setOpen       ] = useState(false);
+  const [step2Delete, setStep2Delete] = useState(false);
+  const [above,       setAbove      ] = useState(false);
+  const wrapRef = useRef(null);
+  const menuRef = useRef(null);
+
+  /* ── Close on outside click / ESC + keyboard shortcuts ── */
+  useEffect(() => {
+    if (!open) return;
+    function onMouse(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) close();
+    }
+    function onKey(e) {
+      if (e.key === "Escape") { close(); return; }
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "p" || e.key === "P") { onCollect(); close(); }
+      if (e.key === "w" || e.key === "W") { const l = whatsappShare(inv, {}); if (l) window.open(l, "_blank"); close(); }
+      if (e.key === "l" || e.key === "L") { copyLink(); }
+    }
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown",   onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown",   onKey);
+    };
+  }, [open]); // eslint-disable-line
+
+  /* ── Smart up/down flip after paint ── */
+  useEffect(() => {
+    if (!open || !menuRef.current) return;
+    const r = menuRef.current.getBoundingClientRect();
+    setAbove(r.bottom > window.innerHeight - 16);
+  }, [open]);
+
+  function close() { setOpen(false); setStep2Delete(false); }
+
+  /* ── Derived state ── */
+  const isPaid     = inv.status === "Paid";
+  const isVoid     = inv.status === "Cancelled" || inv.status === "Void";
+  const canCollect = !isPaid && !isVoid;
+  const waLink     = whatsappShare(inv, {});
+  const latestPay  = invPayments?.[0];
+  const hasReceipt = !!latestPay?.paymentId;
+
+  /* ── Copy payment link ── */
+  async function copyLink() {
+    const url = `${window.location.origin}/invoice-view/${encodeURIComponent(inv.invoiceNumber)}`;
+    try { await navigator.clipboard.writeText(url); } catch (_) {
+      const ta = Object.assign(document.createElement("textarea"), { value: url });
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+    }
+    toast.success("Payment link copied to clipboard!");
+    close();
+  }
+
+  /* ── Status colour ── */
+  const statusCol = { Paid:"#16a34a", Overdue:"#dc2626", Partial:"#d97706",
+                      Pending:"#d97706", Cancelled:"#9ca3af", Void:"#9ca3af" }[inv.status] || "#6b7280";
+
+  return (
+    <div ref={wrapRef} style={{ position:"relative", display:"inline-block" }}>
+
+      {/* ── Trigger ── */}
       <button
-        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-yd-bg text-yd-text-2 hover:text-yd-navy transition-colors font-black text-base">
-        &middot;&middot;&middot;
+        onClick={e => { e.stopPropagation(); setOpen(o => !o); setStep2Delete(false); }}
+        title="Invoice actions"
+        style={{
+          width:28, height:28,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          borderRadius:8,
+          border: open ? "1px solid #ece7d8" : "1px solid transparent",
+          background: open ? "#fffbeb" : "transparent",
+          cursor:"pointer", fontFamily:"monospace",
+          fontSize:17, fontWeight:900, letterSpacing:"0.06em",
+          color: open ? "#1f1f1f" : "#9ca3af",
+          transition:"all 0.12s",
+        }}>
+        ···
       </button>
+
+      {/* ── Panel ── */}
       {open && (
-        <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-2xl border border-yd-border-light py-1 min-w-[160px]">
-          {items.map(item => (
-            <button
-              key={item.label}
-              onClick={e => { e.stopPropagation(); setOpen(false); item.action(); }}
-              className={`w-full flex items-center px-3 py-2 text-xs font-medium text-left transition-colors
-                ${item.danger ? "text-yd-danger hover:bg-yd-danger-soft" : "text-yd-text hover:bg-yd-bg"}`}>
-              {item.label}
-            </button>
-          ))}
+        <div
+          ref={menuRef}
+          onClick={e => e.stopPropagation()}
+          style={{
+            position:"absolute", right:0,
+            ...(above ? { bottom:"calc(100% + 6px)" } : { top:"calc(100% + 6px)" }),
+            width:320,
+            background:"#ffffff",
+            borderRadius:18,
+            border:"1px solid rgba(236,231,216,0.92)",
+            boxShadow:[
+              "0 0 0 1px rgba(0,0,0,0.04)",
+              "0 4px 8px rgba(0,0,0,0.07)",
+              "0 16px 40px rgba(0,0,0,0.11)",
+              "0 40px 80px rgba(0,0,0,0.06)",
+            ].join(","),
+            zIndex:250, overflow:"hidden",
+          }}
+        >
+
+          {/* ── Header chip ── */}
+          <div style={{
+            padding:"11px 16px 10px",
+            background:"linear-gradient(135deg,#fffdf5,#fffbeb)",
+            borderBottom:"1px solid #f0ebd8",
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+          }}>
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"#1f1f1f", fontFamily:"'Courier New',monospace", letterSpacing:"0.04em" }}>
+                {inv.invoiceNumber}
+              </div>
+              <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>
+                {inv.studentName}{" · "}
+                <span style={{ fontWeight:700, color:statusCol }}>{inv.status}</span>
+                {" · "}{INR(inv.totalAmount)}
+              </div>
+            </div>
+            <button onClick={close} style={{
+              background:"none", border:"none", cursor:"pointer",
+              color:"#b0a898", fontSize:18, lineHeight:1, padding:"2px 4px",
+              borderRadius:6, fontFamily:"inherit",
+            }}>×</button>
+          </div>
+
+          {/* ── Scrollable body ── */}
+          <div style={{ maxHeight:448, overflowY:"auto", overflowX:"hidden" }}>
+
+            {/* VIEW */}
+            <MenuSectionLabel>View</MenuSectionLabel>
+            <MenuItem icon="📄" label="View Invoice"   desc="Open full premium invoice page" onClick={() => { onView(); close(); }} />
+            {hasReceipt && (
+              <MenuItem icon="🧾" label="View Receipt"  desc={`Receipt · ${INR(latestPay.amount)}`} onClick={() => { window.open(`/receipt/${latestPay.paymentId}`, "_blank"); close(); }} />
+            )}
+            <MenuItem icon="⬇️" label="Download PDF"   desc="Save invoice as PDF file"      onClick={() => { window.open(`/invoice-view/${encodeURIComponent(inv.invoiceNumber)}`, "_blank"); close(); }} />
+            <MenuItem icon="🖨️" label="Print"          desc="Open browser print dialog"     onClick={() => { onPrint(); close(); }} />
+
+            <MenuDivider />
+
+            {/* PAYMENTS */}
+            <MenuSectionLabel>Payments</MenuSectionLabel>
+            {canCollect ? (
+              <MenuItem icon="💳" label="Record Payment"        desc="Cash, UPI, bank transfer, cheque" shortcut="P" onClick={() => { onCollect(); close(); }} />
+            ) : (
+              <MenuItem icon="💳" label="Record Payment"        desc="Invoice is already paid or void"  disabled />
+            )}
+            {waLink ? (
+              <MenuItem icon="💬" label="Send Payment Reminder" desc="WhatsApp · amount + due date + link" shortcut="W" onClick={() => { window.open(waLink, "_blank"); close(); }} />
+            ) : (
+              <MenuItem icon="💬" label="Send Payment Reminder" desc="No parent WhatsApp number on file" disabled />
+            )}
+            {canCollect && (
+              <MenuItem icon="✅" label="Mark as Paid"          desc="Quick full-payment confirmation"  onClick={() => { onMarkPaid(); close(); }} />
+            )}
+            {isPaid && (
+              <MenuItem icon="↩️" label="Refund Payment"        desc="Contact your payment gateway directly" danger onClick={() => { toast.info("For refunds, process directly via your payment gateway or bank."); close(); }} />
+            )}
+
+            <MenuDivider />
+
+            {/* SHARE */}
+            <MenuSectionLabel>Share</MenuSectionLabel>
+            {waLink ? (
+              <MenuItem icon="📱" label="Share on WhatsApp"  desc="Invoice summary + payment link"  onClick={() => { window.open(waLink, "_blank"); close(); }} />
+            ) : (
+              <MenuItem icon="📱" label="Share on WhatsApp"  desc="No parent WhatsApp number on file" disabled />
+            )}
+            <MenuItem icon="🔗" label="Copy Payment Link"   desc="Share public invoice URL"          shortcut="L" onClick={copyLink} />
+            <MenuItem icon="📧" label="Send Email"          desc="Branded invoice to parent email"   shortcut="E" onClick={() => { toast.info("Email invoices — coming soon."); close(); }} />
+
+            <MenuDivider />
+
+            {/* MANAGEMENT */}
+            <MenuSectionLabel>Management</MenuSectionLabel>
+            <MenuItem icon="📋" label="Duplicate Invoice" desc="Clone as a new draft invoice"        onClick={() => { onDuplicate(); close(); }} />
+            {canCollect && canEdit && (
+              <MenuItem icon="✏️" label="Edit Invoice"    desc="Modify this unpaid invoice"          onClick={() => { navigate(`/invoice/new?edit=${encodeURIComponent(inv.invoiceNumber)}`); close(); }} />
+            )}
+
+            <MenuDivider />
+
+            {/* DANGER ZONE */}
+            <MenuSectionLabel>Danger Zone</MenuSectionLabel>
+            {!isVoid && (
+              <MenuItem icon="🚫" label="Void Invoice" desc="Cancels invoice · preserves audit trail" danger onClick={() => { onVoid(); close(); }} />
+            )}
+
+            {canDelete && !step2Delete ? (
+              <MenuItem icon="🗑️" label="Delete Invoice" desc="Permanent removal · requires confirmation" danger onClick={() => setStep2Delete(true)} />
+            ) : (
+              <div style={{ padding:"8px 16px 12px" }}>
+                <div style={{
+                  background:"#fff5f5", border:"1px solid #fecaca",
+                  borderRadius:12, padding:"11px 14px",
+                }}>
+                  <div style={{ fontSize:11.5, fontWeight:800, color:"#dc2626", marginBottom:5 }}>
+                    ⚠️ Confirm permanent delete
+                  </div>
+                  <div style={{ fontSize:10.5, color:"#6b7280", lineHeight:1.55, marginBottom:10 }}>
+                    Permanently delete <strong style={{ color:"#1f1f1f" }}>{inv.invoiceNumber}</strong> for <strong style={{ color:"#1f1f1f" }}>{inv.studentName}</strong>? This cannot be undone.
+                  </div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button onClick={() => setStep2Delete(false)} style={{
+                      flex:1, padding:"7px 0", borderRadius:8,
+                      border:"1px solid #ece7d8", background:"white",
+                      fontSize:11, fontWeight:600, cursor:"pointer", color:"#6b7280",
+                    }}>Cancel</button>
+                    <button onClick={() => { onDelete(); close(); }} style={{
+                      flex:1, padding:"7px 0", borderRadius:8,
+                      border:"none", background:"#dc2626",
+                      color:"white", fontSize:11, fontWeight:800, cursor:"pointer",
+                    }}>Delete Forever</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>{/* end scrollable body */}
+
+          {/* ── Keyboard hint footer ── */}
+          <div style={{
+            padding:"6px 16px 8px",
+            borderTop:"1px solid #f5f0e8", background:"#fafaf8",
+          }}>
+            <span style={{
+              fontSize:9, color:"#c8bfb0", fontWeight:600,
+              letterSpacing:"0.05em", textTransform:"uppercase",
+            }}>
+              P · payment &nbsp;·&nbsp; W · WhatsApp &nbsp;·&nbsp; L · copy link &nbsp;·&nbsp; ESC · close
+            </span>
+          </div>
+
         </div>
       )}
     </div>
@@ -152,14 +430,14 @@ function printInvoice(inv, payments = []) {
     `<tr><td>${p.paymentDate}</td><td>${INR_P(p.amount)}</td><td>${p.paymentMode}</td><td>${p.transactionId || "–"}</td><td>${p.notes || "–"}</td></tr>`
   ).join("");
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${inv.invoiceNumber}</title><style>
-    *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:32px}
-    .logo{font-size:24px;font-weight:900;color:#F4C400}.header{display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #04114B}
-    .inv-title{font-size:20px;font-weight:900;color:#04114B}table{width:100%;border-collapse:collapse;margin:12px 0}
-    th{background:#04114B;color:white;padding:8px 10px;text-align:left;font-size:11px}td{padding:7px 10px;border-bottom:1px solid #eee}
-    tr:nth-child(even) td{background:#f9f9f9}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#1f1f1f;padding:32px}
+    .logo{font-size:24px;font-weight:900;color:#eab308}.header{display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #eab308}
+    .inv-title{font-size:20px;font-weight:900;color:#1f1f1f}table{width:100%;border-collapse:collapse;margin:12px 0}
+    th{background:linear-gradient(135deg,#facc15 0%,#eab308 100%);color:#1f1f1f;padding:8px 10px;text-align:left;font-size:11px;font-weight:bold}td{padding:7px 10px;border-bottom:1px solid #eee}
+    tr:nth-child(even) td{background:#fffdf7}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
     .field label{display:block;font-size:10px;color:#888;font-weight:bold;margin-bottom:2px}.field span{font-size:13px;font-weight:600}
-    .totals{background:#f8f8f8;border:1px solid #eee;border-radius:8px;padding:12px;margin:16px 0}
-    .totals td{padding:4px 8px;border:none}.total-row{font-size:16px;font-weight:900;color:#04114B}
+    .totals{background:#fffdf7;border:1px solid #ece7d8;border-radius:8px;padding:12px;margin:16px 0}
+    .totals td{padding:4px 8px;border:none}.total-row{font-size:16px;font-weight:900;color:#1f1f1f}
     .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
     .paid{background:#d1fae5;color:#065f46}.pending{background:#fef3c7;color:#92400e}
     .partial{background:#e0f2fe;color:#0c4a6e}.overdue{background:#fee2e2;color:#991b1b}
@@ -197,22 +475,48 @@ function printInvoice(inv, payments = []) {
   ${paid.length ? `<div style="margin-top:16px"><strong>Payment History</strong></div><table><thead><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Transaction ID</th><th>Notes</th></tr></thead><tbody>${timeline}</tbody></table>` : ""}
   ${inv.notes ? `<div style="margin-top:12px;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px"><strong>Notes:</strong> ${inv.notes}</div>` : ""}
   <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#888;text-align:center">This is a computer generated invoice. No signature required.</div>
-  <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#04114B;color:white;border:none;border-radius:6px;cursor:pointer">Print / Save PDF</button>
+  <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:linear-gradient(135deg,#facc15 0%,#eab308 100%);color:#1f1f1f;border:none;border-radius:6px;cursor:pointer;font-weight:bold">Print / Save PDF</button>
   </body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 500);
 }
 
-function whatsappShare(inv) {
+function whatsappShare(inv, schoolSettings = {}) {
   const phone = (inv.fatherWhatsApp || inv.motherWhatsApp || "").replace(/\D/g, "");
   if (!phone || phone.length < 10) return null;
   const dialCode = phone.startsWith("91") ? phone : `91${phone}`;
-  const msg =
-    `*Yellow Dot Preschool – Invoice*\n\nInvoice: *${inv.invoiceNumber}*\nStudent: ${inv.studentName} (${inv.class})\n` +
-    `Fee Type: ${inv.feeType}\nInvoice Date: ${inv.invoiceDate}\nDue Date: ${inv.dueDate || "–"}\n\n` +
-    `Total Amount: *${INR(inv.totalAmount)}*\nPaid Amount: ${INR(inv.paidAmount)}\nBalance Due: *${INR(inv.balance)}*\n` +
-    `Status: ${inv.status}\n\nPlease contact us for payment. Thank you!`;
-  return `https://wa.me/${dialCode}?text=${encodeURIComponent(msg)}`;
+
+  const upiId = schoolSettings.upiId || "";
+  const upiLink = upiId
+    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(schoolSettings.schoolName || "School")}&am=${Number(inv.balance) || Number(inv.totalAmount)}&cu=INR&tn=${encodeURIComponent(inv.invoiceNumber)}`
+    : "";
+
+  const lines = [
+    `*Yellow Dot Preschool – Fee Invoice*`,
+    ``,
+    `Dear Parent,`,
+    `Invoice *${inv.invoiceNumber}* is ready for *${inv.studentName}*.`,
+    ``,
+    `Fee Type   : ${inv.feeType || "–"}`,
+    `Invoice Date: ${inv.invoiceDate || "–"}`,
+    `Due Date   : ${inv.dueDate || "–"}`,
+    `Total Amount: *${INR(inv.totalAmount)}*`,
+    `Amount Paid : ${INR(inv.paidAmount)}`,
+    `Balance Due : *${INR(inv.balance)}*`,
+    `Status      : ${inv.status}`,
+    ``,
+    ...(upiId && Number(inv.balance) > 0 ? [
+      `📱 *Pay via UPI (amount pre-filled):*`,
+      `UPI ID: ${upiId}`,
+      upiLink,
+      ``,
+      `Open in GPay, PhonePe, Paytm, or BHIM.`,
+      ``,
+    ] : []),
+    `Thank you! 🌟`,
+  ];
+
+  return `https://wa.me/${dialCode}?text=${encodeURIComponent(lines.join("\n"))}`;
 }
 
 // -- Drawer wrapper --
@@ -298,17 +602,17 @@ function ViewInvoiceDrawer({ open, inv, allPayments, onClose, onPay }) {
 
         {/* Progress */}
         {inv.totalAmount > 0 && (
-          <div className="bg-yd-navy rounded-xl p-4">
+          <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)", border: "1px solid rgba(234,179,8,0.40)" }}>
             <div className="flex justify-between text-xs mb-3">
-              <span className="text-white/60 font-semibold">Paid</span>
-              <span className="font-black text-green-300">{INR(inv.paidAmount)}</span>
+              <span className="font-semibold text-[#7a5c00]">Paid</span>
+              <span className="font-black text-[#15803d]">{INR(inv.paidAmount)}</span>
             </div>
-            <div className="bg-white/10 rounded-full h-2 overflow-hidden mb-3">
-              <div className="h-full bg-yd-yellow rounded-full" style={{ width: `${pct}%` }} />
+            <div className="rounded-full h-2 overflow-hidden mb-3" style={{ background: "rgba(0,0,0,0.12)" }}>
+              <div className="h-full bg-[#15803d] rounded-full" style={{ width: `${pct}%` }} />
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-white/60 font-semibold">Balance Due</span>
-              <span className="font-black text-white text-base">{INR(inv.balance)}</span>
+              <span className="font-semibold text-[#7a5c00]">Balance Due</span>
+              <span className="font-black text-[#1f1f1f] text-base">{INR(inv.balance)}</span>
             </div>
           </div>
         )}
@@ -436,14 +740,14 @@ function RecordPaymentDrawer({ open, inv, onSave, onClose }) {
   return (
     <Drawer open={open} onClose={onClose} title="Record Payment" subtitle={`${inv.studentName} – ${inv.invoiceNumber}`} width="max-w-[460px]" footer={footer}>
       <div className="px-6 py-5 space-y-4">
-        <div className="bg-yd-navy rounded-xl p-4 flex items-center justify-between">
+        <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)", border: "1px solid rgba(234,179,8,0.40)" }}>
           <div>
-            <div className="text-xs text-white/60">Invoice</div>
-            <div className="text-xs font-bold text-white">{inv.invoiceNumber}</div>
+            <div className="text-xs text-[#7a5c00]">Invoice</div>
+            <div className="text-xs font-bold text-[#1f1f1f]">{inv.invoiceNumber}</div>
           </div>
           <div className="text-right">
-            <div className="yd-text-label text-white/40 mb-0.5">Balance Due</div>
-            <div className="text-2xl font-black text-white">{INR(inv.balance)}</div>
+            <div className="yd-text-label text-[#7a5c00] mb-0.5">Balance Due</div>
+            <div className="text-2xl font-black text-[#1f1f1f]">{INR(inv.balance)}</div>
           </div>
         </div>
 
@@ -545,9 +849,15 @@ function InvoiceIllustration() {
       <rect x="28" y="16" width="144" height="122" rx="10"
         fill="white" stroke="#EDE8DA" strokeWidth="1.5" />
 
-      {/* Navy header */}
-      <rect x="28" y="16" width="144" height="28" rx="10" fill="#04114B" />
-      <rect x="28" y="34" width="144" height="10"            fill="#04114B" />
+      {/* Gold header */}
+      <defs>
+        <linearGradient id="inv-hdr-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#facc15"/>
+          <stop offset="100%" stopColor="#eab308"/>
+        </linearGradient>
+      </defs>
+      <rect x="28" y="16" width="144" height="28" rx="10" fill="url(#inv-hdr-grad)" />
+      <rect x="28" y="34" width="144" height="10"            fill="url(#inv-hdr-grad)" />
 
       {/* Header — "INVOICE" label bar */}
       <rect x="38" y="24" width="38" height="5.5" rx="2.75"
@@ -575,14 +885,14 @@ function InvoiceIllustration() {
 
       {/* Total row */}
       <rect x="38" y="112" width="32" height="5" rx="2.5" fill="#EDE8DA" />
-      <rect x="133" y="110" width="30" height="9" rx="4.5" fill="#04114B" />
+      <rect x="133" y="110" width="30" height="9" rx="4.5" fill="#1f1f1f" />
 
       {/* Yellow ₹ badge — overlaps bottom-right corner of the document */}
       <circle cx="156" cy="122" r="27" fill="#F4C400" />
       <circle cx="156" cy="122" r="27" stroke="white" strokeWidth="4" />
       <text x="156" y="130" textAnchor="middle" fontSize="24" fontWeight="900"
         fontFamily="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif"
-        fill="#04114B">₹</text>
+        fill="#1f1f1f">₹</text>
     </svg>
   );
 }
@@ -598,8 +908,8 @@ function EmptyInvoices({ onNew, onTemplates }) {
   };
   const stepNum = (n, accent) => ({
     width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
-    background: accent ? "#F4C400" : "#04114B",
-    color: accent ? "#04114B" : "white",
+    background: accent ? "linear-gradient(135deg,#facc15,#eab308)" : "#1f1f1f",
+    color: accent ? "#1f1f1f" : "#facc15",
     fontWeight: 900, fontSize: 13,
     display: "flex", alignItems: "center", justifyContent: "center",
     margin: "0 auto 10px",
@@ -616,7 +926,7 @@ function EmptyInvoices({ onNew, onTemplates }) {
         <InvoiceIllustration />
 
         <h2 style={{
-          fontSize: 20, fontWeight: 900, color: "#04114B",
+          fontSize: 20, fontWeight: 900, color: "#1f1f1f",
           letterSpacing: "-0.45px", margin: "22px 0 10px",
           textAlign: "center", lineHeight: 1.15,
         }}>
@@ -631,9 +941,11 @@ function EmptyInvoices({ onNew, onTemplates }) {
         </p>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          <button onClick={onNew} className="btn btn-primary" style={{ minWidth: 148 }}>
-            + New Invoice
-          </button>
+          {onNew && (
+            <button onClick={onNew} className="btn btn-primary" style={{ minWidth: 148 }}>
+              + New Invoice
+            </button>
+          )}
           <button onClick={onTemplates} className="btn btn-ghost" style={{ minWidth: 148 }}>
             Fee Templates
           </button>
@@ -652,7 +964,7 @@ function EmptyInvoices({ onNew, onTemplates }) {
         {/* Step 1 */}
         <div style={{ textAlign: "center" }}>
           <div style={stepNum(1, false)}>1</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#04114B", marginBottom: 3, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1f1f1f", marginBottom: 3, lineHeight: 1.3 }}>
             Set up templates
           </div>
           <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.5 }}>
@@ -668,7 +980,7 @@ function EmptyInvoices({ onNew, onTemplates }) {
         {/* Step 2 */}
         <div style={{ textAlign: "center" }}>
           <div style={stepNum(2, true)}>2</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#04114B", marginBottom: 3, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1f1f1f", marginBottom: 3, lineHeight: 1.3 }}>
             Create invoices
           </div>
           <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.5 }}>
@@ -684,7 +996,7 @@ function EmptyInvoices({ onNew, onTemplates }) {
         {/* Step 3 */}
         <div style={{ textAlign: "center" }}>
           <div style={stepNum(3, false)}>3</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#04114B", marginBottom: 3, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1f1f1f", marginBottom: 3, lineHeight: 1.3 }}>
             Track &amp; collect
           </div>
           <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.5 }}>
@@ -711,16 +1023,16 @@ function NoResults({ search, onClear }) {
         background: "white", border: "1.5px solid #F0EBD8",
         display: "flex", alignItems: "center", justifyContent: "center",
         marginBottom: 20,
-        boxShadow: "0 2px 12px rgba(4,17,75,0.06)",
+        boxShadow: "0 2px 12px rgba(234,179,8,0.12)",
       }}>
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-          stroke="#04114B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          stroke="#1f1f1f" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
       </div>
 
-      <div style={{ fontSize: 15, fontWeight: 800, color: "#04114B", marginBottom: 7, letterSpacing: "-0.2px" }}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: "#1f1f1f", marginBottom: 7, letterSpacing: "-0.2px" }}>
         No matching invoices
       </div>
 
@@ -730,7 +1042,7 @@ function NoResults({ search, onClear }) {
       }}>
         {search
           ? <>Nothing found for{" "}
-              <strong style={{ color: "#04114B", fontWeight: 700 }}>"{search}"</strong>
+              <strong style={{ color: "#1f1f1f", fontWeight: 700 }}>"{search}"</strong>
               {" "}— try a different name or invoice number.
             </>
           : "No invoices match your current filters. Try adjusting or clearing them."
@@ -845,8 +1157,17 @@ function SkeletonRow({ idx }) {
 // MAIN INVOICES PAGE
 // ══════════════════════════════════════════════════════════════════
 export default function Invoices() {
-  const navigate = useNavigate();
-  const toast    = useToast();
+  const navigate   = useNavigate();
+  const toast      = useToast();
+  const { canDo }  = useAuth();
+
+  // Action-level permission flags (invoices module)
+  const perm = {
+    create: canDo("invoices", "create"),
+    edit:   canDo("invoices", "edit"),
+    delete: canDo("invoices", "delete"),
+    approve: canDo("invoices", "approve"),
+  };
 
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -861,11 +1182,12 @@ export default function Invoices() {
   const [sortCol,      setSortCol]      = useState("createdAt");
   const [sortDir,      setSortDir]      = useState("desc");
 
-  const [viewInv,   setViewInv]   = useState(null);
-  const [payInv,    setPayInv]    = useState(null);
-  const [payKey,    setPayKey]    = useState(0);     // bumped to remount RecordPaymentDrawer
-  const [deleteInv, setDeleteInv] = useState(null);
-  const [deleting,  setDeleting]  = useState(false);
+  const [viewInv,      setViewInv]      = useState(null);
+  const [payInv,       setPayInv]       = useState(null);
+  const [payKey,       setPayKey]       = useState(0);     // bumped to remount RecordPaymentDrawer
+  const [payDrawerInv, setPayDrawerInv] = useState(null);  // PaymentDrawer (QR + WhatsApp + Record)
+  const [deleteInv,    setDeleteInv]    = useState(null);
+  const [deleting,     setDeleting]     = useState(false);
 
   const mountedRef = useRef(true);
   // Reset to true on every (re)mount.
@@ -985,13 +1307,60 @@ export default function Invoices() {
     finally { setDeleting(false); }
   }
 
-  function handleWhatsApp(inv) {
-    const url = whatsappShare(inv);
-    if (!url) { toast.error("No WhatsApp number for this student."); return; }
-    window.open(url, "_blank");
+  /** Directly delete invoice (called from ActionMenu inline confirm) */
+  async function handleDeleteDirect(inv) {
+    try {
+      const res = await del(`/api/invoices/${encodeURIComponent(inv.invoiceNumber)}`);
+      if (!res.success) throw new Error(res.error || "Delete failed.");
+      setInvoices(prev => prev.filter(i => i.invoiceNumber !== inv.invoiceNumber));
+      toast.success(`Invoice ${inv.invoiceNumber} deleted.`);
+    } catch(e) { toast.error(e.message); }
   }
 
-  function handlePayFlow(inv) { setViewInv(null); setTimeout(() => { setPayKey(k => k + 1); setPayInv(inv); }, 80); }
+  /** Mark invoice as fully paid via a full-balance payment record */
+  async function handleMarkPaid(inv) {
+    const balance = Number(inv.balance) || Number(inv.totalAmount) || 0;
+    if (balance <= 0) { toast.info("Invoice is already fully paid."); return; }
+    try {
+      const res = await post("/api/payments", {
+        invoiceNumber: inv.invoiceNumber, studentId: inv.studentId,
+        studentName: inv.studentName,
+        amount: balance, paymentMode: "Cash",
+        paymentDate: todayISO(), notes: "Marked as paid (quick action)", staffName: "Staff",
+      });
+      if (!res.success) throw new Error(res.error || "Failed to mark as paid.");
+      if (res.invoice) setInvoices(prev => prev.map(i => i.invoiceNumber === inv.invoiceNumber ? { ...i, ...res.invoice } : i));
+      if (res.payment) setPayments(prev => [res.payment, ...prev]);
+      toast.success(`${inv.invoiceNumber} marked as paid ✓`);
+    } catch(e) { toast.error(e.message); }
+  }
+
+  /** Void (cancel) invoice — marks status as Cancelled */
+  async function handleVoid(inv) {
+    try {
+      const res = await post(`/api/invoices/${encodeURIComponent(inv.invoiceNumber)}/status`, { status: "Cancelled" });
+      if (!res.success) throw new Error(res.error || "Void failed.");
+      setInvoices(prev => prev.map(i => i.invoiceNumber === inv.invoiceNumber ? { ...i, status: "Cancelled" } : i));
+      toast.success(`Invoice ${inv.invoiceNumber} voided.`);
+    } catch(e) { toast.error(e.message || "Void — check if this API endpoint is supported."); }
+  }
+
+  /** Duplicate invoice — clones as new draft */
+  async function handleDuplicate(inv) {
+    try {
+      const res = await post("/api/invoices/duplicate", { invoiceNumber: inv.invoiceNumber });
+      if (!res.success) throw new Error(res.error || "Duplicate failed.");
+      if (res.invoice) setInvoices(prev => [res.invoice, ...prev]);
+      toast.success("Invoice duplicated — new draft created.");
+    } catch(e) { toast.error(e.message || "Duplicate — this endpoint may not be available yet."); }
+  }
+
+  /** Called when PaymentDrawer's "Record Payment" button is clicked */
+  function handlePayFlow(inv) {
+    setPayDrawerInv(null);
+    setViewInv(null);
+    setTimeout(() => { setPayKey(k => k + 1); setPayInv(inv); }, 80);
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-yd-bg">
@@ -1024,9 +1393,11 @@ export default function Invoices() {
             <button onClick={() => navigate("/invoice/templates")} className="btn btn-ghost btn-sm">
               Fee Templates
             </button>
-            <button onClick={() => navigate("/invoice/new")} className="btn btn-primary btn-sm">
-              + New Invoice
-            </button>
+            {perm.create && (
+              <button onClick={() => navigate("/invoice/new")} className="btn btn-primary btn-sm">
+                + New Invoice
+              </button>
+            )}
           </div>
         </div>
 
@@ -1099,18 +1470,18 @@ export default function Invoices() {
           {loading ? (
             <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-xs">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-yd-navy">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 rounded-tl-xl whitespace-nowrap">Invoice No</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Student</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Class</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Fee Type</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Inv Date</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Due Date</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Total</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Paid</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Balance</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">Status</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white/80 rounded-tr-xl whitespace-nowrap">Actions</th>
+                <tr style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)" }}>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 rounded-tl-xl whitespace-nowrap">Invoice No</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Student</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Class</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Fee Type</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Inv Date</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Due Date</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Total</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Paid</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Balance</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 whitespace-nowrap">Status</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 rounded-tr-xl whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1128,7 +1499,7 @@ export default function Invoices() {
           ) : filtered.length === 0 ? (
             invoices.length === 0
               ? <EmptyInvoices
-                  onNew={() => navigate("/invoice/new")}
+                  onNew={perm.create ? () => navigate("/invoice/new") : null}
                   onTemplates={() => navigate("/invoice/templates")}
                 />
               : <NoResults
@@ -1141,7 +1512,7 @@ export default function Invoices() {
           ) : (
             <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-xs">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-yd-navy">
+                <tr style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)" }}>
                   <SortTh col="invoiceNumber" label="Invoice No"  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="rounded-tl-xl pl-4" />
                   <SortTh col="studentName"   label="Student"     sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
                   <SortTh col="class"         label="Class"       sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
@@ -1152,13 +1523,13 @@ export default function Invoices() {
                   <SortTh col="paidAmount"    label="Paid"        sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="text-right pr-3" />
                   <SortTh col="balance"       label="Balance"     sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="text-right pr-3" />
                   <SortTh col="status"        label="Status"      sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white/80 rounded-tr-xl">Actions</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#1f1f1f]/70 rounded-tr-xl">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((inv, idx) => (
                   <tr key={inv.invoiceNumber}
-                    onClick={() => setViewInv(inv)}
+                    onClick={() => navigate(`/invoice-view/${inv.invoiceNumber}`)}
                     className={`cursor-pointer transition-colors hover:bg-yd-yellow-pale ${idx % 2 === 0 ? "bg-white" : "bg-yd-bg"}`}>
                     <td className="px-4 py-2.5 border-b border-yd-border-light">
                       <div className="font-mono font-bold text-yd-navy text-[11px]">{inv.invoiceNumber}</div>
@@ -1192,11 +1563,18 @@ export default function Invoices() {
                     <td className="px-3 py-2.5 border-b border-yd-border-light text-right" onClick={e => e.stopPropagation()}>
                       <ActionMenu
                         inv={inv}
-                        onView={() => setViewInv(inv)}
-                        onPay={() => setPayInv(inv)}
-                        onDelete={() => setDeleteInv(inv)}
-                        onWhatsApp={() => handleWhatsApp(inv)}
-                        onPrint={() => printInvoice(inv, payments)}
+                        invPayments={payments.filter(p => p.invoiceNumber === inv.invoiceNumber)}
+                        navigate={navigate}
+                        toast={toast}
+                        onView={()        => navigate(`/invoice-view/${inv.invoiceNumber}`)}
+                        onCollect={()     => setPayDrawerInv(inv)}
+                        onDelete={()      => handleDeleteDirect(inv)}
+                        onPrint={()       => window.open(`/invoice-view/${inv.invoiceNumber}`, "_blank")}
+                        onMarkPaid={()    => handleMarkPaid(inv)}
+                        onVoid={()        => handleVoid(inv)}
+                        onDuplicate={()   => handleDuplicate(inv)}
+                        canEdit={perm.edit}
+                        canDelete={perm.delete}
                       />
                     </td>
                   </tr>
@@ -1207,12 +1585,13 @@ export default function Invoices() {
         </div>
       </div>
 
-      <ViewInvoiceDrawer
-        open={!!viewInv}
-        inv={viewInv}
-        allPayments={payments}
-        onClose={() => setViewInv(null)}
-        onPay={() => handlePayFlow(viewInv)}
+      {/* Payment collection drawer — QR + WhatsApp + Record */}
+      <PaymentDrawer
+        open={!!payDrawerInv}
+        invoice={payDrawerInv}
+        payments={payDrawerInv ? payments.filter(p => p.invoiceNumber === payDrawerInv.invoiceNumber) : []}
+        onClose={() => setPayDrawerInv(null)}
+        onRecord={handlePayFlow}
       />
 
       <RecordPaymentDrawer

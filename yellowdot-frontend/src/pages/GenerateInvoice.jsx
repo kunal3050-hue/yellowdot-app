@@ -88,13 +88,11 @@ function GenerateInvoice() {
 
     const data = await api.get("/students").then(r => r.data);
 
-    console.log("STUDENTS DATA:", data);
-
     setStudents(data);
 
   } catch (error) {
 
-    console.log(error);
+    console.error(error);
 
   }
 
@@ -113,7 +111,7 @@ function GenerateInvoice() {
 
     } catch (error) {
 
-      console.log(error);
+      console.error(error);
 
     }
 
@@ -135,8 +133,6 @@ function GenerateInvoice() {
           student.Student_Name === selectedName
 
       );
-
-      console.log(selectedStudent);
 
       if (selectedStudent) {
 
@@ -395,11 +391,9 @@ const saveInvoice = async () => {
           toast.remove();
         }, 3000);
 
-    console.log(data);
-
   } catch (error) {
 
-    console.log(error);
+    console.error(error);
 
     const errorToast = document.createElement("div");
 

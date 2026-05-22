@@ -24,6 +24,7 @@ import { QRCodeCanvas }  from "qrcode.react";
 import { Html5Qrcode }   from "html5-qrcode";
 import attendanceService from "../services/attendanceService";
 import { api } from "../services/authService";
+import { useAuth }       from "../contexts/AuthContext";
 
 // ── Constants ─────────────────────────────────────────────────────
 const VIEWS          = ["dashboard", "scanner", "qrcards", "history"];
@@ -234,7 +235,7 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, summary, summaryLo
 // ═══════════════════════════════════════════════════════════════════
 // StudentRow (dashboard table row)
 // ═══════════════════════════════════════════════════════════════════
-function StudentRow({ student, entry, saving, onMark, onCheckOut }) {
+function StudentRow({ student, entry, saving, onMark, onCheckOut, canMark = true }) {
   const status   = entry?.status    || "";
   const checkIn  = entry?.checkIn   || "";
   const checkOut = entry?.checkOut  || "";
@@ -261,12 +262,12 @@ function StudentRow({ student, entry, saving, onMark, onCheckOut }) {
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-1">
           {STATUS_OPTIONS.map(s => (
-            <button key={s} disabled={saving} onClick={() => onMark(student, s)}
+            <button key={s} disabled={saving || !canMark} onClick={() => canMark && onMark(student, s)}
               className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all border
                 ${status === s
                   ? `${STATUS_BTN[s]} shadow-sm scale-105 border-transparent`
                   : "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-600"}
-                ${saving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+                ${(saving || !canMark) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
               {s}
             </button>
           ))}
@@ -309,7 +310,7 @@ function StudentRow({ student, entry, saving, onMark, onCheckOut }) {
 // ═══════════════════════════════════════════════════════════════════
 // DashboardView
 // ═══════════════════════════════════════════════════════════════════
-function DashboardView({ date, cls, summary, toast }) {
+function DashboardView({ date, cls, summary, toast, canMark = true, canExport = true }) {
   const mountedRef  = useRef(true);
   const savingRef   = useRef({});
   const [students,  setStudents ] = useState([]);
@@ -475,7 +476,7 @@ function DashboardView({ date, cls, summary, toast }) {
             </button>
           ))}
         </div>
-        {filter === "Unmarked" && displayStudents.length > 0 && (
+        {canMark && filter === "Unmarked" && displayStudents.length > 0 && (
           <button
             onClick={async () => { for (const s of displayStudents) { const sid=s.Student_ID||s.id; await handleMark({id:sid,name:s.Student_Name||s.name,class:s.Class||s.class},"Present"); } }}
             className="btn btn-success btn-sm ml-auto">
@@ -511,6 +512,7 @@ function DashboardView({ date, cls, summary, toast }) {
                     saving={!!saving[sid]}
                     onMark={handleMark}
                     onCheckOut={handleCheckOut}
+                    canMark={canMark}
                   />
                 );
               })}
@@ -948,7 +950,13 @@ function HistoryView({ cls }) {
 // Main Page
 // ═══════════════════════════════════════════════════════════════════
 export default function Attendance() {
+  const { canDo }    = useAuth();
   const toast        = useToast();
+  const perm = {
+    mark:   canDo("attendance", "mark"),
+    edit:   canDo("attendance", "edit"),
+    export: canDo("attendance", "export"),
+  };
   const mountedRef   = useRef(true);
   const summaryRef   = useRef(false);
   const [view,       setView    ] = useState("dashboard");
@@ -994,7 +1002,7 @@ export default function Attendance() {
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
-        {view === "dashboard" && <DashboardView date={date} cls={cls} summary={summary} toast={toast}/>}
+        {view === "dashboard" && <DashboardView date={date} cls={cls} summary={summary} toast={toast} canMark={perm.mark} canExport={perm.export}/>}
         {view === "scanner"   && <QRScannerView toast={toast}/>}
         {view === "qrcards"   && <StudentQRView cls={cls}/>}
         {view === "history"   && <HistoryView cls={cls}/>}

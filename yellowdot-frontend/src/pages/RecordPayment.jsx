@@ -28,13 +28,11 @@ function InvoiceView() {
 
       const data = await api.get(`/invoice/${invoiceNumber}`).then(r => r.data);
 
-      console.log(data);
-
       setInvoice(data);
 
     } catch (error) {
 
-      console.log(error);
+      console.error(error);
 
     }
 

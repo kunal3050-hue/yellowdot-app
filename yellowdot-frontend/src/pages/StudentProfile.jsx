@@ -58,7 +58,7 @@ function StudentProfile() {
       <Sidebar />
 
       {/* MAIN CONTENT */}
-      <div className="ml-[260px] w-full p-8">
+      <div className="ml-[280px] w-full p-8">
 
         {/* TOPBAR */}
         <div className="flex items-center justify-between mb-8">

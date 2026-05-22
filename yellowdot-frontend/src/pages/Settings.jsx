@@ -41,6 +41,7 @@ const Icons = {
   Palette:     () => svg(<><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></>),
   Bell:        () => svg(<><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></>),
   Smartphone:  () => svg(<><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></>),
+  Wallet:      () => svg(<><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M16 10h2a2 2 0 010 4h-2"/><circle cx="16" cy="12" r="1"/></>),
   Settings:    () => svg(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></>),
   Plus:        () => svg(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>),
   Trash:       () => svg(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>),
@@ -67,6 +68,7 @@ const SECTIONS = [
   { id: "branding",      label: "Branding",         icon: "Palette",    desc: "Logo, colors, report styles" },
   { id: "notifications", label: "Notifications",    icon: "Bell",       desc: "Alerts and delivery channels" },
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
+  { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -1144,6 +1146,152 @@ function ParentSection({ data, onSave, saving }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SECTION 11 — PAYMENT SETTINGS
+// ══════════════════════════════════════════════════════════════════
+
+function PaymentSection({ data, onSave, saving }) {
+  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.payment, ...data }));
+  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.payment, ...data });
+  const set    = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
+
+  /* Build UPI preview link */
+  const upiPreview = d.upiId
+    ? `upi://pay?pa=${encodeURIComponent(d.upiId)}&pn=${encodeURIComponent(d.accountName || "School")}&cu=INR`
+    : "";
+
+  return (
+    <>
+      <SectionHeader
+        title="Payment Settings"
+        desc="Configure UPI ID, bank details, and payment instructions shown on every invoice."
+        dirty={dirty}
+        saving={saving}
+        onSave={() => onSave("payment", d)}
+      />
+
+      {/* UPI */}
+      <Card title="UPI / QR Code" icon="Wallet">
+        <div className="yd-stg-grid">
+          <Field label="UPI ID" hint="e.g. school@hdfcbank or school@upi" span2>
+            <input
+              className="yd-input"
+              value={d.upiId}
+              onChange={set("upiId")}
+              placeholder="yourschool@upi"
+            />
+          </Field>
+          {d.upiId && (
+            <Field label="QR Preview" span2>
+              <div style={{
+                padding: "12px", background: "#FFFBEA",
+                borderRadius: 8, border: "1px solid #F0D94A",
+                display: "inline-flex", flexDirection: "column",
+                alignItems: "center", gap: 8,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: "#92400E", fontFamily: "monospace",
+                  wordBreak: "break-all", maxWidth: 340, textAlign: "center",
+                }}>{upiPreview}</div>
+                <div style={{ fontSize: 11, color: "#6B7280" }}>
+                  A QR code for the exact invoice amount will be generated automatically on each invoice.
+                </div>
+              </div>
+            </Field>
+          )}
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <label className="yd-stg-label" style={{ display: "block", marginBottom: 8 }}>
+            Accepted Payment Methods
+          </label>
+          <div className="yd-check-grid">
+            {[
+              { k: "acceptUpi",    label: "UPI / QR" },
+              { k: "acceptBank",   label: "Bank Transfer" },
+              { k: "acceptCash",   label: "Cash" },
+              { k: "acceptCheque", label: "Cheque" },
+            ].map(({ k, label }) => (
+              <button
+                key={k}
+                type="button"
+                className={`yd-check-pill${toBool(d[k]) ? " on" : ""}`}
+                onClick={() => toggle(k)(!toBool(d[k]))}
+              >
+                {toBool(d[k]) && <Icons.Check />}
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Bank Transfer */}
+      <Card title="Bank Account Details" icon="CreditCard">
+        <div className="yd-stg-grid">
+          <Field label="Bank Name">
+            <input className="yd-input" value={d.bankName} onChange={set("bankName")} placeholder="HDFC Bank" />
+          </Field>
+          <Field label="Account Holder Name">
+            <input className="yd-input" value={d.accountName} onChange={set("accountName")} placeholder="Yellow Dot Education Pvt Ltd" />
+          </Field>
+          <Field label="Account Number" hint="Will appear on invoices with a copy button">
+            <input className="yd-input" value={d.accountNumber} onChange={set("accountNumber")} placeholder="0001234567890" />
+          </Field>
+          <Field label="IFSC Code">
+            <input className="yd-input" value={d.ifscCode} onChange={set("ifscCode")} placeholder="HDFC0001234" />
+          </Field>
+          <Field label="Branch">
+            <input className="yd-input" value={d.branch} onChange={set("branch")} placeholder="Seawoods, Navi Mumbai" />
+          </Field>
+          <Field label="GST Number (GSTIN)" hint="Leave blank if not GST registered">
+            <input className="yd-input" value={d.gstNumber} onChange={set("gstNumber")} placeholder="27AADCB2230M1ZT" />
+          </Field>
+        </div>
+      </Card>
+
+      {/* Cash / Cheque */}
+      <Card title="Cash & Cheque Instructions">
+        <div className="yd-stg-grid">
+          <Field label="Office Hours" hint="Shown on invoice payment section">
+            <input className="yd-input" value={d.officeHours} onChange={set("officeHours")} placeholder="Mon – Sat: 8:00 AM – 6:00 PM" />
+          </Field>
+          <Field label="Cash Instructions" span2>
+            <textarea
+              className="yd-input"
+              rows={3}
+              value={d.cashInstructions}
+              onChange={set("cashInstructions")}
+              placeholder="Pay at the school front desk during office hours."
+            />
+          </Field>
+          <Field label="Billing Notes" hint="Shown at bottom of every invoice" span2>
+            <textarea
+              className="yd-input"
+              rows={3}
+              value={d.billingNotes}
+              onChange={set("billingNotes")}
+              placeholder="Fees once paid are non-refundable except under exceptional circumstances..."
+            />
+          </Field>
+        </div>
+      </Card>
+
+      {/* Future integrations */}
+      <Card title="Online Payment Gateways">
+        <div className="yd-stg-info-banner" style={{ margin: 0 }}>
+          <Icons.Info />
+          <span>
+            Razorpay, Cashfree, and Stripe integration is coming soon. Once configured, parents
+            will be able to pay directly from the invoice link — no app switching required.
+          </span>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // LOADING SKELETON
 // ══════════════════════════════════════════════════════════════════
 
@@ -1179,11 +1327,12 @@ function SettingsSkeleton() {
 // ══════════════════════════════════════════════════════════════════
 
 export default function Settings() {
-  const { role, devRole, isDeveloper } = useAuth();
+  const { role, devRole, isDeveloper, canDo } = useAuth();
   const { show: toast } = useToast();
 
   const effectiveRole = devRole || role;
-  const isFullAccess  = isBypassRole(effectiveRole) || isDeveloper;
+  // Allow edit if bypass role OR if the role matrix grants settings.edit
+  const isFullAccess  = isBypassRole(effectiveRole) || isDeveloper || canDo("settings", "edit");
 
   const [activeId,  setActiveId]  = useState("school");
   const [settings,  setSettings]  = useState(null);   // null = loading
@@ -1222,6 +1371,7 @@ export default function Settings() {
       case "branding":      return <BrandingSection    {...props} />;
       case "notifications": return <NotifSection       {...props} />;
       case "parent":        return <ParentSection      {...props} />;
+      case "payment":       return <PaymentSection     {...props} />;
       default:              return null;
     }
   };

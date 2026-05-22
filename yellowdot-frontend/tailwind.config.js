@@ -21,9 +21,9 @@ export default {
           charcoal:        "#1E1E1E",
           black:           "#111111",
 
-          // Primary dark (navy) — kept for branding, buttons
-          navy:            "#04114B",
-          "navy-2":        "#1A2E6B",
+          // Primary dark — warm charcoal, NOT navy/blue
+          navy:            "#1f1f1f",
+          "navy-2":        "#2d2d2d",
 
           // Backgrounds — warm cream, NOT cold grey-blue
           bg:              "#FFFDF7",
@@ -57,10 +57,10 @@ export default {
           "warn-soft":     "#FFFBEB",
           "warn-border":   "#FDE68A",
 
-          // Semantic: info / partial
-          info:            "#2563EB",
-          "info-soft":     "#EFF6FF",
-          "info-border":   "#BFDBFE",
+          // Semantic: info / partial — warm amber, no blue
+          info:            "#d97706",
+          "info-soft":     "#fffbeb",
+          "info-border":   "#fde68a",
 
           // Sidebar specific
           "sidebar-bg":    "#FFFBEA",

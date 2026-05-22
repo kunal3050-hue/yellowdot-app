@@ -112,6 +112,22 @@ export const DEFAULT_SETTINGS = {
     showPickupHistory:  "true",
     parentNotifications:"true",
   },
+  payment: {
+    upiId:            "",
+    bankName:         "",
+    accountName:      "",
+    accountNumber:    "",
+    ifscCode:         "",
+    branch:           "",
+    gstNumber:        "",
+    cashInstructions: "Pay at the school front desk during office hours.",
+    officeHours:      "Mon – Sat: 8:00 AM – 6:00 PM",
+    acceptUpi:        "true",
+    acceptBank:       "true",
+    acceptCash:       "true",
+    acceptCheque:     "true",
+    billingNotes:     "",
+  },
 };
 
 /* ── Service methods ────────────────────────────────────────────── */

@@ -96,7 +96,7 @@ function AddStudent() {
     <div className="min-h-screen bg-[#F7F7F5] flex">
       <Sidebar />
 
-      <div className="flex-1 ml-[260px] p-8">
+      <div className="flex-1 ml-[280px] p-8">
         {/* HEADER */}
 
         <div className="flex items-center justify-between mb-8">

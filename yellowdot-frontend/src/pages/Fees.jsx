@@ -12,6 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { INR, sumAmounts } from "../utils/currency";
 import { api } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 const get = url => api.get(url).then(r => r.data);
 
@@ -45,8 +46,14 @@ function Toasts({ toasts }) {
 }
 
 export default function Fees() {
-  const navigate = useNavigate();
-  const toast    = useToast();
+  const navigate  = useNavigate();
+  const toast     = useToast();
+  const { canDo } = useAuth();
+
+  // Action-level permission flags
+  const perm = {
+    create: canDo("invoices", "create"),
+  };
 
   const [students, setStudents] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -160,7 +167,9 @@ export default function Fees() {
           </div>
           <div className="flex items-center gap-2">
             <Link to="/invoice" className="btn btn-ghost btn-sm">View Invoices</Link>
-            <Link to="/invoice" className="btn btn-primary btn-sm">+ New Invoice</Link>
+            {perm.create && (
+              <Link to="/invoice/new" className="btn btn-primary btn-sm">+ New Invoice</Link>
+            )}
           </div>
         </div>
 

@@ -18,6 +18,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth }   from "../contexts/AuthContext";
 import { useToast, Modal } from "../components/ui";
 import userService   from "../services/userService";
+import roleService   from "../services/roleService";
 import { ROLE_LABELS, ROLE_HIERARCHY, isBypassRole } from "../config/permissions";
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -135,18 +136,22 @@ function UserAvatar({ user, size = 34 }) {
   );
 }
 
-function RoleBadge({ role }) {
-  const c = ROLE_COLORS[role] || { bg: "var(--yd-soft)", color: "var(--yd-text-soft)" };
+function RoleBadge({ role, roleColor, roleLabel }) {
+  // Dynamic color from Firestore > static map > default
+  const hex = roleColor || ROLE_COLORS[role]?.bg;
+  const bg  = hex ? `${hex}18` : "var(--yd-soft)";
+  const fg  = hex || ROLE_COLORS[role]?.color || "var(--yd-text-soft)";
   return (
     <span style={{
       display: "inline-flex", alignItems: "center",
-      padding: "2px 8px", borderRadius: 100,
-      background: c.bg, color: c.color,
+      padding: "2px 9px", borderRadius: 100,
+      background: bg, color: fg,
+      border: hex ? `1.5px solid ${hex}33` : "none",
       fontSize: 10, fontWeight: 700,
       letterSpacing: "0.04em", textTransform: "uppercase",
       whiteSpace: "nowrap",
     }}>
-      {ROLE_LABELS[role] || role}
+      {roleLabel || ROLE_LABELS[role] || role}
     </span>
   );
 }
@@ -214,7 +219,7 @@ const EMPTY_FORM = {
   role: "teacher", centers: "", status: "active",
 };
 
-function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass }) {
+function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass, availableRoles = [] }) {
   // State is reset via key prop in parent — no effect needed.
   const isEdit = !!initial;
   const [form, setForm] = useState(() =>
@@ -255,7 +260,12 @@ function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass }) {
     onSave(payload);
   }
 
-  const roleOptions = isBypass ? ROLE_HIERARCHY : MANAGEABLE_ROLES;
+  // Prefer dynamic roles from Firestore; fall back to static ROLE_HIERARCHY
+  const roleOptions = availableRoles.length > 0
+    ? (isBypass
+        ? availableRoles
+        : availableRoles.filter(r => !["developer","super_admin"].includes(r.roleId)))
+    : (isBypass ? ROLE_HIERARCHY : MANAGEABLE_ROLES).map(r => ({ roleId: r, name: ROLE_LABELS[r] || r }));
 
   const footer = (
     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -323,7 +333,9 @@ function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass }) {
               onChange={set("role")}
             >
               {roleOptions.map((r) => (
-                <option key={r} value={r}>{ROLE_LABELS[r] || r}</option>
+                <option key={r.roleId || r} value={r.roleId || r}>
+                  {r.name || ROLE_LABELS[r] || r}
+                </option>
               ))}
             </select>
             {errors.role && <span className="yd-error-text">{errors.role}</span>}
@@ -510,14 +522,22 @@ function SkeletonRow() {
 // ══════════════════════════════════════════════════════════════════
 
 export default function UserManagement() {
-  const { role, devRole, isDeveloper } = useAuth();
+  const { role, devRole, isDeveloper, canDo } = useAuth();
   const { show: toast } = useToast();
 
   const effectiveRole = devRole || role;
   const isBypass = isBypassRole(effectiveRole) || isDeveloper;
 
+  // Action-level permission flags (staff module)
+  const perm = {
+    create: canDo("staff", "create"),
+    edit:   canDo("staff", "edit"),
+    delete: canDo("staff", "delete"),
+  };
+
   // ── Data state ──────────────────────────────────────────────────
-  const [users,   setUsers]   = useState([]);
+  const [users,          setUsers]          = useState([]);
+  const [availableRoles, setAvailableRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
@@ -540,13 +560,17 @@ export default function UserManagement() {
   // ── Inline working states (optimistic) ──────────────────────────
   const [toggling,    setToggling]    = useState(new Set()); // userId set
 
-  // ── Load users ──────────────────────────────────────────────────
+  // ── Load users + roles ───────────────────────────────────────────
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await userService.getAll();
+      const [data, rolesData] = await Promise.all([
+        userService.getAll(),
+        roleService.getAll().catch(() => ({ roles: [] })),
+      ]);
       setUsers(Array.isArray(data) ? data : data.users || []);
+      setAvailableRoles(rolesData.roles || []);
     } catch (e) {
       setError(e.message || "Failed to load users");
     } finally {
@@ -598,13 +622,24 @@ export default function UserManagement() {
     return { total: users.length, active, inactive, thisMonth, topRole };
   }, [users]);
 
-  // ── Role filter options ──────────────────────────────────────────
-  const roleOptions = useMemo(() => [
-    { value: "all", label: "All Roles" },
-    ...ROLE_HIERARCHY
-      .filter((r) => users.some((u) => u.role === r))
-      .map((r) => ({ value: r, label: ROLE_LABELS[r] || r })),
-  ], [users]);
+  // ── Role filter options (dynamic from Firestore, fallback to static) ─────────
+  const roleOptions = useMemo(() => {
+    const used = new Set(users.map(u => u.role));
+    if (availableRoles.length > 0) {
+      return [
+        { value: "all", label: "All Roles" },
+        ...availableRoles
+          .filter(r => used.has(r.roleId))
+          .map(r => ({ value: r.roleId, label: r.name })),
+      ];
+    }
+    return [
+      { value: "all", label: "All Roles" },
+      ...ROLE_HIERARCHY
+        .filter(r => used.has(r))
+        .map(r => ({ value: r, label: ROLE_LABELS[r] || r })),
+    ];
+  }, [users, availableRoles]);
 
   // ── Unique centers for filter ────────────────────────────────────
   const centerSet = useMemo(() => {
@@ -711,19 +746,21 @@ export default function UserManagement() {
       }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--yd-charcoal)", margin: 0, lineHeight: 1.1 }}>
-            User Management
+            Staff Management
           </h1>
           <p style={{ fontSize: 13, color: "var(--yd-text-soft)", margin: "4px 0 0", fontWeight: 400 }}>
-            Manage staff accounts, roles, and center access.
+            Manage staff accounts, roles and center access.
           </p>
         </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={openAdd}
-          style={{ flexShrink: 0 }}
-        >
-          <Ico.Plus /> Add User
-        </button>
+        {perm.create && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={openAdd}
+            style={{ flexShrink: 0 }}
+          >
+            <Ico.Plus /> Add User
+          </button>
+        )}
       </div>
 
       {/* ── Stats row ───────────────────────────────────────────── */}
@@ -880,7 +917,11 @@ export default function UserManagement() {
 
                       {/* Role */}
                       <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                        <RoleBadge role={u.role} />
+                        <RoleBadge
+                          role={u.role}
+                          roleColor={availableRoles.find(r => r.roleId === u.role)?.color}
+                          roleLabel={availableRoles.find(r => r.roleId === u.role)?.name}
+                        />
                       </td>
 
                       {/* Centers */}
@@ -910,9 +951,11 @@ export default function UserManagement() {
                       {/* Actions */}
                       <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                          <ActionBtn title="Edit user" onClick={() => openEdit(u)}>
-                            <Ico.Edit />
-                          </ActionBtn>
+                          {perm.edit && (
+                            <ActionBtn title="Edit user" onClick={() => openEdit(u)}>
+                              <Ico.Edit />
+                            </ActionBtn>
+                          )}
                           <ActionBtn title="Send password reset" onClick={() => handleResetPassword(u)}>
                             <Ico.Key />
                           </ActionBtn>
@@ -951,6 +994,7 @@ export default function UserManagement() {
         onSave={handleFormSave}
         saving={formSaving}
         isBypass={isBypass}
+        availableRoles={availableRoles}
       />
 
       <ConfirmModal

@@ -11,9 +11,10 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { api } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── HTTP helpers ──────────────────────────────────────────────────
 const get  = url       => api.get(url).then(r => r.data);
@@ -193,18 +194,18 @@ function StudentModal({ student, onSave, onClose, saving }) {
               ? <img src={photoPreview} alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-yd-navy/10 shadow"/>
               : <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-200 to-yellow-400 flex items-center justify-center text-xl font-black text-yd-navy/60">{initials(form.student_name)}</div>
             }
-            {photoLoading && <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center"><div className="w-4 h-4 border-2 border-yd-navy border-t-transparent rounded-full animate-spin"/></div>}
+            {photoLoading && <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center"><div className="w-4 h-4 border-2 border-yd-yellow border-t-transparent rounded-full animate-spin"/></div>}
           </div>
           <div className="flex-1">
             <button type="button" onClick={() => photoRef.current?.click()}
-              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-yd-navy bg-white hover:bg-blue-50 rounded-lg border border-gray-200 mb-2">
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-[#1f1f1f] bg-white hover:bg-yd-yellow-pale rounded-lg border border-gray-200 mb-2">
               📷 {photoPreview ? "Change Photo" : "Upload Photo"}
             </button>
             <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto}/>
             <div className="flex gap-1">
               {[{ k:"basic", label:"Basic Info" },{ k:"parents", label:"Parents" }].map(t => (
                 <button key={t.k} type="button" onClick={() => setTab(t.k)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${tab === t.k ? "bg-yd-navy text-white" : "text-gray-500 hover:bg-gray-200"}`}>
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${tab === t.k ? "bg-yd-yellow text-[#1f1f1f] shadow-sm" : "text-gray-500 hover:bg-gray-200"}`}>
                   {t.label}
                 </button>
               ))}
@@ -302,7 +303,7 @@ function StudentModal({ student, onSave, onClose, saving }) {
 // ════════════════════════════════════════════════════════════════════
 // STUDENT DIRECTORY — Left Panel (compact, dense)
 // ════════════════════════════════════════════════════════════════════
-function StudentDirectory({ students, loading, selectedId, onSelect, onAdd }) {
+function StudentDirectory({ students, loading, selectedId, onSelect, onAdd, canAdd = true }) {
   const [search,       setSearch      ] = useState("");
   const [classFilter,  setClassFilter ] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -334,22 +335,24 @@ function StudentDirectory({ students, loading, selectedId, onSelect, onAdd }) {
             <h2 className="text-sm font-black text-gray-900">Students</h2>
             <p className="text-[10px] text-gray-400">{filtered.length} of {students.length} students</p>
           </div>
-          <button onClick={onAdd}
-            className="flex items-center gap-0.5 px-2.5 py-1.5 bg-yd-navy text-white rounded-lg text-[11px] font-black
-                       hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20 active:scale-95">
-            + Add
-          </button>
+          {canAdd && (
+            <button onClick={onAdd}
+              className="flex items-center gap-0.5 px-2.5 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-black
+                         hover:bg-yd-yellow-dark shadow-sm active:scale-95">
+              + Add
+            </button>
+          )}
         </div>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search name, ID, class…"
-          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-navy"/>
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-yellow"/>
         <div className="flex gap-1.5 mt-1.5">
           <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
-            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-navy">
+            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-yellow">
             {classes.map(c => <option key={c}>{c}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-navy">
+            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-yellow">
             {["All","Active","Inactive","Alumni"].map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
@@ -377,21 +380,25 @@ function StudentDirectory({ students, loading, selectedId, onSelect, onAdd }) {
               return (
                 <button key={sid} onClick={() => onSelect(sid)}
                   className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-all
-                    ${sel ? "bg-yd-navy text-white shadow-md shadow-yd-navy/20" : "hover:bg-gray-50 text-gray-800"}`}>
+                    ${sel ? "shadow-sm" : "hover:bg-gray-50"}`}
+                  style={sel ? {
+                    background: "linear-gradient(135deg, #fffbeb 0%, #fef9e7 100%)",
+                    boxShadow: "inset 3px 0 0 #eab308, 0 2px 8px rgba(234,179,8,0.12)",
+                  } : {}}>
                   {s.Profile_Image ? (
                     <img src={s.Profile_Image} alt={name}
-                      className={`w-8 h-8 rounded-lg object-cover flex-shrink-0 border ${sel ? "border-white/20" : "border-gray-100"}`}/>
+                      className={`w-8 h-8 rounded-lg object-cover flex-shrink-0 border ${sel ? "border-amber-200" : "border-gray-100"}`}/>
                   ) : (
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black flex-shrink-0
-                      ${sel ? "bg-white/20 text-white" : "bg-yellow-100 text-yd-navy"}`}>
+                      ${sel ? "bg-amber-100 text-amber-800" : "bg-yellow-100 text-[#1f1f1f]"}`}>
                       {initials(name)}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[12px] font-bold truncate leading-tight ${sel ? "text-white" : "text-gray-900"}`}>{name}</p>
-                    <p className={`text-[10px] font-mono ${sel ? "text-blue-200" : "text-gray-400"}`}>{cls} · {sid}</p>
+                    <p className="text-[12px] font-bold truncate leading-tight text-gray-900">{name}</p>
+                    <p className={`text-[10px] font-mono ${sel ? "text-amber-600" : "text-gray-400"}`}>{cls} · {sid}</p>
                   </div>
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st === "Active" ? (sel ? "bg-yd-success/70" : "bg-yd-success") : "bg-gray-300"}`}/>
+                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st === "Active" ? "bg-yd-success" : "bg-gray-300"}`}/>
                 </button>
               );
             })}
@@ -429,7 +436,7 @@ function EmergencyCallModal({ student, onClose }) {
                 <p className="text-xs text-gray-500">{c.role} · {c.phone}</p>
               </div>
               <a href={`tel:${c.phone}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-yd-navy text-white rounded-lg text-xs font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-xs font-bold hover:bg-yd-yellow-dark shadow-sm">
                 📞 Call
               </a>
             </div>
@@ -477,7 +484,7 @@ function QRModal({ student, onClose }) {
 // ════════════════════════════════════════════════════════════════════
 
 // ── Overview Tab ─────────────────────────────────────────────────
-function OverviewTab({ student, onEdit }) {
+function OverviewTab({ student, onEdit, canEdit = true }) {
   const fields = [
     { label:"Class",       val: student.Class },
     { label:"Gender",      val: student.Gender },
@@ -514,10 +521,12 @@ function OverviewTab({ student, onEdit }) {
               {student.Status || "Active"}
             </span>
           </div>
-          <button onClick={onEdit}
-            className="mt-2 flex items-center gap-1 px-3 py-1 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">
-            ✏️ Edit Profile
-          </button>
+          {canEdit && (
+            <button onClick={onEdit}
+              className="mt-2 flex items-center gap-1 px-3 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">
+              ✏️ Edit Profile
+            </button>
+          )}
         </div>
       </div>
 
@@ -537,8 +546,8 @@ function OverviewTab({ student, onEdit }) {
           <h3 className="text-[10px] font-black text-yd-text-3 uppercase tracking-widest mb-2">Parent Contacts</h3>
           <div className="grid grid-cols-2 gap-2">
             {parents.map(p => (
-              <div key={p.role} className="flex items-start gap-3 bg-blue-50 rounded-xl p-3 border border-blue-100">
-                <div className="w-8 h-8 rounded-lg bg-yd-navy flex items-center justify-center text-sm flex-shrink-0">
+              <div key={p.role} className="flex items-start gap-3 bg-yd-yellow-pale rounded-xl p-3 border border-yd-border">
+                <div className="w-8 h-8 rounded-lg bg-yd-yellow flex items-center justify-center text-sm flex-shrink-0">
                   {p.role === "Father" ? "👨" : "👩"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -547,7 +556,7 @@ function OverviewTab({ student, onEdit }) {
                   {p.phone && <p className="text-[10px] font-mono text-gray-600">{p.phone}</p>}
                   {p.phone && (
                     <a href={`tel:${p.phone}`}
-                      className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-yd-navy bg-white px-2 py-0.5 rounded-md border border-blue-200 hover:bg-blue-50">
+                      className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#1f1f1f] bg-white px-2 py-0.5 rounded-md border border-yd-border hover:bg-yd-yellow-pale">
                       📞 Call
                     </a>
                   )}
@@ -603,7 +612,7 @@ function ParentsTab({ student, onSaved, toast }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Parent & Guardian Details</h3>
         {!editing
-          ? <button onClick={() => setEditing(true)} className="px-3 py-1.5 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">✏️ Edit</button>
+          ? <button onClick={() => setEditing(true)} className="px-3 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">✏️ Edit</button>
           : <div className="flex gap-1.5">
               <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-[11px] font-bold hover:bg-gray-50">Cancel</button>
               <button onClick={save} disabled={saving} className="btn btn-success btn-xs">
@@ -616,7 +625,7 @@ function ParentsTab({ student, onSaved, toast }) {
         {sections.map(({ role, icon, fields }) => (
           <div key={role} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-yd-navy flex items-center justify-center text-sm">{icon}</div>
+              <div className="w-7 h-7 rounded-lg bg-yd-yellow flex items-center justify-center text-sm">{icon}</div>
               <h4 className="font-black text-gray-800 text-sm">{role}</h4>
             </div>
             <div className="space-y-2">
@@ -626,7 +635,7 @@ function ParentsTab({ student, onSaved, toast }) {
                   {editing
                     ? <input type={f.type||"text"} value={form[f.key]} onChange={e => sf(f.key, e.target.value)}
                         placeholder={f.placeholder}
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-navy"/>
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-yellow"/>
                     : <span className="text-xs text-gray-800 font-medium">{form[f.key] || <span className="text-gray-300 italic">—</span>}</span>
                   }
                 </div>
@@ -684,7 +693,7 @@ function AttendanceTab({ student }) {
               { label:"Present", val:present, bg:"bg-yd-success-soft", col:"text-yd-success", border:"border-yd-success-border" },
               { label:"Absent",  val:absent,  bg:"bg-yd-danger-soft", col:"text-yd-danger", border:"border-yd-danger-border" },
               { label:"Late",    val:late,     bg:"bg-amber-50",   col:"text-amber-700",   border:"border-amber-200" },
-              { label:"Rate",    val:`${pct}%`,bg:"bg-blue-50",    col:"text-blue-700",    border:"border-blue-200" },
+              { label:"Rate",    val:`${pct}%`,bg:"bg-amber-50",   col:"text-amber-700",   border:"border-amber-200" },
               { label:"Avg In",  val:avgCheckIn, bg:"bg-purple-50", col:"text-purple-700", border:"border-purple-200" },
             ].map(s => (
               <div key={s.label} className={`${s.bg} rounded-xl p-2.5 border ${s.border} text-center`}>
@@ -732,7 +741,7 @@ function FoodTab({ student }) {
   const mealBadge = {
     Breakfast: "bg-amber-100 text-amber-700",
     Lunch:     "bg-emerald-100 text-emerald-700",
-    Snack:     "bg-blue-100 text-blue-700",
+    Snack:     "bg-amber-100 text-amber-700",
     Dinner:    "bg-purple-100 text-purple-700",
   };
 
@@ -740,7 +749,7 @@ function FoodTab({ student }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Food Consumption</h3>
-        <Link to="/food-consumption" className="px-2.5 py-1 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2">+ Log Food</Link>
+        <Link to="/food-consumption" className="px-2.5 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark">+ Log Food</Link>
       </div>
       {loading
         ? <div className="space-y-1">{[...Array(4)].map((_,i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse"/>)}</div>
@@ -789,7 +798,7 @@ function NapTab({ student }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Nap Records</h3>
-        <Link to="/nap-tracker" className="px-2.5 py-1 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2">+ Log Nap</Link>
+        <Link to="/nap-tracker" className="px-2.5 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark">+ Log Nap</Link>
       </div>
       {loading
         ? <div className="space-y-1">{[...Array(4)].map((_,i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse"/>)}</div>
@@ -797,11 +806,11 @@ function NapTab({ student }) {
         ? <div className="text-center py-8 text-gray-400"><div className="text-3xl mb-2">😴</div><p className="text-xs font-semibold">No nap records</p></div>
         : <div className="space-y-1 max-h-80 overflow-y-auto">
             {records.slice(0, 40).map((r, i) => (
-              <div key={i} className="flex items-center gap-2 bg-indigo-50 rounded-xl px-3 py-2 border border-indigo-100">
+              <div key={i} className="flex items-center gap-2 bg-purple-50 rounded-xl px-3 py-2 border border-purple-100">
                 <span className="text-base">😴</span>
                 <span className="text-xs font-semibold text-gray-700 flex-1">{r.date || r.Date}</span>
                 <span className="text-xs text-gray-500">{r.startTime || r.Start_Time} – {r.endTime || r.End_Time}</span>
-                {(r.duration || r.Duration) && <span className="text-[10px] font-bold text-indigo-600">{r.duration || r.Duration}</span>}
+                {(r.duration || r.Duration) && <span className="text-[10px] font-bold text-purple-600">{r.duration || r.Duration}</span>}
               </div>
             ))}
           </div>
@@ -840,7 +849,7 @@ function PickupAuthTab({ student, toast }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Authorized Pickup</h3>
         <Link to="/pickup-authorization"
-          className="px-2.5 py-1 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">
+          className="px-2.5 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">
           🔐 Manage
         </Link>
       </div>
@@ -850,14 +859,14 @@ function PickupAuthTab({ student, toast }) {
         ? <div className="text-center py-8 text-gray-400">
             <div className="text-3xl mb-2">🔐</div>
             <p className="text-xs font-semibold">No authorized persons</p>
-            <Link to="/pickup-authorization" className="text-yd-navy text-[11px] font-bold underline mt-1 block">Add persons →</Link>
+            <Link to="/pickup-authorization" className="text-[#7a5c00] text-[11px] font-bold underline mt-1 block">Add persons →</Link>
           </div>
         : <div className="space-y-1.5 max-h-80 overflow-y-auto">
             {persons.map(p => (
               <div key={p.entryId} className={`flex items-center gap-3 rounded-xl px-3 py-2 border ${p.emergency ? "bg-yd-warn-soft border-yd-warn-border" : "bg-white border-gray-100"}`}>
                 {p.photoUrl
                   ? <img src={p.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-gray-200 flex-shrink-0"/>
-                  : <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-[10px] font-black text-yd-navy flex-shrink-0">{initials(p.pickupName)}</div>
+                  : <div className="w-9 h-9 rounded-lg bg-yd-yellow-light flex items-center justify-center text-[10px] font-black text-[#1f1f1f] flex-shrink-0">{initials(p.pickupName)}</div>
                 }
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -919,7 +928,7 @@ function MedicalTab({ student, toast }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Medical Information</h3>
         {!editing
-          ? <button onClick={() => setEditing(true)} className="px-3 py-1.5 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">✏️ Edit</button>
+          ? <button onClick={() => setEditing(true)} className="px-3 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">✏️ Edit</button>
           : <div className="flex gap-1.5">
               <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-[11px] font-bold hover:bg-gray-50">Cancel</button>
               <button onClick={save} disabled={saving} className="btn btn-success btn-xs">
@@ -951,10 +960,10 @@ function MedicalTab({ student, toast }) {
                   <label className="block text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">{f.label}</label>
                   {editing
                     ? f.type === "select"
-                      ? <select value={form[f.key]} onChange={e => sf(f.key, e.target.value)} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-navy">
+                      ? <select value={form[f.key]} onChange={e => sf(f.key, e.target.value)} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-yellow">
                           {BLOOD_GROUPS.map(o => <option key={o} value={o}>{o || "Select…"}</option>)}
                         </select>
-                      : <input type={f.type||"text"} value={form[f.key]} onChange={e => sf(f.key, e.target.value)} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-navy"/>
+                      : <input type={f.type||"text"} value={form[f.key]} onChange={e => sf(f.key, e.target.value)} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-yellow"/>
                     : <p className="text-xs font-bold text-gray-900">{form[f.key] || <span className="text-gray-300 italic">—</span>}</p>
                   }
                 </div>
@@ -969,7 +978,7 @@ function MedicalTab({ student, toast }) {
                 <div key={f.key} className="bg-white rounded-xl px-3 py-2.5 border border-gray-100">
                   <label className="block text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">{f.label}</label>
                   {editing
-                    ? <textarea value={form[f.key]} onChange={e => sf(f.key, e.target.value)} rows={2} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-navy resize-none"/>
+                    ? <textarea value={form[f.key]} onChange={e => sf(f.key, e.target.value)} rows={2} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-yellow resize-none"/>
                     : <p className="text-xs font-medium text-gray-900">{form[f.key] || <span className="text-gray-300 italic">—</span>}</p>
                   }
                 </div>
@@ -984,7 +993,7 @@ function MedicalTab({ student, toast }) {
                 <div key={f.key} className="bg-white rounded-xl px-3 py-2.5 border border-gray-100">
                   <label className="block text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">{f.label}</label>
                   {editing
-                    ? <textarea value={form[f.key]} onChange={e => sf(f.key, e.target.value)} rows={2} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-navy resize-none"/>
+                    ? <textarea value={form[f.key]} onChange={e => sf(f.key, e.target.value)} rows={2} placeholder={f.placeholder} className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-yd-yellow resize-none"/>
                     : <p className="text-xs font-medium text-gray-900">{form[f.key] || <span className="text-gray-300 italic">—</span>}</p>
                   }
                 </div>
@@ -1024,7 +1033,7 @@ function BillingTab({ student }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-gray-900">Billing & Invoices</h3>
-        <Link to="/generate-invoice" className="px-2.5 py-1 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 shadow-md shadow-yd-navy/20">+ Invoice</Link>
+        <Link to="/generate-invoice" className="px-2.5 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">+ Invoice</Link>
       </div>
       {loading
         ? <div className="space-y-1">{[...Array(3)].map((_,i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse"/>)}</div>
@@ -1111,12 +1120,12 @@ function DocumentsTab({ student, toast }) {
       <h3 className="text-sm font-black text-gray-900">Documents</h3>
       <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-3 flex items-center gap-3">
         <select value={docType} onChange={e => setDocType(e.target.value)}
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:border-yd-navy">
+          className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:border-yd-yellow">
           {DOC_TYPES.map(t => <option key={t}>{t}</option>)}
         </select>
         <button type="button" onClick={() => fileRef.current?.click()} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-yd-navy text-white rounded-lg text-[11px] font-bold hover:bg-yd-navy-2 disabled:opacity-60">
-          {loading ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin"/> : "📎"} Upload
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark disabled:opacity-60">
+          {loading ? <div className="w-3 h-3 border-2 border-[#1f1f1f]/40 border-t-[#1f1f1f] rounded-full animate-spin"/> : "📎"} Upload
         </button>
         <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx" className="hidden" onChange={handleUpload}/>
       </div>
@@ -1127,7 +1136,7 @@ function DocumentsTab({ student, toast }) {
               <div key={doc.id} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
                 {doc.dataUrl
                   ? <img src={doc.dataUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200 flex-shrink-0"/>
-                  : <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-base flex-shrink-0">📄</div>
+                  : <div className="w-8 h-8 rounded-lg bg-yd-yellow-light flex items-center justify-center text-base flex-shrink-0">📄</div>
                 }
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-gray-900 truncate">{doc.type}</p>
@@ -1188,7 +1197,7 @@ function NotesTab({ student, toast }) {
       <div className="flex flex-wrap gap-1.5">
         {suggestions.map(s => (
           <button key={s} onClick={() => setNewNote(n => n ? `${n}, ${s}` : s)}
-            className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 hover:bg-blue-100 hover:text-yd-navy text-gray-600 rounded-full transition-colors">
+            className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 hover:bg-yd-yellow-light hover:text-[#1f1f1f] text-gray-600 rounded-full transition-colors">
             {s}
           </button>
         ))}
@@ -1199,11 +1208,11 @@ function NotesTab({ student, toast }) {
         <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
           placeholder="Add internal staff note…"
           rows={2}
-          className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-navy resize-none"
+          className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-yellow resize-none"
           onKeyDown={e => { if (e.key === "Enter" && e.ctrlKey) addNote(); }}
         />
         <button onClick={addNote} disabled={saving || !newNote.trim()}
-          className="px-3 py-2 bg-yd-navy text-white rounded-xl text-[11px] font-bold hover:bg-yd-navy-2 disabled:opacity-40 shadow-md shadow-yd-navy/20 self-end">
+          className="px-3 py-2 bg-yd-yellow text-[#1f1f1f] rounded-xl text-[11px] font-bold hover:bg-yd-yellow-dark disabled:opacity-40 shadow-sm self-end">
           {saving ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/> : "Add"}
         </button>
       </div>
@@ -1313,7 +1322,7 @@ const TABS = [
   { id:"timeline",   label:"Timeline",  icon:"📋" },
 ];
 
-function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh, toast }) {
+function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh, toast, canEdit = true, canDelete = true }) {
   const navigate   = useNavigate();
   const student    = students.find(s => (s.Student_ID || s.id) === studentId);
   const [activeTab,    setActiveTab   ] = useState("overview");
@@ -1347,9 +1356,9 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
 
   // Quick action buttons
   const quickActions = [
-    { label:"Attendance", icon:"📋", action: () => navigate("/parent-checkin"), color:"bg-blue-100 text-blue-700 hover:bg-blue-200" },
+    { label:"Attendance", icon:"📋", action: () => navigate("/parent-checkin"), color:"bg-amber-100 text-amber-700 hover:bg-amber-200" },
     { label:"Food",       icon:"🍽️", action: () => navigate("/food-consumption"), color:"bg-amber-100 text-amber-700 hover:bg-amber-200" },
-    { label:"Nap",        icon:"😴", action: () => navigate("/nap-tracker"), color:"bg-indigo-100 text-indigo-700 hover:bg-indigo-200" },
+    { label:"Nap",        icon:"😴", action: () => navigate("/nap-tracker"), color:"bg-purple-100 text-purple-700 hover:bg-purple-200" },
     { label:"QR Code",    icon:"📱", action: () => setShowQRModal(true), color:"bg-purple-100 text-purple-700 hover:bg-purple-200" },
     { label:"Call",       icon:"📞", action: () => setShowCallModal(true), color:"bg-yd-danger-soft text-yd-danger hover:bg-yd-danger-border" },
     { label:"Parent App", icon:"👨‍👩‍👧", action: () => setActiveTab("parents"), color:"bg-yd-success-soft text-yd-success hover:bg-yd-success-border" },
@@ -1389,14 +1398,18 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
             </p>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button onClick={onEdit}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-yd-navy bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100">
-              ✏️ Edit
-            </button>
-            <button onClick={onDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100">
-              🗑️
-            </button>
+            {canEdit && (
+              <button onClick={onEdit}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#1f1f1f] bg-yd-yellow-pale hover:bg-yd-yellow-light rounded-lg border border-yd-border">
+                ✏️ Edit
+              </button>
+            )}
+            {canDelete && (
+              <button onClick={onDelete}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100">
+                🗑️
+              </button>
+            )}
           </div>
         </div>
 
@@ -1423,7 +1436,7 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1 px-3 py-2 text-[11px] font-bold whitespace-nowrap border-b-2 transition-colors flex-shrink-0
-                ${activeTab === tab.id ? "border-yd-navy text-yd-navy bg-blue-50/60" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                ${activeTab === tab.id ? "border-yd-yellow text-[#7a5c00] bg-yd-yellow-light/60" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
               <span className="text-xs">{tab.icon}</span> {tab.label}
             </button>
           ))}
@@ -1432,7 +1445,7 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
 
       {/* ── Tab content — scrollable ── */}
       <div className="flex-1 overflow-y-auto min-h-0 bg-gray-50">
-        {activeTab === "overview"   && <OverviewTab    student={student} onEdit={onEdit}/>}
+        {activeTab === "overview"   && <OverviewTab    student={student} onEdit={onEdit} canEdit={canEdit}/>}
         {activeTab === "parents"    && <ParentsTab     student={student} onSaved={onRefresh} toast={toast}/>}
         {activeTab === "attendance" && <AttendanceTab  student={student}/>}
         {activeTab === "food"       && <FoodTab        student={student}/>}
@@ -1453,19 +1466,38 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
 // ════════════════════════════════════════════════════════════════════
 export default function Students() {
   const toast      = useToast();
+  const navigate   = useNavigate();
+  const location   = useLocation();
   const mountedRef = useRef(true);
+  const { canDo }  = useAuth();
+
+  // Action-level permission flags
+  const perm = {
+    create: canDo("students", "create"),
+    edit:   canDo("students", "edit"),
+    delete: canDo("students", "delete"),
+    export: canDo("students", "export"),
+  };
 
   const [students,   setStudents  ] = useState([]);
   const [loading,    setLoading   ] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
 
-  const [addModalOpen,  setAddModalOpen ] = useState(false);
   const [editStudent,   setEditStudent  ] = useState(null);
   const [deleteStudent, setDeleteStudent] = useState(null);
   const [saving,        setSaving       ] = useState(false);
   const [deleting,      setDeleting     ] = useState(false);
 
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
+  // Show success toast when returning from /students/new
+  useEffect(() => {
+    if (location.state?.admissionSuccess) {
+      toast.success(`${location.state.admissionSuccess} admitted successfully!`);
+      // Clear the state so toast doesn't refire on re-render
+      window.history.replaceState({}, "", location.pathname);
+    }
+  }, []); // eslint-disable-line
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
@@ -1526,7 +1558,6 @@ export default function Students() {
       <Sidebar/>
 
       {/* Modals */}
-      {addModalOpen && <StudentModal student={null}            onSave={handleAdd}  onClose={() => setAddModalOpen(false)}  saving={saving}/>}
       {editStudent  && <StudentModal student={editStudent}     onSave={handleEdit} onClose={() => setEditStudent(null)}    saving={saving}/>}
 
       {/* Delete confirm */}
@@ -1582,7 +1613,8 @@ export default function Students() {
             loading={loading}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onAdd={() => setAddModalOpen(true)}
+            onAdd={() => navigate("/students/new")}
+            canAdd={perm.create}
           />
           <StudentProfilePanel
             studentId={selectedId}
@@ -1591,6 +1623,8 @@ export default function Students() {
             onDelete={() => setDeleteStudent(selectedStudentObj)}
             onRefresh={loadStudents}
             toast={toast}
+            canEdit={perm.edit}
+            canDelete={perm.delete}
           />
         </div>
       </div>

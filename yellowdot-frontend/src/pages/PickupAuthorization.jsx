@@ -12,6 +12,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import pickupAuthorizationService from "../services/pickupAuthorizationService";
 import { api } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 const RELATIONS = ["Father","Mother","Grandmother","Grandfather","Uncle","Aunt","Driver","Guardian","Other"];
 
@@ -368,18 +369,24 @@ function PersonCard({ person, onEdit, onDelete }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-4">
-        <button onClick={() => onEdit(person)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
-                     text-yd-navy bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors border border-blue-100">
-          ✏️ Edit
-        </button>
-        <button onClick={() => onDelete(person)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
-                     text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors border border-rose-100">
-          🗑️ Remove
-        </button>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="flex gap-2 mt-4">
+          {onEdit && (
+            <button onClick={() => onEdit(person)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
+                         text-yd-navy bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors border border-blue-100">
+              ✏️ Edit
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={() => onDelete(person)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
+                         text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors border border-rose-100">
+              🗑️ Remove
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -388,7 +395,13 @@ function PersonCard({ person, onEdit, onDelete }) {
 // Main — PickupAuthorization Page
 // ═══════════════════════════════════════════════════════════════════
 export default function PickupAuthorization() {
-  const toast = useToast();
+  const toast     = useToast();
+  const { canDo } = useAuth();
+  const perm = {
+    create:  canDo("pickup_auth", "create"),
+    edit:    canDo("pickup_auth", "edit"),
+    approve: canDo("pickup_auth", "approve"),
+  };
   const mountedRef = useRef(true);
 
   // Students
@@ -626,7 +639,7 @@ export default function PickupAuthorization() {
               <h2 className="text-2xl font-black text-gray-900">Pickup Authorization</h2>
             )}
           </div>
-          {selectedStudent && (
+          {selectedStudent && perm.create && (
             <button
               onClick={() => { setEditPerson(null); setModalOpen(true); }}
               className="flex items-center gap-2 px-5 py-2.5 bg-yd-navy text-white font-bold text-sm
@@ -702,8 +715,8 @@ export default function PickupAuthorization() {
                 <PersonCard
                   key={person.entryId}
                   person={person}
-                  onEdit={p => { setEditPerson(p); setModalOpen(true); }}
-                  onDelete={p => setDeletePerson(p)}
+                  onEdit={perm.edit ? p => { setEditPerson(p); setModalOpen(true); } : null}
+                  onDelete={perm.approve ? p => setDeletePerson(p) : null}
                 />
               ))}
             </div>
