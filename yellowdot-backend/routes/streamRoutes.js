@@ -1,9 +1,10 @@
 const express          = require("express");
 const router           = express.Router();
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 const streamController = require("../controllers/streamController");
 
-router.use(authenticate);
+// CCTV stream control is staff-only.
+router.use(authenticate, staffOnly);
 
 router.get( "/api/stream/status", streamController.getStatus);
 router.post("/api/stream/start",  streamController.startStream);

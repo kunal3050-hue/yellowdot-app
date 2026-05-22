@@ -39,6 +39,7 @@ export function AuthProvider({ children }) {
   // user = Yellow Dot profile from /api/auth/me (not the raw Firebase user)
   const [user,        setUser]         = useState(null);
   const [permissions, setPermissions]  = useState([]);
+  const [roleMatrix,  setRoleMatrix]   = useState({});  // granular { moduleId: { action: bool } }
   const [loading,     setLoading]      = useState(true);  // true until Firebase fires
   const [devRole,     setDevRoleState] = useState(null);
   const inactivityTimer = useRef(null);
@@ -52,17 +53,20 @@ export function AuthProvider({ children }) {
           const data = await authService.me();
           setUser(data.user);
           setPermissions(data.permissions || []);
+          setRoleMatrix(data.roleMatrix || {});
         } catch (err) {
           console.error("[AuthContext] Failed to fetch profile:", err.message);
           // If the backend is unreachable, sign out rather than leaving a broken state
           await auth.signOut().catch(() => {});
           setUser(null);
           setPermissions([]);
+          setRoleMatrix({});
         }
       } else {
         // Firebase user is signed out
         setUser(null);
         setPermissions([]);
+        setRoleMatrix({});
         setDevRoleState(null);
       }
       setLoading(false);
@@ -70,6 +74,42 @@ export function AuthProvider({ children }) {
 
     return unsubscribe; // cleanup on unmount
   }, []);
+
+  // ── Permission refresh ─────────────────────────────────────────────────────
+  // Flushes the server-side cache and returns a fresh permissions array.
+  // Safe to call at any time; updates context state in-place (no logout needed).
+  const refreshPermissions = useCallback(async () => {
+    try {
+      const data = await authService.refreshPermissions();
+      if (Array.isArray(data.permissions)) setPermissions(data.permissions);
+      if (data.roleMatrix) setRoleMatrix(data.roleMatrix);
+      return data.permissions || [];
+    } catch (err) {
+      console.warn("[AuthContext] refreshPermissions failed:", err.message);
+      return permissions;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh stale sessions: if the user is an admin-level role but is
+  // missing communications permissions, silently re-fetch once per session.
+  // This handles users who were already logged in before the backend update.
+  const _refreshedRef = useRef(false);
+  const ADMIN_ROLES   = ["admin", "center_owner", "center_admin"];
+  const COMMS_KEYS    = ["holidays", "notices", "announcements"];
+  useEffect(() => {
+    if (loading || !user || _refreshedRef.current) return;
+    const role = user?.role;
+    if (!ADMIN_ROLES.includes(role)) return;
+    const hasWildcard = permissions.includes("*");
+    const missingComms = !hasWildcard && COMMS_KEYS.some(k => !permissions.includes(k));
+    if (missingComms) {
+      _refreshedRef.current = true;
+      console.log("[AuthContext] Stale permissions detected for", role, "— auto-refreshing…");
+      refreshPermissions().then(fresh => {
+        console.log("[AuthContext] Refreshed permissions:", fresh);
+      });
+    }
+  }, [loading, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Inactivity auto-logout ─────────────────────────────────────────────────
   const resetInactivityTimer = useCallback(() => {
@@ -97,6 +137,7 @@ export function AuthProvider({ children }) {
     const data = await authService.loginWithGoogle();
     setUser(data.user);
     setPermissions(data.permissions || []);
+    setRoleMatrix(data.roleMatrix || {});
     return data;
   }
 
@@ -105,6 +146,7 @@ export function AuthProvider({ children }) {
     const data = await authService.loginWithEmail(email, password);
     setUser(data.user);
     setPermissions(data.permissions || []);
+    setRoleMatrix(data.roleMatrix || {});
     return data;
   }
 
@@ -155,6 +197,24 @@ export function AuthProvider({ children }) {
     return checkPermission(effectiveRole, permissions, routeKey);
   }
 
+  /**
+   * Granular action-level permission check.
+   * canDo("students", "delete") — true if the current role's matrix has students.delete = true.
+   * Bypass roles (developer / super_admin) always return true.
+   * Falls back gracefully if roleMatrix is not yet populated (returns true for bypass roles, false otherwise).
+   *
+   * @param {string} moduleId  — e.g. "students", "fees", "attendance"
+   * @param {string} action    — e.g. "view", "create", "edit", "delete", "export", "approve", "mark"
+   * @returns {boolean}
+   */
+  function canDo(moduleId, action) {
+    const effectiveRole = devRole || user?.role;
+    if (isBypassRole(effectiveRole)) return true;
+    // If roleMatrix has _bypass flag (wildcard roles) — allow all
+    if (roleMatrix?._bypass) return true;
+    return Boolean(roleMatrix?.[moduleId]?.[action]);
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   // DEVELOPER ROLE OVERRIDE
   // ════════════════════════════════════════════════════════════════════════
@@ -174,6 +234,7 @@ export function AuthProvider({ children }) {
     currentUser:     effectiveUser,
     role:            effectiveRole,
     permissions,
+    roleMatrix,
     loading,
     isAuthenticated: !!user,
 
@@ -186,9 +247,11 @@ export function AuthProvider({ children }) {
     // Session management
     logout,
     selectCenter,
+    refreshPermissions,
 
-    // Permission
-    can,
+    // Permission helpers
+    can,    // route-level:  can("students")
+    canDo,  // action-level: canDo("students", "delete")
 
     // Dev tools
     setDevRole,

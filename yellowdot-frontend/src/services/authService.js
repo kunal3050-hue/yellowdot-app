@@ -18,11 +18,15 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+// Production: VITE_API_URL="" (empty) → relative calls → Firebase Hosting rewrites to Cloud Function
+// Local dev:  VITE_API_URL=http://localhost:5000 → calls the local Express server directly
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
 // ── Shared axios instance ──────────────────────────────────────────────────────
 // All other frontend service files import this `api` object.
-const api = axios.create({ baseURL: API_BASE });
+// baseURL: "" (empty string) makes axios use relative paths → same origin.
+// baseURL: "http://localhost:5000" routes to local backend in dev.
+const api = axios.create({ baseURL: API_BASE || undefined });
 
 // Request interceptor: attach the current Firebase ID token (auto-refreshes).
 api.interceptors.request.use(async config => {
@@ -97,6 +101,17 @@ async function selectCenter(centerId) {
   return data;
 }
 
+/**
+ * Flush the server-side permission cache for the current user's role and return
+ * fresh permissions. Call this when you suspect stale permissions (e.g. after
+ * a server-side role definition change without a re-login).
+ * Returns { success, permissions, roleMatrix, homeRoute, role }
+ */
+async function refreshPermissions() {
+  const { data } = await api.post("/api/auth/refresh-permissions");
+  return data;
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // STORAGE HELPERS  (kept for backward compatibility with existing callers)
 // ════════════════════════════════════════════════════════════════════════
@@ -119,5 +134,6 @@ export default {
   loginWithEmail,
   logout,
   selectCenter,
+  refreshPermissions,
   api,
 };

@@ -469,7 +469,7 @@ function Avatar({ user, size = 30 }) {
 
 export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const navigate    = useNavigate();
-  const { user, role, can, logout, isDeveloper, setDevRole, devRole } = useAuth();
+  const { user, role, permissions, can, logout, isDeveloper, setDevRole, devRole } = useAuth();
 
   const [devPanelOpen, setDevPanelOpen] = useState(false);
 

@@ -129,9 +129,11 @@ async function wakeUp(req, res) {
   try {
     const { actorUserId } = resolveCtx(req);
     const napId = req.body?.napId || req.body?.nap_id;
+    const mood  = req.body?.mood  || "";
+    const notes = req.body?.notes || "";
     if (!napId) return res.status(400).json({ success: false, message: "napId is required." });
 
-    const nap = await svc.wakeUp(napId, { updatedBy: actorUserId });
+    const nap = await svc.wakeUp(napId, { updatedBy: actorUserId, mood, notes });
     if (!nap) return res.status(404).json({ success: false, message: "Nap not found." });
 
     res.json({

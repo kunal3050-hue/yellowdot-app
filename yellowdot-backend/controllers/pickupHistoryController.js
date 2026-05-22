@@ -27,8 +27,19 @@ function logErr(route, e) { console.error(`[${route}]`, e.message); }
 async function getPickupHistory(req, res) {
   try {
     const { schoolId, centerId } = resolveCtx(req);
-    const bypassCenter = ["developer", "super_admin", "admin"].includes(req.user?.role);
-    const { date, studentId, approvalStatus } = req.query;
+    const role         = req.user?.role;
+    const bypassCenter = ["developer", "super_admin", "admin"].includes(role);
+    const { date, approvalStatus } = req.query;
+    let { studentId }  = req.query;
+
+    // Parents may only see their own child's pickup history.
+    if (role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId) {
+        return res.status(403).json({ success: false, error: "No student linked to this parent account." });
+      }
+      studentId = linkedId;
+    }
 
     let entries = await svc.getAll(
       studentId || null,
@@ -57,6 +68,16 @@ async function getPickupHistoryEntry(req, res) {
   try {
     const entry = await svc.getOne(req.params.id);
     if (!entry) return res.status(404).json({ success: false, error: "Entry not found." });
+
+    // Parents may only view entries that belong to their linked child.
+    const role = req.user?.role;
+    if (role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId || entry.studentId !== linkedId) {
+        return res.status(403).json({ success: false, error: "You can only access your own child's records." });
+      }
+    }
+
     res.json({ success: true, entry });
   } catch (e) {
     logErr("GET /api/pickup-history/:id", e);

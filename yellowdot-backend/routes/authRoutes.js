@@ -14,6 +14,7 @@ const router  = express.Router();
 const { db, auth } = require("../firebaseAdmin");
 const { authenticate } = require("../middleware/authMiddleware");
 const { ROLE_HOME, ROLE_PERMISSIONS, isBypassRole } = require("../config/permissionsBackend");
+const roleSvc = require("../services/roleService");
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 // Verifies the Firebase ID token and returns the user's profile + permissions.
@@ -22,8 +23,12 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
   try {
     const { userId, role, name, email, photoUrl, centers, center, student } = req.user;
 
-    const permissions = ROLE_PERMISSIONS[role] || [];
-    const homeRoute   = ROLE_HOME[role]        || "/";
+    // Use permissions resolved by authMiddleware (Firestore-backed with static fallback).
+    // req.user.permissions is set by roleSvc.getPermissionsForRole() — do NOT re-derive
+    // from the static ROLE_PERMISSIONS map here, as that would discard dynamic roles.
+    const permissions = req.user.permissions || ROLE_PERMISSIONS[role] || [];
+    const roleMatrix  = req.user.roleMatrix  || {};
+    const homeRoute   = ROLE_HOME[role]      || "/";
 
     const response = {
       user: {
@@ -39,6 +44,7 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
         ...(role === "parent" && student ? { student } : {}),
       },
       permissions,
+      roleMatrix,   // granular { moduleId: { action: bool } } for button-level UI enforcement
       homeRoute,
       requiresCenterSelect: centers?.length > 1 && !center,
     };
@@ -47,6 +53,29 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
   } catch (err) {
     console.error("[AUTH /me]", err);
     return res.status(500).json({ error: "Failed to fetch user profile." });
+  }
+});
+
+// ── POST /api/auth/refresh-permissions ───────────────────────────────────────
+// Clears the in-process permission cache for the calling user's role and returns
+// a fresh permissions array + roleMatrix. Call this after any server-side role
+// change to avoid waiting for the 60-second cache TTL to expire.
+router.post("/api/auth/refresh-permissions", authenticate, async (req, res) => {
+  try {
+    const { role, schoolId } = req.user;
+
+    // Drop cached entry so the next fetch goes straight to Firestore / static baseline.
+    roleSvc.invalidateCache(role, schoolId);
+
+    // Re-resolve with the now-empty cache slot.
+    const permissions = await roleSvc.getPermissionsForRole(role, schoolId);
+    const roleMatrix  = await roleSvc.getRoleMatrix(role, schoolId);
+    const homeRoute   = ROLE_HOME[role] || "/";
+
+    return res.json({ success: true, permissions, roleMatrix, homeRoute, role });
+  } catch (err) {
+    console.error("[AUTH /refresh-permissions]", err);
+    return res.status(500).json({ error: "Failed to refresh permissions." });
   }
 });
 

@@ -1,6 +1,6 @@
 const express          = require("express");
 const router           = express.Router();
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 const {
   getCameras,
   addCamera,
@@ -8,7 +8,8 @@ const {
   deleteCamera,
 } = require("../controllers/cctvController");
 
-router.use(authenticate);
+// CCTV camera management is staff-only.
+router.use(authenticate, staffOnly);
 
 // Primary routes (slash form — matches user spec and frontend service)
 router.get   ("/api/cctv/cameras",      getCameras);

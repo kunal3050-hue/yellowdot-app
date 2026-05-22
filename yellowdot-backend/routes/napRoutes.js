@@ -1,6 +1,6 @@
 const express          = require("express");
 const router           = express.Router();
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 const {
   getActiveNaps,
   getNapHistory,
@@ -9,7 +9,8 @@ const {
   wakeUp,
 } = require("../controllers/napController");
 
-router.use(authenticate);
+// Nap tracking is a staff-only feature.
+router.use(authenticate, staffOnly);
 
 router.get("/naps/active",      getActiveNaps);
 router.get("/naps/history",     getNapHistory);

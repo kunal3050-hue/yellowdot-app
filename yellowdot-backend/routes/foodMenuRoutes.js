@@ -1,9 +1,10 @@
 const express          = require("express");
 const router           = express.Router();
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 const { saveMenu, getMenus, updateMenu, deleteMenu } = require("../controllers/foodMenuController");
 
-router.use(authenticate);
+// Food menu management is staff-only.
+router.use(authenticate, staffOnly);
 
 router.post  ("/api/food-menu",       saveMenu);
 router.get   ("/api/food-menu",       getMenus);

@@ -18,15 +18,41 @@ const { db } = require("../firebaseAdmin");
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
 // ── Collection refs ────────────────────────────────────────────────
-const invCol = () => db.collection("invoices");
-const payCol = () => db.collection("payments");
-const tplCol = () => db.collection("feeTemplates");
+const invCol     = () => db.collection("invoices");
+const payCol     = () => db.collection("payments");
+const tplCol     = () => db.collection("feeTemplates");
+const cntCol     = () => db.collection("counters");   // sequential number counters
 
 // ── ID generators ──────────────────────────────────────────────────
 const genInvId  = () => `INV-${Date.now()}`;
 const genPayId  = () => `PAY-${Date.now()}`;
 const genTplId  = () => `TPL-${Date.now()}`;
 const nowStr    = ()  => new Date().toISOString();
+
+/**
+ * genReceiptNumber(schoolId) — Firestore-safe auto-increment.
+ *
+ * Uses a transaction on counters/{rcpt-{schoolId}-{YYYYMM}} so concurrent
+ * payment saves can never produce duplicate receipt numbers.
+ *
+ * Format: RCPT-202605-0001 … RCPT-202605-9999
+ * Resets every calendar month (per school).
+ */
+async function genReceiptNumber(schoolId) {
+  const d   = new Date();
+  const ym  = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const key = `rcpt-${schoolId}-${ym}`;
+  const ref = cntCol().doc(key);
+
+  let seq = 1;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    seq = snap.exists ? (snap.data().seq || 0) + 1 : 1;
+    tx.set(ref, { seq, schoolId, period: ym, updatedAt: nowStr() }, { merge: true });
+  });
+
+  return `RCPT-${ym}-${String(seq).padStart(4, "0")}`;
+}
 
 function genInvoiceNumber() {
   const d = new Date();
@@ -292,20 +318,25 @@ async function getAllPayments(invoiceNumber, { schoolId = SCHOOL_ID, centerId, s
 
 async function recordPayment(data, { schoolId = SCHOOL_ID, centerId, actorUserId = "system" } = {}) {
   const paymentId      = genPayId();
+  const receiptNumber  = await genReceiptNumber(schoolId);   // RCPT-YYYYMM-NNNN
   const amount         = parseAmount(data.amount);
   const resolvedCenter = centerId || data.centerId || data.center || "";
 
   const payDoc = {
     paymentId,
+    receiptNumber,                                           // ← sequential receipt ID
     invoiceNumber:  data.invoiceNumber  || "",
     studentId:      data.studentId      || "",
     studentName:    data.studentName    || "",
     amount,
     paymentMode:    data.paymentMode    || "Cash",
     transactionId:  data.transactionId  || "",
+    bankName:       data.bankName       || "",
     paymentDate:    data.paymentDate    || nowStr().slice(0, 10),
     notes:          data.notes          || "",
     staffName:      data.staffName      || actorUserId,
+    lateFeeAmount:  parseAmount(data.lateFeeAmount),
+    discountAmt:    parseAmount(data.discountAmt),
     schoolId,
     centerId:       resolvedCenter,
     center:         resolvedCenter,

@@ -9,7 +9,18 @@ const express = require("express");
 const cors    = require("cors");
 const app     = express();
 
-app.use(cors());
+// CORS — restrict to known frontend origins in production
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:3000")
+  .split(",").map(o => o.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server / Postman (no Origin header)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin '${origin}' not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "5mb" })); // Allow photo base64 uploads
 
 // ── Route modules ──────────────────────────────────────────────────
@@ -35,7 +46,7 @@ const settingsSvc       = require("./services/settingsService");
 const { HLS_DIR }       = require("./services/streamManager");
 
 // ── Auth middleware ────────────────────────────────────────────────
-const { authenticate, authorize } = require("./middleware/authMiddleware");
+const { authenticate, authorize, blockUnknown, staffOnly } = require("./middleware/authMiddleware");
 
 // ── Mount route modules ────────────────────────────────────────────
 app.use(authRoutes);           // /api/auth/me, /api/auth/logout, etc.  (has own auth)
@@ -93,10 +104,21 @@ app.get("/", (req, res) => {
 // STUDENTS — CRUD
 // ============================================================
 
-app.get("/students", authenticate, async (req, res) => {
+app.get("/students", authenticate, blockUnknown, async (req, res) => {
   try {
     const { schoolId, centerId } = resolveContext(req);
-    // Admins/developers can see all centers; others see own center only
+
+    // Parents may only retrieve their own linked child
+    if (req.user.role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId) {
+        return res.status(403).json({ error: "No student linked to this parent account." });
+      }
+      const student = await studentSvc.getOne(linkedId);
+      return res.json(student ? [student] : []);
+    }
+
+    // Staff: admins/developers see all centers; teachers/others see own center only
     const bypassAll = ["developer", "super_admin", "admin"].includes(req.user.role);
     const filter    = bypassAll ? { schoolId } : { schoolId, centerId: centerId || req.user.centerId };
     const students  = await studentSvc.getAll(filter);
@@ -107,8 +129,15 @@ app.get("/students", authenticate, async (req, res) => {
   }
 });
 
-app.get("/students/:id", authenticate, async (req, res) => {
+app.get("/students/:id", authenticate, blockUnknown, async (req, res) => {
   try {
+    // Parents may only fetch their own linked child
+    if (req.user.role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId || req.params.id !== linkedId) {
+        return res.status(403).json({ error: "You can only access your own child's records." });
+      }
+    }
     const student = await studentSvc.getOne(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
     res.json(student);
@@ -505,7 +534,7 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================================
-// STARTUP
+// STARTUP  (only when run directly, not when imported by Cloud Functions)
 // ============================================================
 
 function runStartupDiagnostics() {
@@ -518,7 +547,13 @@ function runStartupDiagnostics() {
   console.log(`    School ID: ${process.env.SCHOOL_ID || "yd-main (default)"}`);
 }
 
-app.listen(PORT, () => {
-  console.log(`\n🚀  Server Running On Port ${PORT}`);
-  runStartupDiagnostics();
-});
+// When run directly (`node server.js` or `npm start`) → start HTTP server.
+// When imported by index.js (Cloud Functions) → just export the Express app.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀  Server Running On Port ${PORT}`);
+    runStartupDiagnostics();
+  });
+}
+
+module.exports = app;

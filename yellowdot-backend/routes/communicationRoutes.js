@@ -5,10 +5,15 @@
 
 const express  = require("express");
 const router   = express.Router();
-const { authenticate, authorize } = require("../middleware/authMiddleware");
+const { authenticate, authorize, blockUnknown } = require("../middleware/authMiddleware");
 const svc      = require("../services/communicationService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
+
+// Every communication route requires a registered account.
+// Parents can read (holidays, notices, announcements); staff-only routes
+// are further guarded by authorize(CAN_WRITE / CAN_DELETE).
+router.use(authenticate, blockUnknown);
 
 function ctx(req) {
   return {

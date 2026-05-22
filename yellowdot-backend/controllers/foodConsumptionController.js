@@ -53,7 +53,10 @@ async function saveConsumption(req, res) {
     const studentId = b.studentId   || b.student_id;
     const mealType  = b.mealType    || b.meal_type;
 
+    console.log(`[food-consumption POST] date=${date} studentId=${studentId} mealType=${mealType} qty=${b.quantity}`);
+
     if (!date || !studentId || !mealType) {
+      console.warn("[food-consumption POST] Missing required fields:", { date, studentId, mealType });
       return res.status(400).json({
         success: false,
         message: "date, studentId (or student_id) and mealType (or meal_type) are required.",

@@ -17,19 +17,30 @@ const ROLE_PERMISSIONS = {
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
     "parent-checkin", "pickup-authorization", "pickup-history",
-    "profile", "settings", "user-management",
+    "profile", "settings", "user-management", "roles-permissions",
+    "holidays", "notices", "announcements",
+  ],
+
+  center_owner: [
+    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
+    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "parent-checkin", "pickup-authorization", "pickup-history",
+    "profile", "settings", "user-management", "roles-permissions",
+    "holidays", "notices", "announcements",
   ],
 
   center_admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
     "parent-checkin", "pickup-authorization", "pickup-history",
-    "profile", "settings", "user-management",
+    "profile", "settings", "user-management", "roles-permissions",
+    "holidays", "notices", "announcements",
   ],
 
   teacher: [
     "dashboard", "attendance", "nap-tracker", "food-menu", "food-consumption",
     "students", "parent-checkin", "profile",
+    "holidays", "notices", "announcements",
   ],
 
   accountant: [
@@ -57,7 +68,7 @@ const ROLE_HOME = {
   accountant:   "/invoice",
   reception:    "/",
   cctv_viewer:  "/live-cctv",
-  parent:       "/parent-checkin",
+  parent:       "/parent-home",
 };
 
 module.exports = { BYPASS_ROLES, ROLE_PERMISSIONS, ROLE_HOME, isBypassRole };

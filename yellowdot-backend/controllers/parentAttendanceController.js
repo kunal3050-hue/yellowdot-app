@@ -49,8 +49,21 @@ function validateGate(req, res) {
 async function getParentAttendance(req, res) {
   try {
     const { schoolId, centerId } = resolveCtx(req);
-    const bypassCenter = ["developer", "super_admin", "admin"].includes(req.user?.role);
-    const { date, studentId, gate, class: cls } = req.query;
+    const role         = req.user?.role;
+    const bypassCenter = ["developer", "super_admin", "admin"].includes(role);
+    const { date, gate, class: cls } = req.query;
+    let { studentId }  = req.query;
+
+    // Parents may only query their own child's records — ignore any
+    // studentId in the query and force it to their linked child.
+    if (role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId) {
+        return res.status(403).json({ success: false, error: "No student linked to this parent account." });
+      }
+      studentId = linkedId;
+    }
+
     const entries = await svc.getAll({
       date, studentId, gate, class: cls,
       schoolId,
@@ -68,10 +81,24 @@ async function getParentAttendance(req, res) {
 async function createParentAttendance(req, res) {
   try {
     const { schoolId, centerId, actorUserId } = resolveCtx(req);
+    const role = req.user?.role;
     const {
-      studentId, studentName, parentName, relation,
+      studentName, parentName, relation,
       action, gate, selfieImage, faceDetected, gps,
     } = req.body || {};
+    let { studentId } = req.body || {};
+
+    // Parents may only check in/out their own linked child.
+    if (role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId) {
+        return res.status(403).json({ success: false, error: "No student linked to this parent account." });
+      }
+      if (studentId && studentId !== linkedId) {
+        return res.status(403).json({ success: false, error: "You can only check in/out your own child." });
+      }
+      studentId = linkedId; // enforce — never trust body for parents
+    }
 
     if (!studentId)   return res.status(400).json({ success: false, error: "studentId required." });
     if (!studentName) return res.status(400).json({ success: false, error: "studentName required." });

@@ -1,5 +1,5 @@
 const express          = require("express");
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 
 const {
   getConsumption,
@@ -8,7 +8,8 @@ const {
 } = require("../controllers/foodConsumptionController");
 
 const router = express.Router();
-router.use(authenticate);
+// Food consumption records are staff-only.
+router.use(authenticate, staffOnly);
 
 router.get ("/api/food-consumption", getConsumption);
 router.post("/api/food-consumption", saveConsumption);

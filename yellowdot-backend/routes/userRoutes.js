@@ -15,10 +15,10 @@
 const express  = require("express");
 const router   = express.Router();
 const svc      = require("../services/userService");
-const { authenticate, authorize } = require("../middleware/authMiddleware");
+const { authenticate, authorize, staffOnly } = require("../middleware/authMiddleware");
 
-// ── All user routes require authentication ─────────────────────────
-router.use(authenticate);
+// ── All user routes require a registered staff account ─────────────
+router.use(authenticate, staffOnly);
 
 const ADMIN_ROLES  = ["admin", "center_admin", "super_admin", "developer"];
 const MANAGE_ROLES = ["admin", "super_admin", "developer"];

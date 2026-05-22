@@ -31,7 +31,9 @@ import streamService from "../services/streamService";
 // ── Constants ─────────────────────────────────────────────────────
 const POLL_INTERVAL    = 3_000;   // ms — status poll frequency
 const STARTING_TIMEOUT = 45_000;  // ms — max wait for "starting" → "live"
-const BACKEND          = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+// In production the backend is on the same origin (Firebase Hosting → Cloud Functions).
+// VITE_API_URL="" produces relative HLS URLs (e.g. /stream/live/cam1/stream.m3u8).
+const BACKEND          = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
 // ── Per-camera HLS URL builder ────────────────────────────────────
 function hlsUrl(cameraId) {

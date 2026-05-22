@@ -20,6 +20,7 @@
 
 const { auth, db }       = require("../firebaseAdmin");
 const { isBypassRole, ROLE_PERMISSIONS } = require("../config/permissionsBackend");
+const roleSvc            = require("../services/roleService");
 
 const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
 
@@ -42,17 +43,20 @@ async function authenticate(req, res, next) {
     const userDoc = await db.collection("users").doc(uid).get();
     if (userDoc.exists) {
       const u = userDoc.data();
+      const _schoolId = u.schoolId || DEFAULT_SCHOOL_ID;
+      const _role     = u.role    || "teacher";
       req.user = {
         userId:    uid,
         email:     decoded.email || u.email || "",
-        role:      u.role        || "teacher",
-        schoolId:  u.schoolId    || DEFAULT_SCHOOL_ID,
+        role:      _role,
+        schoolId:  _schoolId,
         centerId:  u.centerId    || u.center || "",
         center:    u.centerId    || u.center || "",
         centers:   Array.isArray(u.centers) ? u.centers : (u.center ? [u.center] : []),
         name:      u.name        || decoded.name    || "",
         photoUrl:  u.photoUrl    || decoded.picture || "",
-        permissions: getPermissions(u.role),
+        permissions: await roleSvc.getPermissionsForRole(_role, _schoolId),
+        roleMatrix:  await roleSvc.getRoleMatrix(_role, _schoolId),
       };
       return next();
     }
@@ -92,7 +96,7 @@ async function authenticate(req, res, next) {
             studentId:   studentDoc.studentId,
             studentName: studentDoc.studentName,
           },
-          permissions: getPermissions("parent"),
+          permissions: await roleSvc.getPermissionsForRole("parent", studentDoc.schoolId || DEFAULT_SCHOOL_ID),
         };
         return next();
       }
@@ -161,4 +165,91 @@ function getPermissions(role) {
   return ROLE_PERMISSIONS[role] || [];
 }
 
-module.exports = { authenticate, authorize, authorizeRoute };
+// ── Security guards ────────────────────────────────────────────────
+
+/**
+ * blockUnknown — rejects Firebase-authenticated users who have no matching
+ * staff record OR parent link in Firestore. Prevents "ghost" accounts from
+ * reading any data.
+ */
+function blockUnknown(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Authentication required." });
+  if (req.user.role === "unknown") {
+    return res.status(403).json({
+      error: "Your account is not registered in this system. Contact your administrator.",
+      code:  "ACCOUNT_NOT_REGISTERED",
+    });
+  }
+  next();
+}
+
+/**
+ * staffOnly — allows only registered staff roles through. Blocks:
+ *   - "unknown" (not registered)
+ *   - "parent"  (must use the parent-specific endpoints)
+ * Bypass roles (developer, super_admin) always pass.
+ */
+function staffOnly(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Authentication required." });
+  if (isBypassRole(req.user.role)) return next();
+  if (req.user.role === "unknown") {
+    return res.status(403).json({
+      error: "Your account is not registered in this system. Contact your administrator.",
+      code:  "ACCOUNT_NOT_REGISTERED",
+    });
+  }
+  if (req.user.role === "parent") {
+    return res.status(403).json({
+      error: "Parents cannot access staff-only resources.",
+      code:  "PARENT_ACCESS_DENIED",
+    });
+  }
+  next();
+}
+
+/**
+ * requireOwnChild — for parent-facing endpoints.
+ * - Bypass roles pass through with no restriction.
+ * - Non-parent roles (staff) receive a 403.
+ * - Parent must have a linked student; if a studentId is present in
+ *   params/query/body it must match the linked child.
+ * Sets req.ownChildId = linkedStudentId so controllers can use it directly.
+ */
+function requireOwnChild(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Authentication required." });
+  if (isBypassRole(req.user.role)) return next(); // developers / super_admin see all
+
+  if (req.user.role !== "parent") {
+    return res.status(403).json({
+      error: "This endpoint is for parents only.",
+      code:  "STAFF_ACCESS_DENIED",
+    });
+  }
+
+  const linkedId = req.user.student?.studentId;
+  if (!linkedId) {
+    return res.status(403).json({
+      error: "No student linked to this parent account. Contact your administrator.",
+      code:  "NO_LINKED_STUDENT",
+    });
+  }
+
+  // If a studentId was supplied, it must match the linked child
+  const requestedId =
+    req.params.studentId ||
+    req.params.id        ||
+    req.query.studentId  ||
+    req.body?.studentId;
+
+  if (requestedId && requestedId !== linkedId) {
+    return res.status(403).json({
+      error: "You can only access your own child's records.",
+      code:  "CHILD_SCOPE_VIOLATION",
+    });
+  }
+
+  req.ownChildId = linkedId; // controllers read this instead of req.body/query
+  next();
+}
+
+module.exports = { authenticate, authorize, authorizeRoute, blockUnknown, staffOnly, requireOwnChild };

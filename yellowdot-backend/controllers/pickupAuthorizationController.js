@@ -26,8 +26,19 @@ function logErr(route, e) { console.error(`[${route}]`, e.message); }
 async function getPickupPersons(req, res) {
   try {
     const { schoolId, centerId } = resolveCtx(req);
-    const bypassCenter = ["developer", "super_admin", "admin"].includes(req.user?.role);
-    const { studentId, status } = req.query;
+    const role         = req.user?.role;
+    const bypassCenter = ["developer", "super_admin", "admin"].includes(role);
+    const { status }   = req.query;
+    let { studentId }  = req.query;
+
+    // Parents may only see their own child's authorized pickup persons.
+    if (role === "parent") {
+      const linkedId = req.user.student?.studentId;
+      if (!linkedId) {
+        return res.status(403).json({ success: false, error: "No student linked to this parent account." });
+      }
+      studentId = linkedId;
+    }
 
     let entries = await svc.getAll(
       studentId || null,

@@ -1,6 +1,6 @@
 const express      = require("express");
 const router       = express.Router();
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, staffOnly } = require("../middleware/authMiddleware");
 const {
   getAttendance,
   markAttendance,
@@ -13,7 +13,9 @@ const {
   generateBatchQR,
 } = require("../controllers/attendanceController");
 
-router.use(authenticate);
+// All attendance endpoints require a registered staff account.
+// Parents use /api/parent-attendance instead.
+router.use(authenticate, staffOnly);
 
 // ── Attendance records ──────────────────────────────────────────
 router.get ("/api/attendance",               getAttendance);   // ?date=&class=

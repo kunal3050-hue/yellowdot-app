@@ -42,11 +42,12 @@ async function getConsumption({ date, studentId, class: cls, schoolId = SCHOOL_I
   let q = col().where("schoolId", "==", schoolId);
   if (date)      q = q.where("date",      "==", date);
   if (studentId) q = q.where("studentId", "==", studentId);
+  // Push class filter to Firestore when possible to reduce read bandwidth
+  if (cls)       q = q.where("class",     "==", cls);
   const snap = await q.get();
   let entries = snap.docs.map(docToEntry);
-  if (cls)      entries = entries.filter(e => e.class    === cls);
+  // centerId filter still in JS (not always present in query params)
   if (centerId) entries = entries.filter(e => e.centerId === centerId);
-  // Sort newest first in JS
   entries.sort((a, b) => b.date.localeCompare(a.date));
   return entries;
 }
@@ -82,6 +83,7 @@ async function upsertConsumption(data, { schoolId = SCHOOL_ID, centerId = "", ac
   };
 
   await ref.set(doc, { merge: true });
+  console.log(`[foodConsumption] upserted ${entryId} qty=${doc.quantity} status=${doc.status}`);
   return doc;
 }
 
