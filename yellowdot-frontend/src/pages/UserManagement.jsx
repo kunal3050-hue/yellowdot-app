@@ -40,6 +40,7 @@ const ROLE_COLORS = {
   super_admin:  { bg: "#7C3AED", color: "#fff" },
   admin:        { bg: "#F4C400", color: "#1E1E1E" },
   center_admin: { bg: "#F4C400", color: "#1E1E1E" },
+  center_owner: { bg: "#F4C400", color: "#1E1E1E" },
   teacher:      { bg: "#16A34A", color: "#fff" },
   accountant:   { bg: "#2563EB", color: "#fff" },
   reception:    { bg: "#D97706", color: "#fff" },
@@ -241,10 +242,13 @@ function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass, availabl
 
   function validate() {
     const e = {};
-    if (!form.name.trim())  e.name  = "Name is required";
-    if (!form.email.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
+    if (!form.name.trim())  e.name  = "Full name is required";
+    if (!form.email.trim()) e.email = "Email address is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Enter a valid email address";
     if (!form.role) e.role = "Role is required";
+    if (form.mobile && form.mobile.trim() && !/^[+\d\s\-().]{7,20}$/.test(form.mobile.trim())) {
+      e.mobile = "Enter a valid phone number";
+    }
     setErrors(e);
     return !Object.keys(e).length;
   }
@@ -252,10 +256,17 @@ function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass, availabl
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
+    const centersArr = form.centers
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const payload = {
-      ...form,
-      // normalise centers to array
-      centers: form.centers.split(",").map((s) => s.trim()).filter(Boolean),
+      name:    form.name.trim(),
+      email:   form.email.trim().toLowerCase(),
+      mobile:  form.mobile.trim(),
+      role:    form.role,
+      centers: centersArr,
+      status:  form.status,
     };
     onSave(payload);
   }
@@ -318,12 +329,13 @@ function UserForm({ isOpen, onClose, initial, onSave, saving, isBypass, availabl
           <div className="yd-field">
             <label className="yd-label">Mobile Number</label>
             <input
-              className="yd-input"
+              className={`yd-input${errors.mobile ? " error" : ""}`}
               type="tel"
               value={form.mobile}
               onChange={set("mobile")}
               placeholder="+91 98765 43210"
             />
+            {errors.mobile && <span className="yd-error-text">{errors.mobile}</span>}
           </div>
           <div className="yd-field">
             <label className="yd-label">Role *</label>

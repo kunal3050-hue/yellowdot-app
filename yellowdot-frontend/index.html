@@ -2,9 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>yellowdot-frontend</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/icons/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" />
+
+    <!-- Apple touch icon (used as home-screen icon on iOS) -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
+
+    <!-- Mobile viewport — prevent zoom, ensure proper scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- PWA / standalone mode meta -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Yellow Dot" />
+
+    <!-- Theme color (browser chrome on Android) -->
+    <meta name="theme-color" content="#F4C400" />
+
+    <!-- SEO -->
+    <meta name="description" content="Yellow Dot — Childcare Management Platform" />
+
+    <!--
+      Apple splash screens — iOS shows these while the PWA is loading.
+      Generated for common iPhone/iPad sizes (portrait).
+      Background matches app background (#FFFDF7).
+    -->
+
+    <!-- iPhone 16 Pro Max (430×932 @3x) -->
+    <link rel="apple-touch-startup-image"
+      href="/icons/splash/apple-splash-1290-2796.png"
+      media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+
+    <!-- iPhone 16 / 15 Pro (393×852 @3x) -->
+    <link rel="apple-touch-startup-image"
+      href="/icons/splash/apple-splash-1179-2556.png"
+      media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+
+    <!-- iPhone 14 Plus / 15 Plus (428×926 @3x) -->
+    <link rel="apple-touch-startup-image"
+      href="/icons/splash/apple-splash-1284-2778.png"
+      media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+
+    <!-- iPhone SE (375×667 @2x) -->
+    <link rel="apple-touch-startup-image"
+      href="/icons/splash/apple-splash-750-1334.png"
+      media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+
+    <title>Yellow Dot CRM</title>
   </head>
   <body>
     <div id="root"></div>

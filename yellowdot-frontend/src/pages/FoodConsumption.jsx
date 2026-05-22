@@ -207,13 +207,27 @@ function StatusPill({ status }) {
 // ── MealSegmentControl — Apple-style pill tabs ────────────────────────────
 
 function MealSegmentControl({ meals, active, onSelect }) {
+  const scrollRef = useRef(null);
+  const btnRefs   = useRef({});
+
+  // Auto-scroll active tab into view whenever it changes
+  useEffect(() => {
+    const btn = btnRefs.current[active];
+    if (btn && scrollRef.current) {
+      btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  }, [active]);
+
   return (
     <div
-      className="flex items-center gap-1 p-1 rounded-2xl border border-[#e8d898] overflow-x-auto flex-shrink-0"
+      ref={scrollRef}
+      className="fc-tab-bar flex items-center gap-1 p-1 rounded-2xl border border-[#e8d898] overflow-x-auto flex-shrink-0"
       style={{
-        background:  "linear-gradient(180deg,#fdf8e8 0%,#f8f0d4 100%)",
-        boxShadow:   "inset 0 1px 3px rgba(180,140,0,0.10)",
-        scrollbarWidth: "none",
+        background:       "linear-gradient(180deg,#fdf8e8 0%,#f8f0d4 100%)",
+        boxShadow:        "inset 0 1px 3px rgba(180,140,0,0.10)",
+        scrollbarWidth:   "none",
+        scrollSnapType:   "x mandatory",
+        WebkitOverflowScrolling: "touch",
       }}
     >
       {meals.map(m => {
@@ -221,17 +235,21 @@ function MealSegmentControl({ meals, active, onSelect }) {
         return (
           <button
             key={m.mealType}
+            ref={el => { btnRefs.current[m.mealType] = el; }}
             onClick={() => onSelect(m.mealType)}
             className={`
-              flex-shrink-0 px-4 py-1.5 rounded-xl text-xs font-semibold
+              fc-tab-btn flex-shrink-0 px-4 py-1.5 rounded-xl text-xs font-semibold
               transition-all duration-[180ms] whitespace-nowrap
               ${isActive ? "scale-[1.01]" : "text-[#a3957e] hover:text-[#7a5e18] hover:bg-[#fff7dc]/70"}
             `}
-            style={isActive ? {
-              background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)",
-              color:      "#5a4010",
-              boxShadow:  "0 2px 10px rgba(212,170,31,0.28),inset 0 1px 0 rgba(255,255,255,0.5)",
-            } : {}}
+            style={{
+              scrollSnapAlign: "start",
+              ...(isActive ? {
+                background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)",
+                color:      "#5a4010",
+                boxShadow:  "0 2px 10px rgba(212,170,31,0.28),inset 0 1px 0 rgba(255,255,255,0.5)",
+              } : {}),
+            }}
           >
             {m.mealType}
           </button>
@@ -773,15 +791,15 @@ export default function FoodConsumption() {
 
           {/* ── Segment control — sticky below header ────────────────────── */}
           {!studentsLoading && !menuLoading && menuSlots.length > 0 && (
-            <div className="px-6 md:px-10 pb-3">
-              <div className="flex items-center gap-3">
+            <div className="fc-tab-row px-6 md:px-10 pb-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <MealSegmentControl
                   meals={menuSlots}
                   active={activeMeal}
                   onSelect={setActiveMeal}
                 />
                 {activeMeal && (
-                  <span className="text-xs text-[#a3957e] font-normal flex-shrink-0">
+                  <span className="fc-tab-count text-xs text-[#a3957e] font-normal flex-shrink-0">
                     {activeMealRecordedCount}/{filteredStudents.length} recorded
                   </span>
                 )}

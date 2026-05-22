@@ -9,6 +9,7 @@ import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
 import ParentLayout      from "./layouts/ParentLayout";
 import DevRoleSwitch     from "./components/DevRoleSwitch";
+import InstallPrompt     from "./components/InstallPrompt";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
@@ -69,6 +70,8 @@ function App() {
       <AuthProvider>
         {/* DEV-only floating view switcher — tree-shaken in production builds */}
         <DevRoleSwitch />
+        {/* PWA install banner (shows after 2.5s, respects 30-day dismissal) */}
+        <InstallPrompt />
         <Suspense fallback={<PageLoader />}>
           <Routes>
 

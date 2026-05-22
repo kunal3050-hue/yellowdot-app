@@ -30,37 +30,58 @@ function qs(params = {}) {
   return q ? `?${q}` : "";
 }
 
+/**
+ * Extract a human-readable message from an axios error.
+ * Tries: response body .error → .message → .details → axios default message
+ */
+function extractError(err, fallback = "Request failed") {
+  const d = err.response?.data;
+  if (d) {
+    const msg = d.error || d.message || d.details;
+    if (msg && typeof msg === "string") return msg;
+  }
+  return err.message || fallback;
+}
+
 const userService = {
   /**
    * Fetch all users, optionally filtered.
    * @param {{ role?, status?, center?, search? }} params
    */
   getAll(params = {}) {
-    return api.get(`${BASE}${qs(params)}`).then((r) => r.data);
+    return api.get(`${BASE}${qs(params)}`)
+      .then((r) => r.data)
+      .catch((err) => { throw new Error(extractError(err, "Failed to load users")); });
   },
 
   /** Get a single user by ID. */
   getById(userId) {
-    return api.get(`${BASE}/${encodeURIComponent(userId)}`).then((r) => r.data);
+    return api.get(`${BASE}/${encodeURIComponent(userId)}`)
+      .then((r) => r.data)
+      .catch((err) => { throw new Error(extractError(err, "Failed to load user")); });
   },
 
   /**
-   * Create a new staff user (written to Users sheet).
+   * Create a new staff user.
+   * Backend creates the Firebase Auth account and Firestore document.
    * @param {{ name, email, mobile?, role, centers?, status? }} data
    */
   create(data) {
-    return api.post(BASE, data).then((r) => r.data);
+    return api.post(BASE, data)
+      .then((r) => r.data?.user ?? r.data)
+      .catch((err) => { throw new Error(extractError(err, "Failed to create user")); });
   },
 
   /**
    * Update any fields on an existing user.
    * @param {string} userId
-   * @param {{ name?, email?, mobile?, role?, centers?, status? }} updates
+   * @param {{ name?, mobile?, role?, centers?, status? }} updates
    */
   update(userId, updates) {
     return api
       .put(`${BASE}/${encodeURIComponent(userId)}`, updates)
-      .then((r) => r.data);
+      .then((r) => r.data?.user ?? r.data)
+      .catch((err) => { throw new Error(extractError(err, "Failed to update user")); });
   },
 
   /**
@@ -73,12 +94,13 @@ const userService = {
 
   /**
    * Trigger a password-reset email for the user.
-   * Backend sends a one-time link.
+   * Backend generates a Firebase password-reset link.
    */
   resetPassword(userId) {
     return api
       .post(`${BASE}/${encodeURIComponent(userId)}/reset-password`)
-      .then((r) => r.data);
+      .then((r) => r.data)
+      .catch((err) => { throw new Error(extractError(err, "Failed to send password reset")); });
   },
 };
 

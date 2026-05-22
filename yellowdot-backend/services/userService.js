@@ -22,7 +22,7 @@ const col         = () => db.collection("users");
 const nowISO      = () => new Date().toISOString();
 
 const VALID_ROLES = new Set([
-  "developer", "super_admin", "admin", "center_admin",
+  "developer", "super_admin", "admin", "center_admin", "center_owner",
   "teacher", "accountant", "reception", "cctv_viewer", "parent",
 ]);
 
@@ -40,7 +40,8 @@ function docToUser(snap) {
     centerId:  d.centerId  || d.center || "",
     centers:   Array.isArray(d.centers) ? d.centers : (d.center ? [d.center] : []),
     photoUrl:  d.photoUrl  || "",
-    phone:     d.phone     || "",
+    phone:     d.phone     || d.mobile || "",
+    mobile:    d.phone     || d.mobile || "",   // alias so frontend receives it
     status:    d.status    || "active",
     createdAt: d.createdAt || "",
     updatedAt: d.updatedAt || "",
@@ -102,7 +103,7 @@ async function create(data, actorUserId = "system") {
                  ? data.centers
                  : centerId ? [centerId] : [],
     photoUrl:  data.photoUrl || "",
-    phone:     data.phone    || "",
+    phone:     data.phone    || data.mobile || "",
     status:    "active",
     createdAt: nowISO(),
     updatedAt: nowISO(),
@@ -128,7 +129,9 @@ async function update(userId, updates, actorUserId = "system") {
   if (updates.name     !== undefined) patch.name     = (updates.name || "").trim();
   if (updates.role     !== undefined && VALID_ROLES.has(updates.role)) patch.role = updates.role;
   if (updates.photoUrl !== undefined) patch.photoUrl = updates.photoUrl;
+  // Accept both phone and mobile as the same field
   if (updates.phone    !== undefined) patch.phone    = updates.phone;
+  if (updates.mobile   !== undefined) patch.phone    = updates.mobile;
   if (updates.status   !== undefined) patch.status   = updates.status;
 
   // centerId / center kept in sync

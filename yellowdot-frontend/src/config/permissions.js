@@ -80,6 +80,16 @@ export const ROLE_PERMISSIONS = {
     ROUTES.HOLIDAYS, ROUTES.NOTICES, ROUTES.ANNOUNCEMENTS,
   ],
 
+  // center_owner — same privilege as center_admin; separate role for clarity
+  center_owner: [
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.FEES,
+    ROUTES.INVOICE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.FOOD_CONSUMPTION, ROUTES.CCTV_SETTINGS, ROUTES.LIVE_CCTV,
+    ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
+    ROUTES.PROFILE, ROUTES.SETTINGS, ROUTES.USER_MANAGEMENT, ROUTES.ROLES_PERMISSIONS,
+    ROUTES.HOLIDAYS, ROUTES.NOTICES, ROUTES.ANNOUNCEMENTS,
+  ],
+
   teacher: [
     ROUTES.DASHBOARD, ROUTES.ATTENDANCE, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.STUDENTS, ROUTES.PARENT_CHECKIN, ROUTES.PROFILE,
@@ -112,6 +122,7 @@ export const ROLE_HOME = {
   super_admin:  "/",
   admin:        "/",
   center_admin: "/",
+  center_owner: "/",
   teacher:      "/attendance",
   accountant:   "/invoice",
   reception:    "/",
@@ -125,6 +136,7 @@ export const ROLE_LABELS = {
   super_admin:  "Super Admin",
   admin:        "Admin",
   center_admin: "Center Admin",
+  center_owner: "Center Owner",
   teacher:      "Teacher",
   accountant:   "Accountant",
   reception:    "Reception",
@@ -139,6 +151,7 @@ export const ROLE_HIERARCHY = [
   "super_admin",
   "admin",
   "center_admin",
+  "center_owner",
   "teacher",
   "accountant",
   "reception",

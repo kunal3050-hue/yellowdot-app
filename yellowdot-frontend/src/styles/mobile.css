@@ -1,0 +1,1171 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   YELLOW DOT CRM — MOBILE & RESPONSIVE OVERRIDES
+   Applied LAST in the cascade (imported after all other style files).
+   Breakpoints: 480px · 640px · 768px · 1024px
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Global overflow guard ─────────────────────────────────────────────── */
+
+html, body {
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better iOS overscroll / momentum */
+.yd-scroll-area,
+.yd-sl-nav,
+.yd-modal-body,
+.yd-drawer-body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Touch target minimums ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* All clickable elements get at least 44px touch area */
+  .btn:not(.btn-xs) {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  .btn-sm { min-height: 40px; }
+  .btn-icon, .btn-icon-lg {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Sidebar nav items */
+  .yd-sl-item {
+    height: 44px;
+  }
+
+  /* Topbar icon buttons */
+  .yd-tb-icon-btn,
+  .yd-tb-menu-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Close buttons */
+  .yd-close-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ── Auth page — mobile ────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  /* Full-screen single-column auth — hide left decorative panel */
+  .yd-auth-page {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .yd-auth-left {
+    display: none; /* hide hero panel on mobile */
+  }
+
+  .yd-auth-right {
+    flex: none;
+    width: 100%;
+    padding: 40px 20px 32px;
+    min-height: 100vh;
+    align-items: flex-start;
+    overflow-y: visible;
+  }
+
+  /* Auth card — tighter mobile padding */
+  .yd-auth-card {
+    padding: 32px 20px 28px;
+    border-radius: 20px;
+  }
+
+  .yd-auth-welcome-title {
+    font-size: 24px !important;
+  }
+
+  .yd-auth-welcome-sub {
+    font-size: 13px;
+  }
+
+  /* Google button */
+  .yd-google-btn {
+    height: 52px;
+  }
+
+  /* Large inputs on auth */
+  .yd-input-lg {
+    height: 52px;
+    font-size: 15px;
+  }
+}
+
+/* ── Page header (.yd-ph) — stack on mobile ────────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-ph {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px !important;
+  }
+  .yd-ph-title {
+    font-size: clamp(18px, 5vw, 20px) !important;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+  .yd-ph-sub {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .yd-ph-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Action buttons inside page header take full width on tiny screens */
+  .yd-ph-actions .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  /* Section header */
+  .yd-sh {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .yd-sh-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Topbar greeting */
+  .yd-topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .yd-topbar-greeting {
+    font-size: 18px;
+  }
+}
+
+/* ── Page titles — fluid clamp scaling ────────────────────────────────── */
+
+/* Tablet (769–1024px): slight reduction */
+@media (max-width: 1024px) {
+  .yd-title-page {
+    font-size: clamp(22px, 3.2vw, 30px) !important;
+  }
+}
+
+/* Mobile (≤640px): compact but still bold */
+@media (max-width: 640px) {
+  .yd-title-page {
+    font-size: clamp(18px, 5vw, 22px) !important;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+}
+
+/* Very small (≤380px): floor at 17px */
+@media (max-width: 380px) {
+  .yd-title-page {
+    font-size: 17px !important;
+  }
+}
+
+/* ── Spacing directly below the topbar ─────────────────────────────────── */
+
+/* Extra breathing room between topbar and first card on mobile */
+@media (max-width: 768px) {
+  /* The scroll area already gets padding: 20px 16px.
+     Add a small top-border echo strip so the content doesn't feel glued. */
+  .yd-scroll-area > *:first-child {
+    margin-top: 0; /* already set by scroll-area padding */
+  }
+}
+
+/* ── Dashboard-specific mobile layout ─────────────────────────────────── */
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Stat value — smaller on mobile */
+  .yd-stat-value {
+    font-size: 20px !important;
+  }
+  .yd-stat {
+    padding: 10px 12px;
+  }
+
+  /* Grid helpers for stats */
+  .yd-stats-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .yd-stats-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .yd-stats-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 380px) {
+  /* Very small phones: single column stats */
+  .yd-stats-grid,
+  .yd-stats-grid-4,
+  .yd-stats-grid-3 { grid-template-columns: 1fr !important; }
+}
+
+/* ── Tables — horizontal scroll with visual hint ───────────────────────── */
+
+.yd-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--yd-radius-md);
+}
+
+@media (max-width: 768px) {
+  /* Make table cells not wrap aggressively */
+  .yd-table thead th,
+  .yd-table tbody td,
+  .yd-table-premium thead th,
+  .yd-table-premium tbody td {
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  /* Reduce padding in table header */
+  .yd-table thead th {
+    font-size: 9px;
+    padding: 8px 10px;
+  }
+
+  /* Subtle right-fade gradient to indicate more content */
+  .yd-table-wrap::after {
+    content: "";
+    position: sticky;
+    right: 0;
+    top: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,253,247,0.90));
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Modals — bottom sheet on mobile ───────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .yd-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .yd-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 24px 24px 0 0;
+    max-height: 92vh;
+    animation: yd-modal-in-mobile 0.30s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .yd-modal-header {
+    padding: 14px 16px;
+  }
+  .yd-modal-body {
+    padding: 16px;
+  }
+  .yd-modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .yd-modal-footer .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+@keyframes yd-modal-in-mobile {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Drawers — full width on mobile ─────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .yd-drawer {
+    width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    top: auto !important;
+    bottom: 0;
+    height: 90vh !important;
+    animation: yd-modal-in-mobile 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .yd-drawer-header {
+    padding: 14px 16px;
+  }
+  .yd-drawer-body {
+    padding: 16px;
+  }
+  .yd-drawer-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .yd-drawer-footer .btn {
+    flex: 1;
+  }
+}
+
+/* ── Toasts — full-width bottom center on mobile ────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-toast-container {
+    right: 12px;
+    left: 12px;
+    bottom: 16px;
+  }
+  .yd-toast {
+    max-width: 100%;
+    width: 100%;
+    font-size: 13px;
+  }
+}
+
+/* ── Form grid — single column on mobile ───────────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-form-grid,
+  .yd-form-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .yd-field-full { grid-column: auto; }
+}
+
+/* ── Scroll area — tighter padding on very small screens ──────────────── */
+
+@media (max-width: 480px) {
+  .yd-scroll-area {
+    padding: 16px 12px !important;
+  }
+}
+
+/* ── Card — full-width on mobile, reduce shadow ────────────────────────── */
+
+@media (max-width: 480px) {
+  .yd-auth-card {
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    padding: 32px 16px;
+  }
+  .yd-auth-right {
+    padding: 24px 0 32px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOPBAR — Android / Mobile optimised
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 768px and below: compact bar, safe-area, tighter gaps ──────── */
+@media (max-width: 768px) {
+  .yd-tb {
+    /* 48px base + Android status-bar notch compensation (PWA mode) */
+    height: calc(48px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+    gap: 6px;
+    /* Slightly stronger shadow so the bar reads as distinct from content */
+    box-shadow: 0 1px 0 var(--yd-border-light), 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  /* Search pill — full flex, no cap */
+  .yd-tb-search-btn {
+    max-width: none;
+    flex: 1;
+    padding: 0 10px;
+    gap: 6px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Right cluster — tighter */
+  .yd-tb-right {
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Divider — shorter so it feels lighter */
+  .yd-tb-divider {
+    height: 16px;
+  }
+
+  /* Icon buttons — stay at 44px for touch, but use the compacted bar height */
+  .yd-tb-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Hamburger — same */
+  .yd-tb-menu-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ── 480px and below: hide label-only elements that clutter the bar ─ */
+@media (max-width: 480px) {
+  /* Hide the ⌘K hint badge inside search */
+  .yd-tb-search-hint {
+    display: none;
+  }
+
+  /* Shorten search placeholder area so right actions never wrap */
+  .yd-tb-search-btn {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  /* Center badge (read-only) disappears — only the switcher (multi-center) stays */
+  .yd-tb-center-badge {
+    display: none;
+  }
+}
+
+/* ── 400px and below: absolute minimum — hide every non-essential badge ── */
+@media (max-width: 400px) {
+  /* Dev badge — hide on tiny phones, it overlaps everything */
+  .yd-tb-dev-badge {
+    display: none;
+  }
+
+  /* Center switcher — hide on tiny phones */
+  .yd-tb-center-wrap {
+    display: none;
+  }
+
+  /* Divider no longer needed when flanking items are gone */
+  .yd-tb-divider {
+    display: none;
+  }
+
+  /* Squeeze search text down a touch */
+  .yd-tb-search-text {
+    font-size: 11px;
+  }
+}
+
+/* ── Sidebar — wider on very small phones ──────────────────────────────── */
+
+@media (max-width: 380px) {
+  .yd-sidebar {
+    width: 100% !important;
+  }
+}
+
+/* ── Content scroll — prevent content bleed under mobile sidebar ─────── */
+
+@media (max-width: 768px) {
+  .yd-page {
+    position: relative;
+  }
+}
+
+/* ── Input improvements on mobile ─────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="tel"],
+  select,
+  textarea {
+    /* Prevent iOS zoom on focus (font-size must be >= 16px) */
+    font-size: 16px !important;
+  }
+
+  .yd-input {
+    padding: 10px 12px;
+    height: 44px;
+  }
+
+  /* Don't override textarea height */
+  textarea.yd-input {
+    height: auto;
+  }
+}
+
+/* ── Select / Dropdown menus — full width on mobile ──────────────────── */
+
+@media (max-width: 640px) {
+  .yd-dropdown {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto !important;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    min-width: unset;
+    max-height: 60vh;
+    overflow-y: auto;
+    animation: yd-modal-in-mobile 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    z-index: var(--yd-z-modal);
+  }
+
+  .yd-dropdown-item {
+    padding: 13px 16px;
+    font-size: 14px;
+  }
+}
+
+/* ── Profile / topbar dropdown — keep as overlay on mobile ───────────── */
+
+@media (max-width: 640px) {
+  .yd-tb-dropdown {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    min-width: unset;
+  }
+
+  .yd-tb-drop-item {
+    padding: 13px 12px;
+    font-size: 14px;
+  }
+}
+
+/* ── Tabs — scrollable on mobile ─────────────────────────────────────── */
+
+.yd-tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.yd-tabs::-webkit-scrollbar { display: none; }
+
+@media (max-width: 640px) {
+  .yd-tab {
+    padding: 10px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+/* ── Pills / tab pill variant ─────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-tabs-pill {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+/* ── Page skeleton — mobile ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .yd-card-skeleton-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .yd-page-skeleton {
+    padding: 16px 12px;
+  }
+}
+
+/* ── Responsive visibility helpers ───────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .yd-hide-xs { display: none !important; }
+}
+@media (min-width: 481px) {
+  .yd-show-xs { display: none !important; }
+}
+
+/* ── Modal / card content — readable on small screens ───────────────── */
+
+@media (max-width: 640px) {
+  /* Wider cards / modals use section headers — shrink them */
+  .yd-card-header {
+    padding: 12px 14px;
+  }
+  .yd-card-body {
+    padding: 14px;
+  }
+  .yd-card-footer {
+    padding: 10px 14px;
+  }
+}
+
+/* ── Prevent very small text on mobile ───────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Section labels */
+  .yd-sl-group-label {
+    font-size: 9px;
+  }
+
+  /* Badge / status pill text */
+  .badge,
+  .yd-status {
+    font-size: 9px;
+  }
+}
+
+/* ── Tailwind grid responsive helpers ────────────────────────────────── */
+/* These add mobile-first breakpoints for commonly used Tailwind grid patterns */
+
+@media (max-width: 639px) {
+  /* Any grid with a data-cols attribute set by JSX */
+  [data-mobile-cols="1"] { grid-template-columns: 1fr !important; }
+  [data-mobile-cols="2"] { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ── Better focus rings for accessibility ────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--yd-yellow);
+  outline-offset: 2px;
+}
+
+/* ── Reduce animation on mobile for performance ──────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Page-level scroll improvements ─────────────────────────────────── */
+
+/* Smooth momentum scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* ── Safe-area insets — iOS notch + Android cutout ─────────────────── */
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  /* Topbar: push down past status-bar / camera cutout */
+  .yd-tb {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(52px + env(safe-area-inset-top, 0px));
+  }
+
+  /* On mobile the compacted height still needs safe-area added */
+  @media (max-width: 768px) {
+    .yd-tb {
+      height: calc(48px + env(safe-area-inset-top, 0px));
+    }
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .yd-toast-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .yd-drawer-footer,
+  .yd-modal-footer {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .yd-sidebar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Small laptop / tablet improvements (769px - 1024px) ────────────── */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .yd-scroll-area {
+    padding: 20px 20px;
+  }
+  .yd-auth-left {
+    flex: 0 0 44%;
+  }
+  .yd-auth-right {
+    padding: 40px 32px;
+  }
+  .yd-auth-card {
+    padding: 36px 28px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INVOICE PAGE — Mobile card grid & responsive filters
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Desktop / mobile view toggle ────────────────────────────────── */
+
+/* Default: desktop table visible, mobile cards hidden */
+.yd-inv-desktop { display: block; }
+.yd-inv-mobile  { display: none;  }
+
+@media (max-width: 768px) {
+  .yd-inv-desktop { display: none;  }
+  .yd-inv-mobile  { display: block; }
+}
+
+/* ── Invoice mobile card ─────────────────────────────────────────── */
+
+.inv-mc {
+  padding: 12px;
+  /* Cards in a 2-column grid should never overflow the column */
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* Even tighter on very small phones */
+@media (max-width: 380px) {
+  .inv-mc {
+    padding: 10px;
+  }
+  /* Drop to single column on very small phones */
+  .yd-inv-mobile .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Ensure card header text never forces the card wider than its column */
+.inv-mc-head {
+  min-width: 0;
+}
+
+/* ── Filter bar — responsive layout ─────────────────────────────── */
+
+/* Desktop: single flex row, selects left / search right */
+.inv-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inv-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  order: 2;  /* search on right side on desktop */
+}
+
+.inv-filter-selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  order: 1;  /* selects on left on desktop */
+}
+
+/* Mobile: stack vertically, search bar first */
+@media (max-width: 768px) {
+  .inv-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  /* Search row goes first on mobile */
+  .inv-filter-search {
+    order: -1;
+    flex: none;
+    width: 100%;
+  }
+
+  /* Selects become a 3-column grid */
+  .inv-filter-selects {
+    order: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  /* Each select fills its cell */
+  .inv-filter-selects .yd-select-sm {
+    width: 100%;
+    min-width: 0;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+}
+
+/* On very tiny phones: 2+1 select grid */
+@media (max-width: 380px) {
+  .inv-filter-selects {
+    grid-template-columns: 1fr 1fr;
+  }
+  .inv-filter-selects .yd-select-sm:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── Stat strip — mobile summary card prominence ─────────────────── */
+
+/* On mobile the collected/outstanding card within the 7-col grid
+   becomes a full-width bottom banner naturally from col-span-2
+   — but we add extra visual weight */
+@media (max-width: 640px) {
+  .inv-mc-amounts-banner {
+    padding: 14px 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STUDENTS PAGE — Mobile layout
+   Split-view → full-width list + slide-over drawer
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Directory panel ─────────────────────────────────────────────── */
+
+/* Desktop: fixed 272px sidebar */
+.stu-dir {
+  width: 272px;
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 1px 0 0 #f3f4f6;
+}
+
+.stu-dir-header {
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
+  background: white;
+}
+
+.stu-dir-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Desktop detail panel wrapper */
+.stu-desktop-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Mobile: directory becomes full-width ───────────────────────── */
+
+@media (max-width: 767px) {
+  /* Directory fills the entire content area */
+  .stu-dir {
+    width: 100%;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .stu-dir-header {
+    padding: 16px 16px 12px;
+  }
+
+  /* Add Student button — full width on mobile */
+  .stu-add-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Search input — taller for finger touch */
+  .stu-dir-header input {
+    height: 44px;
+    font-size: 16px !important; /* prevents iOS zoom */
+    padding: 10px 14px !important;
+  }
+
+  /* Filters — slightly taller selects */
+  .stu-dir-header select {
+    height: 40px;
+    font-size: 14px !important;
+    padding: 8px 10px !important;
+  }
+
+  /* Desktop panel completely hidden — drawer handles mobile detail */
+  .stu-desktop-panel {
+    display: none;
+  }
+}
+
+/* ── Mobile slide-over drawer ───────────────────────────────────── */
+
+/* Container: covers the entire screen */
+.stu-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;     /* pass-through when closed */
+  visibility: hidden;
+}
+
+.stu-drawer--open {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Scrim: dark overlay behind the panel */
+.stu-drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stu-drawer--open .stu-drawer-scrim {
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Panel: slides in from the right */
+.stu-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;            /* full width on phone */
+  max-width: 540px;       /* capped on wider tablets */
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
+}
+
+.stu-drawer--open .stu-drawer-panel {
+  transform: translateX(0);
+}
+
+/* Drawer is only ever shown on mobile; on desktop it's inert */
+@media (min-width: 768px) {
+  .stu-drawer {
+    display: none;
+  }
+}
+
+/* ── Inside the drawer: adjust profile panel ────────────────────── */
+
+@media (max-width: 767px) {
+  /* Tab bar: bigger tap targets */
+  .stu-drawer-panel .flex.overflow-x-auto button {
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+
+  /* Quick action pills: bigger */
+  .stu-drawer-panel .flex.items-center.gap-1\.5.px-4.pb-2\.5 button {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOOD CONSUMPTION — MEAL TAB OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Hide scrollbar for the tab strip on all browsers */
+.fc-tab-bar::-webkit-scrollbar { display: none; }
+.fc-tab-bar { scrollbar-width: none; }
+
+@media (max-width: 768px) {
+  /* Tab row: side padding matches smaller mobile gutters */
+  .fc-tab-row {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Tab bar: full width, scrollable, never shrinks below content */
+  .fc-tab-bar {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    /* slightly smaller padding so more tabs are visible */
+    padding: 3px;
+    gap: 2px;
+  }
+
+  /* Each tab pill: tighter on mobile */
+  .fc-tab-btn {
+    padding: 7px 12px !important;
+    font-size: 11px !important;
+    scroll-snap-align: start;
+    min-height: 34px;
+  }
+
+  /* "X/Y recorded" badge — hide below 400px to save space */
+  @media (max-width: 400px) {
+    .fc-tab-count {
+      display: none;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PWA INSTALL PROMPT
+   Fixed bottom banner, slides up from below the fold.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-install-prompt {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  left: 16px;
+  right: 16px;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  background: #fff;
+  border: 1px solid rgba(244, 196, 0, 0.4);
+  border-radius: 20px;
+  padding: 12px 14px 12px 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(244, 196, 0, 0.12);
+
+  animation: yd-ip-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes yd-ip-slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+
+/* Left: icon + text */
+.yd-ip-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  flex: 1;
+}
+
+.yd-ip-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+.yd-ip-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.yd-ip-text {
+  min-width: 0;
+}
+.yd-ip-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E1B4B;
+  line-height: 1.2;
+  margin: 0;
+}
+.yd-ip-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 2px 0 0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* iOS share icon */
+.yd-ip-share-icon {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+  color: #3b82f6;
+}
+
+/* Right: actions */
+.yd-ip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.yd-ip-btn-install {
+  background: #F4C400;
+  color: #1E1B4B;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.yd-ip-btn-install:hover  { opacity: 0.88; }
+.yd-ip-btn-install:active { transform: scale(0.97); }
+.yd-ip-btn-install:disabled { opacity: 0.5; cursor: default; }
+
+.yd-ip-btn-dismiss {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.yd-ip-btn-dismiss svg { width: 14px; height: 14px; }
+.yd-ip-btn-dismiss:hover  { background: #e5e7eb; color: #374151; }
+.yd-ip-btn-dismiss:active { background: #d1d5db; }
+
+/* On wide screens (tablet/desktop), constrain width and center it */
+@media (min-width: 640px) {
+  .yd-install-prompt {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 380px;
+    animation: yd-ip-slide-up-center 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes yd-ip-slide-up-center {
+    from { opacity: 0; transform: translateX(-50%) translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
+  }
+}

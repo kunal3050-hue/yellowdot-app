@@ -820,6 +820,7 @@
 .yd-scroll-area {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 28px 32px;
   scrollbar-width: thin;
   scrollbar-color: var(--yd-border) transparent;
@@ -828,6 +829,12 @@
 @media (max-width: 768px) {
   .yd-scroll-area {
     padding: 20px 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .yd-scroll-area {
+    padding: 16px 12px;
   }
 }
 
