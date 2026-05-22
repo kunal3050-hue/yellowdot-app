@@ -38,11 +38,14 @@ export default function Login() {
   const { loginWithGoogle, loginWithEmail, loginWithOTP, requestOTP, isAuthenticated, user } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const from      = location.state?.from?.pathname || null;
+  // Ignore /unauthorized as a "came from" — always send them to their home route instead
+  const _from     = location.state?.from?.pathname;
+  const from      = (_from && _from !== "/unauthorized" && _from !== "/login") ? _from : null;
 
-  const [tab,     setTab]     = useState("google");   // "google" | "otp" | "email"
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [tab,        setTab]        = useState("google");   // "google" | "otp" | "email"
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+  const [linkEmail,  setLinkEmail]  = useState("");        // pre-fill after Google conflict
 
   // Redirect if already logged in
   useEffect(() => {
@@ -68,17 +71,19 @@ export default function Login() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif' }}>
 
-      {/* ── Left panel — brand ────────────────────────────────────────── */}
-      <LeftPanel />
+      {/* ── Left panel — brand (hidden on mobile) ────────────────────── */}
+      <div className="login-left-panel">
+        <LeftPanel />
+      </div>
 
       {/* ── Right panel — auth card ───────────────────────────────────── */}
-      <div style={{
+      <div className="login-right-panel" style={{
         flex: 1, background: `linear-gradient(160deg, ${YD_BG} 0%, #FFF8E8 100%)`,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 24px", overflowY: "auto",
         animation: "fadeSlideRight 0.6s ease both",
       }}>
-        <div style={{
+        <div className="login-card" style={{
           width: "100%", maxWidth: 440,
           background: "rgba(255,255,255,0.82)",
           backdropFilter: "blur(24px)",
@@ -145,6 +150,13 @@ export default function Login() {
                 loading={loading} setLoading={setLoading}
                 setError={setError} loginWithGoogle={loginWithGoogle}
                 handleResult={handleResult}
+                onLinkRequired={(email) => {
+                  setLinkEmail(email);
+                  setTab("email");
+                  setError(
+                    `This email already has a staff account. Sign in with your temporary password — Google will be linked automatically.`
+                  );
+                }}
               />
             )}
             {tab === "otp" && (
@@ -159,6 +171,7 @@ export default function Login() {
                 loading={loading} setLoading={setLoading}
                 setError={setError} loginWithEmail={loginWithEmail}
                 handleResult={handleResult}
+                prefillEmail={linkEmail}
               />
             )}
           </div>
@@ -170,12 +183,62 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Global animations */}
+      {/* Global animations + mobile responsive */}
       <style>{`
         @keyframes fadeSlideUp    { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
         @keyframes fadeSlideRight { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:none; } }
         @keyframes blobPulse      { 0%,100%{transform:scale(1) rotate(0deg);} 50%{transform:scale(1.08) rotate(4deg);} }
         @keyframes slideIn        { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+        /* Mobile — hide left brand panel, full-width auth card */
+        @media (max-width: 767px) {
+          .login-left-panel { display: none !important; }
+          .login-right-panel {
+            padding: 40px 20px 32px !important;
+            align-items: flex-start !important;
+            min-height: 100vh;
+          }
+        }
+
+        /* Small phones — tighten further */
+        @media (max-width: 480px) {
+          .login-right-panel {
+            padding: 32px 16px 24px !important;
+          }
+        }
+
+        /* Tablet — slightly narrower left panel */
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .login-left-panel > div {
+            width: 42% !important;
+            min-width: 280px !important;
+            padding: 40px 32px !important;
+          }
+        }
+
+        /* Touch targets on mobile */
+        @media (max-width: 767px) {
+          .login-right-panel input {
+            font-size: 16px !important;
+            height: 48px !important;
+          }
+          .login-right-panel button:not([style*="36px"]) {
+            min-height: 44px !important;
+          }
+          .login-card {
+            padding: 32px 20px !important;
+            border-radius: 20px !important;
+            background: rgba(255,255,255,0.95) !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .login-card {
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            padding: 28px 16px !important;
+          }
+        }
       `}</style>
     </div>
   );
@@ -328,7 +391,7 @@ function AuthTabs({ tab, setTab }) {
 // TAB: GOOGLE
 // ═════════════════════════════════════════════════════════════════════════════
 
-function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResult }) {
+function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResult, onLinkRequired }) {
   const [arrowShift, setArrowShift] = useState(false);
 
   async function handleGoogle() {
@@ -338,11 +401,16 @@ function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResul
       const result = await loginWithGoogle();
       handleResult(result);
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.code === "auth/popup-closed-by-user"
-        ? "Sign-in popup was closed. Please try again."
-        : err.message || "Sign-in failed. Please try again.";
-      setError(msg);
       setLoading(false);
+      // Account-link flow: email already has a password account
+      if (err.code === "auth/link-required") {
+        onLinkRequired?.(err.email || "");
+        return;
+      }
+      const msg = err?.code === "auth/popup-closed-by-user"
+        ? "Sign-in popup was closed. Please try again."
+        : err?.response?.data?.error || err.message || "Sign-in failed. Please try again.";
+      setError(msg);
     }
   }
 
@@ -558,8 +626,8 @@ function OTPTab({ loading, setLoading, setError, requestOTP, loginWithOTP, handl
 // TAB: EMAIL + PASSWORD
 // ═════════════════════════════════════════════════════════════════════════════
 
-function EmailTab({ loading, setLoading, setError, loginWithEmail, handleResult }) {
-  const [email,    setEmail]    = useState("");
+function EmailTab({ loading, setLoading, setError, loginWithEmail, handleResult, prefillEmail = "" }) {
+  const [email,    setEmail]    = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [showPwd,  setShowPwd]  = useState(false);
 

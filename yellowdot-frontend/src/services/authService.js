@@ -14,9 +14,18 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  linkWithCredential,
   signOut,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
+
+// ── Pending Google credential (account-linking flow) ──────────────────────────
+// When loginWithGoogle fails because the email already has a password account,
+// we store the Google credential here so loginWithEmail can link it after login.
+let _pendingGoogleLink = null;   // { credential: AuthCredential, email: string } | null
+
+export function getPendingGoogleLink()  { return _pendingGoogleLink; }
+export function clearPendingGoogleLink() { _pendingGoogleLink = null; }
 
 // Production: VITE_API_URL="" (empty) → relative calls → Firebase Hosting rewrites to Cloud Function
 // Local dev:  VITE_API_URL=http://localhost:5000 → calls the local Express server directly
@@ -67,19 +76,59 @@ async function me() {
 
 /**
  * Sign in with Google popup, then fetch profile from backend.
+ *
+ * Account-conflict flow (admin pre-created user with email/password):
+ *   Firebase throws auth/account-exists-with-different-credential.
+ *   We store the pending Google credential and rethrow with code
+ *   "auth/link-required" + the conflicting email so Login.jsx can
+ *   switch to the Email tab and tell the user what happened.
+ *   loginWithEmail() auto-links the Google credential after password sign-in.
  */
 async function loginWithGoogle() {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
-  // Firebase sets auth.currentUser; api interceptor will attach token automatically
-  return me();
+  try {
+    await signInWithPopup(auth, provider);
+    _pendingGoogleLink = null;   // clean up any stale pending link
+    return me();
+  } catch (err) {
+    if (err.code === "auth/account-exists-with-different-credential") {
+      const credential = GoogleAuthProvider.credentialFromError(err);
+      const email      = err.customData?.email || "";
+      _pendingGoogleLink = { credential, email };
+
+      // Throw a recognizable error for Login.jsx
+      const linkErr    = new Error("GOOGLE_LINK_REQUIRED");
+      linkErr.code     = "auth/link-required";
+      linkErr.email    = email;
+      throw linkErr;
+    }
+    throw err;
+  }
 }
 
 /**
  * Sign in with email + password, then fetch profile from backend.
+ * If a pending Google credential exists (from a failed loginWithGoogle),
+ * it is automatically linked to the account after sign-in so future
+ * Google logins work with the same UID.
  */
 async function loginWithEmail(email, password) {
-  await signInWithEmailAndPassword(auth, email, password);
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+  // Auto-link the pending Google credential when emails match
+  if (_pendingGoogleLink?.credential &&
+      _pendingGoogleLink.email.toLowerCase() === email.toLowerCase()) {
+    try {
+      await linkWithCredential(userCredential.user, _pendingGoogleLink.credential);
+      console.log("[auth] Google account linked to email/password account.");
+    } catch (linkErr) {
+      // Linking can fail if the Google account already has a different UID.
+      // Not fatal — email/password login still succeeds.
+      console.warn("[auth] Could not link Google credential:", linkErr.message);
+    }
+    _pendingGoogleLink = null;
+  }
+
   return me();
 }
 
