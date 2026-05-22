@@ -1,18 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Yellow background -->
-  <rect width="512" height="512" rx="0" fill="#F4C400"/>
-  <!-- Bold navy lightning bolt — centered, readable at 48px -->
-  <!--
-    Points (clockwise from top):
-      Top-right tip   (296, 72)
-      Lower-left mid  (184, 272)
-      Notch step-in   (248, 272)
-      Bottom-left tip (212, 440)
-      Upper-right mid (328, 240)
-      Notch step-out  (264, 240)
-  -->
-  <path
-    d="M296,72 L184,272 H248 L212,440 L328,240 H264 Z"
-    fill="#1E1B4B"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="92" fill="#F4C400"/>
+  <path d="M317.44,43.52 L158.72,268.8 H253.44 L192,476.16 L348.16,245.76 H256 Z" fill="#1E1B4B"/>
 </svg>

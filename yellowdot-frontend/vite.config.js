@@ -9,11 +9,19 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
+      // Bump this string whenever you want to force a full cache bust
+      // (changing it invalidates the Workbox precache manifest revision)
+      selfDestroying: false,
+
       // Assets to include in the precache manifest
       includeAssets: [
         'favicon.svg',
+        'icons/favicon.ico',
         'icons/apple-touch-icon-180x180.png',
         'icons/pwa-64x64.png',
+        'icons/pwa-192x192.png',
+        'icons/pwa-512x512.png',
+        'icons/maskable-icon-512x512.png',
       ],
 
       // ── Web App Manifest ──────────────────────────────────────────────────
@@ -21,8 +29,9 @@ export default defineConfig({
         name: 'Yellow Dot CRM',
         short_name: 'Yellow Dot',
         description: 'Childcare Management Platform — Attendance, Meals, Fees & More',
+        version: '1.1.0',
         theme_color: '#F4C400',
-        background_color: '#FFFDF7',
+        background_color: '#F4C400',
         display: 'standalone',
         orientation: 'portrait-primary',
         scope: '/',
