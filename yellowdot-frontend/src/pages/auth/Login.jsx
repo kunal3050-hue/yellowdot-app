@@ -1,25 +1,22 @@
 /**
  * Login — ultra-premium minimal sign-in screen.
  *
- * Layout  : pure white, no card, vertically centered column
+ * Layout  : pure #FFFFFF, no card, content sits ~15 vh from top
  * Auth    : Google only
- * Vibe    : Apple × Notion × Linear
+ * Vibe    : Apple onboarding × Linear × premium SaaS
  */
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
-// ── Route helpers ──────────────────────────────────────────────────────────────
+// ── Route map ──────────────────────────────────────────────────────────────────
 function getHomeRoute(role) {
   const map = {
-    super_admin:  "/",
-    developer:    "/",
-    center_admin: "/",
-    teacher:      "/attendance",
+    super_admin:  "/",          developer:   "/",
+    center_admin: "/",          teacher:     "/attendance",
     parent:       "/parent-checkin",
-    accountant:   "/invoice",
-    cctv_viewer:  "/live-cctv",
+    accountant:   "/invoice",   cctv_viewer: "/live-cctv",
     reception:    "/",
   };
   return map[role] || "/";
@@ -28,15 +25,18 @@ function getHomeRoute(role) {
 // ── Time-based greeting ────────────────────────────────────────────────────────
 function getGreeting() {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12)  return "Good morning ☀️";   // ☀️
-  if (h >= 12 && h < 17) return "Good afternoon ☀️"; // ☀️
-  return "Good evening 🌙";                           // 🌙
+  if (h >= 5  && h < 12) return "Good morning ☀️";
+  if (h >= 12 && h < 17) return "Good afternoon ☀️";
+  return "Good evening 🌙";
 }
 
-// ── Keyframes ─────────────────────────────────────────────────────────────────
+// ── Shared spring easing ───────────────────────────────────────────────────────
+const SPRING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+// ── Keyframes + safe-area support ─────────────────────────────────────────────
 const CSS = `
   @keyframes yd-rise {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0);    }
   }
   @keyframes yd-fade {
@@ -48,13 +48,11 @@ const CSS = `
   }
 `;
 
-// ── Spring easing shared across all elements ───────────────────────────────────
-const SPRING = "cubic-bezier(0.22, 1, 0.36, 1)";
+// ── Animation helper ───────────────────────────────────────────────────────────
+const rise = (delay) =>
+  `yd-rise 0.65s ${SPRING} ${delay}s both`;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export default function Login() {
   const { loginWithGoogle, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -66,7 +64,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
-  // Redirect once authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
     if (user?.centers?.length > 1 && !user?.activeCenter) {
@@ -100,9 +97,7 @@ export default function Login() {
         return;
       }
       if (err.code === "auth/link-required") {
-        setError(
-          "This email has a staff account. Contact your administrator to link your Google account."
-        );
+        setError("This email has a staff account. Contact your administrator to link your Google account.");
         return;
       }
       setError(err?.response?.data?.error || err.message || "Sign-in failed. Please try again.");
@@ -112,50 +107,60 @@ export default function Login() {
   return (
     <div
       style={{
-        position:        "fixed",
-        inset:           0,
-        background:      "#ffffff",
-        display:         "flex",
-        flexDirection:   "column",
-        alignItems:      "center",
-        justifyContent:  "center",
-        fontFamily:      '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
-        WebkitFontSmoothing:  "antialiased",
-        MozOsxFontSmoothing:  "grayscale",
-        overflowY:       "auto",
-        padding:         "40px 24px",
-        boxSizing:       "border-box",
+        /* ── canvas ── */
+        position:   "fixed",
+        inset:      0,
+        background: "#FFFFFF",
+
+        /* ── layout: column, starts ~15 vh from top (not centred) ── */
+        display:        "flex",
+        flexDirection:  "column",
+        alignItems:     "center",
+        justifyContent: "flex-start",
+
+        /* ── safe-area-aware padding for notches & home bars ── */
+        paddingTop:    "max(15vh, calc(env(safe-area-inset-top, 0px) + 32px))",
+        paddingBottom: "max(32px, calc(env(safe-area-inset-bottom, 0px) + 20px))",
+        paddingLeft:   "max(24px, env(safe-area-inset-left, 0px))",
+        paddingRight:  "max(24px, env(safe-area-inset-right, 0px))",
+
+        boxSizing: "border-box",
+        overflowY: "auto",
+
+        /* ── typography base ── */
+        fontFamily:          '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
       }}
     >
       <style>{CSS}</style>
 
-      {/* ── 1. Mascot ─────────────────────────────────────────────────────── */}
-      {/*    Glow via drop-shadow filter — no extra DOM nodes, no gradients   */}
+      {/* ── 1. Mascot ──────────────────────────────────────────────────────── */}
+      {/*    drop-shadow: blur reduced 20 % vs previous (30 → 24 px, 0.18 → 0.14 opacity) */}
       <img
         src="/icons/pwa-512x512.png"
         alt="Yellow Dot"
         draggable={false}
         style={{
-          width:      90,
-          height:     90,
-          display:    "block",
-          filter:     "drop-shadow(0 10px 30px rgba(255, 196, 0, 0.18))",
-          userSelect: "none",
+          width:     90,
+          height:    90,
+          display:   "block",
+          filter:    "drop-shadow(0 8px 24px rgba(255, 196, 0, 0.14))",
+          userSelect:       "none",
           WebkitUserSelect: "none",
-          marginBottom: 28,
-          animation:  `yd-rise 0.7s ${SPRING} 0.04s both`,
+          marginBottom: 36,         /* increased gap to wordmark */
+          animation:    rise(0.04),
         }}
       />
 
-      {/* ── 2. Brand wordmark ─────────────────────────────────────────────── */}
+      {/* ── 2. Brand wordmark ──────────────────────────────────────────────── */}
       <div
         style={{
           textAlign:    "center",
-          marginBottom: 22,
-          animation:    `yd-rise 0.7s ${SPRING} 0.16s both`,
+          marginBottom: 18,
+          animation:    rise(0.17),
         }}
       >
-        {/* Primary brand name */}
         <div
           style={{
             fontSize:      34,
@@ -167,8 +172,6 @@ export default function Login() {
         >
           Yellow Dot
         </div>
-
-        {/* Brand descriptor */}
         <div
           style={{
             fontSize:      14,
@@ -183,23 +186,24 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── 3. Dynamic greeting ───────────────────────────────────────────── */}
+      {/* ── 3. Dynamic greeting ────────────────────────────────────────────── */}
+      {/*    Smaller, lighter — atmospheric, not structural */}
       <div
         style={{
-          fontSize:      20,
+          fontSize:      15,
           fontWeight:    400,
-          color:         "#78716C",
-          letterSpacing: "-0.015em",
-          lineHeight:    1.3,
+          color:         "#C0BAB3",      /* lighter than subtitle — purely atmospheric */
+          letterSpacing: "0.01em",
+          lineHeight:    1.4,
           marginBottom:  52,
           textAlign:     "center",
-          animation:     `yd-rise 0.7s ${SPRING} 0.28s both`,
+          animation:     rise(0.30),
         }}
       >
         {getGreeting()}
       </div>
 
-      {/* ── 4. Contextual notices ─────────────────────────────────────────── */}
+      {/* ── 4. Contextual notices ──────────────────────────────────────────── */}
       {inactivityNote && (
         <div style={noticeStyle("amber")}>
           You were signed out due to inactivity.
@@ -211,24 +215,24 @@ export default function Login() {
         </div>
       )}
 
-      {/* ── 5. Google Sign-In ─────────────────────────────────────────────── */}
+      {/* ── 5. Google button ───────────────────────────────────────────────── */}
       <GoogleButton loading={loading} onClick={handleGoogle} />
 
     </div>
   );
 }
 
-// ── Inline notice styles ───────────────────────────────────────────────────────
+// ── Notice banners ─────────────────────────────────────────────────────────────
 function noticeStyle(tone) {
   const amber = tone === "amber";
   return {
-    marginBottom: 20,
-    padding:      "11px 18px",
+    marginBottom: 18,
+    padding:      "10px 16px",
     background:   amber ? "#FFFBEA" : "#FFF2F2",
-    border:       `1px solid ${amber ? "rgba(244,196,0,0.30)" : "rgba(220,38,38,0.15)"}`,
+    border:       `1px solid ${amber ? "rgba(244,196,0,0.28)" : "rgba(220,38,38,0.13)"}`,
     borderRadius: 12,
     fontSize:     13,
-    fontWeight:   450,
+    fontWeight:   400,
     color:        amber ? "#92700A" : "#B91C1C",
     maxWidth:     "min(300px, calc(100vw - 48px))",
     textAlign:    "center",
@@ -245,16 +249,17 @@ function GoogleButton({ loading, onClick }) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
+  /* hover: -1 px lift  |  press: scale 0.985  (tighter / more premium) */
   const btnTransform = loading   ? "none"
-    : pressed                    ? "scale(0.972)"
-    : hovered                    ? "translateY(-2px)"
+    : pressed                    ? "scale(0.985)"
+    : hovered                    ? "translateY(-1px)"
     : "none";
 
   const btnShadow = (pressed || loading)
     ? "0 1px 4px rgba(0,0,0,0.05)"
     : hovered
-    ? "0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)"
-    : "0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)";
+    ? "0 6px 22px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05)"
+    : "0 2px 10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)";
 
   return (
     <button
@@ -268,35 +273,41 @@ function GoogleButton({ loading, onClick }) {
       onTouchEnd={() => setPressed(false)}
       aria-label="Continue with Google"
       style={{
-        /* sizing */
+        /* sizing — height reduced to 52px for tighter premium feel */
         width:          "min(308px, calc(100vw - 48px))",
-        height:         56,
-        borderRadius:   18,
-        /* color */
-        background:     pressed ? "#F8F8F6" : "#ffffff",
+        height:         52,
+        borderRadius:   16,
+
+        /* colour */
+        background:     pressed ? "#F7F7F5" : "#FFFFFF",
         border:         "1px solid rgba(0,0,0,0.09)",
+
         /* layout */
         display:        "flex",
         alignItems:     "center",
         justifyContent: "center",
-        gap:            12,
+        gap:            11,
+
         /* type */
         fontFamily:     "inherit",
         fontWeight:     600,
-        fontSize:       16,
+        fontSize:       15,
         color:          "#1A1A1A",
-        letterSpacing:  "-0.012em",
+        letterSpacing:  "-0.01em",
+
         /* interaction */
-        cursor:              loading ? "default" : "pointer",
+        cursor:                  loading ? "default" : "pointer",
         WebkitTapHighlightColor: "transparent",
-        outline:             "none",
-        userSelect:          "none",
+        outline:                 "none",
+        userSelect:              "none",
+
         /* motion */
-        transition:     `transform 0.18s ${SPRING}, box-shadow 0.18s ease, background 0.12s ease`,
-        transform:      btnTransform,
-        boxShadow:      btnShadow,
-        /* entrance */
-        animation:      `yd-rise 0.7s ${SPRING} 0.42s both`,
+        transition: `transform 0.16s ${SPRING}, box-shadow 0.16s ease, background 0.1s ease`,
+        transform:  btnTransform,
+        boxShadow:  btnShadow,
+
+        /* entrance — last element to fade in */
+        animation: rise(0.44),
       }}
     >
       {loading ? <Spinner /> : <GoogleIcon />}
@@ -312,24 +323,24 @@ function Spinner() {
   return (
     <span
       style={{
-        display:      "block",
-        width:        20,
-        height:       20,
-        borderRadius: "50%",
-        border:       "2.5px solid rgba(0,0,0,0.10)",
+        display:        "block",
+        width:          18,
+        height:         18,
+        borderRadius:   "50%",
+        border:         "2px solid rgba(0,0,0,0.10)",
         borderTopColor: "#F4C400",
-        animation:    "yd-spin 0.75s linear infinite",
-        flexShrink:   0,
+        animation:      "yd-spin 0.75s linear infinite",
+        flexShrink:     0,
       }}
     />
   );
 }
 
-// ── Google colour icon ─────────────────────────────────────────────────────────
+// ── Google colour icon — 18 px ─────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg
-      width="20" height="20" viewBox="0 0 48 48"
+      width="18" height="18" viewBox="0 0 48 48"
       aria-hidden="true" focusable="false"
       style={{ flexShrink: 0 }}
     >
