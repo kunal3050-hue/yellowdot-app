@@ -1,8 +1,8 @@
 /**
- * Login — ultra-minimal, full-white, single-action sign-in screen.
+ * Login — ultra-premium minimal sign-in screen.
  *
- * Layout  : centered column, no card, pure white bg
- * Auth    : Google only (Google → email account-link flow handled inline)
+ * Layout  : pure white, no card, vertically centered column
+ * Auth    : Google only
  * Vibe    : Apple × Notion × Linear
  */
 
@@ -10,20 +10,33 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
-// ── Route mapping ──────────────────────────────────────────────────────────────
+// ── Route helpers ──────────────────────────────────────────────────────────────
 function getHomeRoute(role) {
   const map = {
-    super_admin: "/", developer: "/", center_admin: "/",
-    teacher: "/attendance", parent: "/parent-checkin",
-    accountant: "/invoice", cctv_viewer: "/live-cctv", reception: "/",
+    super_admin:  "/",
+    developer:    "/",
+    center_admin: "/",
+    teacher:      "/attendance",
+    parent:       "/parent-checkin",
+    accountant:   "/invoice",
+    cctv_viewer:  "/live-cctv",
+    reception:    "/",
   };
   return map[role] || "/";
 }
 
-// ── Keyframes (injected once) ──────────────────────────────────────────────────
+// ── Time-based greeting ────────────────────────────────────────────────────────
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12)  return "Good morning ☀️";   // ☀️
+  if (h >= 12 && h < 17) return "Good afternoon ☀️"; // ☀️
+  return "Good evening 🌙";                           // 🌙
+}
+
+// ── Keyframes ─────────────────────────────────────────────────────────────────
 const CSS = `
   @keyframes yd-rise {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0);    }
   }
   @keyframes yd-fade {
@@ -35,19 +48,25 @@ const CSS = `
   }
 `;
 
+// ── Spring easing shared across all elements ───────────────────────────────────
+const SPRING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
 // ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export default function Login() {
   const { loginWithGoogle, isAuthenticated, user } = useAuth();
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const _from = location.state?.from?.pathname;
   const from  = (_from && _from !== "/unauthorized" && _from !== "/login") ? _from : null;
 
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
 
-  // Redirect if already authenticated
+  // Redirect once authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
     if (user?.centers?.length > 1 && !user?.activeCenter) {
@@ -77,107 +96,86 @@ export default function Login() {
     } catch (err) {
       setLoading(false);
       if (err.code === "auth/popup-closed-by-user") {
-        setError("Sign-in was cancelled. Tap the button to try again.");
+        setError("Sign-in was cancelled. Tap to try again.");
         return;
       }
       if (err.code === "auth/link-required") {
         setError(
-          "This email is registered as a staff account. Contact your administrator to link your Google account."
+          "This email has a staff account. Contact your administrator to link your Google account."
         );
         return;
       }
-      setError(
-        err?.response?.data?.error || err.message || "Sign-in failed. Please try again."
-      );
+      setError(err?.response?.data?.error || err.message || "Sign-in failed. Please try again.");
     }
   }
 
   return (
     <div
       style={{
-        position:       "fixed",
-        inset:          0,
-        background:     "#ffffff",
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        fontFamily:     '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
-        WebkitFontSmoothing: "antialiased",
-        MozOsxFontSmoothing: "grayscale",
-        overflowY:      "auto",
-        padding:        "32px 24px",
-        boxSizing:      "border-box",
+        position:        "fixed",
+        inset:           0,
+        background:      "#ffffff",
+        display:         "flex",
+        flexDirection:   "column",
+        alignItems:      "center",
+        justifyContent:  "center",
+        fontFamily:      '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
+        WebkitFontSmoothing:  "antialiased",
+        MozOsxFontSmoothing:  "grayscale",
+        overflowY:       "auto",
+        padding:         "40px 24px",
+        boxSizing:       "border-box",
       }}
     >
       <style>{CSS}</style>
 
-      {/* ── Mascot + glow ─────────────────────────────────────────────────── */}
-      <div
+      {/* ── 1. Mascot ─────────────────────────────────────────────────────── */}
+      {/*    Glow via drop-shadow filter — no extra DOM nodes, no gradients   */}
+      <img
+        src="/icons/pwa-512x512.png"
+        alt="Yellow Dot"
+        draggable={false}
         style={{
-          position:  "relative",
-          width:     120,
-          height:    120,
-          display:   "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          width:      90,
+          height:     90,
+          display:    "block",
+          filter:     "drop-shadow(0 10px 30px rgba(255, 196, 0, 0.18))",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           marginBottom: 28,
-          animation: "yd-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both",
+          animation:  `yd-rise 0.7s ${SPRING} 0.04s both`,
         }}
-      >
-        {/* Warm ambient glow */}
-        <div
-          aria-hidden="true"
-          style={{
-            position:     "absolute",
-            inset:        -18,
-            borderRadius: "50%",
-            background:   "radial-gradient(circle at center, rgba(244,196,0,0.28) 0%, rgba(244,196,0,0.10) 45%, transparent 72%)",
-            filter:       "blur(18px)",
-          }}
-        />
-        {/* Mascot image */}
-        <img
-          src="/icons/pwa-512x512.png"
-          alt="Yellow Dot"
-          draggable={false}
-          style={{
-            width:      90,
-            height:     90,
-            position:   "relative",
-            zIndex:     1,
-            userSelect: "none",
-            WebkitUserSelect: "none",
-          }}
-        />
-      </div>
+      />
 
-      {/* ── Wordmark ──────────────────────────────────────────────────────── */}
+      {/* ── 2. Brand wordmark ─────────────────────────────────────────────── */}
       <div
         style={{
-          textAlign:  "center",
-          marginBottom: 52,
-          animation:  "yd-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both",
+          textAlign:    "center",
+          marginBottom: 22,
+          animation:    `yd-rise 0.7s ${SPRING} 0.16s both`,
         }}
       >
+        {/* Primary brand name */}
         <div
           style={{
             fontSize:      34,
             fontWeight:    800,
             letterSpacing: "-0.045em",
             color:         "#0F0F0F",
-            lineHeight:    1.05,
+            lineHeight:    1.0,
           }}
         >
           Yellow Dot
         </div>
+
+        {/* Brand descriptor */}
         <div
           style={{
-            fontSize:      15,
+            fontSize:      14,
             fontWeight:    400,
-            color:         "#A8A29E",
-            marginTop:     8,
-            letterSpacing: "0.005em",
+            color:         "#B5AFA9",
+            marginTop:     7,
+            letterSpacing: "0.01em",
             lineHeight:    1.4,
           }}
         >
@@ -185,54 +183,58 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── Inactivity note ───────────────────────────────────────────────── */}
+      {/* ── 3. Dynamic greeting ───────────────────────────────────────────── */}
+      <div
+        style={{
+          fontSize:      20,
+          fontWeight:    400,
+          color:         "#78716C",
+          letterSpacing: "-0.015em",
+          lineHeight:    1.3,
+          marginBottom:  52,
+          textAlign:     "center",
+          animation:     `yd-rise 0.7s ${SPRING} 0.28s both`,
+        }}
+      >
+        {getGreeting()}
+      </div>
+
+      {/* ── 4. Contextual notices ─────────────────────────────────────────── */}
       {inactivityNote && (
-        <div
-          style={{
-            marginBottom:  20,
-            padding:       "11px 16px",
-            background:    "#FFFBEA",
-            border:        "1px solid rgba(244,196,0,0.35)",
-            borderRadius:  12,
-            fontSize:      13,
-            color:         "#92700A",
-            fontWeight:    500,
-            maxWidth:      320,
-            textAlign:     "center",
-            animation:     "yd-fade 0.4s ease both",
-          }}
-        >
+        <div style={noticeStyle("amber")}>
           You were signed out due to inactivity.
         </div>
       )}
-
-      {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div
-          style={{
-            marginBottom:  20,
-            padding:       "11px 16px",
-            background:    "#FFF2F2",
-            border:        "1px solid rgba(220,38,38,0.18)",
-            borderRadius:  12,
-            fontSize:      13,
-            color:         "#B91C1C",
-            fontWeight:    500,
-            maxWidth:      320,
-            textAlign:     "center",
-            lineHeight:    1.5,
-            animation:     "yd-fade 0.3s ease both",
-          }}
-        >
+        <div style={noticeStyle("red")}>
           {error}
         </div>
       )}
 
-      {/* ── Google Sign-In button ─────────────────────────────────────────── */}
+      {/* ── 5. Google Sign-In ─────────────────────────────────────────────── */}
       <GoogleButton loading={loading} onClick={handleGoogle} />
 
     </div>
   );
+}
+
+// ── Inline notice styles ───────────────────────────────────────────────────────
+function noticeStyle(tone) {
+  const amber = tone === "amber";
+  return {
+    marginBottom: 20,
+    padding:      "11px 18px",
+    background:   amber ? "#FFFBEA" : "#FFF2F2",
+    border:       `1px solid ${amber ? "rgba(244,196,0,0.30)" : "rgba(220,38,38,0.15)"}`,
+    borderRadius: 12,
+    fontSize:     13,
+    fontWeight:   450,
+    color:        amber ? "#92700A" : "#B91C1C",
+    maxWidth:     "min(300px, calc(100vw - 48px))",
+    textAlign:    "center",
+    lineHeight:   1.5,
+    animation:    "yd-fade 0.35s ease both",
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -243,19 +245,16 @@ function GoogleButton({ loading, onClick }) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
-  const transform = loading
-    ? "none"
-    : pressed
-    ? "scale(0.972)"
-    : hovered
-    ? "translateY(-2px)"
+  const btnTransform = loading   ? "none"
+    : pressed                    ? "scale(0.972)"
+    : hovered                    ? "translateY(-2px)"
     : "none";
 
-  const shadow = pressed || loading
-    ? "0 1px 3px rgba(0,0,0,0.06)"
+  const btnShadow = (pressed || loading)
+    ? "0 1px 4px rgba(0,0,0,0.05)"
     : hovered
-    ? "0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06)"
-    : "0 2px 10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)";
+    ? "0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)"
+    : "0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)";
 
   return (
     <button
@@ -270,61 +269,63 @@ function GoogleButton({ loading, onClick }) {
       aria-label="Continue with Google"
       style={{
         /* sizing */
-        width:          "min(300px, calc(100vw - 48px))",
+        width:          "min(308px, calc(100vw - 48px))",
         height:         56,
         borderRadius:   18,
-        /* colours */
-        background:     pressed ? "#F9F9F7" : "#ffffff",
+        /* color */
+        background:     pressed ? "#F8F8F6" : "#ffffff",
         border:         "1px solid rgba(0,0,0,0.09)",
         /* layout */
         display:        "flex",
         alignItems:     "center",
         justifyContent: "center",
         gap:            12,
-        /* typography */
+        /* type */
         fontFamily:     "inherit",
         fontWeight:     600,
         fontSize:       16,
         color:          "#1A1A1A",
-        letterSpacing:  "-0.01em",
+        letterSpacing:  "-0.012em",
         /* interaction */
-        cursor:         loading ? "default" : "pointer",
-        transition:     "transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s ease, background 0.12s ease",
-        transform,
-        boxShadow:      shadow,
-        /* animation */
-        animation:      "yd-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both",
-        /* prevent tap highlight on mobile */
+        cursor:              loading ? "default" : "pointer",
         WebkitTapHighlightColor: "transparent",
-        outline:        "none",
-        userSelect:     "none",
+        outline:             "none",
+        userSelect:          "none",
+        /* motion */
+        transition:     `transform 0.18s ${SPRING}, box-shadow 0.18s ease, background 0.12s ease`,
+        transform:      btnTransform,
+        boxShadow:      btnShadow,
+        /* entrance */
+        animation:      `yd-rise 0.7s ${SPRING} 0.42s both`,
       }}
     >
-      {loading ? (
-        <span
-          style={{
-            width:        20,
-            height:       20,
-            borderRadius: "50%",
-            border:       "2.5px solid #E0D8C0",
-            borderTopColor: "#F4C400",
-            animation:    "yd-spin 0.7s linear infinite",
-            display:      "block",
-            flexShrink:   0,
-          }}
-        />
-      ) : (
-        <GoogleIcon />
-      )}
-      <span>{loading ? "Signing in…" : "Continue with Google"}</span>
+      {loading ? <Spinner /> : <GoogleIcon />}
+      <span style={{ lineHeight: 1 }}>
+        {loading ? "Signing in…" : "Continue with Google"}
+      </span>
     </button>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GOOGLE SVG ICON
-// ═══════════════════════════════════════════════════════════════════════════════
+// ── Spinner ────────────────────────────────────────────────────────────────────
+function Spinner() {
+  return (
+    <span
+      style={{
+        display:      "block",
+        width:        20,
+        height:       20,
+        borderRadius: "50%",
+        border:       "2.5px solid rgba(0,0,0,0.10)",
+        borderTopColor: "#F4C400",
+        animation:    "yd-spin 0.75s linear infinite",
+        flexShrink:   0,
+      }}
+    />
+  );
+}
 
+// ── Google colour icon ─────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg
