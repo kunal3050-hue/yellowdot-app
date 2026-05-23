@@ -95,16 +95,15 @@ export default function Login() {
         }}>
 
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: YD_YELLOW, display: "flex", alignItems: "center",
-              justifyContent: "center", fontWeight: 900, fontSize: 16, color: YD_CHARCOAL,
-              boxShadow: `0 4px 12px ${YD_YELLOW}55`,
-            }}>Y</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 28 }}>
+            <img
+              src="/icons/pwa-192x192.png"
+              alt="Yellow Dot"
+              style={{ width: 44, height: 44, borderRadius: 13, display: "block" }}
+            />
             <div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: YD_CHARCOAL, lineHeight: 1 }}>Yellow Dot</div>
-              <div style={{ fontSize: 10, color: YD_SOFT, marginTop: 2, fontWeight: 500 }}>Preschool CRM</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: YD_CHARCOAL, lineHeight: 1 }}>Yellow Dot</div>
+              <div style={{ fontSize: 11, color: YD_SOFT, marginTop: 3, fontWeight: 500 }}>Preschool CRM</div>
             </div>
           </div>
 
@@ -176,10 +175,6 @@ export default function Login() {
             )}
           </div>
 
-          {/* Footer */}
-          <p style={{ marginTop: 28, fontSize: 12, color: "#BBB", textAlign: "center", fontWeight: 500 }}>
-            Yellow Dot — Secure school management platform
-          </p>
         </div>
       </div>
 
@@ -194,16 +189,17 @@ export default function Login() {
         @media (max-width: 767px) {
           .login-left-panel { display: none !important; }
           .login-right-panel {
-            padding: 40px 20px 32px !important;
-            align-items: flex-start !important;
-            min-height: 100vh;
+            padding: 20px 18px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 100svh;
           }
         }
 
         /* Small phones — tighten further */
         @media (max-width: 480px) {
           .login-right-panel {
-            padding: 32px 16px 24px !important;
+            padding: 16px !important;
           }
         }
 
@@ -226,17 +222,15 @@ export default function Login() {
             min-height: 44px !important;
           }
           .login-card {
-            padding: 32px 20px !important;
-            border-radius: 20px !important;
-            background: rgba(255,255,255,0.95) !important;
+            padding: 28px 20px 24px !important;
+            border-radius: 24px !important;
+            background: rgba(255,255,255,0.97) !important;
           }
         }
         @media (max-width: 480px) {
           .login-card {
-            border-radius: 0 !important;
-            border-left: none !important;
-            border-right: none !important;
-            padding: 28px 16px !important;
+            border-radius: 20px !important;
+            padding: 26px 18px 22px !important;
           }
         }
       `}</style>
@@ -279,11 +273,11 @@ function LeftPanel() {
 
         {/* Brand */}
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:48 }}>
-          <div style={{
-            width:44, height:44, borderRadius:13, background:"rgba(0,0,0,0.12)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontWeight:900, fontSize:20, color:YD_CHARCOAL,
-          }}>Y</div>
+          <img
+            src="/icons/pwa-192x192.png"
+            alt="Yellow Dot"
+            style={{ width:44, height:44, borderRadius:13, display:"block" }}
+          />
           <div>
             <div style={{ fontWeight:800, fontSize:16, color:YD_CHARCOAL, lineHeight:1 }}>Yellow Dot</div>
             <div style={{ fontSize:11, color:"rgba(0,0,0,0.5)", marginTop:2, fontWeight:500 }}>Preschool CRM</div>
@@ -392,7 +386,8 @@ function AuthTabs({ tab, setTab }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResult, onLinkRequired }) {
-  const [arrowShift, setArrowShift] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   async function handleGoogle() {
     setLoading(true);
@@ -414,27 +409,48 @@ function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResul
     }
   }
 
+  const btnTransform = loading
+    ? "none"
+    : pressed
+    ? "scale(0.977)"
+    : hovered
+    ? "translateY(-2px)"
+    : "none";
+
+  const btnShadow = loading
+    ? "0 1px 4px rgba(0,0,0,0.04)"
+    : pressed
+    ? "0 1px 4px rgba(0,0,0,0.06)"
+    : hovered
+    ? "0 6px 20px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05)"
+    : "0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)";
+
   return (
     <div style={{ animation: "slideIn 0.25s ease both" }}>
-      <p style={{ fontSize: 13, color: YD_SOFT, marginBottom: 20, fontWeight: 500, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13, color: YD_SOFT, marginBottom: 20, fontWeight: 500, lineHeight: 1.55 }}>
         Parents sign in with the Google account linked to your child's school profile.
         Staff sign in with your school Google account.
       </p>
 
       <button
         onClick={() => !loading && handleGoogle()}
-        onMouseEnter={() => setArrowShift(true)}
-        onMouseLeave={() => setArrowShift(false)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setPressed(false); }}
+        onMouseDown={() => setPressed(true)}
+        onMouseUp={() => setPressed(false)}
+        onTouchStart={() => setPressed(true)}
+        onTouchEnd={() => { setPressed(false); !loading && handleGoogle(); }}
         disabled={loading}
         style={{
-          width: "100%", height: 52, borderRadius: 14,
-          border: "1.5px solid #E8E3D9",
-          background: loading ? "#FAFAF8" : "#fff",
+          width: "100%", height: 54, borderRadius: 14,
+          border: "1px solid rgba(0,0,0,0.09)",
+          background: pressed ? "#F8F8F6" : loading ? "#FAFAF8" : "#fff",
           display: "flex", alignItems: "center", justifyContent: "center",
           gap: 12, cursor: loading ? "not-allowed" : "pointer",
-          transition: "all 0.18s ease", fontFamily: "inherit",
-          boxShadow: "0 1px 8px rgba(0,0,0,0.05)",
-          transform: loading ? "none" : arrowShift ? "translateY(-2px)" : "none",
+          transition: "transform 0.15s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s ease, background 0.12s ease",
+          fontFamily: "inherit",
+          boxShadow: btnShadow,
+          transform: btnTransform,
         }}
       >
         {loading ? (
@@ -446,8 +462,8 @@ function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResul
               Continue with Google
             </span>
             <span style={{
-              fontSize: 18, color: YD_SOFT,
-              transform: arrowShift ? "translateX(3px)" : "none",
+              fontSize: 17, color: "#C8C0B0",
+              transform: hovered && !pressed ? "translateX(3px)" : "none",
               transition: "transform 0.18s ease",
             }}>→</span>
           </>
@@ -455,7 +471,7 @@ function GoogleTab({ loading, setLoading, setError, loginWithGoogle, handleResul
       </button>
 
       <div style={{
-        marginTop: 16, fontSize: 12, color: "#C0B8A8",
+        marginTop: 14, fontSize: 12, color: "#C8C0B0",
         textAlign: "center", fontWeight: 500,
       }}>
         Secured by Google OAuth 2.0
