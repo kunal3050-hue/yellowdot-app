@@ -21,6 +21,33 @@ const roleSvc = require("../services/roleService");
 // Called immediately after every Firebase Auth sign-in.
 router.get("/api/auth/me", authenticate, async (req, res) => {
   try {
+    // ── Profile-missing early return ─────────────────────────────────────────
+    // authMiddleware sets profileMissing=true when Firebase auth succeeds but
+    // no matching Firestore staff doc or parent link was found.
+    // Return a structured 200 so the frontend can show a user-friendly message
+    // instead of a generic 403 "access denied" screen.
+    if (req.user.profileMissing || req.user.role === "unknown") {
+      console.warn(
+        `[AUTH /me] Profile missing — uid=${req.user.userId} email=${req.user.email}` +
+        ` — returning profileMissing response`,
+      );
+      return res.status(200).json({
+        user: {
+          userId:   req.user.userId,
+          email:    req.user.email,
+          name:     req.user.name || "",
+          photoUrl: req.user.photoUrl || "",
+          role:     "unknown",
+          homeRoute: "/profile-incomplete",
+        },
+        permissions:    [],
+        roleMatrix:     {},
+        homeRoute:      "/profile-incomplete",
+        profileMissing: true,
+        message: "Your account was authenticated but your profile is not set up yet. Contact your administrator.",
+      });
+    }
+
     const { userId, role, name, email, photoUrl, centers, center, student } = req.user;
 
     // Use permissions resolved by authMiddleware (Firestore-backed with static fallback).

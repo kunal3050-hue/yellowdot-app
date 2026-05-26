@@ -17,7 +17,7 @@ import { isBypassRole } from "../../config/permissions";
  * are never accidentally redirected anywhere other than their intended page.
  */
 export default function ProtectedRoute({ children, routeKey }) {
-  const { isAuthenticated, loading, can, user, role } = useAuth();
+  const { isAuthenticated, loading, can, user, role, profileMissing } = useAuth();
   const location = useLocation();
 
   // ── 0. Loading ───────────────────────────────────────────────────────
@@ -35,6 +35,13 @@ export default function ProtectedRoute({ children, routeKey }) {
   // ── 1. Not authenticated ─────────────────────────────────────────────
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // ── 1b. Authenticated but no Firestore profile ───────────────────────
+  // Firebase auth succeeded but no matching staff doc or parent link was
+  // found. Show the ProfileIncomplete page instead of a generic 403.
+  if (profileMissing && location.pathname !== "/profile-incomplete") {
+    return <Navigate to="/profile-incomplete" replace />;
   }
 
   // ── 2. Bypass roles (developer / super_admin) ────────────────────────

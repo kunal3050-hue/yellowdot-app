@@ -35,25 +35,59 @@ const AuthContext = createContext(null);
 
 const INACTIVITY_MS = 30 * 60 * 1000; // 30 minutes
 
+// ── DEV-ONLY headless test bypass ─────────────────────────────────────────────
+// Set localStorage key  yd_test_bypass_role = "developer"  before navigation.
+// import.meta.env.DEV is compiled to `false` in production builds (tree-shaken).
+// This code path is COMPLETELY absent from any production bundle.
+const _DEV_BYPASS_ROLE = import.meta.env.DEV
+  ? (typeof window !== "undefined" && window.localStorage.getItem("yd_test_bypass_role")) || null
+  : null;
+const _DEV_BYPASS_USER = _DEV_BYPASS_ROLE
+  ? { uid: "test-dev-user", email: "dev@test.local", name: "Dev Test",
+      role: _DEV_BYPASS_ROLE, centers: [], activeCenter: "ydseawoods",
+      photoUrl: null, schoolId: "ydseawoods" }
+  : null;
+
 export function AuthProvider({ children }) {
   // user = Yellow Dot profile from /api/auth/me (not the raw Firebase user)
-  const [user,        setUser]         = useState(null);
-  const [permissions, setPermissions]  = useState([]);
-  const [roleMatrix,  setRoleMatrix]   = useState({});  // granular { moduleId: { action: bool } }
-  const [loading,     setLoading]      = useState(true);  // true until Firebase fires
-  const [devRole,     setDevRoleState] = useState(null);
+  const [user,           setUser]          = useState(null);
+  const [permissions,    setPermissions]   = useState([]);
+  const [roleMatrix,     setRoleMatrix]    = useState({});  // granular { moduleId: { action: bool } }
+  const [loading,        setLoading]       = useState(true);  // always starts loading (SplashScreen needs true→false)
+  const [devRole,        setDevRoleState]  = useState(null);
+  const [profileMissing, setProfileMissing] = useState(false);
   const inactivityTimer = useRef(null);
 
   // ── Firebase auth state listener ────────────────────────────────────────────
   useEffect(() => {
+    if (_DEV_BYPASS_ROLE) {
+      // DEV bypass: skip Firebase, inject mock user, resolve loading
+      setUser(_DEV_BYPASS_USER);
+      setPermissions(["*"]);
+      setLoading(false);
+      return; // no Firebase subscription to clean up
+    }
     const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       if (firebaseUser) {
         try {
           // Fetch Yellow Dot profile (role, permissions, center assignments)
           const data = await authService.me();
-          setUser(data.user);
-          setPermissions(data.permissions || []);
-          setRoleMatrix(data.roleMatrix || {});
+
+          // Backend signals profile-missing: Firebase auth passed but no Firestore
+          // staff doc or parent email match was found. Surface this state so
+          // ProtectedRoute can redirect to the ProfileIncomplete page.
+          if (data.profileMissing) {
+            console.warn("[AuthContext] profileMissing=true — uid exists in Firebase but no Firestore profile.");
+            setUser(data.user || null);
+            setPermissions([]);
+            setRoleMatrix({});
+            setProfileMissing(true);
+          } else {
+            setUser(data.user);
+            setPermissions(data.permissions || []);
+            setRoleMatrix(data.roleMatrix || {});
+            setProfileMissing(false);
+          }
         } catch (err) {
           console.error("[AuthContext] Failed to fetch profile:", err.message);
           // If the backend is unreachable, sign out rather than leaving a broken state
@@ -61,6 +95,7 @@ export function AuthProvider({ children }) {
           setUser(null);
           setPermissions([]);
           setRoleMatrix({});
+          setProfileMissing(false);
         }
       } else {
         // Firebase user is signed out
@@ -68,6 +103,7 @@ export function AuthProvider({ children }) {
         setPermissions([]);
         setRoleMatrix({});
         setDevRoleState(null);
+        setProfileMissing(false);
       }
       setLoading(false);
     });
@@ -237,6 +273,7 @@ export function AuthProvider({ children }) {
     roleMatrix,
     loading,
     isAuthenticated: !!user,
+    profileMissing,
 
     // Login
     loginWithGoogle,

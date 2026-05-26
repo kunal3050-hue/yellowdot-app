@@ -221,16 +221,34 @@ const ICONS = {
       <path d="M3 11l19-9-9 19-2-8-8-2z" />
     </svg>
   ),
+  Grid: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  ),
 };
 
-function Icon({ name, className }) {
-  const Component = ICONS[name];
-  if (!Component) return null;
+// Fallback for any unrecognised icon name — renders a neutral dot so layout holds
+function FallbackIcon() {
   return (
-    <span className={className} style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
-      <Component />
-    </span>
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill="currentColor" stroke="none">
+      <circle cx="12" cy="12" r="4" opacity="0.4" />
+    </svg>
   );
+}
+
+function Icon({ name, className }) {
+  const Component = ICONS[name] || FallbackIcon;
+  try {
+    return (
+      <span className={className} style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+        <Component />
+      </span>
+    );
+  } catch {
+    return null;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -345,14 +363,21 @@ function SidebarSection({ group, visibleItems, badgeCounts, onActionClick }) {
       {/* Collapsible content */}
       <div className={`yd-sl-section-body${open ? " yd-sl-section-body--open" : " yd-sl-section-body--closed"}`}>
         <div className="yd-sl-items">
-          {visibleItems.map(item => (
-            <SidebarItem
-              key={item.id}
-              item={item}
-              badgeCounts={badgeCounts}
-              onActionClick={onActionClick}
-            />
-          ))}
+          {visibleItems.map(item => {
+            try {
+              return (
+                <SidebarItem
+                  key={item.id}
+                  item={item}
+                  badgeCounts={badgeCounts}
+                  onActionClick={onActionClick}
+                />
+              );
+            } catch (err) {
+              console.error("[Sidebar] Failed to render item:", item?.id, err);
+              return null;
+            }
+          })}
         </div>
       </div>
     </div>
@@ -471,7 +496,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const navigate    = useNavigate();
   const { user, role, permissions, can, logout, isDeveloper, setDevRole, devRole } = useAuth();
 
-  const [devPanelOpen, setDevPanelOpen] = useState(false);
+  const [devPanelOpen,     setDevPanelOpen]     = useState(false);
+  const [devSectionOpen,   setDevSectionOpen]   = useState(true); // developer nav group open state
 
   // Effective role for filtering (dev role override or real role)
   const effectiveRole  = devRole || role;
@@ -479,30 +505,33 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const isParent       = effectiveRole === "parent";
 
   // Badge counts — wire to live data when available
-  // Shape: { [itemId]: number | undefined }
-  const badgeCounts = {};  // placeholder — replace with context/API data
+  const badgeCounts = {};
 
-  // Handle dev panel action from the placeholder item
+  // Handle dev panel action from the Role Switcher item
   function handleAction(action) {
     if (action === "toggleDevPanel") setDevPanelOpen(p => !p);
   }
 
-  // Build visible menu groups
-  const visibleGroups = SIDEBAR_GROUPS
-    .filter(group => {
-      if (group.devOnly && !isBypass) return false;
-      return true;
-    })
+  // Non-dev groups — filtered by permission as normal
+  const regularGroups = SIDEBAR_GROUPS
+    .filter(group => !group.devOnly)
     .map(group => ({
       ...group,
-      // Filter items by permission
       visibleItems: group.items.filter(item => {
-        if (!item.routeKey) return true;   // no permission needed
-        if (isBypass) return true;         // bypass roles see everything
+        if (!item.routeKey) return true;
+        if (isBypass)       return true;
         return can(item.routeKey);
       }),
     }))
     .filter(g => g.visibleItems.length > 0);
+
+  // Debug — log once on mount so console shows what the sidebar sees
+  useEffect(() => {
+    if (isBypass) {
+      console.log("[Sidebar] bypass role active — developer section will render directly. effectiveRole:", effectiveRole, "| real role:", role);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBypass]);
 
   // Close sidebar when route changes (mobile)
   const { pathname } = useLocation();
@@ -513,6 +542,9 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
       onMobileClose?.();
     }
   }, [pathname, onMobileClose]);
+
+  // Active check for Module Explorer link
+  const isModExActive = pathname === "/dev/modules" || pathname.startsWith("/dev/modules/");
 
   return (
     <>
@@ -536,43 +568,28 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
           flexShrink: 0, position: "relative", zIndex: 1,
           overflow: "hidden", whiteSpace: "nowrap",
         }}>
-          {/* Premium gold logo tile */}
           <div style={{
-            width: 42, height: 42,
-            borderRadius: 14,
+            width: 42, height: 42, borderRadius: 14,
             background: "linear-gradient(145deg, #fde047 0%, #f59e0b 55%, #d97706 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 900, fontSize: 20, color: "#78350f",
-            flexShrink: 0,
+            fontWeight: 900, fontSize: 20, color: "#78350f", flexShrink: 0,
             boxShadow: [
               "0 4px 14px rgba(234,179,8,0.38)",
               "inset 0 1px 0 rgba(255,255,255,0.45)",
               "inset 0 -1px 0 rgba(0,0,0,0.10)",
             ].join(", "),
             letterSpacing: "-0.5px",
-          }}>
-            Y
-          </div>
-          {/* Brand name + sub */}
+          }}>Y</div>
           <div>
-            <div style={{
-              fontSize: 15, fontWeight: 800,
-              color: "#1a1a1a", lineHeight: 1.1,
-              letterSpacing: "-0.03em",
-            }}>Yellow Dot</div>
-            <div style={{
-              fontSize: 10, color: "#b0946a",
-              marginTop: 3, fontWeight: 500,
-              letterSpacing: "0.025em",
-            }}>Preschool CRM</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a1a", lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+              Yellow Dot
+            </div>
+            <div style={{ fontSize: 10, color: "#b0946a", marginTop: 3, fontWeight: 500, letterSpacing: "0.025em" }}>
+              Preschool CRM
+            </div>
           </div>
-          {/* Mobile close */}
           {mobileOpen && (
-            <button
-              className="yd-sl-mobile-close"
-              onClick={onMobileClose}
-              aria-label="Close menu"
-            >
+            <button className="yd-sl-mobile-close" onClick={onMobileClose} aria-label="Close menu">
               <Icon name="X" />
             </button>
           )}
@@ -582,11 +599,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
         {devRole && (
           <div className="yd-sl-dev-banner">
             <span>🔧 Viewing as <strong>{ROLE_LABELS[devRole] || devRole}</strong></span>
-            <button
-              className="yd-sl-dev-banner-clear"
-              onClick={() => setDevRole(null)}
-              aria-label="Reset role"
-            >
+            <button className="yd-sl-dev-banner-clear" onClick={() => setDevRole(null)} aria-label="Reset role">
               <Icon name="X" />
             </button>
           </div>
@@ -594,11 +607,12 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
 
         {/* ── Navigation ───────────────────────────────────────────────── */}
         {isParent ? (
-          /* Simplified parent-only menu */
           <ParentMenu can={can} badgeCounts={badgeCounts} />
         ) : (
           <nav className="yd-sl-nav">
-            {visibleGroups.map(group => (
+
+            {/* Regular config-driven groups (non-developer) */}
+            {regularGroups.map(group => (
               <SidebarSection
                 key={group.id}
                 group={group}
@@ -607,12 +621,61 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
                 onActionClick={handleAction}
               />
             ))}
+
+            {/* ── Developer section — rendered directly for bypass roles ── */}
+            {/* Bypasses the SidebarSection/SidebarItem/filter pipeline entirely  */}
+            {/* so it cannot be silently dropped by a filter bug or stale cache. */}
+            {isBypass && (
+              <div className="yd-sl-group yd-sl-group--dev">
+                {/* Section header */}
+                <div
+                  className="yd-sl-group-header yd-sl-group-header--toggle"
+                  onClick={() => setDevSectionOpen(o => !o)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setDevSectionOpen(o => !o); }}
+                  aria-expanded={devSectionOpen}
+                >
+                  <span className="yd-sl-group-label yd-sl-group-label--dev">
+                    <span style={{ marginRight: 4 }}>🔧</span>Developer
+                  </span>
+                  <span className={`yd-sl-group-chevron${devSectionOpen ? " yd-sl-group-chevron--open" : ""}`}>
+                    <Icon name="ChevronDown" />
+                  </span>
+                </div>
+
+                {/* Items */}
+                <div className={`yd-sl-section-body${devSectionOpen ? " yd-sl-section-body--open" : " yd-sl-section-body--closed"}`}>
+                  <div className="yd-sl-items">
+
+                    {/* Role Switcher — action button (no navigation) */}
+                    <button
+                      className="yd-sl-item"
+                      onClick={() => setDevPanelOpen(p => !p)}
+                    >
+                      <span className="yd-sl-item-icon"><Icon name="Sliders" /></span>
+                      <span className="yd-sl-item-label">Role Switcher</span>
+                    </button>
+
+                    {/* Module Explorer — navigates to /dev/modules */}
+                    <Link
+                      to="/dev/modules"
+                      className={`yd-sl-item${isModExActive ? " active" : ""}`}
+                    >
+                      <span className="yd-sl-item-icon"><Icon name="Grid" /></span>
+                      <span className="yd-sl-item-label">Module Explorer</span>
+                    </Link>
+
+                  </div>
+                </div>
+              </div>
+            )}
+
           </nav>
         )}
 
-
-        {/* ── Developer panel ──────────────────────────────────────────── */}
-        {isDeveloper && (
+        {/* ── Developer panel (role switcher UI in footer) ─────────────── */}
+        {isBypass && (
           <div className="yd-sl-footer-section">
             <button
               className={`yd-sl-dev-toggle${devPanelOpen ? " active" : ""}`}

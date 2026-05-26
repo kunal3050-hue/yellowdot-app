@@ -16,6 +16,7 @@ import SplashScreen      from "./components/SplashScreen";
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
 const Profile             = lazy(() => import("./pages/auth/Profile"));
 const SecuritySettings    = lazy(() => import("./pages/auth/SecuritySettings"));
+const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"));
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const Dashboard           = lazy(() => import("./pages/Dashboard"));
@@ -47,10 +48,14 @@ const ParentDashboard     = lazy(() => import("./pages/ParentDashboard"));
 const ParentCheckIn       = lazy(() => import("./pages/ParentCheckIn"));
 const PickupAuthorization = lazy(() => import("./pages/PickupAuthorization"));
 const PickupHistory       = lazy(() => import("./pages/PickupHistory"));
+const ParentLiveCCTV      = lazy(() => import("./pages/ParentLiveCCTV"));
+const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
+const PickupMigration     = lazy(() => import("./pages/PickupMigration"));
 
 const Settings            = lazy(() => import("./pages/Settings"));
 const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
+const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
@@ -70,6 +75,9 @@ function App() {
 
             {/* ── Public ───────────────────────────────────────────────────── */}
             <Route path="/login" element={<Login />} />
+
+            {/* ── Profile incomplete (Firebase auth OK, but no Firestore profile) */}
+            <Route path="/profile-incomplete" element={<ProfileIncomplete />} />
 
             <Route
               path="/unauthorized"
@@ -324,6 +332,33 @@ function App() {
               }
             />
 
+            {/* ── Child Security System ─────────────────────────────── */}
+            <Route
+              path="/parent-cctv"
+              element={
+                import.meta.env.DEV
+                  ? <ParentLayout><ParentLiveCCTV /></ParentLayout>
+                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentLiveCCTV /></ParentLayout></ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff-checkout"
+              element={
+                <ProtectedRoute routeKey="attendance">
+                  <StaffCheckout />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/pickup-migration"
+              element={
+                <ProtectedRoute routeKey="attendance">
+                  <PickupMigration />
+                </ProtectedRoute>
+              }
+            />
+
             {/* ── Communication ────────────────────────────────────────────── */}
             <Route
               path="/holidays"
@@ -347,6 +382,16 @@ function App() {
                 <ProtectedRoute routeKey="announcements">
                   <Announcements />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* ── Dev tools (super_admin / developer only) ─────────────────── */}
+            <Route
+              path="/dev/modules"
+              element={
+                import.meta.env.DEV
+                  ? <MainLayout><ModuleExplorer /></MainLayout>
+                  : <ProtectedRoute routeKey="dev-tools"><MainLayout><ModuleExplorer /></MainLayout></ProtectedRoute>
               }
             />
 

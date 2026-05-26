@@ -8,14 +8,20 @@
  *   name, photoUrl, permissions, student (parents only)
  *
  * Role resolution order:
- *   1. Firestore users/{uid}  → staff user (role from doc)
- *   2. students collection    → parent (email matches fatherEmail/motherEmail)
- *   3. No match               → role = "unknown"
+ *   1. Firestore users/{uid}               → staff user (direct UID match)
+ *   1b. Firestore users where email==email → handles Google OAuth UID mismatch
+ *       (Firebase creates a new UID for Google sign-in when the email already
+ *        has a password-based account; email fallback finds the existing profile.
+ *        A Firestore doc for the new Google UID is auto-created on first match.)
+ *   2. students collection                 → parent (fatherEmail / motherEmail)
+ *   3. No match                            → role = "unknown", profileMissing = true
  *
  * schoolId resolution:
  *   1. User doc has schoolId field   → use it
  *   2. SCHOOL_ID env var             → use it
  *   3. Default "yd-main"
+ *
+ * Debug logs: every resolution step is logged with [AUTH-DEBUG] prefix.
  */
 
 const { auth, db }       = require("../firebaseAdmin");
@@ -23,6 +29,50 @@ const { isBypassRole, ROLE_PERMISSIONS } = require("../config/permissionsBackend
 const roleSvc            = require("../services/roleService");
 
 const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
+
+// ── Internal helpers ───────────────────────────────────────────────
+
+/**
+ * Build req.user from a Firestore user document snapshot/data + the decoded token.
+ * Logs any missing critical fields so they appear clearly in server logs.
+ */
+async function _buildUserFromDoc(uid, docData, decoded) {
+  const missingFields = [];
+  if (!docData.role)                      missingFields.push("role");
+  if (!docData.schoolId)                  missingFields.push("schoolId");
+  if (!docData.centerId && !docData.center) missingFields.push("centerId/center");
+  if (!docData.name)                      missingFields.push("name");
+
+  if (missingFields.length > 0) {
+    console.warn(
+      `[AUTH-DEBUG] User doc users/${uid} is missing fields: [${missingFields.join(", ")}]` +
+      ` — email=${decoded.email || "(none)"} role=${docData.role || "(missing)"}`,
+    );
+  }
+
+  const _role    = docData.role    || "teacher";
+  const _schoolId = docData.schoolId || DEFAULT_SCHOOL_ID;
+
+  console.log(
+    `[AUTH-DEBUG] Profile resolved — uid=${uid} email=${decoded.email || ""}` +
+    ` role=${_role} schoolId=${_schoolId} centerId=${docData.centerId || docData.center || "(none)"}`,
+  );
+
+  return {
+    userId:    uid,
+    email:     decoded.email || docData.email || "",
+    role:      _role,
+    schoolId:  _schoolId,
+    centerId:  docData.centerId || docData.center || "",
+    center:    docData.centerId || docData.center || "",
+    centers:   Array.isArray(docData.centers) ? docData.centers
+               : (docData.center ? [docData.center] : []),
+    name:      docData.name    || decoded.name    || "",
+    photoUrl:  docData.photoUrl || decoded.picture || "",
+    permissions: await roleSvc.getPermissionsForRole(_role, _schoolId),
+    roleMatrix:  await roleSvc.getRoleMatrix(_role, _schoolId),
+  };
+}
 
 // ── Middleware ─────────────────────────────────────────────────────
 
@@ -39,30 +89,68 @@ async function authenticate(req, res, next) {
     const uid     = decoded.uid;
     const email   = (decoded.email || "").toLowerCase();
 
-    // ── 1. Staff user in Firestore users collection ───────────────────────────
+    console.log(`[AUTH-DEBUG] Token verified — uid=${uid} email=${decoded.email || "(none)"} provider=${decoded.firebase?.sign_in_provider || "?"}`);
+
+    // ── 1. Direct UID lookup in Firestore users collection ────────────────────
     const userDoc = await db.collection("users").doc(uid).get();
+    console.log(`[AUTH-DEBUG] Firestore users/${uid} → exists=${userDoc.exists}`);
+
     if (userDoc.exists) {
-      const u = userDoc.data();
-      const _schoolId = u.schoolId || DEFAULT_SCHOOL_ID;
-      const _role     = u.role    || "teacher";
-      req.user = {
-        userId:    uid,
-        email:     decoded.email || u.email || "",
-        role:      _role,
-        schoolId:  _schoolId,
-        centerId:  u.centerId    || u.center || "",
-        center:    u.centerId    || u.center || "",
-        centers:   Array.isArray(u.centers) ? u.centers : (u.center ? [u.center] : []),
-        name:      u.name        || decoded.name    || "",
-        photoUrl:  u.photoUrl    || decoded.picture || "",
-        permissions: await roleSvc.getPermissionsForRole(_role, _schoolId),
-        roleMatrix:  await roleSvc.getRoleMatrix(_role, _schoolId),
-      };
+      req.user = await _buildUserFromDoc(uid, userDoc.data(), decoded);
       return next();
+    }
+
+    // ── 1b. Email-based fallback ───────────────────────────────────────────────
+    // Handles: admin pre-creates user with password auth → user signs in with
+    // Google → Firebase Email Enumeration Protection creates a new UID.
+    // We find the profile by email and auto-link the new Google UID to it.
+    if (email) {
+      console.log(`[AUTH-DEBUG] UID lookup miss — trying email fallback for ${email}`);
+      const emailSnap = await db.collection("users")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+
+      if (!emailSnap.empty) {
+        const matchedDoc  = emailSnap.docs[0];
+        const matchedData = matchedDoc.data();
+        const originalUid = matchedDoc.id;
+
+        console.warn(
+          `[AUTH-DEBUG] UID MISMATCH — email=${email}` +
+          ` uid_in_token=${uid} uid_in_doc=${originalUid}` +
+          ` provider=${decoded.firebase?.sign_in_provider || "?"}` +
+          ` — auto-linking Google UID to existing profile.`,
+        );
+
+        // Build req.user using the matched profile data but the CURRENT uid
+        req.user = await _buildUserFromDoc(uid, matchedData, decoded);
+
+        // Fire-and-forget: create a Firestore doc for the Google UID so future
+        // sign-ins hit the direct UID lookup (path 1) instead of this fallback.
+        db.collection("users").doc(uid).set(
+          {
+            ...matchedData,
+            userId:      uid,            // update to Google UID
+            linkedUid:   originalUid,    // keep audit trail to the original UID
+            updatedAt:   new Date().toISOString(),
+          },
+          { merge: true },
+        ).then(() =>
+          console.log(`[AUTH-DEBUG] Auto-linked Google UID ${uid} to profile of ${email} (original uid: ${originalUid})`),
+        ).catch(err =>
+          console.error(`[AUTH-DEBUG] Auto-link write failed:`, err.message),
+        );
+
+        return next();
+      }
+
+      console.log(`[AUTH-DEBUG] Email fallback miss — no users doc with email=${email}`);
     }
 
     // ── 2. Parent — email match in students collection ────────────────────────
     if (email) {
+      console.log(`[AUTH-DEBUG] Trying parent lookup for email=${email}`);
       let studentDoc = null;
 
       const fatherSnap = await db.collection("students")
@@ -72,12 +160,16 @@ async function authenticate(req, res, next) {
 
       if (!fatherSnap.empty) {
         studentDoc = fatherSnap.docs[0].data();
+        console.log(`[AUTH-DEBUG] Parent match via fatherEmail — studentId=${studentDoc.studentId}`);
       } else {
         const motherSnap = await db.collection("students")
           .where("motherEmail", "==", email)
           .limit(1)
           .get();
-        if (!motherSnap.empty) studentDoc = motherSnap.docs[0].data();
+        if (!motherSnap.empty) {
+          studentDoc = motherSnap.docs[0].data();
+          console.log(`[AUTH-DEBUG] Parent match via motherEmail — studentId=${studentDoc.studentId}`);
+        }
       }
 
       if (studentDoc) {
@@ -100,20 +192,30 @@ async function authenticate(req, res, next) {
         };
         return next();
       }
+
+      console.log(`[AUTH-DEBUG] No parent match for email=${email}`);
     }
 
-    // ── 3. Authenticated but not registered in the system ─────────────────────
+    // ── 3. Authenticated but no matching profile found ────────────────────────
+    console.warn(
+      `[AUTH-DEBUG] PROFILE MISSING — uid=${uid} email=${decoded.email || "(none)"}` +
+      ` provider=${decoded.firebase?.sign_in_provider || "?"}` +
+      ` — No Firestore staff doc or parent email match found.` +
+      ` Ensure admin has created a user with POST /api/users for this email.`,
+    );
+
     req.user = {
-      userId:    uid,
-      email:     decoded.email || "",
-      role:      "unknown",
-      schoolId:  DEFAULT_SCHOOL_ID,
-      centerId:  "",
-      center:    "",
-      centers:   [],
-      name:      decoded.name || "",
-      photoUrl:  decoded.picture || "",
-      permissions: [],
+      userId:       uid,
+      email:        decoded.email || "",
+      role:         "unknown",
+      schoolId:     DEFAULT_SCHOOL_ID,
+      centerId:     "",
+      center:       "",
+      centers:      [],
+      name:         decoded.name || "",
+      photoUrl:     decoded.picture || "",
+      permissions:  [],
+      profileMissing: true,   // surfaced to frontend for user-friendly error
     };
     next();
 
