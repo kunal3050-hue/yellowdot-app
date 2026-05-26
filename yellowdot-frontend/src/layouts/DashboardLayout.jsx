@@ -26,12 +26,14 @@ const CarIcon         = () => <I d={<><path d="M3 10l1.5-4.5A1 1 0 015.4 5h5.2a1
 const HistoryIcon     = () => <I d={<><path d="M1 8a7 7 0 107 7"/><path d="M1 4v4h4"/><path d="M8 5v3.5l2.5 1.5"/></>} />;
 const VideoIcon       = () => <I d={<><rect x="1" y="4" width="10" height="8" rx="1.5"/><path d="M11 7l4-2v6l-4-2V7z"/></>} />;
 const CameraIcon      = () => <I d={<><path d="M14 12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1h2l1.5-2h3L11 5h2a1 1 0 011 1v6z"/><circle cx="8" cy="8.5" r="2"/></>} />;
+const DoorIcon        = () => <I d={<><rect x="3" y="1" width="10" height="14" rx="1"/><circle cx="10" cy="8" r="1"/><path d="M3 8h4"/></>} />;
 const SearchIcon      = () => <I d={<><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3 3"/></>} />;
 const BellIcon        = () => <I d={<><path d="M8 1.5a5 5 0 015 5v3l1.5 2H1.5L3 9.5v-3a5 5 0 015-5z"/><path d="M6 13.5a2 2 0 004 0"/></>} />;
 const ChevronDownIcon = () => <I d={<><path d="M4 6l4 4 4-4"/></>} />;
 const MenuIcon        = () => <I d={<><path d="M2 4h12M2 8h12M2 12h12"/></>} />;
 const CollapseIcon    = () => <I d={<><path d="M10 4L6 8l4 4"/></>} />;
 const ExpandIcon      = () => <I d={<><path d="M6 4l4 4-4 4"/></>} />;
+const MigrateIcon     = () => <I d={<><path d="M2 8h8M7 5l3 3-3 3"/><circle cx="13" cy="8" r="2"/></>} />;
 const ProfileIcon     = () => <I d={<><circle cx="8" cy="5.5" r="3"/><path d="M2 14c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></>} />;
 const SettingsIcon    = () => <I d={<><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></>} />;
 const LogOutIcon      = () => <I d={<><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3M7 11l3-3-3-3M10 8H2"/></>} />;
@@ -61,16 +63,24 @@ const NAV_GROUPS = [
       { name: "Nap Tracker",       path: "/nap-tracker",          icon: MoonIcon },
       { name: "Food Menu",         path: "/food-menu",            icon: UtensilsIcon },
       { name: "Food Consumption",  path: "/food-consumption",     icon: ClipboardIcon },
-      { name: "Parent Check-In",   path: "/parent-checkin",       icon: UserCheckIcon },
-      { name: "Pickup Auth",       path: "/pickup-authorization", icon: CarIcon },
+      { name: "Pickup Migration",  path: "/pickup-migration",     icon: MigrateIcon },
+    ],
+  },
+  {
+    label: "Presence & Safety",
+    items: [
+      { name: "Attendance",        path: "/attendance",           icon: UserCheckIcon },
+      { name: "Parent Entry",      path: "/parent-checkin",       icon: UserCheckIcon },
+      { name: "Pickup",            path: "/pickup-authorization", icon: CarIcon },
       { name: "Pickup History",    path: "/pickup-history",       icon: HistoryIcon },
+      { name: "Staff Checkout",    path: "/staff-checkout",       icon: DoorIcon   },
     ],
   },
   {
     label: "Security",
     items: [
-      { name: "Live CCTV",     path: "/live-cctv",     icon: VideoIcon },
-      { name: "CCTV Settings", path: "/cctv-settings", icon: CameraIcon },
+      { name: "Live CCTV",      path: "/live-cctv",       icon: VideoIcon  },
+      { name: "CCTV Settings",  path: "/cctv-settings",   icon: CameraIcon },
     ],
   },
 ];

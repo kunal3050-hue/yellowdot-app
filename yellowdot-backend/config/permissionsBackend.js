@@ -16,7 +16,7 @@ const ROLE_PERMISSIONS = {
   admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
-    "parent-checkin", "pickup-authorization", "pickup-history",
+    "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
   ],
@@ -24,7 +24,7 @@ const ROLE_PERMISSIONS = {
   center_owner: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
-    "parent-checkin", "pickup-authorization", "pickup-history",
+    "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
   ],
@@ -32,15 +32,15 @@ const ROLE_PERMISSIONS = {
   center_admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
-    "parent-checkin", "pickup-authorization", "pickup-history",
+    "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
   ],
 
   teacher: [
     "dashboard", "attendance", "nap-tracker", "food-menu", "food-consumption",
-    "students", "parent-checkin", "profile",
-    "holidays", "notices", "announcements",
+    "students", "parent-checkin", "staff-checkout",
+    "profile", "holidays", "notices", "announcements",
   ],
 
   accountant: [
@@ -49,7 +49,7 @@ const ROLE_PERMISSIONS = {
 
   reception: [
     "dashboard", "students", "attendance", "parent-checkin",
-    "pickup-authorization", "pickup-history", "profile",
+    "pickup-authorization", "pickup-history", "staff-checkout", "profile",
   ],
 
   cctv_viewer: ["live-cctv", "cctv-settings", "profile"],

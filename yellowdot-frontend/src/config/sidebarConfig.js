@@ -85,13 +85,6 @@ export const SIDEBAR_GROUPS = [
         matchPaths: ["/add-student", "/edit-student", "/student-profile"],
       },
       {
-        id:       "attendance",
-        label:    "Attendance",
-        path:     "/attendance",
-        routeKey: ROUTES.ATTENDANCE,
-        icon:     "Calendar",
-      },
-      {
         id:         "staff",
         label:      "Staff",
         path:       "/user-management",
@@ -169,27 +162,6 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.FOOD_CONSUMPTION,
         icon:     "ClipboardList",
       },
-      {
-        id:       "checkin",
-        label:    "Parent Check-In",
-        path:     "/parent-checkin",
-        routeKey: ROUTES.PARENT_CHECKIN,
-        icon:     "CheckSquare",
-      },
-      {
-        id:       "pickup_auth",
-        label:    "Pickup Auth",
-        path:     "/pickup-authorization",
-        routeKey: ROUTES.PICKUP_AUTHORIZATION,
-        icon:     "Car",
-      },
-      {
-        id:       "pickup_history",
-        label:    "Pickup History",
-        path:     "/pickup-history",
-        routeKey: ROUTES.PICKUP_HISTORY,
-        icon:     "History",
-      },
     ],
   },
 
@@ -225,14 +197,43 @@ export const SIDEBAR_GROUPS = [
   },
 
   // ── Presence & Safety ──────────────────────────────────────────────────────
-  // QR infrastructure for attendance, check-in, pickup, visitor management.
-  // V1: QR Management only. Future: Staff Attendance QR, Visitor QR.
+  // Groups all in-person attendance and safety items.
+  // Future additions: Staff Attendance QR, Visitor Management.
   {
     id:          "presence_safety",
     label:       "Presence & Safety",
     collapsible: true,
     defaultOpen: true,
     items: [
+      {
+        id:       "attendance",
+        label:    "Attendance",
+        path:     "/attendance",
+        routeKey: ROUTES.ATTENDANCE,
+        icon:     "Calendar",
+      },
+      {
+        id:       "parent_entry",
+        label:    "Parent Entry",
+        path:     "/parent-checkin",
+        routeKey: ROUTES.PARENT_CHECKIN,
+        icon:     "CheckSquare",
+      },
+      {
+        id:         "pickup",
+        label:      "Pickup",
+        path:       "/pickup-authorization",
+        routeKey:   ROUTES.PICKUP_AUTHORIZATION,
+        icon:       "Car",
+        matchPaths: ["/pickup-authorization", "/pickup-history"],
+      },
+      {
+        id:       "staff_checkout",
+        label:    "Staff Checkout",
+        path:     "/staff-checkout",
+        routeKey: ROUTES.STAFF_CHECKOUT,
+        icon:     "LogOut",
+      },
       {
         id:       "qr_management",
         label:    "QR Management",

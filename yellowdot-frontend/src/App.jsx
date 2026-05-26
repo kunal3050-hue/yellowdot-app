@@ -355,8 +355,8 @@ function App() {
             <Route
               path="/staff-checkout"
               element={
-                <ProtectedRoute routeKey="attendance">
-                  <StaffCheckout />
+                <ProtectedRoute routeKey="staff-checkout">
+                  <MainLayout><StaffCheckout /></MainLayout>
                 </ProtectedRoute>
               }
             />

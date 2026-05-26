@@ -35,9 +35,13 @@ const SEARCH_ITEMS = [
   { name: "Nap Tracker",       path: "/nap-tracker",           icon: "😴", group: "Daily Ops" },
   { name: "Food Menu",         path: "/food-menu",             icon: "🍽️",  group: "Daily Ops" },
   { name: "Food Consumption",  path: "/food-consumption",      icon: "🥣", group: "Daily Ops" },
-  { name: "Parent Check-In",   path: "/parent-checkin",        icon: "✅", group: "Daily Ops" },
-  { name: "Pickup Auth",       path: "/pickup-authorization",  icon: "🚗", group: "Daily Ops" },
-  { name: "Pickup History",    path: "/pickup-history",        icon: "📋", group: "Daily Ops" },
+  // Presence & Safety
+  { name: "Attendance",        path: "/attendance",            icon: "📅", group: "Presence & Safety" },
+  { name: "Parent Entry",      path: "/parent-checkin",        icon: "✅", group: "Presence & Safety" },
+  { name: "Pickup",            path: "/pickup-authorization",  icon: "🚗", group: "Presence & Safety" },
+  { name: "Pickup History",    path: "/pickup-history",        icon: "📋", group: "Presence & Safety" },
+  { name: "Staff Checkout",    path: "/staff-checkout",        icon: "🚪", group: "Presence & Safety" },
+  { name: "QR Management",     path: "/qr-management",         icon: "⬛", group: "Presence & Safety" },
   // Security
   { name: "Live CCTV",         path: "/live-cctv",             icon: "📹", group: "Security" },
   { name: "CCTV Settings",     path: "/cctv-settings",         icon: "📷", group: "Security" },
@@ -707,13 +711,15 @@ export default function Topbar({ onMenuToggle }) {
 
           {/* Developer badge */}
           {isDevMode && (
-            <DevBadge isSimulating={isSimulating} devRole={devRole} />
+            <div className="yd-tb-dev-badge">
+              <DevBadge isSimulating={isSimulating} devRole={devRole} />
+            </div>
           )}
 
           {/* Center switcher / badge */}
           {user?.activeCenter && (
             hasMultiCenter ? (
-              <div ref={centerRef} style={{ position: "relative" }}>
+              <div ref={centerRef} className="yd-tb-center-wrap" style={{ position: "relative" }}>
                 <CenterSwitcherBtn
                   center={user.activeCenter}
                   open={centerOpen}
@@ -728,7 +734,9 @@ export default function Topbar({ onMenuToggle }) {
                 )}
               </div>
             ) : (
-              <CenterBadge center={user.activeCenter} />
+              <div className="yd-tb-center-badge">
+                <CenterBadge center={user.activeCenter} />
+              </div>
             )
           )}
 
