@@ -36,6 +36,8 @@ const parentAttendanceRoutes = require("./routes/parentAttendanceRoutes");
 const pickupRoutes           = require("./routes/pickupRoutes");
 const roleRoutes             = require("./routes/roleRoutes");
 const communicationRoutes    = require("./routes/communicationRoutes");
+const securityRoutes         = require("./routes/securityRoutes");
+const qrRoutes               = require("./routes/qrRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -43,6 +45,7 @@ const studentMedicalSvc = require("./services/studentMedicalService");
 const studentNotesSvc   = require("./services/studentNotesService");
 const invoiceSvc        = require("./services/invoiceService");
 const settingsSvc       = require("./services/settingsService");
+const pickupAuthSvc     = require("./services/pickupAuthorizationService");
 const { HLS_DIR }       = require("./services/streamManager");
 
 // ── Auth middleware ────────────────────────────────────────────────
@@ -61,6 +64,8 @@ app.use(parentAttendanceRoutes);
 app.use(pickupRoutes);
 app.use(roleRoutes);
 app.use(communicationRoutes);
+app.use(securityRoutes);
+app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 
 // ── HLS static files — served with no-cache ────────────────────────
 app.use("/stream/live", (req, res, next) => {
@@ -150,7 +155,62 @@ app.get("/students/:id", authenticate, blockUnknown, async (req, res) => {
 app.post("/add-student", authenticate, authorize("admin","center_admin","reception","super_admin","developer"), async (req, res) => {
   try {
     const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const result = await studentSvc.create(req.body || {}, { schoolId, centerId, actorUserId });
+    const body = req.body || {};
+    const result = await studentSvc.create(body, { schoolId, centerId, actorUserId });
+
+    // ── Auto-create Father & Mother as protected pickup persons ────
+    const studentId   = result?.studentId || result?.student?.studentId;
+    const studentName = body.student_name || body.studentName || "";
+    if (studentId) {
+      const parents = [];
+
+      const fatherName  = body.father_name  || body.fatherName  || "";
+      const fatherPhone = body.father_whatsapp || body.fatherWhatsapp || body.father_phone || "";
+      const fatherPhoto = body.father_photo || body.fatherPhoto || "";
+
+      const motherName  = body.mother_name  || body.motherName  || "";
+      const motherPhone = body.mother_whatsapp || body.motherWhatsapp || body.mother_phone || "";
+      const motherPhoto = body.mother_photo || body.motherPhoto || "";
+
+      if (fatherName.trim()) {
+        parents.push({
+          studentId, studentName,
+          pickupName:  fatherName.trim(),
+          relation:    "Father",
+          mobile:      fatherPhone || "",
+          photoUrl:    fatherPhoto || "",
+          emergency:   true,
+          isParent:    true,
+          isProtected: true,
+          notes:       "Auto-created from admission form",
+        });
+      }
+      if (motherName.trim()) {
+        parents.push({
+          studentId, studentName,
+          pickupName:  motherName.trim(),
+          relation:    "Mother",
+          mobile:      motherPhone || "",
+          photoUrl:    motherPhoto || "",
+          emergency:   true,
+          isParent:    true,
+          isProtected: true,
+          notes:       "Auto-created from admission form",
+        });
+      }
+
+      // Fire-and-forget — don't fail the student creation if pickup creation fails
+      Promise.allSettled(
+        parents.map(p => pickupAuthSvc.create(p, { schoolId, centerId, actorUserId }))
+      ).then(results => {
+        const failed = results.filter(r => r.status === "rejected");
+        if (failed.length) {
+          console.warn("[add-student] Auto-pickup creation partial failure:",
+            failed.map(f => f.reason?.message).join(", "));
+        }
+      });
+    }
+
     res.json(result);
   } catch (err) {
     logRouteError("POST /add-student", err);

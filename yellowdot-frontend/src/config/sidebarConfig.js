@@ -224,6 +224,25 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Presence & Safety ──────────────────────────────────────────────────────
+  // QR infrastructure for attendance, check-in, pickup, visitor management.
+  // V1: QR Management only. Future: Staff Attendance QR, Visitor QR.
+  {
+    id:          "presence_safety",
+    label:       "Presence & Safety",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "qr_management",
+        label:    "QR Management",
+        path:     "/qr-management",
+        routeKey: ROUTES.QR_MANAGEMENT,
+        icon:     "QrCode",
+      },
+    ],
+  },
+
   // ── Security ───────────────────────────────────────────────────────────────
   {
     id:          "security",
@@ -273,7 +292,7 @@ export const SIDEBAR_GROUPS = [
     id:          "developer",
     label:       "Developer",
     collapsible: true,
-    defaultOpen: false,
+    defaultOpen: true,
     devOnly:     true,        // hidden for all non-bypass roles
     items: [
       // Role switcher is handled inline in DevPanel, not as a nav route.
@@ -284,6 +303,13 @@ export const SIDEBAR_GROUPS = [
         path:     null,       // no navigation — triggers dev panel
         icon:     "Sliders",
         devAction: "toggleDevPanel",
+      },
+      {
+        id:       "module_explorer",
+        label:    "Module Explorer",
+        path:     "/dev/modules",
+        routeKey: ROUTES.DEV_TOOLS,
+        icon:     "Grid",
       },
     ],
   },

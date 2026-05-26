@@ -56,6 +56,7 @@ const Settings            = lazy(() => import("./pages/Settings"));
 const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
 const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
+const QRManagement        = lazy(() => import("./pages/QRManagement"));
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
@@ -292,6 +293,16 @@ function App() {
               element={
                 <ProtectedRoute routeKey="fees">
                   <RecordPayment />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Presence & Safety ────────────────────────────────────────── */}
+            <Route
+              path="/qr-management"
+              element={
+                <ProtectedRoute routeKey="qr-management">
+                  <MainLayout><QRManagement /></MainLayout>
                 </ProtectedRoute>
               }
             />

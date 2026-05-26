@@ -18,7 +18,7 @@ const ROLE_PERMISSIONS = {
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
     "parent-checkin", "pickup-authorization", "pickup-history",
     "profile", "settings", "user-management", "roles-permissions",
-    "holidays", "notices", "announcements",
+    "holidays", "notices", "announcements", "qr-management",
   ],
 
   center_owner: [
@@ -26,7 +26,7 @@ const ROLE_PERMISSIONS = {
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
     "parent-checkin", "pickup-authorization", "pickup-history",
     "profile", "settings", "user-management", "roles-permissions",
-    "holidays", "notices", "announcements",
+    "holidays", "notices", "announcements", "qr-management",
   ],
 
   center_admin: [
@@ -34,7 +34,7 @@ const ROLE_PERMISSIONS = {
     "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
     "parent-checkin", "pickup-authorization", "pickup-history",
     "profile", "settings", "user-management", "roles-permissions",
-    "holidays", "notices", "announcements",
+    "holidays", "notices", "announcements", "qr-management",
   ],
 
   teacher: [

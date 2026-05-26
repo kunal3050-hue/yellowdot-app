@@ -227,6 +227,29 @@ const ICONS = {
       <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
     </svg>
   ),
+
+  QrCode: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill="none" stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      {/* top-left block */}
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="5" y="5" width="3" height="3" fill={IC.stroke} stroke="none" />
+      {/* top-right block */}
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="16" y="5" width="3" height="3" fill={IC.stroke} stroke="none" />
+      {/* bottom-left block */}
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="5" y="16" width="3" height="3" fill={IC.stroke} stroke="none" />
+      {/* bottom-right data dots */}
+      <line x1="14" y1="14" x2="14" y2="14.01" strokeWidth="2" />
+      <line x1="18" y1="14" x2="18" y2="14.01" strokeWidth="2" />
+      <line x1="21" y1="14" x2="21" y2="14.01" strokeWidth="2" />
+      <line x1="14" y1="17" x2="14" y2="17.01" strokeWidth="2" />
+      <line x1="17" y1="17" x2="17" y2="21" strokeWidth="2" />
+      <line x1="21" y1="17" x2="21" y2="17.01" strokeWidth="2" />
+      <line x1="14" y1="21" x2="14" y2="21.01" strokeWidth="2" />
+      <line x1="21" y1="21" x2="21" y2="21.01" strokeWidth="2" />
+    </svg>
+  ),
 };
 
 // Fallback for any unrecognised icon name — renders a neutral dot so layout holds
