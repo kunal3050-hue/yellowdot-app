@@ -1062,7 +1062,7 @@ function FeedSkeleton() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SECURITY SECTION — child status + CCTV access + pickup requests
+// SECURITY SECTION — child status + pickup requests
 // ══════════════════════════════════════════════════════════════════════════════
 
 const SEC_STATUS = {
@@ -1104,7 +1104,7 @@ function SecuritySection({ security, pickupRequests, loading, pickupBusy, onAppr
   return (
     <div style={{ margin: "0 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
 
-      {/* ── Status + CCTV card ─────────────────────────────────────────── */}
+      {/* ── Child status card ─────────────────────────────────────────── */}
       <div style={{
         background: meta.bg,
         borderRadius: 20,

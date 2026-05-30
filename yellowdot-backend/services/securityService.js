@@ -6,7 +6,6 @@
  *   pickupRequests/{requestId}  — unknown pickup person approvals
  *
  * Child status is derived live from parentAttendance (today's records).
- * CCTV access = child status is PRESENT today.
  */
 
 const { db } = require("../firebaseAdmin");
