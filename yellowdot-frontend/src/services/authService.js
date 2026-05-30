@@ -205,7 +205,7 @@ export function clearSession() {
   sessionStorage.removeItem("yd_session");
 }
 
-export { api };
+export { api, API_BASE };
 
 export default {
   me,

@@ -52,10 +52,8 @@ async function startStream(req, res) {
       });
     }
 
-    // readAll() returns raw row arrays — convert with dataRows + toCamera
-    const rawRows = await cctvService.readAll();
-    const cameras = cctvService.dataRows(rawRows).map(cctvService.toCamera);
-    const camera  = cameras.find(c => c.id === cameraId || c.camera_id === cameraId);
+    // Look the camera up directly by its document ID.
+    const camera = await cctvService.getOne(cameraId);
 
     if (!camera) {
       return res.status(404).json({ error: `Camera '${cameraId}' not found in CCTV Settings.` });
