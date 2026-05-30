@@ -42,14 +42,11 @@ const RecordPayment       = lazy(() => import("./pages/RecordPayment"));
 const InvoiceView         = lazy(() => import("./pages/InvoiceView"));
 const ReceiptView         = lazy(() => import("./pages/ReceiptView"));
 
-const CCTVSettings        = lazy(() => import("./pages/CCTVSettings"));
-const LiveCCTV            = lazy(() => import("./pages/LiveCCTV"));
 
 const ParentDashboard     = lazy(() => import("./pages/ParentDashboard"));
 const ParentCheckIn       = lazy(() => import("./pages/ParentCheckIn"));
 const PickupAuthorization = lazy(() => import("./pages/PickupAuthorization"));
 const PickupHistory       = lazy(() => import("./pages/PickupHistory"));
-const ParentLiveCCTV      = lazy(() => import("./pages/ParentLiveCCTV"));
 const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
 const PickupMigration     = lazy(() => import("./pages/PickupMigration"));
 
@@ -316,24 +313,6 @@ function App() {
               }
             />
 
-            {/* ── CCTV ─────────────────────────────────────────────────────── */}
-            <Route
-              path="/cctv-settings"
-              element={
-                <ProtectedRoute routeKey="cctv-settings">
-                  <CCTVSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/live-cctv"
-              element={
-                <ProtectedRoute routeKey="live-cctv">
-                  <LiveCCTV />
-                </ProtectedRoute>
-              }
-            />
-
             {/* ── Pickup ───────────────────────────────────────────────────── */}
             <Route
               path="/pickup-authorization"
@@ -352,15 +331,6 @@ function App() {
               }
             />
 
-            {/* ── Child Security System ─────────────────────────────── */}
-            <Route
-              path="/parent-cctv"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentLiveCCTV /></ParentLayout>
-                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentLiveCCTV /></ParentLayout></ProtectedRoute>
-              }
-            />
             <Route
               path="/staff-checkout"
               element={

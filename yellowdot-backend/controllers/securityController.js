@@ -3,7 +3,6 @@
  * ──────────────────────────────────────────────────────────────────
  *
  * GET  /api/child-status/:studentId       — child presence status
- * GET  /api/cctv-access                   — parent CCTV access check
  * POST /api/pickup-request                — staff: create unknown pickup request
  * GET  /api/pickup-requests               — list pickup requests
  * PUT  /api/pickup-requests/:id/approve   — parent approves pickup
@@ -11,7 +10,6 @@
  */
 
 const svc     = require("../services/securityService");
-const cctvSvc = require("../services/cctvService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -50,66 +48,6 @@ async function getChildStatus(req, res) {
     res.json({ success: true, studentId, ...info });
   } catch (e) {
     logErr("GET /api/child-status", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-}
-
-// ── GET /api/cctv-access ──────────────────────────────────────────
-// Returns the cameras a parent may view.
-// Access is granted IFF their linked child is currently PRESENT.
-
-async function getCctvAccess(req, res) {
-  try {
-    const { schoolId, centerId } = resolveCtx(req);
-    const role = req.user?.role;
-
-    if (role !== "parent") {
-      return res.status(403).json({ success: false, error: "This endpoint is for parents only. Staff use /live-cctv." });
-    }
-
-    const linkedId = req.user.student?.studentId;
-    if (!linkedId) {
-      return res.status(403).json({ success: false, error: "No student linked to this parent account." });
-    }
-
-    const info = await svc.getChildStatus(linkedId, { schoolId, centerId });
-
-    if (info.status !== "PRESENT") {
-      const reason = info.status === "NOT_ARRIVED"
-        ? "Your child has not been checked in yet. CCTV access is available once your child arrives at school."
-        : "Your child has been checked out. CCTV access is disabled. See you tomorrow! 👋";
-      return res.json({
-        success:       true,
-        accessGranted: false,
-        childStatus:   info.status,
-        reason,
-        checkinTime:   info.checkinTime,
-        checkoutTime:  info.checkoutTime || null,
-      });
-    }
-
-    // Child is PRESENT — return cameras for their center
-    const allCameras = await cctvSvc.getAll({ schoolId, centerId: centerId || undefined });
-    const cameras = allCameras
-      .filter(c => c.status === "Active")
-      .map(c => ({
-        cameraId:   c.cameraId,
-        cameraName: c.cameraName,
-        classroom:  c.classroom,
-        channel:    c.channel,
-        // Never expose streamUrl/credentials to parents — the stream proxy handles auth
-      }));
-
-    res.json({
-      success:       true,
-      accessGranted: true,
-      childStatus:   "PRESENT",
-      checkinTime:   info.checkinTime,
-      gate:          info.gate,
-      cameras,
-    });
-  } catch (e) {
-    logErr("GET /api/cctv-access", e);
     res.status(500).json({ success: false, error: e.message });
   }
 }
@@ -237,7 +175,6 @@ async function rejectPickupRequest(req, res) {
 
 module.exports = {
   getChildStatus,
-  getCctvAccess,
   createPickupRequest,
   getPickupRequests,
   approvePickupRequest,

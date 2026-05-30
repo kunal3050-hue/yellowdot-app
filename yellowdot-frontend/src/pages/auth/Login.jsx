@@ -16,7 +16,7 @@ function getHomeRoute(role) {
     super_admin:  "/",          developer:   "/",
     center_admin: "/",          teacher:     "/attendance",
     parent:       "/parent-checkin",
-    accountant:   "/invoice",   cctv_viewer: "/live-cctv",
+    accountant:   "/invoice",
     reception:    "/",
   };
   return map[role] || "/";

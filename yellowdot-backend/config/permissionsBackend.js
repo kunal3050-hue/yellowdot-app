@@ -15,7 +15,7 @@ const ROLE_PERMISSIONS = {
 
   admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
@@ -23,7 +23,7 @@ const ROLE_PERMISSIONS = {
 
   center_owner: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
@@ -31,7 +31,7 @@ const ROLE_PERMISSIONS = {
 
   center_admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management",
@@ -52,10 +52,8 @@ const ROLE_PERMISSIONS = {
     "pickup-authorization", "pickup-history", "staff-checkout", "profile",
   ],
 
-  cctv_viewer: ["live-cctv", "cctv-settings", "profile"],
-
   parent: [
-    "dashboard", "live-cctv", "parent-checkin", "pickup-history", "fees", "profile",
+    "dashboard", "parent-checkin", "pickup-history", "fees", "profile",
   ],
 };
 
@@ -67,7 +65,6 @@ const ROLE_HOME = {
   teacher:      "/attendance",
   accountant:   "/invoice",
   reception:    "/",
-  cctv_viewer:  "/live-cctv",
   parent:       "/parent-home",
 };
 

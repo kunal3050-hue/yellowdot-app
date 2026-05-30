@@ -95,14 +95,6 @@ const SECTIONS = [
     ],
   },
   {
-    id: "security",
-    label: "Security",
-    items: [
-      { label: "Live CCTV",      path: "/live-cctv",      icon: "Video",   desc: "Real-time feed" },
-      { label: "CCTV Settings",  path: "/cctv-settings",  icon: "Camera",  desc: "Camera configuration" },
-    ],
-  },
-  {
     id: "system",
     label: "Settings",
     items: [

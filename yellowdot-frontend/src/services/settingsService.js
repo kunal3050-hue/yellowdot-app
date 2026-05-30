@@ -70,12 +70,6 @@ export const DEFAULT_SETTINGS = {
     earlyLeaveBefore:     "14:00",
     minAttendancePercent: "75",
   },
-  cctv: {
-    cameras:         "[]",
-    retentionDays:   "30",
-    motionDetection: "false",
-    streamBaseUrl:   "",
-  },
   branding: {
     logoUrl:      "",
     faviconUrl:   "",

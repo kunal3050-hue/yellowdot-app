@@ -118,14 +118,6 @@ export const PERMISSION_CATEGORIES = [
     ],
   },
   {
-    id:    "security",
-    label: "Security",
-    icon:  "📹",
-    modules: [
-      { id: "cctv", label: "CCTV", actions: ["view", "manage"] },
-    ],
-  },
-  {
     id:    "communication",
     label: "Communication",
     icon:  "📣",
@@ -155,7 +147,6 @@ const MODULE_ROUTE_MAP = {
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
-  cctv:              ["live-cctv", "cctv-settings"],
   notifications:     [],
   parent_app:        ["parent-checkin"],
   documents:         [],
@@ -365,10 +356,6 @@ export const PERMISSION_DESCRIPTIONS = {
     view: "View school and system settings",
     edit: "Change school configuration and preferences",
   },
-  cctv: {
-    view:   "Watch live camera feeds",
-    manage: "Configure CCTV cameras and access settings",
-  },
   notifications: {
     view:   "See notifications and announcements",
     create: "Send notifications to parents and staff",
@@ -403,7 +390,6 @@ export const RISK_LEVELS = {
   "settings.edit":            "sensitive",
   "staff.create":             "sensitive",
   "staff.edit":               "sensitive",
-  "cctv.manage":              "sensitive",
   "notifications.manage":     "sensitive",
   "medical.edit":             "sensitive",
 };
@@ -542,19 +528,6 @@ export const ROLE_TEMPLATES = [
       pickup_auth:   { view: true, create: false, edit: false, approve: false },
       notifications: { view: true, create: true,  manage: false },
       parent_app:    { view: true, manage: false },
-    },
-  },
-  {
-    id:          "security_guard",
-    label:       "Security",
-    emoji:       "🔒",
-    description: "CCTV monitoring and campus security",
-    color:       "#dc2626",
-    category:    "security",
-    homeRoute:   "/live-cctv",
-    permissions: {
-      cctv:        { view: true, manage: false },
-      pickup_auth: { view: true, create: false, edit: false, approve: false },
     },
   },
   {

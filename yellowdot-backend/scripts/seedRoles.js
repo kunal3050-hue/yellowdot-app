@@ -47,7 +47,6 @@ const EXTRA_ROLES = [
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
       settings:          { view: true, edit: true },
-      cctv:              { view: true, manage: true },
       notifications:     { view: true, create: true, manage: true },
       parent_app:        { view: true, manage: true },
       documents:         { view: true, create: true, delete: true, export: true },
@@ -66,7 +65,6 @@ const EXTRA_ROLES = [
       fees:        { view: true },
       pickup_auth: { view: true },
       parent_app:  { view: true },
-      cctv:        { view: true },
     },
   },
   {
@@ -162,7 +160,7 @@ async function main() {
   console.log("═══════════════════════════════════════════\n");
 
   // 1. Seed the 6 built-in system roles via roleService
-  console.log("Step 1 — Seeding system roles (admin, center_admin, teacher, accountant, reception, cctv_viewer)…");
+  console.log("Step 1 — Seeding system roles (admin, center_admin, teacher, accountant, reception)…");
   await seedDefaultRoles(SCHOOL_ID);
   console.log("  Done.\n");
 

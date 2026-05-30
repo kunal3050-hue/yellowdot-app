@@ -64,10 +64,6 @@ const ROUTE_REGISTRY = [
   { path: "/generate-invoice",    routeKey: ROUTES.INVOICE,                label: "Generate Invoice",     category: "app",    layout: "bare",  orphan: true },
   { path: "/record-payment/:n",   routeKey: ROUTES.FEES,                   label: "Record Payment",       category: "sub",    layout: "bare"   },
 
-  // CCTV
-  { path: "/live-cctv",           routeKey: ROUTES.LIVE_CCTV,              label: "Live CCTV",            category: "app",    layout: "bare"   },
-  { path: "/cctv-settings",       routeKey: ROUTES.CCTV_SETTINGS,          label: "CCTV Settings",        category: "app",    layout: "bare"   },
-
   // Pickup & Checkout
   { path: "/pickup-authorization", routeKey: ROUTES.PICKUP_AUTHORIZATION,  label: "Pickup Authorization", category: "app",    layout: "bare"   },
   { path: "/pickup-history",      routeKey: ROUTES.PICKUP_HISTORY,         label: "Pickup History",       category: "app",    layout: "bare"   },
@@ -87,7 +83,6 @@ const ROUTE_REGISTRY = [
   // Parent layout
   { path: "/parent-home",         routeKey: ROUTES.DASHBOARD,              label: "Parent Dashboard",     category: "parent", layout: "parent" },
   { path: "/parent-checkin",      routeKey: ROUTES.PARENT_CHECKIN,         label: "Parent Check-In",      category: "parent", layout: "parent" },
-  { path: "/parent-cctv",         routeKey: ROUTES.LIVE_CCTV,              label: "Parent CCTV",          category: "parent", layout: "parent" },
 
   // Dev
   { path: "/dev/modules",         routeKey: ROUTES.DEV_TOOLS,              label: "Module Explorer",      category: "dev",    layout: "main"   },
@@ -157,7 +152,7 @@ const CATEGORY_STYLES = {
 const ROLE_COLORS = {
   developer: "#7C3AED", super_admin: "#0F172A", admin: "#2563EB",
   center_admin: "#0891B2", center_owner: "#059669", teacher: "#D97706",
-  accountant: "#DB2777", reception: "#EA580C", cctv_viewer: "#DC2626", parent: "#64748B",
+  accountant: "#DB2777", reception: "#EA580C", parent: "#64748B",
 };
 
 // ── Error boundary ────────────────────────────────────────────────────────────

@@ -36,21 +36,21 @@ const STATIC_ROLE_PERMS = {
   super_admin:  ["*"],
   admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption","cctv-settings","live-cctv",
+    "nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption","cctv-settings","live-cctv",
+    "nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption","cctv-settings","live-cctv",
+    "nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
@@ -67,9 +67,8 @@ const STATIC_ROLE_PERMS = {
     "dashboard","students","attendance","parent-checkin",
     "pickup-authorization","pickup-history","profile",
   ],
-  cctv_viewer: ["live-cctv","cctv-settings","profile"],
   parent: [
-    "dashboard","live-cctv","parent-checkin","pickup-history","fees","profile",
+    "dashboard","parent-checkin","pickup-history","fees","profile",
   ],
 };
 
@@ -92,7 +91,6 @@ const MODULE_ROUTE_MAP = {
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
-  cctv:              ["live-cctv","cctv-settings"],
   notifications:     [],
   parent_app:        ["parent-checkin"],
   documents:         [],
@@ -219,7 +217,6 @@ const SYSTEM_ROLES = [
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
       settings:          { view: true, edit: true },
-      cctv:              { view: true, manage: true },
       notifications:     { view: true, create: true, manage: true },
       parent_app:        { view: true, manage: true },
       documents:         { view: true, create: true, delete: true, export: true },
@@ -250,7 +247,6 @@ const SYSTEM_ROLES = [
       staff:             { view: true, create: true, edit: true, delete: false },
       roles_permissions: { view: true, manage: false },
       settings:          { view: true, edit: true },
-      cctv:              { view: true, manage: false },
       notifications:     { view: true, create: true, manage: false },
       parent_app:        { view: true, manage: false },
       documents:         { view: true, create: true, delete: false, export: true },
@@ -306,17 +302,6 @@ const SYSTEM_ROLES = [
       students:    { view: true, create: false, edit: false, delete: false, export: false },
       attendance:  { view: true, mark: true, edit: false, export: false },
       pickup_auth: { view: true, create: true, edit: true, approve: false },
-    },
-  },
-  {
-    roleId:      "cctv_viewer",
-    name:        "CCTV Viewer",
-    description: "Security camera monitoring only",
-    color:       "#dc2626",
-    isSystem:    true,
-    homeRoute:   "/live-cctv",
-    permissions: {
-      cctv: { view: true, manage: false },
     },
   },
 ];

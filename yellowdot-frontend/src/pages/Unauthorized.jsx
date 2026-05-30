@@ -8,7 +8,6 @@ const ROLE_LABELS = {
   teacher:      "Teacher",
   accountant:   "Accountant",
   reception:    "Reception",
-  cctv_viewer:  "CCTV Viewer",
   parent:       "Parent",
 };
 

@@ -34,7 +34,6 @@ const T = {
 // ── Bottom tab definitions ────────────────────────────────────────────────────
 const TABS = [
   { path: "/parent-home",   label: "Home",     icon: HomeIcon    },
-  { path: "/live-cctv",     label: "Camera",   icon: CameraIcon  },
   { path: "/fees",          label: "Fees",     icon: FeeIcon     },
   { path: "/profile",       label: "Profile",  icon: ProfileIcon },
 ];

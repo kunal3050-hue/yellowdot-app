@@ -1137,21 +1137,7 @@ function SecuritySection({ security, pickupRequests, loading, pickupBusy, onAppr
         </div>
 
         {/* Action button */}
-        {isPresent ? (
-          <button
-            onClick={() => navigate("/parent-cctv")}
-            style={{
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              padding: "8px 12px", borderRadius: 12,
-              background: "#065F46", border: "none",
-              cursor: "pointer", flexShrink: 0, gap: 2,
-            }}
-          >
-            <span style={{ fontSize: 16 }}>📹</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#FFF", letterSpacing: "0.04em" }}>LIVE</span>
-          </button>
-        ) : (
+        {!isPresent && (
           <button
             onClick={() => navigate("/parent-checkin")}
             style={{

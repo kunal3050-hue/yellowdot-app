@@ -44,7 +44,6 @@ const ROLE_COLORS = {
   teacher:      { bg: "#16A34A", color: "#fff" },
   accountant:   { bg: "#2563EB", color: "#fff" },
   reception:    { bg: "#D97706", color: "#fff" },
-  cctv_viewer:  { bg: "#6B7280", color: "#fff" },
   parent:       { bg: "#0891B2", color: "#fff" },
 };
 

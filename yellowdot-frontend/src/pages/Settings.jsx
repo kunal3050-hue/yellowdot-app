@@ -2,7 +2,7 @@
  * Settings.jsx — Yellow Dot full settings module
  * ───────────────────────────────────────────────
  * 10 sections: School Profile · Academic Year · Fee Settings ·
- * Attendance Rules · CCTV Settings · User Management ·
+ * Attendance Rules · User Management ·
  * Role Permissions · Branding · Notifications · Parent App
  *
  * Developer role has unrestricted access to every section.
@@ -62,7 +62,6 @@ const SECTIONS = [
   { id: "academic",      label: "Academic Year",    icon: "Calendar",   desc: "Year label, dates, and terms" },
   { id: "fees",          label: "Fee Settings",     icon: "CreditCard", desc: "GST, late fees, payment modes" },
   { id: "attendance",    label: "Attendance Rules", icon: "Clock",      desc: "Check-in windows and thresholds" },
-  { id: "cctv",          label: "CCTV Settings",    icon: "Camera",     desc: "Camera streams and retention" },
   { id: "users",         label: "User Management",  icon: "Users",      desc: "Staff accounts and roles" },
   { id: "permissions",   label: "Role Permissions", icon: "Shield",     desc: "Access control matrix" },
   { id: "branding",      label: "Branding",         icon: "Palette",    desc: "Logo, colors, report styles" },
@@ -513,98 +512,6 @@ function AttendanceSection({ data, onSave, saving }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// SECTION 5 — CCTV SETTINGS
-// ══════════════════════════════════════════════════════════════════
-
-function CCTVSection({ data, onSave, saving }) {
-  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.cctv, ...data }));
-  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.cctv, ...data });
-  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
-  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
-
-  const cameras = toJSON(d.cameras, []);
-  const setCameras = (cams) => setD((p) => ({ ...p, cameras: JSON.stringify(cams) }));
-
-  const camCounter = useRef(1000);
-  const addCamera = () => {
-    camCounter.current += 1;
-    setCameras([...cameras, { id: camCounter.current, name: "", url: "", location: "" }]);
-  };
-
-  const updateCamera = (idx, field, val) => {
-    const next = cameras.map((c, i) => (i === idx ? { ...c, [field]: val } : c));
-    setCameras(next);
-  };
-
-  const removeCamera = (idx) => setCameras(cameras.filter((_, i) => i !== idx));
-
-  return (
-    <>
-      <SectionHeader
-        title="CCTV Settings"
-        desc="Configure camera streams, retention, and motion detection."
-        dirty={dirty}
-        saving={saving}
-        onSave={() => onSave("cctv", d)}
-      />
-
-      <Card title="Cameras" icon="Camera">
-        <div className="yd-cam-list">
-          {cameras.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--yd-text-muted)", fontSize: 13, padding: "16px 0" }}>
-              No cameras added yet. Click below to add one.
-            </div>
-          )}
-          {cameras.map((cam, idx) => (
-            <div key={cam.id || idx} className="yd-cam-card">
-              <div className="yd-cam-hd">
-                <span className="yd-cam-num">Camera {idx + 1}</span>
-                <button className="yd-cam-del" onClick={() => removeCamera(idx)} title="Remove camera">
-                  <Icons.Trash />
-                </button>
-              </div>
-              <div className="yd-cam-fields">
-                <Field label="Camera Name">
-                  <input className="yd-input" value={cam.name} onChange={(e) => updateCamera(idx, "name", e.target.value)} placeholder="Main Entrance" />
-                </Field>
-                <Field label="Location / Room">
-                  <input className="yd-input" value={cam.location} onChange={(e) => updateCamera(idx, "location", e.target.value)} placeholder="Ground Floor Lobby" />
-                </Field>
-                <Field label="Stream URL" span2>
-                  <input className="yd-input" value={cam.url} onChange={(e) => updateCamera(idx, "url", e.target.value)} placeholder="rtsp://192.168.1.101/stream1 or https://..." />
-                </Field>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button className="btn btn-ghost btn-sm" onClick={addCamera} style={{ width: "100%" }}>
-          <Icons.Plus /> Add Camera
-        </button>
-      </Card>
-
-      <Card title="Recording & Detection" icon="Settings">
-        <div className="yd-stg-grid">
-          <Field label="Base Stream URL" hint="Shared base URL prefix (optional)">
-            <input className="yd-input" value={d.streamBaseUrl} onChange={set("streamBaseUrl")} placeholder="http://192.168.1.100" />
-          </Field>
-          <Field label="Recording Retention (days)" hint="How long recordings are kept">
-            <input className="yd-input" type="number" value={d.retentionDays} onChange={set("retentionDays")} min="1" max="365" />
-          </Field>
-        </div>
-        <div style={{ marginTop: 14 }}>
-          <ToggleRow
-            label="Motion Detection Alerts"
-            sub="Send alert when camera detects motion outside school hours"
-            checked={toBool(d.motionDetection)}
-            onChange={toggle("motionDetection")}
-          />
-        </div>
-      </Card>
-    </>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
 // SECTION 6 — USER MANAGEMENT
 // ══════════════════════════════════════════════════════════════════
 
@@ -817,8 +724,6 @@ const ROUTE_LABELS = {
   [ROUTES.NAP_TRACKER]:          "Nap Tracker",
   [ROUTES.FOOD_MENU]:            "Food Menu",
   [ROUTES.FOOD_CONSUMPTION]:     "Food Log",
-  [ROUTES.LIVE_CCTV]:            "Live CCTV",
-  [ROUTES.CCTV_SETTINGS]:        "CCTV Settings",
   [ROUTES.PARENT_CHECKIN]:       "Parent Check-In",
   [ROUTES.PICKUP_AUTHORIZATION]: "Pickup Auth",
   [ROUTES.PICKUP_HISTORY]:       "Pickup History",
@@ -1106,7 +1011,6 @@ function NotifSection({ data, onSave, saving }) {
 const PARENT_TOGGLES = [
   { key: "showAttendance",     label: "Attendance History",    sub: "Parents can view their child's daily attendance record" },
   { key: "showFees",           label: "Fee Details",           sub: "Show outstanding balance and invoice history" },
-  { key: "showCctv",           label: "Live Camera Access",    sub: "Allow parents to view CCTV live feed (read-only)" },
   { key: "showFoodMenu",       label: "Food Menu",             sub: "Display today's and weekly food menu" },
   { key: "showNapLog",         label: "Nap Log",               sub: "Show nap times and durations for the day" },
   { key: "showSiblingInfo",    label: "Sibling Information",   sub: "Show enrolled siblings on the parent portal" },
@@ -1365,7 +1269,6 @@ export default function Settings() {
       case "academic":      return <AcademicSection    {...props} />;
       case "fees":          return <FeeSection         {...props} />;
       case "attendance":    return <AttendanceSection  {...props} />;
-      case "cctv":          return <CCTVSection        {...props} />;
       case "users":         return <UsersSection       isBypass={isFullAccess} />;
       case "permissions":   return <PermissionsSection isBypass={isFullAccess} />;
       case "branding":      return <BrandingSection    {...props} />;

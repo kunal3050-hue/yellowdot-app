@@ -23,7 +23,7 @@ const nowISO      = () => new Date().toISOString();
 
 const VALID_ROLES = new Set([
   "developer", "super_admin", "admin", "center_admin", "center_owner",
-  "teacher", "accountant", "reception", "cctv_viewer", "parent",
+  "teacher", "accountant", "reception", "parent",
 ]);
 
 // ── Document mapper ────────────────────────────────────────────────

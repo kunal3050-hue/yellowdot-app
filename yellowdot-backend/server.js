@@ -29,8 +29,6 @@ const userRoutes             = require("./routes/userRoutes");
 const napRoutes              = require("./routes/napRoutes");
 const foodMenuRoutes         = require("./routes/foodMenuRoutes");
 const foodConsumptionRoutes  = require("./routes/foodConsumptionRoutes");
-const cctvRoutes             = require("./routes/cctvRoutes");
-const streamRoutes           = require("./routes/streamRoutes");
 const attendanceRoutes       = require("./routes/attendanceRoutes");
 const parentAttendanceRoutes = require("./routes/parentAttendanceRoutes");
 const pickupRoutes           = require("./routes/pickupRoutes");
@@ -46,7 +44,6 @@ const studentNotesSvc   = require("./services/studentNotesService");
 const invoiceSvc        = require("./services/invoiceService");
 const settingsSvc       = require("./services/settingsService");
 const pickupAuthSvc     = require("./services/pickupAuthorizationService");
-const { HLS_DIR }       = require("./services/streamManager");
 
 // ── Auth middleware ────────────────────────────────────────────────
 const { authenticate, authorize, blockUnknown, staffOnly } = require("./middleware/authMiddleware");
@@ -57,8 +54,6 @@ app.use(userRoutes);           // /api/users  (full auth + RBAC inside)
 app.use(napRoutes);
 app.use(foodMenuRoutes);
 app.use(foodConsumptionRoutes);
-app.use(cctvRoutes);
-app.use(streamRoutes);
 app.use(attendanceRoutes);
 app.use(parentAttendanceRoutes);
 app.use(pickupRoutes);
@@ -66,13 +61,6 @@ app.use(roleRoutes);
 app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
-
-// ── HLS static files — served with no-cache ────────────────────────
-app.use("/stream/live", (req, res, next) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-}, express.static(HLS_DIR));
 
 // ============================================================
 // UTILITY HELPERS

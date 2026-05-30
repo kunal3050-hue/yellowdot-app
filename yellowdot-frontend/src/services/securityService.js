@@ -10,11 +10,6 @@ const securityService = {
   getChildStatus: (studentId) =>
     api.get(`/api/child-status/${studentId}`).then(r => r.data),
 
-  // ── CCTV access (parent only) ─────────────────────────────────────
-  // Returns { accessGranted, childStatus, cameras?, reason? }
-  getCctvAccess: () =>
-    api.get("/api/cctv-access").then(r => r.data),
-
   // ── Pickup requests ───────────────────────────────────────────────
   getPickupRequests: (params = {}) =>
     api.get("/api/pickup-requests", { params }).then(r => r.data),

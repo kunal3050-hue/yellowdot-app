@@ -193,7 +193,6 @@ export const statusConfig = {
   teacher:     { label: "Teacher",     badge: "success", bg: "#f8f4d8",          border: "#d4bc58",           text: "#5a4d18" },
   accountant:  { label: "Accountant",  badge: "warn",    bg: colors.warningSoft, border: colors.warningBorder, text: colors.warning },
   reception:   { label: "Reception",   badge: "neutral", bg: "#f5f0e8",          border: "#e0d4b8",           text: "#6f624f" },
-  cctv_viewer: { label: "CCTV",        badge: "neutral", bg: "#f5f0e8",          border: "#e0d4b8",           text: "#8b7d65" },
   parent:      { label: "Parent",      badge: "yellow",  bg: colors.yellowLight, border: colors.yellowLight,  text: "#4a3f2a" },
 };
 

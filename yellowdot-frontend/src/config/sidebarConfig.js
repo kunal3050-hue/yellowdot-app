@@ -250,31 +250,6 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
-  // ── Security ───────────────────────────────────────────────────────────────
-  {
-    id:          "security",
-    label:       "Security",
-    collapsible: true,
-    defaultOpen: false,       // collapsed by default — less frequently used
-    items: [
-      {
-        id:       "live_cctv",
-        label:    "Live CCTV",
-        path:     "/live-cctv",
-        routeKey: ROUTES.LIVE_CCTV,
-        icon:     "Video",
-        badge:    BADGE_TYPES.LIVE,
-      },
-      {
-        id:       "cctv_settings",
-        label:    "CCTV Settings",
-        path:     "/cctv-settings",
-        routeKey: ROUTES.CCTV_SETTINGS,
-        icon:     "Camera",
-      },
-    ],
-  },
-
   // ── System ─────────────────────────────────────────────────────────────────
   {
     id:          "system",
@@ -346,14 +321,6 @@ export const PARENT_MENU = [
     path:     "/fees",
     routeKey: ROUTES.FEES,
     icon:     "CreditCard",
-  },
-  {
-    id:       "cctv",
-    label:    "Live Camera",
-    path:     "/live-cctv",
-    routeKey: ROUTES.LIVE_CCTV,
-    icon:     "Video",
-    badge:    "live",
   },
 ];
 

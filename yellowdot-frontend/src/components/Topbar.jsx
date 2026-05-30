@@ -42,9 +42,6 @@ const SEARCH_ITEMS = [
   { name: "Pickup History",    path: "/pickup-history",        icon: "📋", group: "Presence & Safety" },
   { name: "Staff Checkout",    path: "/staff-checkout",        icon: "🚪", group: "Presence & Safety" },
   { name: "QR Management",     path: "/qr-management",         icon: "⬛", group: "Presence & Safety" },
-  // Security
-  { name: "Live CCTV",         path: "/live-cctv",             icon: "📹", group: "Security" },
-  { name: "CCTV Settings",     path: "/cctv-settings",         icon: "📷", group: "Security" },
   // Account
   { name: "My Profile",        path: "/profile",               icon: "👤", group: "Account" },
   { name: "Security Settings", path: "/settings/security",     icon: "🔒", group: "Account" },
