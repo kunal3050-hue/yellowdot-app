@@ -217,8 +217,8 @@
   background: var(--yd-white);
   border-radius: var(--yd-radius-2xl);
   box-shadow:
-    0 0 0 1px rgba(236,231,216,0.9),
-    0 8px 24px rgba(244,196,0,0.08),
+    0 0 0 1px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.06),
     0 32px 80px rgba(0,0,0,0.07);
   padding: var(--yd-space-12) var(--yd-space-12) var(--yd-space-10);
   width: 100%;
@@ -307,7 +307,7 @@
 .yd-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 20, 10, 0.40);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(3px);
   z-index: var(--yd-z-modal);
   display: flex;
@@ -560,7 +560,7 @@
 /* Centered single-panel auth page */
 .yd-auth-center {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--yd-cream) 0%, #FFF8DC 100%);
+  background: var(--yd-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -956,7 +956,7 @@
 .yd-drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 20, 10, 0.35);
+  background: rgba(15, 23, 42, 0.40);
   backdrop-filter: blur(2px);
   z-index: var(--yd-z-modal);
   animation: yd-fade-in 0.2s var(--yd-ease) both;
@@ -1504,17 +1504,17 @@
   display: inline-block;
   flex-shrink: 0;
 }
-/* Status badges — warm Yellow Dot palette only */
-.yd-status-paid     { background: #f8f4d8; color: #5a4d18; border-color: #d4bc58; }
-.yd-status-paid     .yd-status-dot { background: #b09830; }
-.yd-status-pending  { background: #FEF3C7; color: #92400E; border-color: #FDE68A; }
-.yd-status-pending  .yd-status-dot { background: #F59E0B; }
-.yd-status-overdue  { background: #fee8e2; color: #7a2018; border-color: #e0a898; }
-.yd-status-overdue  .yd-status-dot { background: #c0402a; }
-.yd-status-active   { background: #f8f4d8; color: #5a4d18; border-color: #d4bc58; }
-.yd-status-active   .yd-status-dot { background: #b09830; }
-.yd-status-inactive { background: #f5f0e2; color: #7a6e5e; border-color: #e0d4b8; }
-.yd-status-inactive .yd-status-dot { background: #a3957e; }
+/* Status badges — semantic palette */
+.yd-status-paid     { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+.yd-status-paid     .yd-status-dot { background: #16A34A; }
+.yd-status-pending  { background: #FFFBEB; color: #92400E; border-color: #FDE68A; }
+.yd-status-pending  .yd-status-dot { background: #D97706; }
+.yd-status-overdue  { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+.yd-status-overdue  .yd-status-dot { background: #DC2626; }
+.yd-status-active   { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+.yd-status-active   .yd-status-dot { background: #16A34A; }
+.yd-status-inactive { background: #F8F8F8; color: #64748B; border-color: #E8E8E8; }
+.yd-status-inactive .yd-status-dot { background: #94A3B8; }
 
 
 /* ── Page skeleton layouts ── */
@@ -1589,10 +1589,10 @@
   background: linear-gradient(90deg, var(--yd-yellow) 0%, var(--yd-yellow-dark) 100%);
   transition: width 0.4s var(--yd-ease);
 }
-.yd-progress-bar-success { background: linear-gradient(90deg, #c9a820 0%, #8b7a28 100%); }
-.yd-progress-bar-danger  { background: linear-gradient(90deg, #d46050 0%, #c0402a 100%); }
-.yd-progress-bar-info    { background: linear-gradient(90deg, #fbbf24 0%, #d97706 100%); }
-.yd-progress-bar-navy    { background: linear-gradient(90deg, #facc15 0%, #eab308 100%); }
+.yd-progress-bar-success { background: linear-gradient(90deg, #16A34A 0%, #15803D 100%); }
+.yd-progress-bar-danger  { background: linear-gradient(90deg, #EF4444 0%, #DC2626 100%); }
+.yd-progress-bar-info    { background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%); }
+.yd-progress-bar-navy    { background: linear-gradient(90deg, #334155 0%, #0F172A 100%); }
 
 
 /* ── Divider with label ── */

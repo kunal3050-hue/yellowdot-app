@@ -96,11 +96,11 @@ function SkeletonTable() {
           className="flex items-center gap-4 px-6 py-4 border-b border-[#f0ebe0]"
           style={{ animationDelay: `${i * 80}ms` }}
         >
-          <div className="w-28 h-3 bg-[#f0e8d4] rounded-full" />
+          <div className="w-28 h-3 bg-[#F1F1F1] rounded-full" />
           {MEAL_TYPES.map(mt => (
-            <div key={mt.type} className="flex-1 h-3 bg-[#f0e8d4] rounded-full" />
+            <div key={mt.type} className="flex-1 h-3 bg-[#F1F1F1] rounded-full" />
           ))}
-          <div className="w-20 h-7 bg-[#f0e8d4] rounded-xl" />
+          <div className="w-20 h-7 bg-[#F1F1F1] rounded-xl" />
         </div>
       ))}
     </div>
@@ -352,13 +352,13 @@ export default function FoodMenu() {
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#fffdf7]">
+    <div className="flex h-screen overflow-hidden bg-white">
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* ── STICKY HEADER ──────────────────────────────────────── */}
-        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
+        <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-3 md:py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
@@ -384,13 +384,13 @@ export default function FoodMenu() {
               {/* Right: stats + CTA */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="hidden sm:flex items-center gap-3">
-                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
+                  <div className="bg-[#fffbee] border border-[#F1F1F1] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
                     <p className="text-[9px] font-bold text-[#a3957e] uppercase tracking-widest">This Week</p>
                     <p className="text-2xl font-black text-[#1f1a17] tabular-nums leading-none mt-0.5">
                       {loading ? "—" : thisWeekCount}
                     </p>
                   </div>
-                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
+                  <div className="bg-[#fffbee] border border-[#F1F1F1] rounded-2xl px-4 py-2.5 text-center min-w-[80px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
                     <p className="text-[9px] font-bold text-[#a3957e] uppercase tracking-widest">Total</p>
                     <p className="text-2xl font-black text-[#1f1a17] tabular-nums leading-none mt-0.5">
                       {loading ? "—" : totalMenus}
@@ -429,12 +429,12 @@ export default function FoodMenu() {
 
         {/* ── TABLE SECTION ───────────────────────────────────────── */}
         <div className="flex-1 overflow-auto px-6 md:px-10 py-7">
-          <div className="max-w-[1400px] mx-auto">
-          <div className="bg-[#fffdf8] rounded-3xl border border-[#e8ddb8] overflow-hidden min-w-[900px]"
+          <div className="max-w-[1400px] mx-auto overflow-x-auto">
+          <div className="bg-white rounded-3xl border border-[#F1F1F1] overflow-hidden min-w-[900px]"
             style={{ boxShadow: "0 10px 30px rgba(212,170,31,0.08), 0 2px 8px rgba(212,170,31,0.05)" }}>
 
             {/* ── Table header — soft warm gold ── */}
-            <div className="px-6 py-3.5 border-b border-[#e8d898] relative overflow-hidden"
+            <div className="px-6 py-3.5 border-b border-[#F1F1F1] relative overflow-hidden"
               style={{ background: "linear-gradient(180deg, #fff7d6 0%, #f8ebbf 100%)" }}>
               <div className="absolute inset-0 bg-white/30 pointer-events-none" />
               <div className="relative grid gap-3" style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}>
@@ -473,7 +473,7 @@ export default function FoodMenu() {
                         border hover:shadow-[0_4px_20px_rgba(212,170,31,0.12)] hover:-translate-y-px
                         ${today
                           ? "bg-[#fffdf0] border-[#f0e4a0]"
-                          : "bg-[#fffdf8] border-transparent hover:bg-[#fffbee] hover:border-[#e8d898]"}
+                          : "bg-white border-transparent hover:bg-[#fffbee] hover:border-[#F1F1F1]"}
                       `}
                       style={{ gridTemplateColumns: "160px repeat(6,1fr) 88px" }}
                     >
@@ -556,7 +556,7 @@ export default function FoodMenu() {
 
             {/* ── Table footer ── */}
             {!loading && !bootError && tableRows.length > 0 && (
-              <div className="px-6 py-3 border-t border-[#e8d898] bg-[#fffbee]/60 flex items-center justify-between">
+              <div className="px-6 py-3 border-t border-[#F1F1F1] bg-[#fffbee]/60 flex items-center justify-between">
                 <p className="text-xs text-[#a3957e] font-normal">
                   Showing {tableRows.length} menu{tableRows.length !== 1 ? "s" : ""} · last 30 days
                 </p>

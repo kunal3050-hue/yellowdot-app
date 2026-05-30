@@ -100,6 +100,103 @@ function StatCard({ label, value, sub, onClick, active }) {
   );
 }
 
+// ══════════════════════════════════════════════════════════════════
+// MOBILE INVOICE CARD  (shown instead of table on small screens)
+// ══════════════════════════════════════════════════════════════════
+function InvoiceCard({ inv, onView, onCollect, canCollect }) {
+  const initial  = (inv.studentName || "?")[0].toUpperCase();
+  const paidPct  = inv.totalAmount > 0
+    ? Math.min(100, Math.round((inv.paidAmount / inv.totalAmount) * 100))
+    : 0;
+  const odDays   = overdueDays(inv.dueDate);
+  const isOverdue = odDays > 0 && inv.status !== "Paid" && inv.status !== "Cancelled";
+  const showBal   = inv.balance > 0 && inv.status !== "Cancelled";
+
+  return (
+    <div
+      onClick={onView}
+      className="inv-mc bg-white rounded-2xl border border-yd-border-light flex flex-col gap-2 cursor-pointer
+                 hover:border-yd-yellow hover:shadow-md transition-all active:scale-[0.98] select-none"
+    >
+      {/* ── Header: avatar + name + status ── */}
+      <div className="inv-mc-head flex items-start justify-between gap-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-yd-yellow-soft border border-yd-yellow/30
+                          flex items-center justify-center text-xs font-black text-yd-navy flex-shrink-0">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[12px] font-bold text-yd-charcoal leading-tight line-clamp-2 break-words">
+              {inv.studentName}
+            </div>
+            <div className="text-[10px] text-yd-text-3 leading-tight mt-0.5 truncate">
+              {inv.class || "—"}
+            </div>
+          </div>
+        </div>
+        <div className="flex-shrink-0 mt-0.5">
+          <StatusBadge status={inv.status} />
+        </div>
+      </div>
+
+      {/* ── Invoice # + fee type ── */}
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] font-mono font-bold text-yd-text-3 tracking-wide leading-none">
+          {inv.invoiceNumber}
+        </span>
+        <span className="text-[9px] text-yd-text-3 truncate max-w-[80px] text-right leading-none">
+          {inv.feeType || "—"}
+        </span>
+      </div>
+
+      {/* ── Amount block — collected prominent ── */}
+      <div className="rounded-xl bg-yd-bg border border-yd-border-light p-2 flex items-stretch gap-0">
+        <div className="flex-1 text-center py-0.5">
+          <div className="text-[9px] font-semibold text-yd-text-3 uppercase tracking-wide">Total</div>
+          <div className="text-[13px] font-black text-yd-charcoal mt-0.5">{INR(inv.totalAmount)}</div>
+        </div>
+        <div className="w-px bg-yd-border-light mx-2 self-stretch" />
+        <div className="flex-1 text-center py-0.5">
+          <div className="text-[9px] font-semibold text-yd-success uppercase tracking-wide">Paid</div>
+          <div className="text-[13px] font-black text-yd-success mt-0.5">{INR(inv.paidAmount)}</div>
+        </div>
+      </div>
+
+      {/* ── Progress bar (Partial / Pending) ── */}
+      {inv.status !== "Paid" && inv.status !== "Cancelled" && inv.totalAmount > 0 && (
+        <div className="h-1.5 rounded-full bg-yd-border-light overflow-hidden -mt-0.5">
+          <div
+            className="h-full rounded-full bg-yd-success transition-all"
+            style={{ width: `${paidPct}%` }}
+          />
+        </div>
+      )}
+
+      {/* ── Balance + due / overdue ── */}
+      {showBal && (
+        <div className="flex items-center justify-between gap-1">
+          <span className={`text-[10px] font-semibold ${isOverdue ? "text-yd-danger" : "text-yd-text-3"}`}>
+            {isOverdue ? `${odDays}d overdue` : `due ${inv.dueDate || "—"}`}
+          </span>
+          <span className="text-[12px] font-black text-yd-danger leading-none">{INR(inv.balance)}</span>
+        </div>
+      )}
+
+      {/* ── Collect button ── */}
+      {canCollect && showBal && (
+        <button
+          className="w-full py-1.5 rounded-xl bg-yd-navy text-white text-[10px] font-bold
+                     transition-colors flex items-center justify-center gap-1
+                     hover:bg-yd-navy/90 active:scale-[0.97]"
+          onClick={e => { e.stopPropagation(); onCollect(); }}
+        >
+          💳 Collect
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SortTh({ col, label, sortCol, sortDir, onSort, className = "" }) {
   const active = sortCol === col;
   return (
@@ -956,9 +1053,10 @@ function EmptyInvoices({ onNew, onTemplates }) {
       <div style={{
         display: "grid", gridTemplateColumns: "1fr 24px 1fr 24px 1fr",
         alignItems: "start", gap: 0,
-        maxWidth: 520, width: "100%",
+        maxWidth: 520, width: "100%", minWidth: 0,
         background: "white", border: "1px solid #F0EBD8",
-        borderRadius: 16, padding: "20px 28px 22px",
+        borderRadius: 16, padding: "20px 16px 22px",
+        boxSizing: "border-box",
       }}>
 
         {/* Step 1 */}
@@ -1402,7 +1500,7 @@ export default function Invoices() {
         </div>
 
         {/* Stat strip */}
-        <div className="flex-shrink-0 px-4 pt-3 pb-1 grid grid-cols-7 gap-2">
+        <div className="flex-shrink-0 px-4 pt-3 pb-1 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           {loading ? (
             <>
               <SkeletonStatCard delay={0} />
@@ -1435,39 +1533,51 @@ export default function Invoices() {
         </div>
 
         {/* Filters */}
-        <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2 flex-wrap">
-          <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
-            className="border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
-            <option value="">All Classes</option>
-            {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={feeFilter} onChange={e => setFeeFilter(e.target.value)}
-            className="border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
-            <option value="">All Fee Types</option>
-            {feeTypes.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-          <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
-            className="border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
-            <option value="">All Months</option>
-            {months.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          <div className="flex-1" />
-          <div className="flex items-center gap-1.5 border border-yd-border rounded-lg px-2.5 py-1.5 bg-white focus-within:border-yd-navy transition-colors min-w-[220px]">
-            <span className="text-yd-text-3 text-xs">&#128269;</span>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search student, invoice no..."
-              className="flex-1 text-xs bg-transparent outline-none text-yd-text placeholder-yd-text-3" />
-            {search && <button onClick={() => setSearch("")} className="text-yd-text-3 hover:text-yd-navy text-xs">&times;</button>}
+        <div className="flex-shrink-0 px-4 py-2 inv-filter-bar">
+
+          {/* Search row — rendered first on mobile via CSS order */}
+          <div className="inv-filter-search">
+            <div className="flex-1 flex items-center gap-1.5 border border-yd-border rounded-lg px-2.5 py-1.5 bg-white focus-within:border-yd-navy transition-colors">
+              <span className="text-yd-text-3 text-xs">&#128269;</span>
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search student, invoice no..."
+                className="flex-1 text-xs bg-transparent outline-none text-yd-text placeholder-yd-text-3 min-w-0" />
+              {search && <button onClick={() => setSearch("")} className="text-yd-text-3 hover:text-yd-navy text-xs flex-shrink-0">&times;</button>}
+            </div>
+            <span className="text-[10px] text-yd-text-3 font-semibold whitespace-nowrap flex-shrink-0">
+              {loading
+                ? <span className="yd-skeleton inline-block h-[10px] w-10" style={{ animationDelay: "200ms" }} />
+                : `${filtered.length} / ${invoices.length}`
+              }
+            </span>
           </div>
-          {loading
-            ? <div className="yd-skeleton h-[10px] w-10" style={{ animationDelay: "200ms" }} />
-            : <span className="text-[10px] text-yd-text-3 font-semibold whitespace-nowrap">{filtered.length} / {invoices.length}</span>
-          }
+
+          {/* Select filters */}
+          <div className="inv-filter-selects">
+            <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
+              className="yd-select-sm border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
+              <option value="">All Classes</option>
+              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={feeFilter} onChange={e => setFeeFilter(e.target.value)}
+              className="yd-select-sm border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
+              <option value="">All Fee Types</option>
+              {feeTypes.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+            <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
+              className="yd-select-sm border border-yd-border rounded-lg px-2.5 py-1.5 text-xs text-yd-text bg-white focus:outline-none focus:border-yd-navy transition-colors">
+              <option value="">All Months</option>
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Table area */}
         <div className="flex-1 overflow-auto px-4 pb-4">
           {loading ? (
+            <>
+            {/* Desktop skeleton */}
+            <div className="yd-inv-desktop">
             <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-xs">
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)" }}>
@@ -1490,6 +1600,26 @@ export default function Invoices() {
                 ))}
               </tbody>
             </table>
+            </div>{/* /yd-inv-desktop */}
+            {/* Mobile card skeletons */}
+            <div className="yd-inv-mobile grid grid-cols-2 gap-2.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-yd-border-light p-3 space-y-2.5"
+                  style={{ animationDelay: `${i * 60}ms` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="yd-skeleton w-8 h-8 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="yd-skeleton h-3 rounded w-3/4" />
+                      <div className="yd-skeleton h-2.5 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="yd-skeleton h-2 rounded w-full" />
+                  <div className="yd-skeleton h-14 rounded-xl" />
+                  <div className="yd-skeleton h-1.5 rounded-full" />
+                </div>
+              ))}
+            </div>
+            </>
           ) : loadErr ? (
             <div className="flex flex-col items-center justify-center h-40 text-center">
               <div className="text-sm font-bold text-yd-danger mb-2">Could not load invoices</div>
@@ -1510,6 +1640,9 @@ export default function Invoices() {
                   }}
                 />
           ) : (
+            <>
+            {/* ── Desktop table ──────────────────────────────────── */}
+            <div className="yd-inv-desktop">
             <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-xs">
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: "linear-gradient(135deg, #facc15 0%, #eab308 100%)" }}>
@@ -1581,6 +1714,45 @@ export default function Invoices() {
                 ))}
               </tbody>
             </table>
+            </div>{/* /yd-inv-desktop */}
+
+            {/* ── Mobile card grid ───────────────────────────────── */}
+            <div className="yd-inv-mobile">
+
+              {/* Collected / Outstanding banner */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-2xl bg-yd-success-soft border border-yd-success-border p-3 text-center">
+                  <div className="text-[9px] font-bold text-yd-success uppercase tracking-wider mb-1">
+                    Collected
+                  </div>
+                  <div className="text-[18px] font-black text-yd-success leading-none">
+                    {INR(stats.collected)}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-yd-danger-soft border border-yd-danger-border p-3 text-center">
+                  <div className="text-[9px] font-bold text-yd-danger uppercase tracking-wider mb-1">
+                    Outstanding
+                  </div>
+                  <div className="text-[18px] font-black text-yd-danger leading-none">
+                    {INR(stats.outstanding)}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2-column card grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {filtered.map(inv => (
+                  <InvoiceCard
+                    key={inv.invoiceNumber}
+                    inv={inv}
+                    onView={() => navigate(`/invoice-view/${inv.invoiceNumber}`)}
+                    onCollect={() => setPayDrawerInv(inv)}
+                    canCollect={perm.edit}
+                  />
+                ))}
+              </div>
+            </div>{/* /yd-inv-mobile */}
+            </>
           )}
         </div>
       </div>

@@ -13,11 +13,12 @@
  *   6. Floating quick-actions FAB
  */
 
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../services/authService";
 import { INR } from "../utils/currency";
+import securityService from "../services/securityService";
 
 // ── Palette — warm luxury, strictly no blue / navy / purple / green ──────────
 const C = {
@@ -225,6 +226,13 @@ export default function ParentDashboard() {
   const [activeStory,  setActiveStory]  = useState(null);  // story object or null
   const [fabOpen,      setFabOpen]      = useState(false);
 
+  // ── Security state ─────────────────────────────────────────────────────────
+  const [childSecurity,    setChildSecurity]    = useState(null);   // getChildStatus response
+  const [pickupRequests,   setPickupRequests]   = useState([]);
+  const [securityLoading,  setSecurityLoading]  = useState(true);
+  const [pickupBusy,       setPickupBusy]       = useState(null);   // requestId being approved/rejected
+  const secPollRef = useRef(null);
+
   // ── API fetch ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (isDemoMode) return;
@@ -266,6 +274,29 @@ export default function ParentDashboard() {
         setDues(all.filter(i => ["Pending","Overdue","Partial"].includes(i.status)));
       }
     }).finally(() => setLoading(false));
+  }, [isDemoMode, child?.studentId]); // eslint-disable-line
+
+  // ── Security data — fetch & poll every 30s ─────────────────────────────────
+  useEffect(() => {
+    if (isDemoMode) { setSecurityLoading(false); return; }
+    const sid = child?.studentId;
+    if (!sid) { setSecurityLoading(false); return; }
+
+    async function fetchSecurity() {
+      try {
+        const [statusRes, reqRes] = await Promise.allSettled([
+          securityService.getChildStatus(sid),
+          securityService.getPickupRequests({ studentId: sid, status: "pending" }),
+        ]);
+        if (statusRes.status === "fulfilled") setChildSecurity(statusRes.value);
+        if (reqRes.status === "fulfilled")   setPickupRequests(reqRes.value?.requests || []);
+      } catch {}
+      finally { setSecurityLoading(false); }
+    }
+
+    fetchSecurity();
+    secPollRef.current = setInterval(fetchSecurity, 30_000);
+    return () => clearInterval(secPollRef.current);
   }, [isDemoMode, child?.studentId]); // eslint-disable-line
 
   // ── Build feed from real data (non-demo) ──────────────────────────────────
@@ -336,6 +367,27 @@ export default function ParentDashboard() {
     setStories(ss => ss.map(s => s.id === story.id ? { ...s, viewed: true } : s));
   }, []);
 
+  // ── Pickup request actions ─────────────────────────────────────────────────
+  const handlePickupApprove = useCallback(async (requestId) => {
+    setPickupBusy(requestId);
+    try {
+      await securityService.approvePickupRequest(requestId);
+      setPickupRequests(r => r.filter(x => x.requestId !== requestId));
+    } catch (e) {
+      alert(e?.response?.data?.error || "Could not approve. Please try again.");
+    } finally { setPickupBusy(null); }
+  }, []);
+
+  const handlePickupReject = useCallback(async (requestId) => {
+    setPickupBusy(requestId);
+    try {
+      await securityService.rejectPickupRequest(requestId, "Rejected by parent");
+      setPickupRequests(r => r.filter(x => x.requestId !== requestId));
+    } catch (e) {
+      alert(e?.response?.data?.error || "Could not reject. Please try again.");
+    } finally { setPickupBusy(null); }
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ background: C.bg, minHeight: "100vh", paddingBottom: 24 }}>
@@ -347,6 +399,7 @@ export default function ParentDashboard() {
         @keyframes yd-shimmer  { 0%{opacity:.6} 50%{opacity:1} 100%{opacity:.6} }
         @keyframes yd-fadeup   { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes yd-glow     { 0%,100%{box-shadow:0 0 10px rgba(240,194,40,0.25)} 50%{box-shadow:0 0 22px rgba(240,194,40,0.5)} }
+        @keyframes yd-spin     { to{transform:rotate(360deg)} }
       `}</style>
 
       {/* Ambient warm radials — multi-layer depth */}
@@ -395,6 +448,20 @@ export default function ParentDashboard() {
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         {!loading && (attendance?.checkIn || naps.length > 0) && (
           <LiveStrip status={currentStatus} nap={latestNap} />
+        )}
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* SECURITY SECTION                                                */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {!isDemoMode && (
+          <SecuritySection
+            security={childSecurity}
+            pickupRequests={pickupRequests}
+            loading={securityLoading}
+            pickupBusy={pickupBusy}
+            onApprove={handlePickupApprove}
+            onReject={handlePickupReject}
+          />
         )}
 
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -993,3 +1060,191 @@ function FeedSkeleton() {
     </div>
   );
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECURITY SECTION — child status + CCTV access + pickup requests
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SEC_STATUS = {
+  PRESENT:     { emoji: "🟢", label: "At school",    bg: "#ECFDF5", text: "#065F46", border: "rgba(16,185,129,0.25)" },
+  CHECKED_OUT: { emoji: "🔴", label: "Went home",    bg: "#FFF1F2", text: "#9F1239", border: "rgba(244,63,94,0.20)"  },
+  NOT_ARRIVED: { emoji: "⚪", label: "Not arrived",  bg: "#F9FAFB", text: "#374151", border: "rgba(156,163,175,0.30)" },
+};
+
+function SecuritySection({ security, pickupRequests, loading, pickupBusy, onApprove, onReject }) {
+  const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <div style={{ margin: "0 14px 14px" }}>
+        <div style={{
+          background: "#FFF", borderRadius: 20,
+          border: "1.5px solid rgba(218,195,145,0.35)",
+          padding: "16px 18px",
+          animation: "yd-shimmer 1.5s ease infinite",
+        }}>
+          <div style={{ height: 14, borderRadius: 7, background: "#f0e8d0", width: "40%", marginBottom: 10 }} />
+          <div style={{ height: 44, borderRadius: 12, background: "#f5edd8", width: "100%" }} />
+        </div>
+      </div>
+    );
+  }
+
+  const status   = security?.status || "NOT_ARRIVED";
+  const meta     = SEC_STATUS[status] || SEC_STATUS.NOT_ARRIVED;
+  const isPresent = status === "PRESENT";
+
+  function fmtTime(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
+  return (
+    <div style={{ margin: "0 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+      {/* ── Status + CCTV card ─────────────────────────────────────────── */}
+      <div style={{
+        background: meta.bg,
+        borderRadius: 20,
+        border: `1.5px solid ${meta.border}`,
+        padding: "14px 16px",
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        {/* Status indicator */}
+        <div style={{
+          width: 44, height: 44, borderRadius: 14,
+          background: "#FFF",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 22, flexShrink: 0,
+          boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
+        }}>
+          {meta.emoji}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: meta.text, margin: 0 }}>
+            {meta.label}
+          </p>
+          <p style={{ fontSize: 11, color: meta.text, opacity: 0.7, margin: "2px 0 0" }}>
+            {isPresent && security?.checkinTime
+              ? `Checked in at ${fmtTime(security.checkinTime)}`
+              : status === "CHECKED_OUT" && security?.checkoutTime
+              ? `Left at ${fmtTime(security.checkoutTime)}`
+              : "Scan the school QR to check in"}
+          </p>
+        </div>
+
+        {/* Action button */}
+        {isPresent ? (
+          <button
+            onClick={() => navigate("/parent-cctv")}
+            style={{
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "8px 12px", borderRadius: 12,
+              background: "#065F46", border: "none",
+              cursor: "pointer", flexShrink: 0, gap: 2,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>📹</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#FFF", letterSpacing: "0.04em" }}>LIVE</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/parent-checkin")}
+            style={{
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "8px 12px", borderRadius: 12,
+              background: "#F4C400", border: "none",
+              cursor: "pointer", flexShrink: 0, gap: 2,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>📷</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#111", letterSpacing: "0.04em" }}>SCAN QR</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Pending pickup requests ─────────────────────────────────────── */}
+      {pickupRequests.length > 0 && pickupRequests.map(req => (
+        <div key={req.requestId} style={{
+          background: "#FFFBEB",
+          borderRadius: 18,
+          border: "2px solid rgba(217,119,6,0.35)",
+          padding: "14px 16px",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#92400E", margin: "0 0 2px" }}>
+                Pickup Verification Needed
+              </p>
+              <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                {req.personName !== "Unknown Person" ? req.personName : "An unrecognized person"}
+                {req.relation && req.relation !== "Unknown" ? ` (${req.relation})` : ""}
+                {" "}wants to pick up your child.
+              </p>
+            </div>
+          </div>
+
+          {/* Photo */}
+          {req.personPhoto && (
+            <img
+              src={req.personPhoto}
+              alt="Pickup person"
+              style={{
+                width: "100%", maxHeight: 180, objectFit: "cover",
+                borderRadius: 12, marginBottom: 12, display: "block",
+              }}
+            />
+          )}
+
+          <p style={{ fontSize: 10, color: "#B45309", margin: "0 0 10px", textAlign: "center" }}>
+            Do you recognize this person?
+          </p>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => onReject(req.requestId)}
+              disabled={pickupBusy === req.requestId}
+              style={{
+                flex: 1, padding: "10px 0", borderRadius: 11,
+                background: "#FFF", border: "1.5px solid #FCA5A5",
+                fontWeight: 700, fontSize: 13, color: "#991B1B",
+                cursor: pickupBusy === req.requestId ? "not-allowed" : "pointer",
+                opacity: pickupBusy === req.requestId ? 0.6 : 1,
+              }}
+            >
+              ✕ Reject
+            </button>
+            <button
+              onClick={() => onApprove(req.requestId)}
+              disabled={pickupBusy === req.requestId}
+              style={{
+                flex: 1, padding: "10px 0", borderRadius: 11,
+                background: "#059669", border: "none",
+                fontWeight: 700, fontSize: 13, color: "#FFF",
+                cursor: pickupBusy === req.requestId ? "not-allowed" : "pointer",
+                opacity: pickupBusy === req.requestId ? 0.6 : 1,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              {pickupBusy === req.requestId ? (
+                <div style={{
+                  width: 14, height: 14, borderRadius: "50%",
+                  border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#FFF",
+                  animation: "yd-spin 0.75s linear infinite",
+                }}/>
+              ) : "✓ Approve"}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+

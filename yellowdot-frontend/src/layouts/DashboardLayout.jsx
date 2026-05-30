@@ -37,6 +37,8 @@ const MigrateIcon     = () => <I d={<><path d="M2 8h8M7 5l3 3-3 3"/><circle cx="
 const ProfileIcon     = () => <I d={<><circle cx="8" cy="5.5" r="3"/><path d="M2 14c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></>} />;
 const SettingsIcon    = () => <I d={<><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></>} />;
 const LogOutIcon      = () => <I d={<><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3M7 11l3-3-3-3M10 8H2"/></>} />;
+const LiveIcon        = () => <I d={<><circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="2" fill="currentColor" stroke="none"/></>} />;
+const GridIcon        = () => <I d={<><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></>} />;
 
 /* ── Navigation config ─────────────────────────────────────────────── */
 
@@ -44,9 +46,10 @@ const NAV_GROUPS = [
   {
     label: "Core",
     items: [
-      { name: "Dashboard",   path: "/",           icon: HomeIcon,       end: true },
-      { name: "Students",    path: "/students",   icon: UsersIcon },
-      { name: "Attendance",  path: "/attendance", icon: CalendarIcon },
+      { name: "Live Dashboard",    path: "/live-dashboard", icon: LiveIcon },
+      { name: "Quick Navigation",  path: "/quick-nav",      icon: GridIcon },
+      { name: "Students",          path: "/students",       icon: UsersIcon },
+      { name: "Attendance",        path: "/attendance",     icon: CalendarIcon },
     ],
   },
   {

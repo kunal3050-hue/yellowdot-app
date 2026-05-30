@@ -73,6 +73,18 @@ export default function QRManagement() {
   const [toast, setToast]    = useState(null);    // { msg, type }
   const toastTimer           = useRef(null);
 
+  console.log("[QRManagement] mount/derive", {
+    role,
+    centerId,
+    user: {
+      userId: user?.userId,
+      email: user?.email,
+      centerId: user?.centerId,
+      center: user?.center,
+      activeCenter: user?.activeCenter,
+    },
+  });
+
   // ── Load existing QR on mount ───────────────────────────────────────────────
   useEffect(() => {
     if (!centerId) { setLoading(false); return; }
@@ -81,7 +93,14 @@ export default function QRManagement() {
         setConfig(data.hasQR ? data : null);
         setCenterName(data.centerName || friendlyName(centerId));
       })
-      .catch(() => {
+      .catch(err => {
+        console.error("[QRManagement] failed to load QR config raw error", err);
+        console.error("[QRManagement] failed to load QR config", {
+          centerId,
+          errorMessage: err?.message,
+          axiosStatus: err?.response?.status,
+          axiosData: err?.response?.data,
+        });
         setCenterName(friendlyName(centerId));
       })
       .finally(() => setLoading(false));
@@ -99,12 +118,53 @@ export default function QRManagement() {
     if (!centerId) return;
     setGenerating(true);
     setShowConfirm(false);
+    const isRegen = !!config;
     try {
+      console.log("[QRManagement] generate clicked", {
+        centerId,
+        centerName: centerName || friendlyName(centerId),
+        role,
+      });
       const result = await qrApi.generate(centerId, centerName || friendlyName(centerId));
-      setConfig({ hasQR: true, ...result });
-      showToast(config ? "QR regenerated successfully" : "QR generated successfully");
+      console.log("[QRManagement] generate result", {
+        ...result,
+        qrDataUrl: result?.qrDataUrl ? `[${result.qrDataUrl.length} chars]` : null,
+      });
+
+      // Show QR immediately if image was generated (even if DB save failed)
+      if (result?.qrDataUrl) {
+        setConfig({ hasQR: true, ...result });
+      }
+
+      if (result?.saveError) {
+        // Image OK but Firestore save failed — warn rather than hard-error
+        console.warn("[QRManagement] QR generated but Firestore save failed:", result.saveError);
+        showToast(`QR created but not saved: ${result.saveError}`, "warn");
+      } else {
+        showToast(isRegen ? "QR regenerated successfully" : "QR generated successfully");
+      }
     } catch (err) {
-      showToast(err?.response?.data?.error || "Failed to generate QR. Try again.", "error");
+      console.error("[QRManagement] generate failed", {
+        centerId, centerName, role,
+        message:     err?.message,
+        axiosStatus: err?.response?.status,
+        axiosData:   err?.response?.data,
+      });
+
+      const data = err?.response?.data;
+      // Extract clearest backend message
+      const backendMsg =
+        (typeof data?.error   === "string" ? data.error   : null) ||
+        (typeof data?.message === "string" ? data.message : null) ||
+        (typeof data          === "string" ? data         : null);
+
+      const isNetworkErr = !err?.response && (err?.code === "ERR_NETWORK" || err?.message === "Network Error");
+
+      const toastMsg = isNetworkErr
+        ? "Cannot reach server — is the backend running?"
+        : backendMsg || err?.message || "Failed to generate QR.";
+
+      showToast(toastMsg, "error");
     } finally {
       setGenerating(false);
     }
@@ -332,10 +392,17 @@ function ConfirmModal({ centerName, setCenterName, onConfirm, onCancel, generati
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, type }) {
-  const bg = type === "error" ? "#FF3B30" : "#34C759";
+  const bg =
+    type === "error" ? "#FF3B30" :
+    type === "warn"  ? "#FF9500" :
+    "#34C759";
+  const icon =
+    type === "error" ? "✕" :
+    type === "warn"  ? "⚠" :
+    "✓";
   return (
     <div style={{ ...styles.toast, background: bg }}>
-      {type === "error" ? "✕" : "✓"} {msg}
+      {icon} {msg}
     </div>
   );
 }
@@ -449,11 +516,13 @@ function LoadingSpinnerSm() {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = {
   page: {
-    maxWidth:  720,
-    margin:    "0 auto",
-    padding:   "24px 16px 40px",
+    maxWidth:   720,
+    margin:     "0 auto",
+    padding:    "24px 16px 40px",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    animation: `yd-qr-fadein 0.35s ${SPRING} both`,
+    animation:  `yd-qr-fadein 0.35s ${SPRING} both`,
+    boxSizing:  "border-box",
+    overflowX:  "hidden",
   },
 
   // ── Header
@@ -507,6 +576,8 @@ const styles = {
     borderRadius: 16,
     overflow:     "hidden",
     marginBottom: 16,
+    boxSizing:    "border-box",
+    width:        "100%",
   },
   centerBar: {
     display:         "flex",
@@ -548,27 +619,33 @@ const styles = {
   printZone: {
     display:         "flex",
     justifyContent:  "center",
-    padding:         "32px 24px 24px",
+    padding:         "32px 16px 24px",   // reduced horizontal padding for narrow screens
+    boxSizing:       "border-box",
+    width:           "100%",
+    overflow:        "hidden",           // prevent the zone itself from overflowing
   },
   qrCard: {
     display:        "flex",
     flexDirection:  "column",
     alignItems:     "center",
     gap:            12,
-    padding:        "24px",
+    padding:        "20px",
     background:     "#FAFAFA",
     border:         "1px solid #EBEBEB",
     borderRadius:   12,
-    maxWidth:       340,
+    maxWidth:       320,
     width:          "100%",
+    boxSizing:      "border-box",        // padding is included in width
+    minWidth:       0,                   // allow shrink below content size
   },
   qrImage: {
-    width:        "100%",
-    maxWidth:     300,
-    height:       "auto",
-    borderRadius: 8,
-    display:      "block",
-    imageRendering: "pixelated",  // crisp pixels, no blur
+    width:          "100%",
+    maxWidth:       280,
+    height:         "auto",
+    borderRadius:   8,
+    display:        "block",
+    imageRendering: "pixelated",         // crisp pixels, no blur
+    flexShrink:     0,
   },
   qrCenterName: {
     fontSize:    16,

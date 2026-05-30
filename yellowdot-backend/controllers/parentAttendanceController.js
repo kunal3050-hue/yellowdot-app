@@ -106,6 +106,14 @@ async function createParentAttendance(req, res) {
     if (!action || !["Check_In", "Check_Out"].includes(action)) {
       return res.status(400).json({ success: false, error: "action must be Check_In or Check_Out." });
     }
+
+    // Security rule: parents can only Check_In — check-out is staff/admin only
+    if (role === "parent" && action === "Check_Out") {
+      return res.status(403).json({
+        success: false,
+        error: "Check-out can only be performed by school staff. Please speak to a staff member at the gate.",
+      });
+    }
     if (!selfieImage) {
       return res.status(400).json({ success: false, error: "selfieImage required (face selfie is mandatory)." });
     }

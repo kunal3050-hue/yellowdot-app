@@ -4,10 +4,17 @@ const { authenticate, blockUnknown, staffOnly } = require("../middleware/authMid
 
 const {
   getPickupPersons,
+  getAuditLog,
   createPickupPerson,
   updatePickupPerson,
   deletePickupPerson,
 } = require("../controllers/pickupAuthorizationController");
+
+const {
+  migrateStudent,
+  migrateBulk,
+  getMigrationStatus,
+} = require("../controllers/pickupMigrationController");
 
 const {
   getPickupHistory,
@@ -22,10 +29,18 @@ router.use(authenticate, blockUnknown);
 // GET:  parents see their own child's list (scoped in controller)
 // POST/PUT/DELETE: staff only — parents manage pickup persons through the parent app UI
 //   but mutations (adding/removing) are center-admin / teacher ops
-router.get   ("/api/pickup-authorization",      getPickupPersons);
-router.post  ("/api/pickup-authorization",      staffOnly, createPickupPerson);
-router.put   ("/api/pickup-authorization/:id",  staffOnly, updatePickupPerson);
-router.delete("/api/pickup-authorization/:id",  staffOnly, deletePickupPerson);
+router.get   ("/api/pickup-authorization",       getPickupPersons);
+router.get   ("/api/pickup-authorization/audit", staffOnly, getAuditLog);
+router.post  ("/api/pickup-authorization",       staffOnly, createPickupPerson);
+router.put   ("/api/pickup-authorization/:id",   staffOnly, updatePickupPerson);
+router.delete("/api/pickup-authorization/:id",   staffOnly, deletePickupPerson);
+
+// ── Pickup Authorization Migration ────────────────────────────────
+// Staff-only: auto-create Father/Mother pickup persons for existing students.
+// These routes are intentionally placed BEFORE the generic :id routes above.
+router.post("/api/pickup-authorization/migrate-student", staffOnly, migrateStudent);
+router.post("/api/pickup-authorization/migrate-bulk",    staffOnly, migrateBulk);
+router.get ("/api/pickup-authorization/migration-status",staffOnly, getMigrationStatus);
 
 // ── Pickup History ────────────────────────────────────────────────
 // GET:  parents see their own child's history (scoped in controller)

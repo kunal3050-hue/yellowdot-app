@@ -192,7 +192,7 @@ function EditStudent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] flex">
+    <div className="min-h-screen bg-white flex">
       {/* SIDEBAR */}
 
       <div className="w-[220px] bg-white border-r border-gray-100 p-6 hidden md:flex flex-col justify-between">
@@ -542,7 +542,7 @@ function InputField({
 
       <input
         {...props}
-        className={`w-full bg-[#F7F6F2] px-4 py-3.5 rounded-2xl outline-none border-2 transition-all text-base font-medium ${
+        className={`w-full bg-white px-4 py-3.5 rounded-2xl outline-none border-2 transition-all text-base font-medium ${
           error
             ? "border-red-400"
             : "border-transparent focus:border-yellow-400"
@@ -571,7 +571,7 @@ function SelectField({
 
       <select
         {...props}
-        className="w-full bg-[#F7F6F2] px-4 py-3.5 rounded-2xl outline-none border-2 border-transparent focus:border-yellow-400 transition-all text-base font-medium"
+        className="w-full bg-white px-4 py-3.5 rounded-2xl outline-none border-2 border-transparent focus:border-yellow-400 transition-all text-base font-medium"
       >
         <option value="">
           Select {label}

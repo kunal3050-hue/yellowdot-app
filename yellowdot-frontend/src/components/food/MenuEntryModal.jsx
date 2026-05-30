@@ -124,7 +124,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header — warm gold gradient, light & airy ── */}
-        <div className="flex-shrink-0 px-7 pt-6 pb-5 border-b border-[#e8d898] relative overflow-hidden"
+        <div className="flex-shrink-0 px-7 pt-6 pb-5 border-b border-[#F1F1F1] relative overflow-hidden"
           style={{ background: "linear-gradient(160deg, #fff7d6 0%, #f8ebbf 50%, #f5e4a8 100%)" }}>
           <div className="absolute inset-0 bg-white/25 pointer-events-none" />
           <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#f4c430]/12 rounded-full blur-3xl pointer-events-none" />
@@ -172,7 +172,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
                 className="
                   bg-white/80 rounded-xl pl-9 pr-4 py-2
                   text-[#3a2a08] text-sm font-medium
-                  outline-none border border-[#e8d898] focus:border-[#c9a830] focus:bg-white
+                  outline-none border border-[#F1F1F1] focus:border-[#c9a830] focus:bg-white
                   transition-all cursor-pointer shadow-sm
                 "
               />
@@ -211,7 +211,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex-shrink-0 px-7 pb-6 pt-3 border-t border-[#ece7d8]">
+        <div className="flex-shrink-0 px-7 pb-6 pt-3 border-t border-[#F1F1F1]">
           {/* Progress */}
           <div className="flex items-center gap-2 mb-4">
             {meals.map((m, i) => (
@@ -243,7 +243,7 @@ export default function MenuEntryModal({ mode, initialDate, initialMeals, allMen
               onClick={onClose}
               disabled={saving}
               className="
-                flex-1 py-3 rounded-2xl border border-[#ece7d8] text-sm font-bold text-[#6f624f]
+                flex-1 py-3 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f]
                 hover:bg-[#faf6ea] hover:border-[#d4c8b0] transition-all duration-150
                 disabled:opacity-50
               "

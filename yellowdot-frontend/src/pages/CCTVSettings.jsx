@@ -687,7 +687,7 @@ function CameraFormModal({ mode, camera, onSave, onClose }) {
                   onClick={handleTest}
                   disabled={testState === "testing"}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                             bg-[#F7F8FC] border border-gray-200
+                             bg-white border border-gray-200
                              text-sm font-bold text-yd-navy
                              hover:bg-yd-yellow/10 hover:border-yd-yellow/40
                              disabled:opacity-60 disabled:cursor-not-allowed
@@ -1050,13 +1050,13 @@ export default function CCTVSettings() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 {!loading && (
                   <div className="hidden sm:flex items-center gap-3">
-                    <div className="bg-[#F7F8FC] border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[72px]">
+                    <div className="bg-white border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[72px]">
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
                       <p className="text-2xl font-black text-yd-navy tabular-nums leading-none mt-0.5">
                         {cameras.length}
                       </p>
                     </div>
-                    <div className="bg-[#F7F8FC] border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[72px]">
+                    <div className="bg-white border border-gray-100 rounded-2xl px-4 py-2.5 text-center min-w-[72px]">
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Active</p>
                       <p className="text-2xl font-black text-emerald-600 tabular-nums leading-none mt-0.5">
                         {activeCount}

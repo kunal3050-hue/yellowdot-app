@@ -59,12 +59,18 @@ export const SIDEBAR_GROUPS = [
     defaultOpen: true,
     items: [
       {
-        id:       "dashboard",
-        label:    "Dashboard",
-        path:     "/",
+        id:       "live_dashboard",
+        label:    "Live Dashboard",
+        path:     "/live-dashboard",
         routeKey: ROUTES.DASHBOARD,
         icon:     "Home",
-        exact:    true,
+      },
+      {
+        id:       "quick_nav",
+        label:    "Quick Navigation",
+        path:     "/quick-nav",
+        routeKey: ROUTES.DASHBOARD,
+        icon:     "Grid",
       },
     ],
   },

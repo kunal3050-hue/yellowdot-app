@@ -374,7 +374,7 @@ export default function NewInvoice() {
                   <h3 className="text-sm font-black text-yd-charcoal">Amount</h3>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                   <Field label="Base Amount (₹) *" error={errors.amount}>
                     <input type="number" min="0" value={form.amount}
                       onChange={e => setF("amount", e.target.value)}

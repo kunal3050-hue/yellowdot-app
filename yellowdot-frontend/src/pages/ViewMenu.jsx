@@ -400,7 +400,7 @@ export default function ViewMenu() {
 
           {/* ── Stats row ── */}
           {!loading && groupedMenus.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               {[
                 { label: "Total Days",  value: groupedMenus.length,                            icon: "📅" },
                 { label: "Total Meals", value: groupedMenus.reduce((s, g) => s + g.meals.length, 0), icon: "🍽️" },

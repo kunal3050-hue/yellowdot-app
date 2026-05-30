@@ -71,27 +71,59 @@ function buildCenterPayload(centerId) {
  * @returns {Promise<QRResult>}
  */
 async function generateCenterQR(centerId, centerName, generatedBy) {
-  const payload    = buildCenterPayload(centerId);
+  if (!centerId || typeof centerId !== "string") {
+    throw new Error("centerId is required and must be a string");
+  }
+
+  // Firestore document IDs cannot safely include path separators.
+  // If centerId ever contains '/' (e.g. 'school/branch'), generation will fail.
+  if (centerId.includes("/") || centerId.includes("\\")) {
+    throw new Error(`Invalid centerId '${centerId}': must not contain '/' or '\\'`);
+  }
+
+  const payload = buildCenterPayload(centerId);
   const payloadStr = JSON.stringify(payload);
 
-  // Generate high-res PNG as base64 data URL
-  const qrDataUrl  = await QRCode.toDataURL(payloadStr, QR_OPTS);
+  console.log("[QR SERVICE] generateCenterQR start", {
+    centerId,
+    centerName,
+    generatedBy: generatedBy || "system",
+    payload: payload,
+    payloadJson: payloadStr,
+    payloadStrLen: payloadStr.length,
+  });
 
-  const now = new Date().toISOString();
+  // ── Step 1: Generate QR image (fast, no DB) ──────────────────────────────
+  let qrDataUrl;
+  try {
+    qrDataUrl = await QRCode.toDataURL(payloadStr, QR_OPTS);
+    console.log("[QR SERVICE] QR image generated", {
+      centerId,
+      qrDataUrlLen: qrDataUrl?.length,
+    });
+  } catch (imgErr) {
+    console.error("[QR SERVICE] QR image generation failed", {
+      centerId,
+      message: imgErr?.message,
+      stack:   imgErr?.stack,
+    });
+    throw new Error(`QR image generation failed: ${imgErr?.message}`);
+  }
 
+  const now        = new Date().toISOString();
+  const resolvedName = centerName || _friendlyName(centerId);
   const doc = {
     centerId,
-    centerName:  centerName || _friendlyName(centerId),
-    type:        QR_TYPES.CENTER,
-    version:     QR_VERSION,
+    centerName:   resolvedName,
+    type:         QR_TYPES.CENTER,
+    version:      QR_VERSION,
     payload,
-    payloadJson: payloadStr,
+    payloadJson:  payloadStr,
     qrDataUrl,
-    isActive:    true,
-    generatedAt: now,
-    generatedBy: generatedBy || "system",
-    updatedAt:   now,
-
+    isActive:     true,
+    generatedAt:  now,
+    generatedBy:  generatedBy || "system",
+    updatedAt:    now,
     // Future fields — not used in V1, kept for schema compatibility
     rotatesEvery: null,
     expiresAt:    null,
@@ -99,18 +131,43 @@ async function generateCenterQR(centerId, centerName, generatedBy) {
     classId:      null,
   };
 
-  // Full overwrite so a regenerate always produces a fresh document
-  await db.collection(QR_CONFIGS_COLLECTION).doc(centerId).set(doc, { merge: false });
+  // ── Step 2: Persist to Firestore (separate from image generation) ─────────
+  let saved      = false;
+  let saveError  = null;
 
-  console.log(`[QR] Generated center QR for ${centerId} by ${generatedBy || "system"}`);
+  try {
+    console.log("[QR SERVICE] writing Firestore doc", {
+      collection:    QR_CONFIGS_COLLECTION,
+      docId:         centerId,
+      docSizeApprox: JSON.stringify({ ...doc, qrDataUrl: "[omitted]" }).length,
+    });
+
+    // Full overwrite so a regenerate always produces a fresh document
+    await db.collection(QR_CONFIGS_COLLECTION).doc(centerId).set(doc, { merge: false });
+    saved = true;
+
+    console.log("[QR SERVICE] Firestore write complete", { docId: centerId });
+    console.log(`[QR] Generated center QR for ${centerId} by ${generatedBy || "system"}`);
+  } catch (dbErr) {
+    saveError = dbErr?.message || "Firestore write failed";
+    console.error("[QR SERVICE] Firestore save failed (QR image still valid)", {
+      centerId,
+      message: dbErr?.message,
+      code:    dbErr?.code,
+      name:    dbErr?.name,
+    });
+    // Do NOT throw — return partial success so the frontend can still show the QR
+  }
 
   return {
     centerId,
-    centerName:  doc.centerName,
+    centerName:  resolvedName,
     qrDataUrl,
     payload,
     generatedAt: now,
     version:     QR_VERSION,
+    saved,
+    saveError:   saveError || undefined,
   };
 }
 

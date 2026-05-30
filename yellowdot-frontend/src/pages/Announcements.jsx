@@ -43,7 +43,7 @@ function QuickComposer({ onOpen }) {
     <div className="max-w-2xl mb-6">
       <div
         onClick={onOpen}
-        className="flex items-center gap-3 p-4 rounded-3xl border border-[#ece7d8] bg-[#fffdf8]
+        className="flex items-center gap-3 p-4 rounded-3xl border border-[#F1F1F1] bg-white
                    hover:border-[#e0d4a0] hover:shadow-[0_6px_22px_rgba(212,170,31,0.10)] hover:bg-white
                    transition-all duration-[200ms] cursor-pointer group"
       >
@@ -57,7 +57,7 @@ function QuickComposer({ onOpen }) {
         </div>
 
         {/* Placeholder */}
-        <div className="flex-1 px-4 py-2.5 rounded-xl bg-[#faf6ea] border border-[#ece7d8] text-sm text-[#c4b090] select-none
+        <div className="flex-1 px-4 py-2.5 rounded-xl bg-[#faf6ea] border border-[#F1F1F1] text-sm text-[#c4b090] select-none
                         group-hover:bg-[#fff9ee] group-hover:border-[#e0d4a0] transition-all">
           What would you like to share today?
         </div>
@@ -79,7 +79,7 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
   const emoji     = TYPE_EMOJI[ann.type] || "📢";
 
   return (
-    <div className="group p-5 sm:p-6 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d4a0] hover:shadow-[0_8px_30px_rgba(212,170,31,0.11)] hover:-translate-y-1 transition-all duration-[200ms]">
+    <div className="group p-5 sm:p-6 rounded-3xl border border-[#F1F1F1] bg-white hover:border-[#e0d4a0] hover:shadow-[0_8px_30px_rgba(212,170,31,0.11)] hover:-translate-y-1 transition-all duration-[200ms]">
       {/* Top row */}
       <div className="flex items-start gap-3">
         {/* Emoji orb */}
@@ -171,7 +171,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-7 pt-6 pb-5 border-b border-[#e8d898] flex-shrink-0"
+        <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1] flex-shrink-0"
           style={{ background: "linear-gradient(160deg,#fff7d6 0%,#f8ebbf 50%,#f5e4a8 100%)" }}>
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +188,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-[#fffdf8]">
+        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-white">
           {/* Type selector — visual chips */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">Type</label>
@@ -198,7 +198,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
                     form.type === t
                       ? "bg-[#f9dc5a]/40 border-[#d4b830] text-[#5a4010]"
-                      : "bg-white border-[#ece7d8] text-[#a3957e] hover:border-[#d4c8a0]"
+                      : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
                   }`}>
                   <span>{TYPE_EMOJI[t]}</span>{t}
                 </button>
@@ -211,7 +211,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Title *</label>
             <input value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="What's happening?"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
           </div>
 
           {/* Body */}
@@ -219,7 +219,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Message</label>
             <textarea value={form.body} onChange={e => set("body", e.target.value)}
               rows={4} placeholder="Add details, emoji, anything the parents need to know…"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
           </div>
 
           {/* Comments toggle */}
@@ -227,7 +227,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
               form.commentsEnabled
                 ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
-                : "bg-white border-[#ece7d8] text-[#a3957e] hover:border-[#d4c8a0]"
+                : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
             }`}>
             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
               form.commentsEnabled ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"
@@ -243,9 +243,9 @@ function AnnouncementModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-7 py-4 border-t border-[#ece7d8] flex gap-3 bg-white flex-shrink-0">
+        <div className="px-7 py-4 border-t border-[#F1F1F1] flex gap-3 bg-white flex-shrink-0">
           <button onClick={onClose} disabled={saving}
-            className="flex-1 py-2.5 rounded-2xl border border-[#ece7d8] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving || !form.title.trim()}
@@ -323,12 +323,12 @@ export default function Announcements() {
     .filter(a => !search || a.title.toLowerCase().includes(search.toLowerCase()) || (a.body || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
+        <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-3 md:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div>
               <p className="text-[#9a7a18] text-[10px] font-semibold tracking-[0.18em] mb-0.5">COMMUNICATIONS</p>
@@ -343,7 +343,7 @@ export default function Announcements() {
                 </svg>
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search…"
-                  className="pl-9 pr-4 py-2 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-40 placeholder-[#c4b090]"/>
+                  className="pl-9 pr-4 py-2 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-40 placeholder-[#c4b090]"/>
               </div>
               <button onClick={() => setModal({ mode: "add", data: null })}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[#5a4010] text-sm font-semibold transition-all active:scale-95"
@@ -374,12 +374,12 @@ export default function Announcements() {
           {loading ? (
             <div className="space-y-3 animate-pulse max-w-2xl">
               {[0,1,2].map(i => (
-                <div key={i} className="p-5 rounded-3xl bg-[#fffdf8] border border-[#ece7d8] flex gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-[#f0e8d4] flex-shrink-0"/>
+                <div key={i} className="p-5 rounded-3xl bg-white border border-[#F1F1F1] flex gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-[#F1F1F1] flex-shrink-0"/>
                   <div className="flex-1 space-y-2 pt-1">
-                    <div className="h-3 bg-[#f0e8d4] rounded-full w-16"/>
-                    <div className="h-4 bg-[#f0e8d4] rounded-full w-56"/>
-                    <div className="h-3 bg-[#f0e8d4] rounded-full w-full"/>
+                    <div className="h-3 bg-[#F1F1F1] rounded-full w-16"/>
+                    <div className="h-4 bg-[#F1F1F1] rounded-full w-56"/>
+                    <div className="h-3 bg-[#F1F1F1] rounded-full w-full"/>
                   </div>
                 </div>
               ))}

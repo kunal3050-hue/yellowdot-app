@@ -27,24 +27,44 @@ let _pendingGoogleLink = null;   // { credential: AuthCredential, email: string 
 export function getPendingGoogleLink()  { return _pendingGoogleLink; }
 export function clearPendingGoogleLink() { _pendingGoogleLink = null; }
 
-// Production: VITE_API_URL="" (empty) → relative calls → Firebase Hosting rewrites to Cloud Function
-// Local dev:  VITE_API_URL=http://localhost:5000 → calls the local Express server directly
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+// API base URL selection:
+// - Local dev: default to local Express (`http://localhost:5000`) unless overridden.
+// - Production: default to relative calls (same origin) unless explicitly overridden
+//   via VITE_API_URL (e.g. Railway backend URL).
+const VITE_API_URL = import.meta.env.VITE_API_URL;
+const API_BASE = import.meta.env.DEV
+  ? (VITE_API_URL || "http://localhost:5000")
+  : (VITE_API_URL || undefined);
 
 // ── Shared axios instance ──────────────────────────────────────────────────────
 // All other frontend service files import this `api` object.
 // baseURL: "" (empty string) makes axios use relative paths → same origin.
 // baseURL: "http://localhost:5000" routes to local backend in dev.
-const api = axios.create({ baseURL: API_BASE || undefined });
+const api = axios.create({ baseURL: API_BASE });
 
 // Request interceptor: attach the current Firebase ID token (auto-refreshes).
 api.interceptors.request.use(async config => {
   const firebaseUser = auth.currentUser;
+  const isQrEndpoint = config?.url?.includes("/api/qr/center");
   if (firebaseUser) {
     try {
       const token = await firebaseUser.getIdToken();
       config.headers["Authorization"] = `Bearer ${token}`;
-    } catch { /* if token fetch fails, request proceeds without header */ }
+      if (isQrEndpoint) {
+        console.log("[authService][QR] token attached", {
+          url: config.url,
+          uid: firebaseUser.uid,
+          tokenPresent: !!token,
+          tokenPreview: token ? `${token.slice(0, 16)}...` : null,
+        });
+      }
+    } catch (tokenErr) {
+      console.error("[authService][QR] token fetch raw error", tokenErr);
+      console.error("[authService][QR] token fetch failed", {
+        url: config?.url,
+        message: tokenErr?.message,
+      });
+    }
   }
   return config;
 });
@@ -53,6 +73,16 @@ api.interceptors.request.use(async config => {
 api.interceptors.response.use(
   res => res,
   err => {
+    const isQrEndpoint = err?.config?.url?.includes("/api/qr/center");
+    if (isQrEndpoint) {
+      console.error("[authService][QR] raw response error object", err);
+      console.error("[authService][QR] response error", {
+        url: err?.config?.url,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
+    }
     if (err.response?.status === 401) {
       signOut(auth).catch(() => {});
       window.location.href = "/login";

@@ -83,7 +83,7 @@ function InvoiceView() {
 
     return (
 
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FC]">
+      <div className="min-h-screen flex items-center justify-center bg-white">
 
         <h1 className="text-3xl font-bold text-yd-navy">
           Loading Invoice...
@@ -101,7 +101,7 @@ function InvoiceView() {
 
   return (
 
-    <div className="min-h-screen bg-[#F7F8FC] flex">
+    <div className="min-h-screen bg-white flex">
 
       {/* SIDEBAR */}
 

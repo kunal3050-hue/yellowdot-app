@@ -29,7 +29,7 @@ const ACCENT_LEFT = {
 };
 
 const STATUS_STYLE = {
-  draft:     "bg-[#f0ebe0] text-[#8b7d65] border-[#e0d4b8]",
+  draft:     "bg-[#F1F1F1] text-[#8b7d65] border-[#e0d4b8]",
   published: "bg-[#f8f4d8] text-[#5a4d18] border-[#d4bc58]",
   scheduled: "bg-[#f8f0d4] text-[#7a5e18] border-[#e8d49a]",
 };
@@ -55,7 +55,7 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
   const statusStyle = STATUS_STYLE[notice.status]|| STATUS_STYLE["draft"];
 
   return (
-    <div className="group p-5 rounded-3xl border border-[#ece7d8] bg-[#fffdf8] hover:border-[#e0d4a0] hover:shadow-[0_8px_28px_rgba(212,170,31,0.12)] hover:-translate-y-1 transition-all duration-[200ms]"
+    <div className="group p-5 rounded-3xl border border-[#F1F1F1] bg-white hover:border-[#e0d4a0] hover:shadow-[0_8px_28px_rgba(212,170,31,0.12)] hover:-translate-y-1 transition-all duration-[200ms]"
       style={{ borderLeftWidth: "3px", borderLeftColor: ACCENT_LEFT[notice.type] || "#e8d49a" }}>
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
@@ -67,7 +67,7 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
             {notice.status}
           </span>
           {notice.requireAck && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#f0ebe0] text-[#8b7d65] text-[10px] font-semibold border border-[#e0d4b8]">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#F1F1F1] text-[#8b7d65] text-[10px] font-semibold border border-[#e0d4b8]">
               Ack. required
             </span>
           )}
@@ -151,7 +151,7 @@ function NoticeModal({ initial, onSave, onClose }) {
       <div className="w-full max-w-lg max-h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-7 pt-6 pb-5 border-b border-[#e8d898] flex-shrink-0"
+        <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1] flex-shrink-0"
           style={{ background: "linear-gradient(160deg,#fff7d6 0%,#f8ebbf 50%,#f5e4a8 100%)" }}>
           <div className="flex items-center justify-between">
             <div>
@@ -168,13 +168,13 @@ function NoticeModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-[#fffdf8]">
+        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-white">
           {/* Title */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Title *</label>
             <input value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="Notice title…"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
           </div>
 
           {/* Body */}
@@ -182,7 +182,7 @@ function NoticeModal({ initial, onSave, onClose }) {
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Content</label>
             <textarea value={form.body} onChange={e => set("body", e.target.value)}
               rows={5} placeholder="Write the notice content…"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
           </div>
 
           {/* Type + Status */}
@@ -190,14 +190,14 @@ function NoticeModal({ initial, onSave, onClose }) {
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Type</label>
               <select value={form.type} onChange={e => set("type", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
                 {NOTICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Status</label>
               <select value={form.status} onChange={e => set("status", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="scheduled">Scheduled</option>
@@ -210,12 +210,12 @@ function NoticeModal({ initial, onSave, onClose }) {
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Publish At</label>
               <input type="datetime-local" value={form.publishAt} onChange={e => set("publishAt", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer"/>
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer"/>
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Expires At</label>
               <input type="datetime-local" value={form.expiresAt} onChange={e => set("expiresAt", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer"/>
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer"/>
             </div>
           </div>
 
@@ -224,7 +224,7 @@ function NoticeModal({ initial, onSave, onClose }) {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
               form.requireAck
                 ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
-                : "bg-white border-[#ece7d8] text-[#a3957e] hover:border-[#d4c8a0]"
+                : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
             }`}>
             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
               form.requireAck ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"
@@ -240,9 +240,9 @@ function NoticeModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-7 py-4 border-t border-[#ece7d8] flex gap-3 bg-white flex-shrink-0">
+        <div className="px-7 py-4 border-t border-[#F1F1F1] flex gap-3 bg-white flex-shrink-0">
           <button onClick={onClose} disabled={saving}
-            className="flex-1 py-2.5 rounded-2xl border border-[#ece7d8] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving || !form.title.trim()}
@@ -335,12 +335,12 @@ export default function Notices() {
   const counts = { all: notices.length, draft: notices.filter(n => n.status === "draft").length, published: notices.filter(n => n.status === "published").length };
 
   return (
-    <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
+        <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-3 md:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div>
               <p className="text-[#9a7a18] text-[10px] font-semibold tracking-[0.18em] mb-0.5">COMMUNICATIONS</p>
@@ -355,7 +355,7 @@ export default function Notices() {
                 </svg>
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search notices…"
-                  className="pl-9 pr-4 py-2 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-44 placeholder-[#c4b090]"/>
+                  className="pl-9 pr-4 py-2 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-44 placeholder-[#c4b090]"/>
               </div>
               <button onClick={() => setModal({ mode: "add", data: null })}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[#5a4010] text-sm font-semibold transition-all active:scale-95"
@@ -369,7 +369,7 @@ export default function Notices() {
           {/* Tabs + type filter */}
           <div className="px-6 md:px-10 pb-3 flex items-center justify-between gap-4">
             {/* Status tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-xl border border-[#e8d898] bg-[#fdf8e8]">
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-[#F1F1F1] bg-[#fdf8e8]">
               {TABS.map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
@@ -401,14 +401,14 @@ export default function Notices() {
           {loading ? (
             <div className="space-y-3 animate-pulse max-w-3xl">
               {[0,1,2].map(i => (
-                <div key={i} className="p-5 rounded-3xl bg-[#fffdf8] border border-[#ece7d8] space-y-2.5">
+                <div key={i} className="p-5 rounded-3xl bg-white border border-[#F1F1F1] space-y-2.5">
                   <div className="flex gap-2">
-                    <div className="h-5 w-16 bg-[#f0e8d4] rounded-lg"/>
-                    <div className="h-5 w-20 bg-[#f0e8d4] rounded-lg"/>
+                    <div className="h-5 w-16 bg-[#F1F1F1] rounded-lg"/>
+                    <div className="h-5 w-20 bg-[#F1F1F1] rounded-lg"/>
                   </div>
-                  <div className="h-4 bg-[#f0e8d4] rounded-full w-64"/>
-                  <div className="h-3 bg-[#f0e8d4] rounded-full w-full"/>
-                  <div className="h-3 bg-[#f0e8d4] rounded-full w-3/4"/>
+                  <div className="h-4 bg-[#F1F1F1] rounded-full w-64"/>
+                  <div className="h-3 bg-[#F1F1F1] rounded-full w-full"/>
+                  <div className="h-3 bg-[#F1F1F1] rounded-full w-3/4"/>
                 </div>
               ))}
             </div>

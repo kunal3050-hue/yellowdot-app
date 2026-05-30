@@ -585,34 +585,46 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
 
         {/* ── Brand logo ───────────────────────────────────────────────── */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 13,
-          padding: "20px 20px 18px",
-          borderBottom: "1px solid rgba(236,231,216,0.55)",
+          display: "flex", alignItems: "center", gap: 11,
+          padding: "18px 18px 16px",
+          borderBottom: "1px solid #F5F0E8",
           flexShrink: 0, position: "relative", zIndex: 1,
           overflow: "hidden", whiteSpace: "nowrap",
         }}>
+          {/* Logo image with soft yellow halo */}
           <div style={{
-            width: 42, height: 42, borderRadius: 14,
-            background: "linear-gradient(145deg, #fde047 0%, #f59e0b 55%, #d97706 100%)",
+            width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+            background: "#FFFBEB",
+            border: "1.5px solid #FDE68A",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 900, fontSize: 20, color: "#78350f", flexShrink: 0,
-            boxShadow: [
-              "0 4px 14px rgba(234,179,8,0.38)",
-              "inset 0 1px 0 rgba(255,255,255,0.45)",
-              "inset 0 -1px 0 rgba(0,0,0,0.10)",
-            ].join(", "),
-            letterSpacing: "-0.5px",
-          }}>Y</div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a1a", lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+            boxShadow: "0 2px 10px rgba(245,197,24,0.22), 0 1px 3px rgba(0,0,0,0.04)",
+            overflow: "hidden",
+          }}>
+            <img
+              src="/icons/logo-original.png"
+              alt="Yellow Dot"
+              style={{ width: 26, height: 26, objectFit: "contain", display: "block" }}
+            />
+          </div>
+
+          {/* Brand text */}
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontSize: 14.5, fontWeight: 700, color: "#1C1917",
+              lineHeight: 1.15, letterSpacing: "-0.025em",
+            }}>
               Yellow Dot
             </div>
-            <div style={{ fontSize: 10, color: "#b0946a", marginTop: 3, fontWeight: 500, letterSpacing: "0.025em" }}>
-              Preschool CRM
+            <div style={{
+              fontSize: 10, color: "#A8906A", marginTop: 2,
+              fontWeight: 500, letterSpacing: "0.02em", lineHeight: 1,
+            }}>
+              Preschool Daycare CRM
             </div>
           </div>
+
           {mobileOpen && (
-            <button className="yd-sl-mobile-close" onClick={onMobileClose} aria-label="Close menu">
+            <button className="yd-sl-mobile-close" onClick={onMobileClose} aria-label="Close menu" style={{ marginLeft: "auto" }}>
               <Icon name="X" />
             </button>
           )}

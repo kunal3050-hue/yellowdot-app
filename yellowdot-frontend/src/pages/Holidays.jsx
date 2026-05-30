@@ -54,7 +54,7 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
     <div className={`
       group flex gap-5 p-6 rounded-3xl border transition-all duration-[200ms]
       hover:shadow-[0_10px_36px_rgba(212,170,31,0.13)] hover:-translate-y-1
-      ${isToday ? "bg-[#fffdf0] border-[#e8d89a]" : "bg-[#fffdf8] border-[#ece7d8] hover:border-[#e0d4a0] hover:bg-white"}
+      ${isToday ? "bg-[#fffdf0] border-[#e8d89a]" : "bg-white border-[#F1F1F1] hover:border-[#e0d4a0] hover:bg-white"}
     `}>
       {/* Date block — large gold tile */}
       <div className="flex-shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] rounded-3xl"
@@ -76,7 +76,7 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
             {holiday.type}
           </span>
           {holiday.recurring && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#f0ebe0] text-[#8b7228] text-[10px] font-semibold border border-[#e0d4a8]">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#F1F1F1] text-[#8b7228] text-[10px] font-semibold border border-[#e0d4a8]">
               Recurring
             </span>
           )}
@@ -135,7 +135,7 @@ function CalendarGrid({ holidays }) {
   const isCurrentMonth = viewYear === todayY && viewMonth === todayM;
 
   return (
-    <div className="bg-[#fffdf8] rounded-3xl border border-[#ece7d8] overflow-hidden"
+    <div className="bg-white rounded-3xl border border-[#F1F1F1] overflow-hidden"
       style={{ boxShadow: "0 4px 20px rgba(212,170,31,0.07)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0ebe0]">
@@ -203,7 +203,7 @@ function HolidayModal({ initial, onSave, onClose }) {
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-7 pt-6 pb-5 border-b border-[#e8d898]"
+        <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1]"
           style={{ background: "linear-gradient(160deg,#fff7d6 0%,#f8ebbf 50%,#f5e4a8 100%)" }}>
           <div className="flex items-center justify-between">
             <div>
@@ -220,13 +220,13 @@ function HolidayModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-[#fffdf8]">
+        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-white">
           {/* Title */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Title *</label>
             <input value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="e.g. Ram Navami"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
           </div>
 
           {/* Dates */}
@@ -234,12 +234,12 @@ function HolidayModal({ initial, onSave, onClose }) {
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Start Date *</label>
               <input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all cursor-pointer"/>
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all cursor-pointer"/>
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">End Date</label>
               <input type="date" value={form.endDate} min={form.startDate} onChange={e => set("endDate", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all cursor-pointer"/>
+                className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all cursor-pointer"/>
             </div>
           </div>
 
@@ -247,7 +247,7 @@ function HolidayModal({ initial, onSave, onClose }) {
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Type</label>
             <select value={form.type} onChange={e => set("type", e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer">
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 cursor-pointer">
               {HOLIDAY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -257,7 +257,7 @@ function HolidayModal({ initial, onSave, onClose }) {
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Description</label>
             <textarea value={form.description} onChange={e => set("description", e.target.value)}
               rows={2} placeholder="Optional note for staff or parents…"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
+              className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
           </div>
 
           {/* Toggles */}
@@ -270,7 +270,7 @@ function HolidayModal({ initial, onSave, onClose }) {
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
                   form[key]
                     ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
-                    : "bg-white border-[#ece7d8] text-[#a3957e] hover:border-[#d4c8a0]"
+                    : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
                 }`}>
                 <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                   form[key] ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"
@@ -288,9 +288,9 @@ function HolidayModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-7 py-4 border-t border-[#ece7d8] flex gap-3 bg-white">
+        <div className="px-7 py-4 border-t border-[#F1F1F1] flex gap-3 bg-white">
           <button onClick={onClose} disabled={saving}
-            className="flex-1 py-2.5 rounded-2xl border border-[#ece7d8] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving || !form.title.trim() || !form.startDate}
@@ -377,12 +377,12 @@ export default function Holidays() {
   const past     = filtered.filter(h => (h.endDate || h.startDate) <  todayStr);
 
   return (
-    <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
+        <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-3 md:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div>
               <p className="text-[#9a7a18] text-[10px] font-semibold tracking-[0.18em] mb-0.5">COMMUNICATIONS</p>
@@ -397,15 +397,15 @@ export default function Holidays() {
                 </svg>
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search holidays…"
-                  className="pl-9 pr-4 py-2 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-44 placeholder-[#c4b090]"/>
+                  className="pl-9 pr-4 py-2 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 w-44 placeholder-[#c4b090]"/>
               </div>
               {/* Year */}
               <select value={year} onChange={e => setYear(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-[#ece7d8] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
+                className="px-3 py-2 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none cursor-pointer">
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
               {/* View toggle */}
-              <div className="flex items-center rounded-xl border border-[#ece7d8] overflow-hidden bg-white">
+              <div className="flex items-center rounded-xl border border-[#F1F1F1] overflow-hidden bg-white">
                 {[["list","List"],["calendar","Cal"]].map(([v, label]) => (
                   <button key={v} onClick={() => setView(v)}
                     className={`px-3 py-2 text-xs font-semibold transition-all ${view === v ? "bg-[#f9dc5a] text-[#5a4010]" : "text-[#a3957e] hover:text-[#7a5e18]"}`}>
@@ -443,12 +443,12 @@ export default function Holidays() {
           {loading ? (
             <div className="space-y-3 animate-pulse max-w-3xl">
               {[0,1,2].map(i => (
-                <div key={i} className="flex gap-4 p-5 rounded-3xl bg-[#fffdf8] border border-[#ece7d8]">
-                  <div className="w-14 h-14 rounded-2xl bg-[#f0e8d4] flex-shrink-0"/>
+                <div key={i} className="flex gap-4 p-5 rounded-3xl bg-white border border-[#F1F1F1]">
+                  <div className="w-14 h-14 rounded-2xl bg-[#F1F1F1] flex-shrink-0"/>
                   <div className="flex-1 space-y-2 pt-1">
-                    <div className="h-3 bg-[#f0e8d4] rounded-full w-20"/>
-                    <div className="h-4 bg-[#f0e8d4] rounded-full w-48"/>
-                    <div className="h-2.5 bg-[#f0e8d4] rounded-full w-32"/>
+                    <div className="h-3 bg-[#F1F1F1] rounded-full w-20"/>
+                    <div className="h-4 bg-[#F1F1F1] rounded-full w-48"/>
+                    <div className="h-2.5 bg-[#F1F1F1] rounded-full w-32"/>
                   </div>
                 </div>
               ))}

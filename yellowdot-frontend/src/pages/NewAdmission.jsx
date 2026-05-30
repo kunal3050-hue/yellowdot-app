@@ -225,7 +225,7 @@ export default function NewAdmission() {
 
     setSubmitting(true);
     try {
-      // 1. Create student
+      // 1. Create student — backend auto-creates Father/Mother as protected pickup persons
       const res = await api.post("/add-student", {
         student_name:    draft.studentName,
         dob:             draft.dob,
@@ -236,9 +236,11 @@ export default function NewAdmission() {
         father_name:     draft.fatherName,
         father_whatsapp: draft.fatherWhatsapp,
         father_email:    draft.fatherEmail,
+        father_photo:    draft.fatherPhoto || "",        // ← new: passed for auto-pickup creation
         mother_name:     draft.motherName,
         mother_whatsapp: draft.motherWhatsapp,
         mother_email:    draft.motherEmail,
+        mother_photo:    draft.motherPhoto || "",        // ← new: passed for auto-pickup creation
         profile_image:   draft.studentPhoto || "",
       });
 
@@ -258,7 +260,7 @@ export default function NewAdmission() {
         }).catch(() => {});  // non-fatal
       }
 
-      // 3. Save pickup persons
+      // 3. Save additional pickup persons (Father/Mother are already created by backend)
       if (studentId && draft.pickupPersons.length > 0) {
         await Promise.allSettled(
           draft.pickupPersons.map(p =>
@@ -268,7 +270,10 @@ export default function NewAdmission() {
               pickupName:  p.name,
               relation:    p.relation,
               mobile:      p.mobile,
+              photoUrl:    p.photoUrl || "",
               emergency:   p.emergency,
+              isParent:    false,
+              isProtected: false,
             })
           )
         );

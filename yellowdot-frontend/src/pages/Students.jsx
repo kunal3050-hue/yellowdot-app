@@ -97,6 +97,17 @@ function Toasts({ toasts, dismiss }) {
   );
 }
 
+// ── Responsive hook ───────────────────────────────────────────────
+function useIsMobile(bp = 768) {
+  const [mob, setMob] = useState(() => window.innerWidth < bp);
+  useEffect(() => {
+    const fn = () => setMob(window.innerWidth < bp);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, [bp]);
+  return mob;
+}
+
 // ── Shared form primitives ────────────────────────────────────────
 const inp = (err) =>
   `yd-input text-sm ${err ? "border-yd-danger bg-yd-danger-soft" : ""}`;
@@ -303,7 +314,7 @@ function StudentModal({ student, onSave, onClose, saving }) {
 // ════════════════════════════════════════════════════════════════════
 // STUDENT DIRECTORY — Left Panel (compact, dense)
 // ════════════════════════════════════════════════════════════════════
-function StudentDirectory({ students, loading, selectedId, onSelect, onAdd, canAdd = true }) {
+function StudentDirectory({ students, loading, selectedId, onSelect, onAdd, canAdd = true, isMobile = false }) {
   const [search,       setSearch      ] = useState("");
   const [classFilter,  setClassFilter ] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -327,49 +338,125 @@ function StudentDirectory({ students, loading, selectedId, onSelect, onAdd, canA
   }, [students, search, classFilter, statusFilter]);
 
   return (
-    <div className="w-[272px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="px-3 pt-3 pb-2 border-b border-gray-100 flex-shrink-0 bg-white">
-        <div className="flex items-center justify-between mb-2">
+    <div className="stu-dir">
+      {/* ── Header ── */}
+      <div className="stu-dir-header">
+        <div className="flex items-center justify-between mb-2.5">
           <div>
             <h2 className="text-sm font-black text-gray-900">Students</h2>
-            <p className="text-[10px] text-gray-400">{filtered.length} of {students.length} students</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {filtered.length} of {students.length} students
+            </p>
           </div>
           {canAdd && (
             <button onClick={onAdd}
-              className="flex items-center gap-0.5 px-2.5 py-1.5 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-black
-                         hover:bg-yd-yellow-dark shadow-sm active:scale-95">
-              + Add
+              className="stu-add-btn flex items-center gap-1 px-3 py-2 bg-yd-yellow text-[#1f1f1f]
+                         rounded-xl text-[12px] font-black hover:bg-yd-yellow-dark shadow-sm active:scale-95 transition-all">
+              + Add Student
             </button>
           )}
         </div>
-        <input value={search} onChange={e => setSearch(e.target.value)}
+
+        {/* Search */}
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
           placeholder="Search name, ID, class…"
-          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-yd-yellow/30 focus:border-yd-yellow"/>
-        <div className="flex gap-1.5 mt-1.5">
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700
+                     focus:outline-none focus:ring-2 focus:ring-yd-yellow/20 focus:border-yd-yellow
+                     bg-gray-50 placeholder-gray-400"
+        />
+
+        {/* Filters */}
+        <div className="flex gap-2 mt-2">
           <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
-            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-yellow">
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600
+                       focus:outline-none focus:border-yd-yellow bg-white">
             {classes.map(c => <option key={c}>{c}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-600 focus:outline-none focus:border-yd-yellow">
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600
+                       focus:outline-none focus:border-yd-yellow bg-white">
             {["All","Active","Inactive","Alumni"].map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* ── List ── */}
+      <div className="stu-dir-list">
         {loading ? (
-          <div className="p-2 space-y-1">
-            {[...Array(8)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse"/>)}
+          /* Skeleton — desktop: narrow rows, mobile: taller cards */
+          <div className={`p-3 ${isMobile ? "grid grid-cols-1 gap-2" : "space-y-1"}`}>
+            {[...Array(isMobile ? 6 : 8)].map((_, i) => (
+              <div key={i}
+                className={`rounded-2xl bg-gray-100 animate-pulse ${isMobile ? "h-20" : "h-12"}`}
+                style={{ animationDelay: `${i * 50}ms` }}
+              />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-center px-4">
-            <p className="text-gray-400 text-xs font-semibold">No students found</p>
-            <p className="text-gray-300 text-[11px] mt-0.5">Adjust filters or search</p>
+          <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+            <div className="text-4xl mb-2 opacity-40">🔍</div>
+            <p className="text-gray-500 text-sm font-semibold">No students found</p>
+            <p className="text-gray-400 text-xs mt-0.5">Adjust filters or search</p>
+          </div>
+        ) : isMobile ? (
+          /* ── Mobile: full-width card grid ── */
+          <div className="p-3 grid grid-cols-1 gap-2">
+            {filtered.map(s => {
+              const sid  = s.Student_ID || s.id;
+              const name = s.Student_Name || s.name;
+              const cls  = s.Class || s.class;
+              const st   = s.Status || "Active";
+              const age  = calcAge(s.DOB || s.dob);
+              return (
+                <button
+                  key={sid}
+                  onClick={() => onSelect(sid)}
+                  className="w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100
+                             text-left transition-all hover:border-yd-yellow hover:shadow-md
+                             active:scale-[0.98] shadow-sm"
+                >
+                  {/* Avatar */}
+                  {s.Profile_Image ? (
+                    <img src={s.Profile_Image} alt={name}
+                      className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-gray-100 shadow-sm"/>
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yd-yellow-soft to-yd-yellow-light
+                                    flex items-center justify-center text-base font-black text-yd-navy flex-shrink-0 shadow-sm">
+                      {initials(name)}
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-bold text-gray-900 leading-tight">{name}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{cls} · {sid}</p>
+                    {age !== "—" && (
+                      <p className="text-[10px] text-gray-400 mt-0.5">Age {age}</p>
+                    )}
+                  </div>
+
+                  {/* Status + chevron */}
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold
+                      ${st === "Active"
+                        ? "bg-yd-success-soft text-yd-success border border-yd-success-border"
+                        : "bg-gray-100 text-gray-500 border border-gray-200"}`}>
+                      <span className={`w-1 h-1 rounded-full ${st === "Active" ? "bg-yd-success" : "bg-gray-400"}`}/>
+                      {st}
+                    </span>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"
+                      viewBox="0 0 24 24" className="text-gray-300">
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         ) : (
+          /* ── Desktop: compact list rows ── */
           <div className="p-1.5 space-y-0.5">
             {filtered.map(s => {
               const sid  = s.Student_ID || s.id;
@@ -531,7 +618,7 @@ function OverviewTab({ student, onEdit, canEdit = true }) {
       </div>
 
       {/* Info grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {fields.map(({ label, val }) => (
           <div key={label} className="bg-white rounded-xl px-3 py-2.5 border border-gray-100">
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
@@ -688,7 +775,7 @@ function AttendanceTab({ student }) {
       {loading ? <div className="space-y-2">{[...Array(4)].map((_,i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse"/>)}</div> : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
               { label:"Present", val:present, bg:"bg-yd-success-soft", col:"text-yd-success", border:"border-yd-success-border" },
               { label:"Absent",  val:absent,  bg:"bg-yd-danger-soft", col:"text-yd-danger", border:"border-yd-danger-border" },
@@ -1322,7 +1409,7 @@ const TABS = [
   { id:"timeline",   label:"Timeline",  icon:"📋" },
 ];
 
-function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh, toast, canEdit = true, canDelete = true }) {
+function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh, toast, canEdit = true, canDelete = true, onBack = null }) {
   const navigate   = useNavigate();
   const student    = students.find(s => (s.Student_ID || s.id) === studentId);
   const [activeTab,    setActiveTab   ] = useState("overview");
@@ -1372,6 +1459,22 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
 
       {/* ── Sticky header ── */}
       <div className="bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
+
+        {/* Mobile back bar */}
+        {onBack && (
+          <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 hover:text-gray-800
+                         px-2.5 py-1.5 rounded-xl hover:bg-gray-100 transition-colors active:scale-95"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Students
+            </button>
+          </div>
+        )}
 
         {/* Profile strip */}
         <div className="flex items-center gap-3 px-4 py-3">
@@ -1470,6 +1573,7 @@ export default function Students() {
   const location   = useLocation();
   const mountedRef = useRef(true);
   const { canDo }  = useAuth();
+  const isMobile   = useIsMobile(768);
 
   // Action-level permission flags
   const perm = {
@@ -1479,9 +1583,10 @@ export default function Students() {
     export: canDo("students", "export"),
   };
 
-  const [students,   setStudents  ] = useState([]);
-  const [loading,    setLoading   ] = useState(true);
-  const [selectedId, setSelectedId] = useState(null);
+  const [students,         setStudents        ] = useState([]);
+  const [loading,          setLoading         ] = useState(true);
+  const [selectedId,       setSelectedId      ] = useState(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const [editStudent,   setEditStudent  ] = useState(null);
   const [deleteStudent, setDeleteStudent] = useState(null);
@@ -1506,7 +1611,10 @@ export default function Students() {
       if (!mountedRef.current) return;
       const list = Array.isArray(data) ? data : [];
       setStudents(list);
-      if (!selectedId && list.length > 0) setSelectedId(list[0].Student_ID);
+      // Only auto-select on desktop — mobile starts at the list view
+      if (!selectedId && list.length > 0 && window.innerWidth >= 768) {
+        setSelectedId(list[0].Student_ID);
+      }
     } catch { toast.error("Failed to load students."); }
     finally { if (mountedRef.current) setLoading(false); }
   }, [selectedId]); // eslint-disable-line
@@ -1550,6 +1658,16 @@ export default function Students() {
 
   const selectedStudentObj = students.find(s => (s.Student_ID || s.id) === selectedId);
 
+  // Open drawer when a student is selected on mobile
+  function handleMobileSelect(sid) {
+    setSelectedId(sid);
+    if (isMobile) setMobileDetailOpen(true);
+  }
+
+  function closeMobileDetail() {
+    setMobileDetailOpen(false);
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Toasts toasts={toast.toasts} dismiss={toast.dismiss}/>
@@ -1558,7 +1676,7 @@ export default function Students() {
       <Sidebar/>
 
       {/* Modals */}
-      {editStudent  && <StudentModal student={editStudent}     onSave={handleEdit} onClose={() => setEditStudent(null)}    saving={saving}/>}
+      {editStudent  && <StudentModal student={editStudent} onSave={handleEdit} onClose={() => setEditStudent(null)} saving={saving}/>}
 
       {/* Delete confirm */}
       {deleteStudent && (
@@ -1572,8 +1690,7 @@ export default function Students() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setDeleteStudent(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={handleDelete} disabled={deleting}
-                className="btn btn-danger flex-1">
+              <button onClick={handleDelete} disabled={deleting} className="btn btn-danger flex-1">
                 {deleting ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/> Removing…</> : "Delete"}
               </button>
             </div>
@@ -1583,9 +1700,10 @@ export default function Students() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
         {/* Stats strip */}
-        <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-4 flex-shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="bg-white border-b border-gray-100 px-4 py-2.5 flex items-center gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Total</span>
               <span className="text-sm font-black text-gray-900">{students.length}</span>
@@ -1601,30 +1719,63 @@ export default function Students() {
               <span className="text-sm font-black text-gray-900">{classCount}</span>
             </div>
           </div>
-          <button onClick={loadStudents} className="ml-auto text-[11px] font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100">
+          <button onClick={loadStudents}
+            className="ml-auto text-[11px] font-bold text-gray-500 hover:text-gray-700
+                       flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100">
             🔄 Refresh
           </button>
         </div>
 
-        {/* Two-panel layout */}
+        {/* ── Layout: desktop = two-panel, mobile = list only ── */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
+
+          {/* Student Directory */}
           <StudentDirectory
             students={students}
             loading={loading}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={handleMobileSelect}
             onAdd={() => navigate("/students/new")}
             canAdd={perm.create}
+            isMobile={isMobile}
           />
+
+          {/* Desktop detail panel (hidden on mobile via CSS) */}
+          <div className="stu-desktop-panel">
+            <StudentProfilePanel
+              studentId={selectedId}
+              students={students}
+              onEdit={() => setEditStudent(selectedStudentObj)}
+              onDelete={() => setDeleteStudent(selectedStudentObj)}
+              onRefresh={loadStudents}
+              toast={toast}
+              canEdit={perm.edit}
+              canDelete={perm.delete}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile slide-over drawer ── */}
+      <div className={`stu-drawer ${mobileDetailOpen ? "stu-drawer--open" : ""}`}>
+        {/* Scrim */}
+        <div
+          className="stu-drawer-scrim"
+          onClick={closeMobileDetail}
+          aria-hidden="true"
+        />
+        {/* Panel */}
+        <div className="stu-drawer-panel">
           <StudentProfilePanel
             studentId={selectedId}
             students={students}
-            onEdit={() => setEditStudent(selectedStudentObj)}
-            onDelete={() => setDeleteStudent(selectedStudentObj)}
+            onEdit={() => { setEditStudent(selectedStudentObj); }}
+            onDelete={() => { setDeleteStudent(selectedStudentObj); }}
             onRefresh={loadStudents}
             toast={toast}
             canEdit={perm.edit}
             canDelete={perm.delete}
+            onBack={closeMobileDetail}
           />
         </div>
       </div>

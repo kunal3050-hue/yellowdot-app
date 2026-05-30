@@ -19,7 +19,8 @@ const SecuritySettings    = lazy(() => import("./pages/auth/SecuritySettings"));
 const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"));
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
-const Dashboard           = lazy(() => import("./pages/Dashboard"));
+const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
+const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
 const Students            = lazy(() => import("./pages/Students"));
 const NewAdmission        = lazy(() => import("./pages/NewAdmission"));
@@ -139,10 +140,18 @@ function App() {
 
             {/* ── Dashboard & analytics ────────────────────────────────────── */}
             <Route
-              path="/dashboard"
+              path="/live-dashboard"
               element={
                 <ProtectedRoute routeKey="dashboard">
-                  <MainLayout><Dashboard /></MainLayout>
+                  <MainLayout><LiveDashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quick-nav"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><QuickNav /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -456,9 +465,5 @@ function RootRedirect() {
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
-  return (
-    <ProtectedRoute routeKey="dashboard">
-      <MainLayout><Dashboard /></MainLayout>
-    </ProtectedRoute>
-  );
+  return <Navigate to="/live-dashboard" replace />;
 }

@@ -31,11 +31,11 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
     <div
       className={`
         group flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3
-        p-3.5 sm:p-4 rounded-2xl border-l-[3px] border border-[#ece7d8]
+        p-3.5 sm:p-4 rounded-2xl border-l-[3px] border border-[#F1F1F1]
         transition-all duration-200
         ${style.accent}
         ${showError  ? "bg-[#fee8e2]/70 border-[#e0a898]"             : ""}
-        ${!showError ? "bg-[#fffdf8] hover:bg-white hover:shadow-sm hover:border-[#e8d898]" : ""}
+        ${!showError ? "bg-white hover:bg-white hover:shadow-sm hover:border-[#F1F1F1]" : ""}
       `}
     >
       {/* ── Meal type label ── */}
@@ -56,7 +56,7 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
           flex-1 min-w-0 bg-white rounded-xl px-4 py-2.5 text-sm text-[#4a3f2a]
           placeholder-[#c4b090] outline-none border transition-all duration-150
           focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
-          ${showError ? "border-[#e0a898] bg-[#fee8e2]/30" : "border-[#ece7d8]"}
+          ${showError ? "border-[#e0a898] bg-[#fee8e2]/30" : "border-[#F1F1F1]"}
         `}
       />
 
@@ -65,7 +65,7 @@ export default function MealRow({ emoji, mealType, itemName, unitType, hasError,
         <select
           value={unitType}
           onChange={e => onChange("unitType", e.target.value)}
-          className="sm:w-28 w-full appearance-none bg-white border border-[#ece7d8] rounded-xl
+          className="sm:w-28 w-full appearance-none bg-white border border-[#F1F1F1] rounded-xl
                      pl-3.5 pr-8 py-2.5 text-sm text-[#5a4010] font-medium outline-none
                      focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                      transition-all cursor-pointer"

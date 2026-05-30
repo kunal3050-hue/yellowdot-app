@@ -32,8 +32,18 @@ router.get("/api/qr/center/:centerId", authenticate, staffOnly, async (req, res)
 
     return res.json({ hasQR: true, ...config });
   } catch (err) {
-    console.error("[QR GET]", err.message);
-    return res.status(500).json({ error: "Failed to fetch QR configuration." });
+    console.error("[QR GET] error", {
+      centerId: req.params?.centerId,
+      message: err?.message,
+      code: err?.code,
+      name: err?.name,
+      stack: err?.stack,
+    });
+    return res.status(500).json({
+      error: err?.message || "Failed to fetch QR configuration.",
+      code:  "QR_GET_FAILED",
+      details: { name: err?.name, code: err?.code },
+    });
   }
 });
 
@@ -45,20 +55,71 @@ router.post(
   authenticate,
   authorize("admin", "center_admin", "center_owner", "super_admin", "developer"),
   async (req, res) => {
-    try {
-      const { centerId }  = req.params;
-      const { centerName } = req.body;   // optional override for display name
+    const { centerId } = req.params;
+    const { centerName } = req.body || {};
+    const authHeader = req.headers?.authorization || "";
+    const hasBearer = authHeader.startsWith("Bearer ");
 
+    console.log("[QR GENERATE] route hit", {
+      method: req.method,
+      path: req.originalUrl,
+      centerId,
+      hasAuthHeader: !!authHeader,
+      hasBearer,
+      authHeaderPreview: hasBearer ? `${authHeader.slice(0, 24)}...` : authHeader,
+    });
+
+    console.log("[QR GENERATE] request", {
+      centerId,
+      centerName,
+      user: {
+        userId: req.user?.userId,
+        role: req.user?.role,
+        centerId: req.user?.centerId,
+      },
+      requestPayload: req.body,
+    });
+
+    try {
       const result = await qrSvc.generateCenterQR(
         centerId,
         centerName,
         req.user.userId,
       );
 
-      return res.json({ success: true, hasQR: true, ...result });
+      // result.saved = true if Firestore write succeeded; false if it failed
+      // In either case, result.qrDataUrl is valid — image generation always succeeds first.
+      const responseBody = {
+        success:    true,
+        hasQR:      true,
+        saved:      result.saved,
+        saveError:  result.saveError || null,
+        ...result,
+      };
+      console.log("[QR GENERATE] response body", {
+        ...responseBody,
+        qrDataUrl: "[base64 omitted from log]",
+      });
+      return res.json(responseBody);
     } catch (err) {
-      console.error("[QR GENERATE]", err.message);
-      return res.status(500).json({ error: "Failed to generate QR code." });
+      // Only reaches here if QR IMAGE generation itself failed (not a DB error).
+      console.error("[QR GENERATE] image generation failed", {
+        centerId,
+        centerName,
+        userId: req.user?.userId,
+        role:   req.user?.role,
+        message: err?.message,
+        code:    err?.code,
+        name:    err?.name,
+        stack:   err?.stack,
+      });
+
+      return res.status(500).json({
+        success: false,
+        error:   err?.message || "Failed to generate QR code.",
+        code:    "QR_GENERATE_FAILED",
+        details: { name: err?.name, code: err?.code },
+      });
     }
   },
 );

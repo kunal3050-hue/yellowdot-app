@@ -221,7 +221,7 @@ function MealSegmentControl({ meals, active, onSelect }) {
   return (
     <div
       ref={scrollRef}
-      className="fc-tab-bar flex items-center gap-1 p-1 rounded-2xl border border-[#e8d898] overflow-x-auto flex-shrink-0"
+      className="fc-tab-bar flex items-center gap-1 p-1 rounded-2xl border border-[#F1F1F1] overflow-x-auto flex-shrink-0"
       style={{
         background:       "linear-gradient(180deg,#fdf8e8 0%,#f8f0d4 100%)",
         boxShadow:        "inset 0 1px 3px rgba(180,140,0,0.10)",
@@ -266,16 +266,16 @@ function SkeletonCards() {
     <div className="space-y-2 animate-pulse">
       {[0, 1, 2, 3, 4].map(i => (
         <div key={i}
-          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-[#fffdf8] border border-[#f0ebe0]"
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-[#f0ebe0]"
           style={{ animationDelay: `${i * 60}ms` }}
         >
-          <div className="w-9 h-9 rounded-xl bg-[#f0e8d4] flex-shrink-0" />
+          <div className="w-9 h-9 rounded-xl bg-[#F1F1F1] flex-shrink-0" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3 bg-[#f0e8d4] rounded-full w-32" />
-            <div className="h-2 bg-[#f0e8d4] rounded-full w-20" />
+            <div className="h-3 bg-[#F1F1F1] rounded-full w-32" />
+            <div className="h-2 bg-[#F1F1F1] rounded-full w-20" />
           </div>
-          <div className="h-7 w-52 bg-[#f0e8d4] rounded-xl" />
-          <div className="h-5 w-12 bg-[#f0e8d4] rounded-lg" />
+          <div className="h-7 w-52 bg-[#F1F1F1] rounded-xl" />
+          <div className="h-5 w-12 bg-[#F1F1F1] rounded-lg" />
         </div>
       ))}
     </div>
@@ -374,7 +374,7 @@ function StudentCard({ student, meal, entry, saving, saved, onQuantityChange }) 
       hover:shadow-[0_4px_16px_rgba(212,170,31,0.10)] hover:-translate-y-px
       ${hasQty
         ? "bg-[#fffdf0] border-[#e8d89a]"
-        : "bg-[#fffdf8] border-transparent hover:bg-[#fffbee] hover:border-[#e8d898]"}
+        : "bg-white border-transparent hover:bg-[#fffbee] hover:border-[#F1F1F1]"}
     `}>
       {/* Avatar */}
       <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad}
@@ -414,7 +414,7 @@ function StudentCard({ student, meal, entry, saving, saved, onQuantityChange }) 
 
 function RecentSection({ entries }) {
   return (
-    <div className="rounded-3xl border border-[#e8ddb8] overflow-hidden"
+    <div className="rounded-3xl border border-[#F1F1F1] overflow-hidden"
       style={{ boxShadow: "0 4px 20px rgba(212,170,31,0.07)", background: "#fffdf8" }}>
       <div className="px-6 py-4 border-b border-[#f0ebe0] flex items-center justify-between">
         <div>
@@ -726,13 +726,13 @@ export default function FoodConsumption() {
   // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#fffdf7] overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 bg-[#fffef8]/[0.98] backdrop-blur-2xl border-b border-[#ece7d8]
+        <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1]
                         shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
           <div className="px-6 md:px-10 py-3 md:py-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -752,7 +752,7 @@ export default function FoodConsumption() {
 
                 {/* Recorded stat */}
                 {!studentsLoading && filteredStudents.length > 0 && (
-                  <div className="bg-[#fffbee] border border-[#ece7d8] rounded-2xl px-4 py-2 text-center
+                  <div className="bg-[#fffbee] border border-[#F1F1F1] rounded-2xl px-4 py-2 text-center
                                   min-w-[96px] shadow-[0_2px_8px_rgba(180,140,0,0.06)]">
                     <p className="text-[9px] font-semibold text-[#a3957e] uppercase tracking-widest">Recorded</p>
                     <p className="text-xl font-black text-[#2a1c06] tabular-nums leading-none mt-0.5">
@@ -768,7 +768,7 @@ export default function FoodConsumption() {
                   value={selectedDate}
                   max={todayISO()}
                   onChange={e => setSelectedDate(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white
+                  className="px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white
                              text-[#2a1c06] font-medium text-sm
                              focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                              outline-none cursor-pointer"
@@ -778,7 +778,7 @@ export default function FoodConsumption() {
                 <select
                   value={selectedClass}
                   onChange={e => setSelectedClass(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-[#ece7d8] bg-white
+                  className="px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white
                              text-[#2a1c06] font-medium text-sm min-w-[140px]
                              focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60
                              outline-none cursor-pointer"

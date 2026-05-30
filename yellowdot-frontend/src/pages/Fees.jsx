@@ -174,7 +174,7 @@ export default function Fees() {
         </div>
 
         {/* ── Stat bar ───────────────────────────────────────────── */}
-        <div className="flex-shrink-0 px-4 pt-3 pb-1 grid grid-cols-6 gap-2">
+        <div className="flex-shrink-0 px-4 pt-3 pb-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {[
             { label: "Total Students",  value: stats.totalStudents,                       color: "text-yd-navy"    },
             { label: "Fee Clear",       value: stats.clearCount,                           color: "text-yd-success" },
@@ -215,7 +215,7 @@ export default function Fees() {
           <div className="flex-1" />
 
           {/* Search */}
-          <div className="flex items-center gap-1.5 border border-yd-border rounded-yd-sm px-2.5 py-1.5 bg-white focus-within:border-yd-yellow transition-colors min-w-[200px]">
+          <div className="flex items-center gap-1.5 border border-yd-border rounded-yd-sm px-2.5 py-1.5 bg-white focus-within:border-yd-yellow transition-colors w-full sm:w-auto sm:min-w-[200px]">
             <span className="text-yd-text-3 text-xs">🔍</span>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search student..."

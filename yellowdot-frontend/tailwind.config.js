@@ -9,63 +9,59 @@ export default {
       // ── Yellow Dot Brand Tokens (Final) ───────────────────────────
       colors: {
         yd: {
-          // Brand yellows — warm golden palette
+          // ── Brand yellows ─────────────────────────────────────────
           yellow:          "#F4C400",
           "yellow-dark":   "#D9AE00",
           "yellow-hover":  "#D9AE00",
-          "yellow-light":  "#FFF4BF",
-          "yellow-soft":   "#FFF4BF",
-          "yellow-pale":   "#FFFDF7",
+          "yellow-light":  "#FFF9E0",
+          "yellow-soft":   "#FFF9E0",
+          "yellow-pale":   "#FFFDF0",
 
-          // Charcoal / text — warm darks, NOT cold navy
-          charcoal:        "#1E1E1E",
-          black:           "#111111",
+          // ── Text ──────────────────────────────────────────────────
+          charcoal:        "#0F172A",
+          black:           "#0A0A0A",
+          navy:            "#0F172A",
+          "navy-2":        "#1E293B",
+          text:            "#0F172A",
+          "text-2":        "#64748B",
+          "text-3":        "#94A3B8",
+          "text-warm":     "#1E293B",
 
-          // Primary dark — warm charcoal, NOT navy/blue
-          navy:            "#1f1f1f",
-          "navy-2":        "#2d2d2d",
-
-          // Backgrounds — warm cream, NOT cold grey-blue
-          bg:              "#FFFDF7",
-          cream:           "#FFFDF7",
-          soft:            "#F8F6EF",
+          // ── Surfaces — pure white ──────────────────────────────────
+          bg:              "#FFFFFF",
+          cream:           "#FFFFFF",
+          soft:            "#F8F8F8",
           surface:         "#FFFFFF",
 
-          // Borders — warm tan, NOT cold grey
-          border:          "#ECE7D8",
-          "border-light":  "#F0EBD8",
-          "border-warm":   "#E8DFC8",
+          // ── Borders — cool neutral ─────────────────────────────────
+          border:          "#E8E8E8",
+          "border-light":  "#F1F1F1",
+          "border-warm":   "#E4E4E7",
 
-          // Text hierarchy — warm, NOT cold navy
-          text:            "#2A2A2A",
-          "text-2":        "#6B7280",
-          "text-3":        "#9CA3AF",
-          "text-warm":     "#4A3F2A",
-
-          // Semantic: danger
+          // ── Semantic: danger ───────────────────────────────────────
           danger:          "#DC2626",
           "danger-soft":   "#FEF2F2",
           "danger-border": "#FECACA",
 
-          // Semantic: success
+          // ── Semantic: success ──────────────────────────────────────
           success:         "#16A34A",
           "success-soft":  "#F0FDF4",
           "success-border":"#BBF7D0",
 
-          // Semantic: warning / pending
+          // ── Semantic: warning ──────────────────────────────────────
           warn:            "#D97706",
           "warn-soft":     "#FFFBEB",
           "warn-border":   "#FDE68A",
 
-          // Semantic: info / partial — warm amber, no blue
-          info:            "#d97706",
-          "info-soft":     "#fffbeb",
-          "info-border":   "#fde68a",
+          // ── Semantic: info ─────────────────────────────────────────
+          info:            "#2563EB",
+          "info-soft":     "#EFF6FF",
+          "info-border":   "#BFDBFE",
 
-          // Sidebar specific
-          "sidebar-bg":    "#FFFBEA",
-          "sidebar-hover": "#FFF4BF",
-          "sidebar-active":"#F4C400",
+          // ── Sidebar ───────────────────────────────────────────────
+          "sidebar-bg":    "#FFFFFF",
+          "sidebar-hover": "#F4F4F5",
+          "sidebar-active":"#0F172A",
         },
       },
 

@@ -210,7 +210,7 @@ function PersonModal({ student, person, onSave, onClose, saving }) {
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
               Relation *
             </label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {RELATIONS.map(r => (
                 <button key={r} type="button" onClick={() => set("relation", r)}
                   className={`py-2 rounded-xl text-xs font-bold border transition-all
@@ -324,9 +324,12 @@ function PersonCard({ person, onEdit, onDelete }) {
     ? "bg-emerald-100 text-emerald-700 border-emerald-200"
     : "bg-gray-100 text-gray-500 border-gray-200";
 
+  const isProtected = person.isProtected;
+  const isParent    = person.isParent;
+
   return (
     <div className={`relative bg-white rounded-2xl border-2 shadow-sm hover:shadow-md transition-all p-5
-      ${person.status === "Active" ? "border-gray-100" : "border-gray-200 opacity-70"}
+      ${isProtected ? "border-yellow-200" : person.status === "Active" ? "border-gray-100" : "border-gray-200 opacity-70"}
       ${person.emergency ? "ring-2 ring-amber-300 ring-offset-1" : ""}`}>
 
       {/* Emergency badge */}
@@ -336,16 +339,29 @@ function PersonCard({ person, onEdit, onDelete }) {
         </div>
       )}
 
+      {/* Protected badge */}
+      {isProtected && (
+        <div className="absolute -top-2.5 right-4 px-2.5 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-black rounded-full shadow-sm">
+          🛡️ Protected
+        </div>
+      )}
+
       <div className="flex items-start gap-4">
         {/* Photo */}
         <div className="flex-shrink-0">
           {person.photoUrl ? (
             <img src={person.photoUrl} alt={person.pickupName}
-              className="w-16 h-16 rounded-2xl object-cover border-2 border-gray-100 shadow-sm"/>
+              className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-sm ${
+                isProtected ? "border-yellow-200" : "border-gray-100"
+              }`}/>
           ) : (
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-200
-                            flex items-center justify-center border-2 border-gray-100">
-              <span className="text-xl font-black text-yd-navy/50">{initials(person.pickupName)}</span>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2
+                            ${isProtected
+                              ? "bg-gradient-to-br from-yellow-100 to-amber-200 border-yellow-200"
+                              : "bg-gradient-to-br from-blue-100 to-indigo-200 border-gray-100"}`}>
+              <span className={`text-xl font-black ${isProtected ? "text-yellow-700" : "text-yd-navy/50"}`}>
+                {initials(person.pickupName)}
+              </span>
             </div>
           )}
         </div>
@@ -355,9 +371,22 @@ function PersonCard({ person, onEdit, onDelete }) {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h3 className="font-black text-gray-900 text-base leading-tight truncate">{person.pickupName}</h3>
-              <p className="text-sm text-gray-500 font-medium mt-0.5">{person.relation}</p>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <p className="text-sm text-gray-500 font-medium">{person.relation}</p>
+                {isParent && (
+                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-100">
+                    Parent
+                  </span>
+                )}
+              </div>
               {person.mobile && (
                 <p className="text-xs text-gray-400 mt-1 font-mono">📞 {person.mobile}</p>
+              )}
+              {isParent && (
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full">✓ Default</span>
+                  <span className="text-[10px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full">✓ Verified</span>
+                </div>
               )}
             </div>
             {/* Status chip */}
@@ -378,12 +407,20 @@ function PersonCard({ person, onEdit, onDelete }) {
               ✏️ Edit
             </button>
           )}
-          {onDelete && (
+          {/* Delete blocked for protected (Father/Mother) records */}
+          {onDelete && !isProtected && (
             <button onClick={() => onDelete(person)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
                          text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors border border-rose-100">
               🗑️ Remove
             </button>
+          )}
+          {onDelete && isProtected && (
+            <div className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold
+                            text-gray-400 bg-gray-50 rounded-xl border border-gray-100 cursor-not-allowed"
+                 title="Father and Mother are protected records. Disable them instead of deleting.">
+              🔒 Cannot Delete
+            </div>
           )}
         </div>
       )}
@@ -509,6 +546,12 @@ export default function PickupAuthorization() {
   // ── Delete ──────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deletePerson) return;
+    // Guard: protected records cannot be deleted
+    if (deletePerson.isProtected) {
+      toast.error("Father and Mother are protected records. Disable them instead of deleting.");
+      setDeletePerson(null);
+      return;
+    }
     setDeleting(true);
     try {
       await pickupAuthorizationService.deletePerson(deletePerson.entryId);
@@ -516,7 +559,12 @@ export default function PickupAuthorization() {
       setDeletePerson(null);
       await loadPersons(selectedStudent?.id);
     } catch (e) {
-      toast.error(e.message || "Failed to remove.");
+      const code = e?.response?.data?.code || e?.code;
+      if (code === "PROTECTED_RECORD") {
+        toast.error("Father and Mother are protected records and cannot be deleted. Disable them instead.");
+      } else {
+        toast.error(e.message || "Failed to remove.");
+      }
     } finally {
       if (mountedRef.current) setDeleting(false);
     }
@@ -550,31 +598,42 @@ export default function PickupAuthorization() {
         />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────── */}
-      <div className="w-[250px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen shadow-md">
+      {/* -- Sidebar ------------------------------------------------- */}
+      <div className="w-[240px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen">
 
         {/* Brand */}
-        <div className="p-5 border-b border-gray-100 flex-shrink-0">
-          <Link to="/" className="block">
-            <h1 className="text-3xl font-black text-[var(--yd-yellow)] leading-none">Yellow<br/>Dot</h1>
-            <p className="text-gray-400 text-[10px] font-medium mt-1 uppercase tracking-wider">Child Safety</p>
+        <div className="px-5 py-6 border-b border-gray-100 flex-shrink-0">
+          <Link to="/">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
+                <span className="text-white font-black text-sm">Y</span>
+              </div>
+              <div>
+                <div className="text-sm font-black text-gray-900 leading-none">Yellow Dot</div>
+                <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
+              </div>
+            </div>
           </Link>
         </div>
 
         {/* Nav links */}
-        <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-1">
-          <Link to="/pickup-authorization"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold bg-yd-navy text-white shadow-md">
-            <span>🔐</span> Pickup Auth
-          </Link>
-          <Link to="/pickup-history"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-            <span>📋</span> Pickup History
-          </Link>
-          <Link to="/attendance"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-            <span>📊</span> Attendance
-          </Link>
+        <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-0.5">
+          {[
+            { to: "/pickup-authorization", label: "Authorized Persons", active: true,
+              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1L2 4v4c0 3.3 2.6 6.4 6 7 3.4-.6 6-3.7 6-7V4L8 1z"/></svg> },
+            { to: "/pickup-history", label: "Pickup History",
+              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8a7 7 0 107 7"/><path d="M1 4v4h4"/><path d="M8 5v3.5l2.5 1.5"/></svg> },
+            { to: "/attendance", label: "Attendance",
+              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="2"/><path d="M5 1v3M11 1v3M1.5 7h13"/><path d="M5 10l2 2 4-3"/></svg> },
+          ].map(l => (
+            <Link key={l.to} to={l.to}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                l.active ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+              }`}>
+              <span className={l.active ? "opacity-80" : "opacity-40"}>{l.icon}</span>
+              {l.label}
+            </Link>
+          ))}
         </div>
 
         {/* Student search */}

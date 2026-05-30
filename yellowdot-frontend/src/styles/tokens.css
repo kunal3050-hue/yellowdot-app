@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   YELLOW DOT CRM — DESIGN TOKENS
+   YELLOW DOT CRM — DESIGN TOKENS  v2 (Pure White SaaS Edition)
    Single source of truth for every visual value in the system.
    ═══════════════════════════════════════════════════════════════════════
    Usage: var(--yd-{token})
@@ -10,40 +10,45 @@
   /* ── Brand Yellows ───────────────────────────────────────────────── */
   --yd-yellow:         #F4C400;
   --yd-yellow-dark:    #D9AE00;
-  --yd-yellow-light:   #FFF4BF;
+  --yd-yellow-light:   #FFF9E0;
   --yd-yellow-pale:    #FFFDF7;
-  --yd-yellow-glow:    rgba(244, 196, 0, 0.18);
-  --yd-yellow-shadow:  rgba(244, 196, 0, 0.35);
+  --yd-yellow-glow:    rgba(244, 196, 0, 0.14);
+  --yd-yellow-shadow:  rgba(244, 196, 0, 0.30);
 
-  /* ── Neutrals ────────────────────────────────────────────────────── */
+  /* ── Core Palette — Pure White SaaS ─────────────────────────────── */
   --yd-white:          #FFFFFF;
-  --yd-cream:          #FFFDF7;
-  --yd-soft:           #F8F6EF;
-  --yd-black:          #111111;
-  --yd-charcoal:       #1E1E1E;
+  --yd-cream:          #FFFFFF;
+  --yd-soft:           #F8F8F8;         /* hover / inset backgrounds  */
+  --yd-black:          #0A0A0A;
+  --yd-charcoal:       #0F172A;         /* primary text               */
 
   /* ── Surfaces ────────────────────────────────────────────────────── */
   --yd-surface:        #FFFFFF;
   --yd-surface-raised: #FFFFFF;
-  --yd-bg:             #FFFDF7;
-  --yd-sidebar-bg:     #FFFBEA;
-  --yd-sidebar-hover:  #FFF4BF;
+  --yd-bg:             #FFFFFF;         /* page background — pure white */
+  --yd-bg-page:        #FAFAFA;         /* subtle alternate pages       */
+  --yd-bg-sunken:      #F5F5F5;         /* inset / tray areas           */
 
-  /* ── Borders ─────────────────────────────────────────────────────── */
-  --yd-border:         #ECE7D8;
-  --yd-border-light:   #F0EBD8;
-  --yd-border-warm:    #E8DFC8;
+  /* ── Sidebar ─────────────────────────────────────────────────────── */
+  --yd-sidebar-bg:     #FFFFFF;
+  --yd-sidebar-hover:  #F4F4F5;
+  --yd-sidebar-active: #0F172A;
+
+  /* ── Borders — cool neutral ──────────────────────────────────────── */
+  --yd-border:         #E8E8E8;
+  --yd-border-light:   #F1F1F1;
+  --yd-border-warm:    #E4E4E7;
 
   /* ── Text ────────────────────────────────────────────────────────── */
-  --yd-text:           #2A231A;
-  --yd-text-soft:      #7a6e5e;
-  --yd-text-muted:     #a3957e;
-  --yd-text-warm:      #4A3F2A;
+  --yd-text:           #0F172A;
+  --yd-text-soft:      #64748B;
+  --yd-text-muted:     #94A3B8;
+  --yd-text-warm:      #1E293B;
 
-  /* ── Semantic — Success (muted olive-gold, no green) ─────────────── */
-  --yd-success:        #8b7a28;
-  --yd-success-soft:   #f8f4d8;
-  --yd-success-border: #d4bc58;
+  /* ── Semantic — Success ──────────────────────────────────────────── */
+  --yd-success:        #16A34A;
+  --yd-success-soft:   #F0FDF4;
+  --yd-success-border: #BBF7D0;
 
   /* ── Semantic — Danger ───────────────────────────────────────────── */
   --yd-danger:         #DC2626;
@@ -55,10 +60,10 @@
   --yd-warning-soft:   #FFFBEB;
   --yd-warning-border: #FDE68A;
 
-  /* ── Semantic — Info (warm amber, no blue) ──────────────────────── */
-  --yd-info:           #d97706;
-  --yd-info-soft:      #fffbeb;
-  --yd-info-border:    #fde68a;
+  /* ── Semantic — Info ─────────────────────────────────────────────── */
+  --yd-info:           #2563EB;
+  --yd-info-soft:      #EFF6FF;
+  --yd-info-border:    #BFDBFE;
 
   /* ── Typography ──────────────────────────────────────────────────── */
   --yd-font:           "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
@@ -105,24 +110,24 @@
 
   /* ── Border Radius ───────────────────────────────────────────────── */
   --yd-radius-xs:  4px;
-  --yd-radius-sm:  6px;
-  --yd-radius:     10px;
-  --yd-radius-md:  14px;
-  --yd-radius-lg:  18px;
+  --yd-radius-sm:  8px;
+  --yd-radius:     12px;
+  --yd-radius-md:  16px;
+  --yd-radius-lg:  20px;
   --yd-radius-xl:  24px;
   --yd-radius-2xl: 32px;
   --yd-radius-full: 9999px;
 
-  /* ── Shadows — warm yellow-tinted, never blue ────────────────────── */
+  /* ── Shadows — pure neutral, no yellow tint ──────────────────────── */
   --yd-shadow-xs:     0 1px 2px rgba(0, 0, 0, 0.04);
-  --yd-shadow-sm:     0 1px 3px rgba(244,196,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --yd-shadow:        0 4px 16px rgba(244,196,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
-  --yd-shadow-md:     0 8px 24px rgba(244,196,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
-  --yd-shadow-lg:     0 16px 48px rgba(244,196,0,0.12), 0 8px 16px rgba(0,0,0,0.07);
-  --yd-shadow-xl:     0 24px 80px rgba(244,196,0,0.14), 0 12px 32px rgba(0,0,0,0.08);
-  --yd-shadow-yellow: 0 4px 16px rgba(244,196,0,0.40);
-  --yd-shadow-card:   0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(236,231,216,0.8);
-  --yd-shadow-inset:  inset 0 1px 3px rgba(0,0,0,0.06);
+  --yd-shadow-sm:     0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --yd-shadow:        0 4px 16px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --yd-shadow-md:     0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --yd-shadow-lg:     0 16px 48px rgba(0, 0, 0, 0.10), 0 8px 16px rgba(0, 0, 0, 0.05);
+  --yd-shadow-xl:     0 24px 80px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.07);
+  --yd-shadow-yellow: 0 4px 16px rgba(244, 196, 0, 0.35);
+  --yd-shadow-card:   0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --yd-shadow-inset:  inset 0 1px 3px rgba(0, 0, 0, 0.05);
 
   /* ── Transitions ─────────────────────────────────────────────────── */
   --yd-ease:         cubic-bezier(0.4, 0, 0.2, 1);
@@ -144,36 +149,26 @@
   --yd-z-toast:    300;
   --yd-z-top:      400;
 
-  /* ── Brand Charcoal (replaces navy — no blue) ───────────────────── */
-  --yd-navy:           #1f1f1f;
-  --yd-navy-2:         #2d2d2d;
-  --yd-navy-3:         #3d3d3d;
-  --yd-navy-light:     #4d4d4d;
-  --yd-navy-glow:      rgba(234,179,8,0.12);
-  --yd-navy-shadow:    0 4px 20px rgba(234,179,8,0.20);
+  /* ── Brand darks ─────────────────────────────────────────────────── */
+  --yd-navy:           #0F172A;
+  --yd-navy-2:         #1E293B;
+  --yd-navy-3:         #334155;
+  --yd-navy-light:     #475569;
+  --yd-navy-glow:      rgba(15, 23, 42, 0.08);
+  --yd-navy-shadow:    0 4px 20px rgba(15, 23, 42, 0.12);
 
-  /* ── Extended warm palette ───────────────────────────────────────── */
-  /* Olive-gold — for success, "paid", active, presence */
-  --yd-olive:          #8b7a28;
-  --yd-olive-soft:     #f8f4d8;
-  --yd-olive-border:   #d4bc58;
-
-  /* Deep amber — for secondary actions, "live" indicators */
-  --yd-amber:          #b08030;
-  --yd-amber-soft:     #faf1d6;
-  --yd-amber-border:   #dcc060;
-
-  /* ── Page-level backgrounds ──────────────────────────────────────── */
-  --yd-bg-page:        #F6F4EE;    /* slightly cooler than cream */
-  --yd-bg-sunken:      #F0EDE4;    /* inset / tray areas */
-
-  /* ── Card shadows (warm, not blue) ──────────────────────────────── */
-  --yd-shadow-card:    0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(236,231,216,0.80);
+  /* ── Extended palette ────────────────────────────────────────────── */
+  --yd-olive:          #16A34A;
+  --yd-olive-soft:     #F0FDF4;
+  --yd-olive-border:   #BBF7D0;
+  --yd-amber:          #D97706;
+  --yd-amber-soft:     #FFFBEB;
+  --yd-amber-border:   #FDE68A;
 
   /* ── Layout ──────────────────────────────────────────────────────── */
-  --yd-sidebar-width:      280px;
+  --yd-sidebar-width:      256px;
   --yd-sidebar-collapsed:   64px;
-  --yd-topbar-height:       60px;
+  --yd-topbar-height:       56px;
   --yd-content-max:       1120px;
   --yd-card-max:            540px;
   --yd-auth-card-max:       460px;
@@ -183,25 +178,25 @@
    DARK MODE OVERRIDES  (add class="dark" to <html>)
    ═══════════════════════════════════════════════════════════════════ */
 .dark {
-  --yd-bg:             #0F1117;
-  --yd-bg-page:        #0B0D12;
-  --yd-bg-sunken:      #080A0F;
-  --yd-surface:        #1A1D26;
-  --yd-surface-raised: #21242F;
-  --yd-sidebar-bg:     #111318;
-  --yd-sidebar-hover:  rgba(244,196,0,0.08);
-  --yd-cream:          #161922;
-  --yd-soft:           #1E2330;
-  --yd-border:         rgba(255,255,255,0.08);
-  --yd-border-light:   rgba(255,255,255,0.05);
-  --yd-border-warm:    rgba(255,255,255,0.10);
-  --yd-text:           #E2E8F0;
+  --yd-bg:             #09090B;
+  --yd-bg-page:        #09090B;
+  --yd-bg-sunken:      #18181B;
+  --yd-surface:        #18181B;
+  --yd-surface-raised: #27272A;
+  --yd-sidebar-bg:     #09090B;
+  --yd-sidebar-hover:  rgba(255, 255, 255, 0.06);
+  --yd-cream:          #18181B;
+  --yd-soft:           #27272A;
+  --yd-border:         rgba(255, 255, 255, 0.08);
+  --yd-border-light:   rgba(255, 255, 255, 0.05);
+  --yd-border-warm:    rgba(255, 255, 255, 0.10);
+  --yd-text:           #F8FAFC;
   --yd-text-soft:      #94A3B8;
   --yd-text-muted:     #64748B;
   --yd-text-warm:      #CBD5E1;
-  --yd-charcoal:       #E2E8F0;
-  --yd-black:          #F1F5F9;
-  --yd-shadow-sm:      0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
-  --yd-shadow:         0 4px 16px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.20);
-  --yd-shadow-card:    0 1px 4px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.06);
+  --yd-charcoal:       #F8FAFC;
+  --yd-black:          #FFFFFF;
+  --yd-shadow-sm:      0 1px 3px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.24);
+  --yd-shadow:         0 4px 16px rgba(0,0,0,0.50), 0 2px 4px rgba(0,0,0,0.24);
+  --yd-shadow-card:    0 1px 4px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.06);
 }

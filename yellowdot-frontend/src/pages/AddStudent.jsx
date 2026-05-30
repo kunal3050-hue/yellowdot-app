@@ -93,7 +93,7 @@ function AddStudent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F5] flex">
+    <div className="min-h-screen bg-white flex">
       <Sidebar />
 
       <div className="flex-1 ml-[280px] p-8">
@@ -384,7 +384,7 @@ function InputField({
         name={name}
         value={value}
         onChange={onChange}
-        className="w-full bg-[#F7F7F5] border border-gray-100 rounded-3xl px-6 py-5 outline-none focus:border-yellow-400 focus:bg-white transition-all duration-300"
+        className="w-full bg-white border border-gray-100 rounded-3xl px-6 py-5 outline-none focus:border-yellow-400 focus:bg-white transition-all duration-300"
       />
     </div>
   );
@@ -407,7 +407,7 @@ function SelectField({
         name={name}
         value={value}
         onChange={onChange}
-        className="w-full bg-[#F7F7F5] border border-gray-100 rounded-3xl px-6 py-5 outline-none focus:border-yellow-400 focus:bg-white transition-all duration-300"
+        className="w-full bg-white border border-gray-100 rounded-3xl px-6 py-5 outline-none focus:border-yellow-400 focus:bg-white transition-all duration-300"
       >
         <option value="">Select {label}</option>
 
@@ -429,7 +429,7 @@ function PhotoUpload({
       <h3 className="font-black text-gray-900 text-xl mb-6">{title}</h3>
 
       <div className="flex flex-col items-center justify-center">
-        <div className="w-36 h-36 rounded-full border-4 border-dashed border-yellow-300 overflow-hidden bg-[#FFFBEA] flex items-center justify-center mb-5">
+        <div className="w-36 h-36 rounded-full border-4 border-dashed border-yellow-300 overflow-hidden bg-white flex items-center justify-center mb-5">
           {image ? (
             <img
               src={image}

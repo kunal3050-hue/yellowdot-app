@@ -514,7 +514,7 @@ Yellow Dot Preschool & Daycare
 
   return (
 
-    <div className="flex bg-[#F7F8FC] min-h-screen">
+    <div className="flex bg-white min-h-screen">
 
       <Sidebar />
 
@@ -572,7 +572,7 @@ Yellow Dot Preschool & Daycare
                     <select
                       value={studentName}
                       onChange={handleStudentChange}
-                      className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB] outline-none"
+                      className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8] outline-none"
                     >
 
                       <option value="">
@@ -617,7 +617,7 @@ Yellow Dot Preschool & Daycare
                 <input
                   value={invoiceNumber}
                   readOnly
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#FFFBEA]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-white"
                 />
 
               </div>
@@ -636,7 +636,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setInvoiceDate(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -654,7 +654,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setFeesType(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 >
 
                   <option>Select Fees Type</option>
@@ -684,7 +684,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setAmount(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -702,7 +702,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setGst(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -720,7 +720,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setDiscount(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -735,7 +735,7 @@ Yellow Dot Preschool & Daycare
                 Billing Cycle
               </label>
 
-              <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
 
                 {
                   ["Monthly", "Quarterly", "Not Applicable"]
@@ -751,7 +751,7 @@ Yellow Dot Preschool & Daycare
                         ${
                           billingCycle === item
                             ? "bg-yd-yellow"
-                            : "bg-[#F5F7FB]"
+                            : "bg-[#F8F8F8]"
                         }
                       `}
                     >
@@ -781,7 +781,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setDurationFrom(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -798,7 +798,7 @@ Yellow Dot Preschool & Daycare
                   onChange={(e) =>
                     setDurationTo(e.target.value)
                   }
-                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F5F7FB]"
+                  className="w-full mt-2 h-16 rounded-2xl px-5 bg-[#F8F8F8]"
                 />
 
               </div>
@@ -819,7 +819,7 @@ Yellow Dot Preschool & Daycare
                 onChange={(e) =>
                   setNotes(e.target.value)
                 }
-                className="w-full mt-2 rounded-3xl p-5 bg-[#F5F7FB]"
+                className="w-full mt-2 rounded-3xl p-5 bg-[#F8F8F8]"
               />
 
             </div>
@@ -832,7 +832,7 @@ Yellow Dot Preschool & Daycare
 
             {/* TOTAL */}
 
-            <div className="bg-[#FFFBEA] p-8 rounded-[40px]">
+            <div className="bg-white p-8 rounded-[40px]">
 
               <p className="text-gray-500">
                 Total Amount

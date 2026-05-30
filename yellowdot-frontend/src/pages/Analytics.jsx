@@ -155,7 +155,7 @@ export default function Analytics() {
       </div>
 
       {/* ── KPI stats ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
         <StatCard label="Total Billed"    value={INR(stats.totalBilled)}    />
         <StatCard label="Collected"       value={INR(stats.totalCollected)} accent="text-yd-success" />
         <StatCard label="Outstanding"     value={INR(stats.totalPending)}   accent="text-yd-danger"  />
@@ -166,9 +166,9 @@ export default function Analytics() {
       </div>
 
       {/* ── Charts row 1 ────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         {/* Revenue trend bar chart */}
-        <div className="col-span-2 yd-card p-4">
+        <div className="md:col-span-2 yd-card p-4">
           <h2 className="yd-title-card mb-4">Revenue Trend</h2>
           {monthlyData.length === 0 ? (
             <div className="yd-empty py-8">
@@ -215,9 +215,9 @@ export default function Analytics() {
       </div>
 
       {/* ── Charts row 2 ────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Fee type billed vs collected */}
-        <div className="col-span-2 yd-card p-4">
+        <div className="md:col-span-2 yd-card p-4">
           <h2 className="yd-title-card mb-4">Fee Type Breakdown</h2>
           {feeTypeData.length === 0 ? (
             <div className="yd-empty py-8">

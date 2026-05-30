@@ -69,7 +69,7 @@ export default function MenuCard({ date, meals, branch }) {
               <span className={`
                 inline-block text-[9px] font-black uppercase tracking-[0.2em]
                 px-2.5 py-0.5 rounded-full mb-1.5
-                ${isToday ? "bg-[#FFD600] text-[#04114B]" : "bg-[#F7F8FC] text-gray-500"}
+                ${isToday ? "bg-[#FFD600] text-[#04114B]" : "bg-white text-gray-500"}
               `}>
                 {badge}
               </span>
@@ -80,12 +80,12 @@ export default function MenuCard({ date, meals, branch }) {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
-              isToday ? "bg-white/10 text-blue-200" : "bg-[#F7F8FC] text-gray-500 border border-gray-100"
+              isToday ? "bg-white/10 text-blue-200" : "bg-white text-gray-500 border border-gray-100"
             }`}>
               {branch || "Main"}
             </span>
             <span className={`text-[10px] font-bold tabular-nums px-2 py-1 rounded-xl ${
-              isToday ? "bg-white/10 text-blue-300" : "bg-[#F7F8FC] text-gray-400"
+              isToday ? "bg-white/10 text-blue-300" : "bg-white text-gray-400"
             }`}>
               {meals.length} meal{meals.length !== 1 ? "s" : ""}
             </span>
