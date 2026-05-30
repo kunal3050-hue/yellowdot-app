@@ -20,7 +20,6 @@ rules_version = '2';
 //   teacher     — read all; write attendance, nap, food-consumption
 //   accountant  — read all; write invoices, payments, fee-templates
 //   reception   — read students; write attendance, parent-attendance
-//   cctv_viewer — read cameras only
 //   parent      — read their own student's records only
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -84,7 +83,7 @@ service cloud.firestore {
 
     function isStaff() {
       return myRole() in ['developer', 'super_admin', 'admin', 'center_admin',
-                          'teacher', 'accountant', 'reception', 'cctv_viewer'];
+                          'teacher', 'accountant', 'reception'];
     }
 
     function isParent() {
@@ -260,26 +259,6 @@ service cloud.firestore {
         writingSameSchool();
 
       allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
-        sameSchool(resource.data.schoolId);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // CAMERAS (CCTV)
-    // ════════════════════════════════════════════════════════════════════
-
-    match /cameras/{cameraId} {
-      // All staff including cctv_viewer can read cameras.
-      allow read: if isSignedIn() && isStaff() &&
-        sameSchool(resource.data.schoolId);
-
-      // Only admins can add/edit/delete cameras.
-      allow create: if isSignedIn() && isAdmin() && isActive() &&
-        writingSameSchool();
-
-      allow update: if isSignedIn() && isAdmin() && isActive() &&
-        sameSchool(resource.data.schoolId);
-
-      allow delete: if isSignedIn() && isAdmin() && isActive() &&
         sameSchool(resource.data.schoolId);
     }
 

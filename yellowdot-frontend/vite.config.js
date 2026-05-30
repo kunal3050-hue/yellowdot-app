@@ -207,8 +207,6 @@ export default defineConfig({
             id.includes('node_modules/jsqr')
           ) return 'vendor-qrcode';
 
-          if (id.includes('node_modules/hls.js')) return 'vendor-hlsjs';
-
           if (id.includes('node_modules/dompurify')) return 'vendor-security';
         },
       },
