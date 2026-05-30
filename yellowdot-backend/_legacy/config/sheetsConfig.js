@@ -62,7 +62,7 @@ const STUDENT_COLS = {
 
 // ── Users sheet — column indices (0-based) ────────────────────────────────────
 // Matches: Users!A:I  →  9 columns (A=0 through I=8)
-// All non-parent staff: developer, super_admin, center_admin, teacher, accountant, reception, cctv_viewer
+// All non-parent staff: developer, super_admin, center_admin, teacher, accountant, reception
 const USER_COLS = {
   USER_ID:       0,  // A — e.g. "USR001"
   NAME:          1,  // B

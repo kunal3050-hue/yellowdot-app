@@ -124,7 +124,7 @@
   50%      { transform: translateY(-12px) scale(1.03); }
 }
 
-/* ── Scan line (CCTV / QR) ───────────────────────────────────────────── */
+/* ── Scan line (QR) ──────────────────────────────────────────────────── */
 
 @keyframes yd-scan-line {
   0%   { top: 0%;   opacity: 1; }

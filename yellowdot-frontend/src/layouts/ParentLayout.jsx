@@ -12,7 +12,7 @@
  *   │  Content           │  scrollable, warm ivory bg
  *   │                    │
  *   ├────────────────────┤
- *   │  Bottom tab bar    │  64px fixed — Home | Camera | Fees | Profile
+ *   │  Bottom tab bar    │  64px fixed — Home | Fees | Profile
  *   └────────────────────┘
  */
 
@@ -184,14 +184,6 @@ function HomeIcon({ active }) {
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
-    </svg>
-  );
-}
-function CameraIcon({ active }) {
-  return (
-    <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
-      <path d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.89L15 14" />
-      <rect x="1" y="6" width="14" height="13" rx="2" />
     </svg>
   );
 }

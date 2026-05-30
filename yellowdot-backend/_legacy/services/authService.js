@@ -50,12 +50,12 @@ const ROLE_PERMISSIONS = {
 
   admin:        [               // alias for center_admin
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "profile", "settings",
   ],
   center_admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "cctv-settings", "live-cctv",
+    "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "profile", "settings",
   ],
   teacher: [
@@ -63,12 +63,11 @@ const ROLE_PERMISSIONS = {
     "students", "parent-checkin", "profile",
   ],
   parent: [
-    "dashboard", "live-cctv", "parent-checkin", "pickup-history", "fees", "profile",
+    "dashboard", "parent-checkin", "pickup-history", "fees", "profile",
   ],
   accountant: [
     "dashboard", "fees", "invoice", "analytics", "students", "profile",
   ],
-  cctv_viewer: ["live-cctv", "cctv-settings", "profile"],
   reception: [
     "dashboard", "students", "attendance", "parent-checkin",
     "pickup-authorization", "pickup-history", "profile",
@@ -84,7 +83,6 @@ const ROLE_HOME = {
   teacher:      "/attendance",
   parent:       "/parent-checkin",
   accountant:   "/invoice",
-  cctv_viewer:  "/live-cctv",
   reception:    "/",
 };
 
