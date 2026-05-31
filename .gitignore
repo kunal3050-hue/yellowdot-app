@@ -25,6 +25,9 @@ yellowdot-backend/server.err
 # ── HLS / media output ────────────────────────────────────────────
 yellowdot-backend/hls-output/
 
+# ── DB backup snapshots (may contain role/permission data) ─────────
+yellowdot-backend/backups/
+
 # ── Build output ──────────────────────────────────────────────────
 dist/
 dist-ssr/
