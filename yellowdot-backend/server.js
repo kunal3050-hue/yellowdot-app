@@ -36,6 +36,7 @@ const roleRoutes             = require("./routes/roleRoutes");
 const communicationRoutes    = require("./routes/communicationRoutes");
 const securityRoutes         = require("./routes/securityRoutes");
 const qrRoutes               = require("./routes/qrRoutes");
+const cctvRoutes             = require("./routes/cctvRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -61,6 +62,7 @@ app.use(roleRoutes);
 app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
+app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
 
 // ============================================================
 // UTILITY HELPERS

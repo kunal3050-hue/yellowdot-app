@@ -263,6 +263,25 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // CAMERAS (CCTV V2 — metadata only; no streaming)
+    // CCTV_VIEW: any staff may read.  CCTV_MANAGE: admin-tier writes.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /cameras/{cameraId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // PICKUP LOGS  (type: "authorization" | "history")
     // ════════════════════════════════════════════════════════════════════
 

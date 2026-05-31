@@ -47,6 +47,7 @@ const EXTRA_ROLES = [
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
       settings:          { view: true, edit: true },
+      cctv:              { view: true, manage: true },
       notifications:     { view: true, create: true, manage: true },
       parent_app:        { view: true, manage: true },
       documents:         { view: true, create: true, delete: true, export: true },

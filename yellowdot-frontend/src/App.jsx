@@ -22,6 +22,7 @@ const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
+const CCTV                = lazy(() => import("./pages/CCTV"));
 const Students            = lazy(() => import("./pages/Students"));
 const NewAdmission        = lazy(() => import("./pages/NewAdmission"));
 const AddStudent          = lazy(() => import("./pages/AddStudent"));
@@ -299,6 +300,16 @@ function App() {
               element={
                 <ProtectedRoute routeKey="fees">
                   <RecordPayment />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── CCTV (V2 Phase 1 — metadata management, no streaming) ─────── */}
+            <Route
+              path="/cctv"
+              element={
+                <ProtectedRoute routeKey="cctv">
+                  <MainLayout><CCTV /></MainLayout>
                 </ProtectedRoute>
               }
             />

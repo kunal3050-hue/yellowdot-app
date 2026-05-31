@@ -126,6 +126,15 @@ export const PERMISSION_CATEGORIES = [
       { id: "parent_app",    label: "Parent App",    actions: ["view", "manage"] },
     ],
   },
+  {
+    id:    "security",
+    label: "Security",
+    icon:  "📹",
+    modules: [
+      // CCTV_VIEW = view, CCTV_MANAGE = manage. Phase 1: manage is admin-tier only.
+      { id: "cctv", label: "CCTV", actions: ["view", "manage"] },
+    ],
+  },
 ];
 
 // ── Module → route-key mapping (mirrors backend roleService.js) ───────────────
@@ -147,6 +156,7 @@ const MODULE_ROUTE_MAP = {
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
+  cctv:              ["cctv"],
   notifications:     [],
   parent_app:        ["parent-checkin"],
   documents:         [],

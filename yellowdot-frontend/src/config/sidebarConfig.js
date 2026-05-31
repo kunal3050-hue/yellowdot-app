@@ -247,6 +247,13 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.QR_MANAGEMENT,
         icon:     "QrCode",
       },
+      {
+        id:       "cctv",
+        label:    "CCTV",
+        path:     "/cctv",
+        routeKey: ROUTES.CCTV,
+        icon:     "Video",
+      },
     ],
   },
 
