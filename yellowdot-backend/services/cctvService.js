@@ -26,11 +26,17 @@ const col = () => db.collection("cameras");
 // Encrypt a camera password for storage. If no encryption key is configured,
 // fall back to storing plaintext but warn loudly (dev convenience; prod must
 // set CCTV_ENCRYPTION_KEY). Already-encrypted values pass through untouched.
+//
+// TECH DEBT — CCTV-V2-TD-001 (see docs/TECH_DEBT.md):
+//   Plaintext storage is ACCEPTED for Phase 1 (internal camera management).
+//   Before Phase 3 (Live View) or Phase 4 (Parent Access): set
+//   CCTV_ENCRYPTION_KEY in production, migrate existing passwords, and make
+//   a missing key fatal for streaming/parent paths.
 function encPassword(pw) {
   if (!pw) return "";
   if (crypto.isEncrypted(pw)) return pw;
   if (!crypto.isEnabled()) {
-    console.warn("[cctvService] CCTV_ENCRYPTION_KEY not set — storing camera password WITHOUT encryption. Set the key in production.");
+    console.warn("[cctvService] CCTV_ENCRYPTION_KEY not set — storing camera password WITHOUT encryption (CCTV-V2-TD-001). Set the key before Live View / Parent Access.");
     return pw;
   }
   return crypto.encrypt(pw);
