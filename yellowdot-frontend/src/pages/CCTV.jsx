@@ -183,13 +183,22 @@ export default function CCTV() {
   };
 
   // ── Test connection ────────────────────────────────────────────────
-  const runTest = async (url) => {
-    const target = (url || testUrl).trim();
-    if (!target) return show("error", "Enter a stream URL to test.");
+  // Prefers structured ip/port (via payload or cameraId); falls back to URL.
+  const runTest = async (payload) => {
+    let body;
+    if (payload && payload.cameraId) {
+      body = { cameraId: payload.cameraId };
+    } else if (payload && payload.ip) {
+      body = { ip: payload.ip, port: payload.port || "554" };
+    } else {
+      const target = (testUrl || "").trim();
+      if (!target) return show("error", "Enter a stream URL to test.");
+      body = { streamUrl: target };
+    }
     setTesting(true);
     setTestResult(null);
     try {
-      const r = await cctvService.testConnection({ streamUrl: target });
+      const r = await cctvService.testConnection(body);
       setTestResult(r);
     } catch (e) {
       setTestResult({ reachable: false, message: e?.response?.data?.error || "Test failed." });
@@ -261,7 +270,7 @@ export default function CCTV() {
                       {cam.cameraName}{cam.cameraCode ? <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8" }}> · {cam.cameraCode}</span> : null}
                     </div>
                     <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-                      {cam.classroom || "Unmapped"} · ch{cam.channel} · {cam.brand}
+                      {cam.classroom || "Unmapped"} · Cam {cam.channel} · {cam.brand}
                     </div>
                   </div>
                   <span style={{
@@ -273,7 +282,7 @@ export default function CCTV() {
                 <div style={{ fontSize: 11, color: "#CBD5E1", marginTop: 8, wordBreak: "break-all" }}>{cam.streamUrl}</div>
                 <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
                   <button onClick={() => openEdit(cam)} className="btn btn-ghost btn-sm">Edit</button>
-                  <button onClick={() => { setTab("Connection Testing"); setTestUrl(cam.streamUrl); runTest(cam.streamUrl); }}
+                  <button onClick={() => { setTab("Connection Testing"); setTestUrl(cam.streamUrl); runTest({ cameraId: cam.cameraId }); }}
                     className="btn btn-ghost btn-sm">Test</button>
                   <button onClick={() => del(cam)} className="btn btn-ghost btn-sm" style={{ color: "#DC2626", marginLeft: "auto" }}>Delete</button>
                 </div>
@@ -298,7 +307,7 @@ export default function CCTV() {
                 {g.cams.map(cam => (
                   <div key={cam.cameraId} style={{ background: "#fff", border: "1px solid #F1F1F1", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cam.cameraName}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>ch{cam.channel} · {cam.brand}</div>
+                    <div style={{ fontSize: 11, color: "#94A3B8" }}>Cam {cam.channel} · {cam.brand}</div>
                   </div>
                 ))}
               </div>
@@ -410,7 +419,7 @@ export default function CCTV() {
                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
                       <Fld label="Static IP *"><Inp value={form.ip} onChange={v => setForm({ ...form, ip: v })} placeholder="192.168.1.64" /></Fld>
                       <Fld label="Port"><Inp value={form.port} onChange={v => setForm({ ...form, port: v })} placeholder="554" /></Fld>
-                      <Fld label="Channel"><Inp value={form.channel} onChange={v => setForm({ ...form, channel: v })} placeholder="1" /></Fld>
+                      <Fld label="Camera Number"><Inp value={form.channel} onChange={v => setForm({ ...form, channel: v })} placeholder="1" /></Fld>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                       <Fld label="Username"><Inp value={form.username} onChange={v => setForm({ ...form, username: v })} placeholder="admin" /></Fld>

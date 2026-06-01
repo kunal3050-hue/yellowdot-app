@@ -174,21 +174,37 @@ async function deleteCamera(req, res) {
 }
 
 // ── POST /api/cctv/cameras/test ────────────────────────────────────
-// Body: { streamUrl } OR { cameraId }. TCP reachability only — NO stream.
+// TCP reachability only — NO stream. Resolution order (prefer structured fields):
+//   1. explicit { ip, port } in the body              (live form values)
+//   2. { cameraId } → saved camera's ip/port          (preferred for records)
+//   3. saved camera's streamUrl, or body.streamUrl    (legacy fallback)
 async function testConnection(req, res) {
   try {
-    let streamUrl = (req.body?.streamUrl || req.body?.stream_url || "").trim();
+    const body = req.body || {};
+    let ip   = (body.ip   || "").trim();
+    let port = body.port != null ? String(body.port).trim() : "";
+    let streamUrl = (body.streamUrl || body.stream_url || "").trim();
 
-    if (!streamUrl && req.body?.cameraId) {
-      const cam = await svc.getOne(req.body.cameraId);
+    // If a cameraId is given and no explicit ip, pull structured fields from the record.
+    if (!ip && body.cameraId) {
+      const cam = await svc.getOne(body.cameraId);
       if (!cam) return res.status(404).json({ success: false, message: "Camera not found." });
-      streamUrl = cam.streamUrl;
-    }
-    if (!streamUrl) {
-      return res.status(400).json({ success: false, message: "streamUrl or cameraId is required." });
+      ip   = (cam.ip   || "").trim();
+      port = (cam.port || "").trim() || port;
+      if (!streamUrl) streamUrl = cam.streamUrl || "";
     }
 
-    const result = await testSvc.testConnection(streamUrl);
+    let result;
+    if (ip) {
+      // Preferred: test the saved/structured IP + port.
+      result = await testSvc.testHostPort(ip, port || 554);
+    } else if (streamUrl) {
+      // Legacy fallback: parse host:port out of the stored URL.
+      result = await testSvc.testConnection(streamUrl);
+    } else {
+      return res.status(400).json({ success: false, message: "Provide ip (+port), cameraId, or streamUrl." });
+    }
+
     res.json({
       success: true,
       reachable: result.reachable,
@@ -196,6 +212,7 @@ async function testConnection(req, res) {
       host: result.host || null,
       port: result.port || null,
       ms: result.ms || null,
+      source: result.source || null,   // "ip-port" | "stream-url" — which path was tested
       note: "Network Reachability Test Only — does not verify camera credentials or video stream.",
     });
   } catch (e) {

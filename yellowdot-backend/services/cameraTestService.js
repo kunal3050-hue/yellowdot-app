@@ -76,16 +76,30 @@ function tcpProbe(host, port, timeoutMs = CONNECT_TIMEOUT_MS) {
 }
 
 /**
- * Public API: test reachability of a camera's stream URL.
+ * Test reachability of an explicit host + port (preferred path).
+ * @returns {Promise<{ reachable, host, port, message, ms, source }>}
+ */
+async function testHostPort(host, port) {
+  const h = String(host || "").trim();
+  if (!h) return { reachable: false, message: "No host/IP provided." };
+  const p = parseInt(port, 10) || DEFAULT_RTSP_PORT;
+  const r = await tcpProbe(h, p);
+  return { ...r, source: "ip-port" };
+}
+
+/**
+ * Test reachability of a camera's stream URL (legacy fallback — parses
+ * host:port out of the saved URL).
  * @param {string} streamUrl
- * @returns {Promise<{ reachable:boolean, host?:string, port?:number, message:string, ms?:number }>}
+ * @returns {Promise<{ reachable, host?, port?, message, ms?, source }>}
  */
 async function testConnection(streamUrl) {
   const parsed = parseStreamUrl(streamUrl);
   if (!parsed.ok) {
-    return { reachable: false, message: parsed.error };
+    return { reachable: false, message: parsed.error, source: "stream-url" };
   }
-  return tcpProbe(parsed.host, parsed.port);
+  const r = await tcpProbe(parsed.host, parsed.port);
+  return { ...r, source: "stream-url" };
 }
 
-module.exports = { testConnection, parseStreamUrl };
+module.exports = { testConnection, testHostPort, parseStreamUrl };
