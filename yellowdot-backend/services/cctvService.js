@@ -18,9 +18,23 @@
  */
 
 const { db } = require("../firebaseAdmin");
+const crypto = require("./cryptoService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col = () => db.collection("cameras");
+
+// Encrypt a camera password for storage. If no encryption key is configured,
+// fall back to storing plaintext but warn loudly (dev convenience; prod must
+// set CCTV_ENCRYPTION_KEY). Already-encrypted values pass through untouched.
+function encPassword(pw) {
+  if (!pw) return "";
+  if (crypto.isEncrypted(pw)) return pw;
+  if (!crypto.isEnabled()) {
+    console.warn("[cctvService] CCTV_ENCRYPTION_KEY not set — storing camera password WITHOUT encryption. Set the key in production.");
+    return pw;
+  }
+  return crypto.encrypt(pw);
+}
 
 function nowISO() { return new Date().toISOString(); }
 
@@ -124,7 +138,7 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     port:       String(data.port || "554"),
     streamUrl:  data.streamUrl  || data.stream_url  || "",
     username:   data.username   || "",
-    password:   data.password   || "",
+    password:   encPassword(data.password || ""),
     channel:    String(data.channel || "1"),
     streamType: data.streamType || data.stream_type || "RTSP",
     status:     data.status     || "Active",
@@ -173,7 +187,7 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     ...(data.port       !== undefined && { port:       String(data.port) }),
     ...(data.streamUrl  !== undefined && { streamUrl:  data.streamUrl  }),
     ...(data.username   !== undefined && { username:   data.username   }),
-    ...(data.password   !== undefined && { password:   data.password   }),
+    ...(data.password   !== undefined && { password:   encPassword(data.password) }),
     ...(data.channel    !== undefined && { channel:    String(data.channel) }),
     ...(data.streamType !== undefined && { streamType: data.streamType }),
     ...(data.status     !== undefined && { status:     data.status     }),

@@ -36,6 +36,8 @@ const RTSP_TEMPLATES = {
 
 // Build the RTSP URL for the current form. Returns "" if required parts missing
 // or the brand has no template (e.g. TP-Link / Other → must use custom).
+// NOTE: credential-free. This is what we persist; the Stream Engine composes
+// the final authenticated URL server-side using the encrypted credentials.
 function buildRtsp({ brand, ip, port, channel }) {
   const tpl = RTSP_TEMPLATES[brand];
   if (!tpl) return "";
@@ -43,6 +45,18 @@ function buildRtsp({ brand, ip, port, channel }) {
   const p  = String(port || "554").trim() || "554";
   const ch = String(channel || "1").trim() || "1";
   return tpl({ ip: String(ip).trim(), port: p, channel: ch });
+}
+
+// Sanitized PREVIEW only — shows the username (never the password) so the
+// operator can sanity-check it. Password is never rendered.
+//   with username:  rtsp://admin@192.168.1.150:554/Streaming/Channels/101
+//   without:        rtsp://192.168.1.150:554/Streaming/Channels/101
+function buildRtspPreview(form) {
+  const base = buildRtsp(form);
+  if (!base) return "";
+  const user = (form.username || "").trim();
+  if (!user) return base;
+  return base.replace(/^rtsp:\/\//, `rtsp://${user}@`);
 }
 
 const emptyForm = () => ({
@@ -409,9 +423,9 @@ export default function CCTV() {
                         Generated RTSP URL (preview)
                       </span>
                       {RTSP_TEMPLATES[form.brand] ? (
-                        <div style={{ fontSize: 12, fontFamily: "monospace", color: buildRtsp(form) ? "#0F172A" : "#94A3B8",
+                        <div style={{ fontSize: 12, fontFamily: "monospace", color: buildRtspPreview(form) ? "#0F172A" : "#94A3B8",
                           background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "9px 10px", wordBreak: "break-all" }}>
-                          {buildRtsp(form) || "Enter Static IP to generate…"}
+                          {buildRtspPreview(form) || "Enter Static IP to generate…"}
                         </div>
                       ) : (
                         <div style={{ fontSize: 12, color: "#B45309", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 9, padding: "9px 10px" }}>
@@ -419,7 +433,7 @@ export default function CCTV() {
                         </div>
                       )}
                       <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 5 }}>
-                        Credentials are stored separately, not embedded in the URL.
+                        Preview hides the password. Credentials are stored separately &amp; encrypted; the Stream Engine composes the final URL server-side.
                       </div>
                     </div>
                   </>
