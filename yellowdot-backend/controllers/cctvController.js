@@ -94,6 +94,8 @@ async function addCamera(req, res) {
         classroom,
         classrooms,
         brand:      pick(body, "brand",      "brand")      || "Other",
+        ip:         pick(body, "ip",         "ip")         || "",
+        port:       String(pick(body, "port", "port")      || "554"),
         streamUrl,
         username:   pick(body, "username",   "username")   || "",
         password:   pick(body, "password",   "password")   || "",
@@ -131,6 +133,8 @@ async function updateCamera(req, res) {
     set("cameraName",  "camera_name");
     set("classroom",   "classroom");
     set("brand",       "brand");
+    set("ip",          "ip");
+    set("port",        "port");
     set("streamUrl",   "stream_url");
     set("username",    "username");
     set("channel",     "channel");

@@ -21,9 +21,34 @@ const CLASSES = ["Daycare", "Playgroup", "Nursery", "LKG", "UKG", "Class 1", "Cl
 const BRANDS  = ["Hikvision", "Dahua", "CP Plus", "TP-Link", "Other"];
 const TABS    = ["Camera Management", "Classroom Mapping", "Connection Testing"];
 
+// ── RTSP URL templates per brand ────────────────────────────────────
+// Credentials are NOT embedded — username/password are stored separately
+// and composed by the stream engine later (Phase 2). The path here is the
+// brand-standard main-stream channel path.
+//   Hikvision: /Streaming/Channels/<ch>01   (ch1 → 101)
+//   Dahua:     /cam/realmonitor?channel=<ch>&subtype=0
+//   CP Plus:   /cam/realmonitor?channel=<ch>&subtype=0  (Dahua-OEM)
+const RTSP_TEMPLATES = {
+  Hikvision: ({ ip, port, channel }) => `rtsp://${ip}:${port}/Streaming/Channels/${channel}01`,
+  Dahua:     ({ ip, port, channel }) => `rtsp://${ip}:${port}/cam/realmonitor?channel=${channel}&subtype=0`,
+  "CP Plus": ({ ip, port, channel }) => `rtsp://${ip}:${port}/cam/realmonitor?channel=${channel}&subtype=0`,
+};
+
+// Build the RTSP URL for the current form. Returns "" if required parts missing
+// or the brand has no template (e.g. TP-Link / Other → must use custom).
+function buildRtsp({ brand, ip, port, channel }) {
+  const tpl = RTSP_TEMPLATES[brand];
+  if (!tpl) return "";
+  if (!ip || !String(ip).trim()) return "";
+  const p  = String(port || "554").trim() || "554";
+  const ch = String(channel || "1").trim() || "1";
+  return tpl({ ip: String(ip).trim(), port: p, channel: ch });
+}
+
 const emptyForm = () => ({
   cameraCode: "", cameraName: "", classroom: "", brand: "Hikvision",
-  streamUrl: "", username: "", password: "", channel: "1",
+  ip: "", port: "554", username: "", password: "", channel: "1",
+  customRtsp: false, streamUrl: "",
   streamType: "RTSP", status: "Active",
 });
 
@@ -72,26 +97,55 @@ export default function CCTV() {
   const openAdd = () => { setEditingId(null); setForm(emptyForm()); setModalOpen(true); };
   const openEdit = (cam) => {
     setEditingId(cam.cameraId);
+    const brand = cam.brand || "Other";
+    const ip   = cam.ip   || "";
+    const port = cam.port || "554";
+    // If we have the building blocks and the stored URL matches the generated
+    // one, treat it as builder-mode; otherwise it's a custom URL.
+    const generated = buildRtsp({ brand, ip, port, channel: cam.channel || "1" });
+    const isCustom  = !generated || (cam.streamUrl && cam.streamUrl !== generated);
     setForm({
-      cameraCode: cam.cameraCode || "", cameraName: cam.cameraName, classroom: cam.classroom, brand: cam.brand || "Other",
-      streamUrl: cam.streamUrl, username: cam.username || "", password: "",
-      channel: cam.channel || "1", streamType: cam.streamType || "RTSP",
+      cameraCode: cam.cameraCode || "", cameraName: cam.cameraName, classroom: cam.classroom,
+      brand, ip, port,
+      username: cam.username || "", password: "",
+      channel: cam.channel || "1",
+      customRtsp: !!isCustom,
+      streamUrl: cam.streamUrl || "",
+      streamType: cam.streamType || "RTSP",
       status: cam.status || "Active",
     });
     setModalOpen(true);
   };
 
+  // Resolve the effective stream URL: custom field, or generated from parts.
+  const resolvedUrl = (f) => (f.customRtsp ? f.streamUrl.trim() : buildRtsp(f));
+
   const save = async () => {
     if (!form.cameraName.trim()) return show("error", "Camera name is required.");
     if (!form.classroom)         return show("error", "Please map the camera to a classroom.");
-    if (!form.streamUrl.trim())  return show("error", "Stream URL is required.");
+
+    const url = resolvedUrl(form);
+    if (!url) {
+      return show("error", form.customRtsp
+        ? "Enter a custom RTSP URL."
+        : "Enter the camera's Static IP (and pick a brand with a template).");
+    }
+
+    const payload = {
+      cameraCode: form.cameraCode, cameraName: form.cameraName, classroom: form.classroom,
+      brand: form.brand, ip: form.ip, port: form.port, channel: form.channel,
+      username: form.username, password: form.password,
+      streamType: form.streamType, status: form.status,
+      streamUrl: url,
+    };
+
     setSaving(true);
     try {
       if (editingId) {
-        await cctvService.updateCamera(editingId, form);
+        await cctvService.updateCamera(editingId, payload);
         show("success", "Camera updated.");
       } else {
-        await cctvService.addCamera(form);
+        await cctvService.addCamera(payload);
         show("success", "Camera added.");
       }
       setModalOpen(false);
@@ -324,14 +378,59 @@ export default function CCTV() {
                   </select>
                 </Fld>
               </div>
-              <Fld label="Stream URL *">
-                <Inp value={form.streamUrl} onChange={v => setForm({ ...form, streamUrl: v })} placeholder="rtsp://host:554/Streaming/Channels/101" />
-              </Fld>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                <Fld label="Username"><Inp value={form.username} onChange={v => setForm({ ...form, username: v })} /></Fld>
-                <Fld label="Password"><Inp type="password" value={form.password} onChange={v => setForm({ ...form, password: v })} placeholder={editingId ? "(unchanged)" : ""} /></Fld>
-                <Fld label="Channel"><Inp value={form.channel} onChange={v => setForm({ ...form, channel: v })} /></Fld>
+              {/* ── Connection ─────────────────────────────────────────── */}
+              <div style={{ borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748B" }}>
+                    Connection
+                  </span>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748B", cursor: "pointer" }}>
+                    <input type="checkbox" checked={form.customRtsp}
+                      onChange={e => setForm({ ...form, customRtsp: e.target.checked })} />
+                    Use Custom RTSP URL
+                  </label>
+                </div>
+
+                {!form.customRtsp ? (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
+                      <Fld label="Static IP *"><Inp value={form.ip} onChange={v => setForm({ ...form, ip: v })} placeholder="192.168.1.64" /></Fld>
+                      <Fld label="Port"><Inp value={form.port} onChange={v => setForm({ ...form, port: v })} placeholder="554" /></Fld>
+                      <Fld label="Channel"><Inp value={form.channel} onChange={v => setForm({ ...form, channel: v })} placeholder="1" /></Fld>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                      <Fld label="Username"><Inp value={form.username} onChange={v => setForm({ ...form, username: v })} placeholder="admin" /></Fld>
+                      <Fld label="Password"><Inp type="password" value={form.password} onChange={v => setForm({ ...form, password: v })} placeholder={editingId ? "(unchanged)" : ""} /></Fld>
+                    </div>
+
+                    {/* Generated URL preview (read-only) */}
+                    <div style={{ marginTop: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#64748B", display: "block", marginBottom: 4 }}>
+                        Generated RTSP URL (preview)
+                      </span>
+                      {RTSP_TEMPLATES[form.brand] ? (
+                        <div style={{ fontSize: 12, fontFamily: "monospace", color: buildRtsp(form) ? "#0F172A" : "#94A3B8",
+                          background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "9px 10px", wordBreak: "break-all" }}>
+                          {buildRtsp(form) || "Enter Static IP to generate…"}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: "#B45309", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 9, padding: "9px 10px" }}>
+                          No auto-template for “{form.brand}”. Enable “Use Custom RTSP URL” to enter the URL manually.
+                        </div>
+                      )}
+                      <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 5 }}>
+                        Credentials are stored separately, not embedded in the URL.
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <Fld label="Custom RTSP URL *">
+                    <Inp value={form.streamUrl} onChange={v => setForm({ ...form, streamUrl: v })}
+                      placeholder="rtsp://host:554/your/custom/path" />
+                  </Fld>
+                )}
               </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Fld label="Stream Type">
                   <select value={form.streamType} onChange={e => setForm({ ...form, streamType: e.target.value })} style={selStyle}>

@@ -37,6 +37,8 @@ function docToCamera(snap) {
     classroom,                       // primary (single) mapping — Phase 1
     classrooms,                      // forward-compatible multi-mapping
     brand:      d.brand      || "",
+    ip:         d.ip         || "",
+    port:       d.port       || "",
     streamUrl:  d.streamUrl  || "",
     username:   d.username   || "",
     password:   d.password   || "",
@@ -118,6 +120,8 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     classroom,
     classrooms,
     brand:      data.brand      || "",
+    ip:         data.ip         || "",
+    port:       String(data.port || "554"),
     streamUrl:  data.streamUrl  || data.stream_url  || "",
     username:   data.username   || "",
     password:   data.password   || "",
@@ -165,6 +169,8 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     ...(data.cameraCode !== undefined && { cameraCode: String(data.cameraCode).trim() }),
     ...(data.cameraName !== undefined && { cameraName: data.cameraName }),
     ...(data.brand      !== undefined && { brand:      data.brand      }),
+    ...(data.ip         !== undefined && { ip:         data.ip         }),
+    ...(data.port       !== undefined && { port:       String(data.port) }),
     ...(data.streamUrl  !== undefined && { streamUrl:  data.streamUrl  }),
     ...(data.username   !== undefined && { username:   data.username   }),
     ...(data.password   !== undefined && { password:   data.password   }),
