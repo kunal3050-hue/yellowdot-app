@@ -247,6 +247,18 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.QR_MANAGEMENT,
         icon:     "QrCode",
       },
+    ],
+  },
+
+  // ── Surveillance ─────────────────────────────────────────────────────────────
+  // Dedicated infrastructure/security module. Future: Live View, Parent
+  // Access, Audit Logs. Kept top-level (not under Presence & Safety).
+  {
+    id:          "surveillance",
+    label:       "Surveillance",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
       {
         id:       "cctv",
         label:    "CCTV",

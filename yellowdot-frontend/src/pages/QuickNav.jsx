@@ -92,7 +92,13 @@ const SECTIONS = [
       { label: "Pickup",         path: "/pickup-authorization", icon: "Car",         desc: "Authorised pickups" },
       { label: "Staff Checkout", path: "/staff-checkout",       icon: "LogOut",      desc: "End-of-day sign-off" },
       { label: "QR Management",  path: "/qr-management",        icon: "QrCode",      desc: "Generate & print QR" },
-      { label: "CCTV",           path: "/cctv",                 icon: "Video",       desc: "Camera management" },
+    ],
+  },
+  {
+    id: "surveillance",
+    label: "Surveillance",
+    items: [
+      { label: "CCTV", path: "/cctv", icon: "Video", desc: "Camera management" },
     ],
   },
   {
