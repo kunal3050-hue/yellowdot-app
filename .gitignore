@@ -28,6 +28,9 @@ yellowdot-backend/hls-output/
 # ── DB backup snapshots (may contain role/permission data) ─────────
 yellowdot-backend/backups/
 
+# ── Firebase deploy cache (local artifact — must not be tracked) ───
+.firebase/
+
 # ── Build output ──────────────────────────────────────────────────
 dist/
 dist-ssr/
