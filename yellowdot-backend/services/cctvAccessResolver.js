@@ -75,8 +75,38 @@ function canViewCamera(user, camera) {
       : { allowed: false, reason: "classroom-not-assigned", scope: "classroom" };
   }
 
-  // parent + any other role: no staff access (Phase 3 will add a parent branch)
+  // parent + any other role: no STAFF access. Parent access is evaluated by
+  // canParentViewCamera() (presence-gated) — not here.
   return { allowed: false, reason: "role-not-permitted", scope: "none" };
+}
+
+/**
+ * Parent access to a camera (Phase 3). Distinct from staff scoping: a parent
+ * may view ONLY a camera mapped to their own child's classroom, and ONLY while
+ * the child is present. Presence + child are resolved by the caller (controller)
+ * and passed in — this function stays pure (no DB).
+ *
+ * @param {{ studentId, classroom, centerId }} child   the parent's linked child
+ * @param {{ status }} presence                          getChildStatus() result
+ * @param {{ centerId, classroom?, classrooms?, deleted? }} camera
+ * @param {{ schoolHoursOpen?:boolean }} [opts]          optional school-hours gate
+ * @returns {{ allowed:boolean, reason:string }}
+ */
+function canParentViewCamera(child, presence, camera, opts = {}) {
+  if (!child || !child.studentId) return { allowed: false, reason: "no-linked-child" };
+  if (!camera || camera.deleted)  return { allowed: false, reason: "camera-unavailable" };
+  if (opts.schoolHoursOpen === false) return { allowed: false, reason: "outside-school-hours" };
+  if (!presence || presence.status !== "PRESENT") {
+    return { allowed: false, reason: presence && presence.status === "CHECKED_OUT" ? "child-checked-out" : "child-not-present" };
+  }
+  if (norm(child.centerId) !== norm(camera.centerId)) {
+    return { allowed: false, reason: "different-center" };
+  }
+  const camRooms = cameraClassrooms(camera).map(norm);
+  if (!camRooms.includes(norm(child.classroom))) {
+    return { allowed: false, reason: "not-child-classroom" };
+  }
+  return { allowed: true, reason: "present-and-classroom-match" };
 }
 
 /**
@@ -101,6 +131,7 @@ function describeScope(user) {
 
 module.exports = {
   canViewCamera,
+  canParentViewCamera,
   filterViewableCameras,
   describeScope,
   BYPASS_ROLES,

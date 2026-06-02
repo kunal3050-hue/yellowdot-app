@@ -55,6 +55,15 @@ const cctvService = {
   // POST /api/cctv/cameras/:id/live-stop
   stopLive: (id, sessionId) =>
     request(`/api/cctv/cameras/${encodeURIComponent(id)}/live-stop`, { method: "POST", body: JSON.stringify({ sessionId }) }),
+
+  // POST /api/cctv/parent/live-token — Parent Live View (presence + hours gated).
+  parentLiveToken: (cameraId) =>
+    request("/api/cctv/parent/live-token", { method: "POST", body: JSON.stringify(cameraId ? { cameraId } : {}) }),
+
+  // Parent CCTV settings (admin)
+  getParentSettings: () => request("/api/cctv/parent/settings"),
+  saveParentSettings: (data) =>
+    request("/api/cctv/parent/settings", { method: "PUT", body: JSON.stringify(data) }),
 };
 
 export default cctvService;

@@ -34,6 +34,7 @@ const T = {
 // ── Bottom tab definitions ────────────────────────────────────────────────────
 const TABS = [
   { path: "/parent-home",   label: "Home",     icon: HomeIcon    },
+  { path: "/parent-cctv",   label: "Camera",   icon: CameraIcon  },
   { path: "/fees",          label: "Fees",     icon: FeeIcon     },
   { path: "/profile",       label: "Profile",  icon: ProfileIcon },
 ];
@@ -184,6 +185,14 @@ function HomeIcon({ active }) {
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
+    </svg>
+  );
+}
+function CameraIcon({ active }) {
+  return (
+    <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
+      <path d="M2 7a2 2 0 012-2h2l1.5-2h7L17 5h2a2 2 0 012 2v11a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
+      <circle cx="12" cy="12" r="3.5" />
     </svg>
   );
 }

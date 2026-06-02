@@ -17,6 +17,9 @@ const testSvc   = require("../services/cameraTestService");
 const verifySvc = require("../services/cameraVerifyService");
 const resolver  = require("../services/cctvAccessResolver");
 const session   = require("../services/streamSessionService");
+const securitySvc   = require("../services/securityService");
+const studentSvc    = require("../services/studentService");
+const parentSettings = require("../services/cctvParentSettingsService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -342,6 +345,94 @@ async function streamAuthHook(req, res) {
   }
 }
 
+// ── POST /api/cctv/parent/live-token ───────────────────────────────
+// Parent Live View. Guards: parent↔child link · school-hours window ·
+// child CHECKED_IN today · camera ∈ child's classroom. Presence re-checked
+// on every (short-lived) token, so access auto-revokes ~2 min after checkout.
+async function parentLiveToken(req, res) {
+  const nowMs = Date.now();
+  const nowISO = new Date(nowMs).toISOString();
+  const user = req.user || {};
+  const auditDeny = (reason, childId) => session.audit("LIVE_VIEW_DENIED", {
+    userId: user.userId, role: "parent", kind: "parent", cameraId: req.body?.cameraId || "",
+    childId: childId || "", ip: req.ip,
+  }, nowISO);
+
+  try {
+    if (user.role !== "parent") {
+      return res.status(403).json({ success: false, error: "Parent endpoint only." });
+    }
+    const linkedId = user.student?.studentId;
+    if (!linkedId) { await auditDeny("not-linked"); return res.status(403).json({ success: false, error: "No student linked to this account.", reason: "not-linked" }); }
+
+    // School-hours / master switch
+    const window = await parentSettings.isParentViewingOpen();
+    if (!window.open) {
+      await auditDeny(window.reason, linkedId);
+      return res.status(403).json({ success: false, error: "Live viewing is not available right now.", reason: window.reason });
+    }
+
+    // Resolve child + presence
+    const child = await studentSvc.getOne(linkedId);
+    if (!child) { await auditDeny("child-missing", linkedId); return res.status(404).json({ success: false, error: "Linked student not found." }); }
+    const childCtx = { studentId: linkedId, classroom: child.class || child.Class || "", centerId: child.centerId || child.center || "" };
+    const presence = await securitySvc.getChildStatus(linkedId, { schoolId: child.schoolId, centerId: childCtx.centerId });
+
+    // Resolve target camera (explicit cameraId, else first camera in child's classroom)
+    let cam;
+    if (req.body?.cameraId) {
+      cam = await svc.getOne(req.body.cameraId);
+    } else {
+      const all = await svc.getAll({ schoolId: child.schoolId, centerId: childCtx.centerId });
+      cam = all.find(c => (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes((childCtx.classroom||"").toLowerCase()));
+    }
+    if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId); return res.status(404).json({ success: false, error: "No camera available for your child's classroom." }); }
+
+    const decision = resolver.canParentViewCamera(childCtx, presence, cam, { schoolHoursOpen: window.open });
+    if (!decision.allowed) {
+      await auditDeny(decision.reason, linkedId);
+      const msg = decision.reason === "child-not-present" ? "Your child has not checked in yet."
+                : decision.reason === "child-checked-out" ? "Your child has checked out for today."
+                : "Live view is not available for your child right now.";
+      return res.status(403).json({ success: false, error: msg, reason: decision.reason });
+    }
+
+    const engine = process.env.CCTV_STREAM_ENGINE_URL;
+    if (!engine) return res.status(503).json({ success: false, error: "ENGINE_NOT_PROVISIONED", message: "Live streaming is not enabled yet." });
+
+    const t = session.issueToken({
+      subjectId: user.userId, kind: "parent", cameraId: cam.cameraId,
+      mediaMtxPath: cam.mediaMtxPath, centerId: cam.centerId, classroom: cam.classroom, childId: linkedId,
+    }, nowMs);
+    await session.audit("LIVE_VIEW_STARTED", {
+      userId: user.userId, role: "parent", kind: "parent", cameraId: cam.cameraId,
+      classroom: cam.classroom, centerId: cam.centerId, childId: linkedId, sessionId: t.sessionId, ip: req.ip,
+    }, nowISO);
+
+    const base = engine.replace(/\/+$/, "");
+    res.json({
+      success: true, cameraId: cam.cameraId, classroom: cam.classroom, protocol: "hls",
+      hlsUrl: `${base}/${cam.mediaMtxPath}/index.m3u8`, webrtcUrl: `${base}/${cam.mediaMtxPath}/whep`,
+      token: t.token, expiresIn: t.expiresIn, sessionId: t.sessionId,
+    });
+  } catch (e) {
+    logErr("POST /api/cctv/parent/live-token", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
+// ── GET/PUT /api/cctv/parent/settings (admin) ──────────────────────
+async function getParentSettings(req, res) {
+  try { res.json({ success: true, settings: await parentSettings.getSettings() }); }
+  catch (e) { logErr("GET /api/cctv/parent/settings", e); res.status(500).json({ success: false, error: e.message }); }
+}
+async function updateParentSettings(req, res) {
+  try {
+    const saved = await parentSettings.saveSettings(req.body || {}, req.user?.userId || "system");
+    res.json({ success: true, settings: saved });
+  } catch (e) { logErr("PUT /api/cctv/parent/settings", e); res.status(500).json({ success: false, error: e.message }); }
+}
+
 module.exports = {
   getCameras,
   getCamera,
@@ -349,6 +440,9 @@ module.exports = {
   liveToken,
   liveStop,
   streamAuthHook,
+  parentLiveToken,
+  getParentSettings,
+  updateParentSettings,
   addCamera,
   updateCamera,
   deleteCamera,

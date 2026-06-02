@@ -22,6 +22,9 @@ const {
   liveToken,
   liveStop,
   streamAuthHook,
+  parentLiveToken,
+  getParentSettings,
+  updateParentSettings,
 } = require("../controllers/cctvController");
 
 // Admin-tier roles that hold CCTV_MANAGE in Phase 1.
@@ -32,8 +35,16 @@ const MANAGE_ROLES = ["admin", "center_admin", "center_owner", "super_admin", "d
 // router-level authenticate/staffOnly guard below.
 router.post("/internal/cctv/auth", streamAuthHook);
 
+// ── Parent Live View — authenticated but NOT staff (parents are not staff). ──
+// Presence + school-hours + classroom scope enforced in the controller.
+router.post("/api/cctv/parent/live-token", authenticate, parentLiveToken);
+
 // All remaining CCTV routes require an authenticated staff account.
 router.use(authenticate, staffOnly);
+
+// Parent CCTV settings — admin manages (read + write).
+router.get("/api/cctv/parent/settings", getParentSettings);
+router.put("/api/cctv/parent/settings", authorize(...MANAGE_ROLES), updateParentSettings);
 
 // Read (CCTV_VIEW) — admin-scoped inside the controller.
 router.get("/api/cctv/cameras",     getCameras);

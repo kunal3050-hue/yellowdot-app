@@ -46,6 +46,7 @@ const ReceiptView         = lazy(() => import("./pages/ReceiptView"));
 
 const ParentDashboard     = lazy(() => import("./pages/ParentDashboard"));
 const ParentCheckIn       = lazy(() => import("./pages/ParentCheckIn"));
+const ParentLiveCCTV      = lazy(() => import("./pages/ParentLiveCCTV"));
 const PickupAuthorization = lazy(() => import("./pages/PickupAuthorization"));
 const PickupHistory       = lazy(() => import("./pages/PickupHistory"));
 const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
@@ -130,6 +131,14 @@ function App() {
                 import.meta.env.DEV
                   ? <ParentLayout><ParentCheckIn /></ParentLayout>
                   : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentCheckIn /></ParentLayout></ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent-cctv"
+              element={
+                import.meta.env.DEV
+                  ? <ParentLayout><ParentLiveCCTV /></ParentLayout>
+                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentLiveCCTV /></ParentLayout></ProtectedRoute>
               }
             />
 
