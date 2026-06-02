@@ -401,7 +401,6 @@ export default function CCTV() {
                 ["reachable",   "Camera reachable"],
                 ["credentials", "Credentials valid"],
                 ["channel",     "Channel valid"],
-                ["stream",      "Stream available"],
               ].map(([k, label]) => {
                 const v = verifyResult.checks?.[k];
                 return (
