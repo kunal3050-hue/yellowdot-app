@@ -47,21 +47,26 @@ function buildRtsp({ brand, ip, port, channel }) {
   return tpl({ ip: String(ip).trim(), port: p, channel: ch });
 }
 
-// Sanitized PREVIEW only — shows the username (never the password) so the
-// operator can sanity-check it. Password is never rendered.
-//   with username:  rtsp://admin@192.168.1.150:554/Streaming/Channels/101
-//   without:        rtsp://192.168.1.150:554/Streaming/Channels/101
+// Sanitized PREVIEW only — shows username + a MASKED password so the
+// operator can sanity-check the structure. The real password is never
+// rendered; "*****" is a fixed placeholder, not the actual length.
+//   user + pwd:  rtsp://admin:*****@192.168.1.150:554/Streaming/Channels/701
+//   user only:   rtsp://admin@192.168.1.150:554/Streaming/Channels/701
+//   neither:     rtsp://192.168.1.150:554/Streaming/Channels/701
 function buildRtspPreview(form) {
   const base = buildRtsp(form);
   if (!base) return "";
   const user = (form.username || "").trim();
   if (!user) return base;
-  return base.replace(/^rtsp:\/\//, `rtsp://${user}@`);
+  // Show masked password when one is set (or, when editing, when creds exist).
+  const hasPwd = !!(form.password && form.password.trim()) || !!form.hasStoredPassword;
+  const cred = hasPwd ? `${user}:*****` : user;
+  return base.replace(/^rtsp:\/\//, `rtsp://${cred}@`);
 }
 
 const emptyForm = () => ({
   cameraCode: "", cameraName: "", classroom: "", brand: "Hikvision",
-  ip: "", port: "554", username: "", password: "", channel: "1",
+  ip: "", port: "554", username: "", password: "", hasStoredPassword: false, channel: "1",
   customRtsp: false, streamUrl: "",
   streamType: "RTSP", status: "Active",
 });
@@ -122,6 +127,7 @@ export default function CCTV() {
       cameraCode: cam.cameraCode || "", cameraName: cam.cameraName, classroom: cam.classroom,
       brand, ip, port,
       username: cam.username || "", password: "",
+      hasStoredPassword: !!cam.password,   // API returns masked "••••••••" when set
       channel: cam.channel || "1",
       customRtsp: !!isCustom,
       streamUrl: cam.streamUrl || "",
