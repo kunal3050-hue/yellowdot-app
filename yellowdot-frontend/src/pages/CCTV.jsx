@@ -19,7 +19,7 @@ import cctvService from "../services/cctvService";
 // Shared classroom options — mirrors CLASSES in Students.jsx (single source of truth list).
 const CLASSES = ["Daycare", "Playgroup", "Nursery", "LKG", "UKG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 const BRANDS  = ["Hikvision", "Dahua", "CP Plus", "TP-Link", "Other"];
-const TABS    = ["Camera Management", "Classroom Mapping", "Connection Testing"];
+const TABS    = ["Camera Management", "Classroom Mapping", "Camera Verification"];
 
 // ── RTSP URL templates per brand ────────────────────────────────────
 // Credentials are NOT embedded — username/password are stored separately
@@ -93,10 +93,14 @@ export default function CCTV() {
   const [form, setForm]           = useState(emptyForm());
   const [saving, setSaving]       = useState(false);
 
-  // test-connection state
-  const [testUrl, setTestUrl]     = useState("");
-  const [testing, setTesting]     = useState(false);
-  const [testResult, setTestResult] = useState(null);
+  // verification + diagnostic state
+  const [testUrl, setTestUrl]       = useState("");
+  const [testing, setTesting]       = useState(false);
+  const [testResult, setTestResult] = useState(null);   // TCP diagnostic result
+  const [verifying, setVerifying]   = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null); // 4-check verify result
+  const [verifyCamId, setVerifyCamId]   = useState(null);
+  const [showDevDiag, setShowDevDiag]   = useState(false); // hidden TCP tool toggle
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -188,7 +192,24 @@ export default function CCTV() {
     }
   };
 
-  // ── Test connection ────────────────────────────────────────────────
+  // ── Camera Verification (default Test Camera action) ───────────────
+  // Real RTSP: auth + channel + stream, server-side via ffmpeg.
+  const runVerify = async (camId) => {
+    if (!camId) return;
+    setVerifyCamId(camId);
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const r = await cctvService.verifyCamera({ cameraId: camId });
+      setVerifyResult(r);
+    } catch (e) {
+      setVerifyResult({ ok: false, checks: {}, message: e?.response?.data?.error || "Verification failed." });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // ── TCP diagnostic (hidden developer tool) ─────────────────────────
   // Prefers structured ip/port (via payload or cameraId); falls back to URL.
   const runTest = async (payload) => {
     let body;
@@ -288,8 +309,8 @@ export default function CCTV() {
                 <div style={{ fontSize: 11, color: "#CBD5E1", marginTop: 8, wordBreak: "break-all" }}>{cam.streamUrl}</div>
                 <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
                   <button onClick={() => openEdit(cam)} className="btn btn-ghost btn-sm">Edit</button>
-                  <button onClick={() => { setTab("Connection Testing"); setTestUrl(cam.streamUrl); runTest({ cameraId: cam.cameraId }); }}
-                    className="btn btn-ghost btn-sm">Test</button>
+                  <button onClick={() => { setTab("Camera Verification"); runVerify(cam.cameraId); }}
+                    className="btn btn-ghost btn-sm">Test Camera</button>
                   <button onClick={() => del(cam)} className="btn btn-ghost btn-sm" style={{ color: "#DC2626", marginLeft: "auto" }}>Delete</button>
                 </div>
               </div>
@@ -339,41 +360,94 @@ export default function CCTV() {
         </div>
       )}
 
-      {/* ── Connection Testing ────────────────────────────────────────── */}
-      {tab === "Connection Testing" && (
-        <div style={{ maxWidth: 560 }}>
-          <div style={{ display: "inline-block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#92600A", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "4px 10px", marginBottom: 10 }}>
-            Network Reachability Test Only
-          </div>
-          <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 12px" }}>
-            Checks whether the camera’s host/port is reachable on the network.
-            <strong> This does not verify camera credentials or the video stream</strong> — stream
-            verification arrives with Live View in a later phase.
+      {/* ── Camera Verification ───────────────────────────────────────── */}
+      {tab === "Camera Verification" && (
+        <div style={{ maxWidth: 620 }}>
+          <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 14px" }}>
+            Real camera test — connects over RTSP with the stored credentials and
+            verifies the channel and video stream. Pick a camera to verify, or use
+            the <strong>Test Camera</strong> button on any camera card.
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              className="yd-input"
-              style={{ flex: 1, padding: "10px 12px", border: "1px solid #E2E8F0", borderRadius: 10, fontSize: 13 }}
-              placeholder="rtsp://user:pass@host:554/Streaming/Channels/101"
-              value={testUrl}
-              onChange={e => setTestUrl(e.target.value)}
-            />
-            <button onClick={() => runTest()} disabled={testing} className="btn btn-primary btn-sm">
-              {testing ? "Testing…" : "Test"}
-            </button>
+
+          {/* Camera picker */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            {cameras.length === 0 && <span style={{ fontSize: 13, color: "#94A3B8" }}>No cameras to verify.</span>}
+            {cameras.map(cam => (
+              <button key={cam.cameraId} onClick={() => runVerify(cam.cameraId)} disabled={verifying}
+                className="btn btn-ghost btn-sm"
+                style={{ borderColor: verifyCamId === cam.cameraId ? "#F4C400" : undefined }}>
+                {cam.cameraName}
+              </button>
+            ))}
           </div>
-          {testResult && (
-            <div style={{
-              marginTop: 14, padding: "12px 14px", borderRadius: 10, fontSize: 13,
-              background: testResult.reachable ? "#F0FDF4" : "#FEF2F2",
-              border: `1px solid ${testResult.reachable ? "#BBF7D0" : "#FECACA"}`,
-              color: testResult.reachable ? "#166534" : "#991B1B",
-            }}>
-              <div style={{ fontWeight: 700 }}>{testResult.reachable ? "✓ Reachable" : "✗ Not reachable"}</div>
-              <div style={{ marginTop: 4 }}>{testResult.message}</div>
-              {testResult.note && <div style={{ marginTop: 6, fontSize: 11, opacity: 0.75 }}>{testResult.note}</div>}
+
+          {verifying && (
+            <div style={{ fontSize: 13, color: "#64748B", display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="yd-spin" style={{ width: 14, height: 14, border: "2px solid #E2E8F0", borderTopColor: "#F4C400", borderRadius: "50%", display: "inline-block" }} />
+              Connecting to camera over RTSP… (up to ~12s)
             </div>
           )}
+
+          {!verifying && verifyResult && (
+            <div style={{
+              padding: "16px 18px", borderRadius: 12, fontSize: 13,
+              background: verifyResult.ok ? "#F0FDF4" : "#FEF2F2",
+              border: `1px solid ${verifyResult.ok ? "#BBF7D0" : "#FECACA"}`,
+            }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: verifyResult.ok ? "#166534" : "#991B1B", marginBottom: 10 }}>
+                {verifyResult.ok ? "Camera Verified" : "Verification Failed"}
+              </div>
+              {[
+                ["reachable",   "Camera reachable"],
+                ["credentials", "Credentials valid"],
+                ["channel",     "Channel valid"],
+                ["stream",      "Stream available"],
+              ].map(([k, label]) => {
+                const v = verifyResult.checks?.[k];
+                return (
+                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0", color: v ? "#166534" : "#64748B" }}>
+                    <span style={{ fontWeight: 800 }}>{v ? "✓" : "○"}</span>
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: 10, color: verifyResult.ok ? "#166534" : "#991B1B" }}>{verifyResult.message}</div>
+              {verifyResult.detail && (
+                <pre style={{ marginTop: 8, fontSize: 10.5, color: "#94A3B8", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: 120, overflow: "auto" }}>
+                  {verifyResult.detail}
+                </pre>
+              )}
+            </div>
+          )}
+
+          {/* Hidden developer diagnostic: TCP-only reachability */}
+          <div style={{ marginTop: 24, borderTop: "1px dashed #E2E8F0", paddingTop: 12 }}>
+            <button onClick={() => setShowDevDiag(s => !s)}
+              style={{ fontSize: 11, color: "#94A3B8", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              {showDevDiag ? "▾" : "▸"} Developer diagnostic — TCP reachability only
+            </button>
+            {showDevDiag && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    style={{ flex: 1, padding: "9px 11px", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 12 }}
+                    placeholder="rtsp://host:554/path  (TCP host:port check only)"
+                    value={testUrl}
+                    onChange={e => setTestUrl(e.target.value)}
+                  />
+                  <button onClick={() => runTest()} disabled={testing} className="btn btn-ghost btn-sm">
+                    {testing ? "…" : "TCP Test"}
+                  </button>
+                </div>
+                {testResult && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: testResult.reachable ? "#166534" : "#991B1B" }}>
+                    {testResult.reachable ? "✓ " : "✗ "}{testResult.message}
+                    {testResult.source ? ` (${testResult.source})` : ""}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

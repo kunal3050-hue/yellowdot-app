@@ -12,8 +12,9 @@
  * returned to the client (masked). No streaming logic lives here.
  */
 
-const svc      = require("../services/cctvService");
-const testSvc  = require("../services/cameraTestService");
+const svc       = require("../services/cctvService");
+const testSvc   = require("../services/cameraTestService");
+const verifySvc = require("../services/cameraVerifyService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -221,9 +222,38 @@ async function testConnection(req, res) {
   }
 }
 
+// ── POST /api/cctv/cameras/verify ──────────────────────────────────
+// REAL camera verification: TCP + RTSP auth + channel + stream (via ffmpeg).
+// Body: { cameraId } (preferred — uses stored+decrypted creds) OR an inline
+// camera object { brand, ip, port, channel, username, password, streamUrl }.
+async function verifyCamera(req, res) {
+  try {
+    const body = req.body || {};
+    let cam;
+    if (body.cameraId) {
+      cam = await svc.getOneWithSecret(body.cameraId); // decrypted password, server-side only
+      if (!cam) return res.status(404).json({ success: false, message: "Camera not found." });
+    } else {
+      cam = {
+        brand:    body.brand,    ip:       body.ip,       port:     body.port,
+        channel:  body.channel,  username: body.username, password: body.password,
+        streamUrl: body.streamUrl || body.stream_url,
+      };
+    }
+
+    const result = await verifySvc.verifyCamera(cam);
+    // result.checks + message are safe; never echo the password or auth URL.
+    res.json({ success: true, ...result });
+  } catch (e) {
+    logErr("POST /api/cctv/cameras/verify", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
 module.exports = {
   getCameras,
   getCamera,
+  verifyCamera,
   addCamera,
   updateCamera,
   deleteCamera,

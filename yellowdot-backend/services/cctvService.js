@@ -113,6 +113,19 @@ async function getOne(cameraId) {
   return snap.exists ? docToCamera(snap) : null;
 }
 
+// Server-side only: returns the camera with its DECRYPTED password, for use
+// by the verification engine when composing the live RTSP URL. NEVER return
+// this object to a client — the controller must not serialize it directly.
+async function getOneWithSecret(cameraId) {
+  const snap = await col().doc(cameraId).get();
+  if (!snap.exists) return null;
+  const cam = docToCamera(snap);
+  const stored = (snap.data() || {}).password || "";
+  let plain = "";
+  try { plain = crypto.decrypt(stored); } catch { plain = ""; }
+  return { ...cam, password: plain };
+}
+
 async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId = "system" } = {}) {
   const resolvedCenter = centerId || data.centerId || data.center || "";
   const cameraCode     = String(data.cameraCode || data.camera_code || "").trim();
@@ -227,4 +240,4 @@ async function remove(cameraId, { actorUserId = "system" } = {}) {
   return true;
 }
 
-module.exports = { getAll, getOne, create, update, remove, findByCode };
+module.exports = { getAll, getOne, getOneWithSecret, create, update, remove, findByCode };

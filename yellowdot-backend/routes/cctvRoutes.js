@@ -18,6 +18,7 @@ const {
   updateCamera,
   deleteCamera,
   testConnection,
+  verifyCamera,
 } = require("../controllers/cctvController");
 
 // Admin-tier roles that hold CCTV_MANAGE in Phase 1.
@@ -31,8 +32,11 @@ router.get("/api/cctv/cameras",     getCameras);
 router.get("/api/cctv/cameras/:id", getCamera);
 
 // Manage (CCTV_MANAGE) — admin-tier only.
-router.post  ("/api/cctv/cameras",      authorize(...MANAGE_ROLES), addCamera);
-router.post  ("/api/cctv/cameras/test", authorize(...MANAGE_ROLES), testConnection);
+router.post  ("/api/cctv/cameras",        authorize(...MANAGE_ROLES), addCamera);
+// Real camera verification (default Test Camera action): TCP + RTSP auth + channel + stream.
+router.post  ("/api/cctv/cameras/verify", authorize(...MANAGE_ROLES), verifyCamera);
+// TCP-only reachability (hidden developer diagnostic).
+router.post  ("/api/cctv/cameras/test",   authorize(...MANAGE_ROLES), testConnection);
 router.put   ("/api/cctv/cameras/:id",  authorize(...MANAGE_ROLES), updateCamera);
 router.delete("/api/cctv/cameras/:id",  authorize(...MANAGE_ROLES), deleteCamera);
 

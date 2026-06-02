@@ -37,8 +37,13 @@ const cctvService = {
   deleteCamera: (id) =>
     request(`/api/cctv/cameras/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
-  // POST /api/cctv/cameras/test  { streamUrl } | { cameraId }
-  // Phase 1: TCP reachability only (no stream verification).
+  // POST /api/cctv/cameras/verify  { cameraId } | inline camera fields
+  // DEFAULT Test Camera action — real RTSP: auth + channel + stream.
+  verifyCamera: (payload) =>
+    request("/api/cctv/cameras/verify", { method: "POST", body: JSON.stringify(payload) }),
+
+  // POST /api/cctv/cameras/test  { streamUrl } | { ip, port } | { cameraId }
+  // Hidden developer diagnostic: TCP reachability only (no auth/stream).
   testConnection: (payload) =>
     request("/api/cctv/cameras/test", { method: "POST", body: JSON.stringify(payload) }),
 };
