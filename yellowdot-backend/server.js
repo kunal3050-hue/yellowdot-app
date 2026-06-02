@@ -23,6 +23,25 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "5mb" })); // Allow photo base64 uploads
 
+// ── Version probe (PUBLIC) ──────────────────────────────────────────
+// Reports the deployed git commit so we can instantly confirm which build
+// Railway is serving. Railway injects RAILWAY_GIT_COMMIT_SHA automatically;
+// falls back to APP_COMMIT or "unknown". Registered BEFORE all route modules
+// (some apply a path-less authenticate guard) so it is always public.
+const _APP_STARTED_AT = new Date().toISOString();
+app.get("/api/version", (req, res) => {
+  const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.APP_COMMIT || "unknown";
+  res.json({
+    service:     "yellowdot-backend",
+    commit:      sha,
+    commitShort: sha === "unknown" ? "unknown" : sha.slice(0, 7),
+    branch:      process.env.RAILWAY_GIT_BRANCH || process.env.APP_BRANCH || "unknown",
+    startedAt:   _APP_STARTED_AT,
+    uptime:      Math.floor(process.uptime()) + "s",
+    node:        process.version,
+  });
+});
+
 // ── Route modules ──────────────────────────────────────────────────
 const authRoutes             = require("./routes/authRoutes");
 const userRoutes             = require("./routes/userRoutes");
