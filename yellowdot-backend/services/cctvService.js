@@ -19,6 +19,7 @@
 
 const { db } = require("../firebaseAdmin");
 const crypto = require("./cryptoService");
+const { streamUrls, mediaMtxPath } = require("./cctvStreamPaths");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col = () => db.collection("cameras");
@@ -55,7 +56,7 @@ function docToCamera(snap) {
   const classrooms = Array.isArray(d.classrooms) && d.classrooms.length
     ? d.classrooms
     : (classroom ? [classroom] : []);
-  return {
+  const base = {
     cameraId:   d.cameraId   || snap.id,
     cameraCode: d.cameraCode || "",
     cameraName: d.cameraName || "",
@@ -69,6 +70,9 @@ function docToCamera(snap) {
     password:   d.password   || "",
     channel:    d.channel    || "",
     streamType: d.streamType || "RTSP",
+    // Substream codec: assumed H.264 unless probed otherwise (used to decide
+    // remux vs transcode fallback). Empty => not yet probed (assume H264).
+    substreamCodec: d.substreamCodec || "",
     status:     d.status     || "Active",
     deleted:    d.deleted    === true,
     deletedAt:  d.deletedAt  || null,
@@ -84,6 +88,13 @@ function docToCamera(snap) {
     stream_url:  d.streamUrl  || "",
     stream_type: d.streamType || "RTSP",
   };
+  // Derived, credential-free stream paths (main = verification, sub = live).
+  // Computed on read so they always reflect current ip/port/channel/brand.
+  const urls = streamUrls(base);
+  base.mainStreamUrl = urls.mainStreamUrl;   // xx01 — verification/snapshots
+  base.liveStreamUrl = urls.liveStreamUrl;   // xx02 — live viewing (H.264)
+  base.mediaMtxPath  = mediaMtxPath(base);   // stable MediaMTX path name
+  return base;
 }
 
 // ── Uniqueness: cameraCode must be unique within a center ──────────────
