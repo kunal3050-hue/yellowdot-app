@@ -39,6 +39,9 @@ function docToUser(snap) {
     schoolId:  d.schoolId  || SCHOOL_ID,
     centerId:  d.centerId  || d.center || "",
     centers:   Array.isArray(d.centers) ? d.centers : (d.center ? [d.center] : []),
+    // Classrooms a staff member is assigned to. Used by CCTV classroom-scope
+    // resolver (teachers see only their classrooms) and future Phase 2/3 scoping.
+    classrooms: Array.isArray(d.classrooms) ? d.classrooms : [],
     photoUrl:  d.photoUrl  || "",
     phone:     d.phone     || d.mobile || "",
     mobile:    d.phone     || d.mobile || "",   // alias so frontend receives it
@@ -102,6 +105,7 @@ async function create(data, actorUserId = "system") {
     centers:   Array.isArray(data.centers)
                  ? data.centers
                  : centerId ? [centerId] : [],
+    classrooms: Array.isArray(data.classrooms) ? data.classrooms : [],
     photoUrl:  data.photoUrl || "",
     phone:     data.phone    || data.mobile || "",
     status:    "active",
@@ -143,6 +147,9 @@ async function update(userId, updates, actorUserId = "system") {
     patch.center   = newCenter;
   }
   if (updates.centers !== undefined) patch.centers = updates.centers;
+  if (updates.classrooms !== undefined && Array.isArray(updates.classrooms)) {
+    patch.classrooms = updates.classrooms;
+  }
 
   await ref.update(patch);
   return docToUser({ ...snap, data: () => ({ ...snap.data(), ...patch }) });

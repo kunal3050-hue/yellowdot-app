@@ -41,6 +41,13 @@ function isEnabled() {
   return loadKey() !== null;
 }
 
+// When CCTV_REQUIRE_ENCRYPTION=true, callers must refuse to store plaintext.
+// This is the production enforcement switch (CCTV-V2-TD-001): set the key AND
+// this flag together so a missing/invalid key becomes a hard error, not a warn.
+function isRequired() {
+  return String(process.env.CCTV_REQUIRE_ENCRYPTION || "").toLowerCase() === "true";
+}
+
 function isEncrypted(value) {
   return typeof value === "string" && value.startsWith(PREFIX);
 }
@@ -69,4 +76,4 @@ function decrypt(stored) {
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
 }
 
-module.exports = { encrypt, decrypt, isEnabled, isEncrypted };
+module.exports = { encrypt, decrypt, isEnabled, isRequired, isEncrypted };
