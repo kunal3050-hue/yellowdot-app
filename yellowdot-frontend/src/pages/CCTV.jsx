@@ -13,13 +13,14 @@
  * mapping — no duplicate classroom entity.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import Hls from "hls.js";
 import cctvService from "../services/cctvService";
 
 // Shared classroom options — mirrors CLASSES in Students.jsx (single source of truth list).
 const CLASSES = ["Daycare", "Playgroup", "Nursery", "LKG", "UKG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 const BRANDS  = ["Hikvision", "Dahua", "CP Plus", "TP-Link", "Other"];
-const TABS    = ["Camera Management", "Classroom Mapping", "Camera Verification"];
+const TABS    = ["Camera Management", "Classroom Mapping", "Camera Verification", "Live View"];
 
 // ── RTSP URL templates per brand ────────────────────────────────────
 // Credentials are NOT embedded — username/password are stored separately
@@ -101,6 +102,14 @@ export default function CCTV() {
   const [verifyResult, setVerifyResult] = useState(null); // 4-check verify result
   const [verifyCamId, setVerifyCamId]   = useState(null);
   const [showDevDiag, setShowDevDiag]   = useState(false); // hidden TCP tool toggle
+
+  // live view state
+  const [liveCam, setLiveCam]     = useState(null);  // camera being watched
+  const [liveErr, setLiveErr]     = useState("");
+  const [liveLoading, setLiveLoading] = useState(false);
+  const videoRef   = useRef(null);
+  const hlsRef     = useRef(null);
+  const sessionRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,6 +217,56 @@ export default function CCTV() {
       setVerifying(false);
     }
   };
+
+  // ── Live View ──────────────────────────────────────────────────────
+  const closeLive = useCallback(() => {
+    if (hlsRef.current) { try { hlsRef.current.destroy(); } catch {} hlsRef.current = null; }
+    if (videoRef.current) { try { videoRef.current.pause(); videoRef.current.removeAttribute("src"); videoRef.current.load(); } catch {} }
+    const cam = liveCam, sess = sessionRef.current;
+    if (cam && sess) { cctvService.stopLive(cam.cameraId, sess).catch(() => {}); }
+    sessionRef.current = null;
+    setLiveCam(null);
+    setLiveErr("");
+  }, [liveCam]);
+
+  const openLive = async (cam) => {
+    setLiveErr("");
+    setLiveLoading(true);
+    setLiveCam(cam);
+    try {
+      const r = await cctvService.getLiveToken(cam.cameraId);
+      sessionRef.current = r.sessionId;
+      const url = `${r.hlsUrl}${r.hlsUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(r.token)}`;
+      // attach hls.js (or native HLS on Safari)
+      const video = videoRef.current;
+      if (!video) return;
+      if (Hls.isSupported()) {
+        const hls = new Hls({ lowLatencyMode: true, backBufferLength: 10 });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_e, data) => {
+          if (data?.fatal) setLiveErr("Stream error: " + (data.details || data.type));
+        });
+        hlsRef.current = hls;
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = url;
+      } else {
+        setLiveErr("This browser cannot play HLS.");
+      }
+      video.play?.().catch(() => {});
+    } catch (e) {
+      const code = e?.response?.data?.error;
+      setLiveErr(code === "ENGINE_NOT_PROVISIONED"
+        ? "Live streaming is not enabled yet (stream engine not provisioned)."
+        : (e?.response?.data?.error || "Could not start live view."));
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  // Clean up the player on unmount / tab change away from Live View.
+  useEffect(() => { if (tab !== "Live View") closeLive(); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => () => closeLive(), []); // unmount
 
   // ── TCP diagnostic (hidden developer tool) ─────────────────────────
   // Prefers structured ip/port (via payload or cameraId); falls back to URL.
@@ -447,6 +506,68 @@ export default function CCTV() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Live View ─────────────────────────────────────────────────── */}
+      {tab === "Live View" && (
+        <div>
+          {!liveCam && (
+            <>
+              <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 14px" }}>
+                Select a camera to watch its live feed. You only see cameras you’re
+                permitted to view.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
+                {cameras.length === 0 && <span style={{ fontSize: 13, color: "#94A3B8" }}>No cameras available.</span>}
+                {cameras.map(cam => (
+                  <div key={cam.cameraId} style={{ background: "#fff", border: "1px solid #F1F1F1", borderRadius: 14, padding: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#94A3B8" }}>
+                      {cam.classroom || "Unmapped"}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginTop: 2 }}>{cam.cameraName}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: cam.status === "Active" ? "#22C55E" : "#CBD5E1" }} />
+                      <span style={{ fontSize: 12, color: "#64748B" }}>{cam.status}</span>
+                    </div>
+                    <button onClick={() => openLive(cam)} className="btn btn-primary btn-sm" style={{ marginTop: 12, width: "100%" }}>
+                      ▶ View Live
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {liveCam && (
+            <div style={{ maxWidth: 900 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{liveCam.cameraName}</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8" }}>{liveCam.classroom}</div>
+                </div>
+                <button onClick={closeLive} className="btn btn-ghost btn-sm">✕ Close</button>
+              </div>
+              <div style={{ position: "relative", background: "#000", borderRadius: 14, overflow: "hidden", aspectRatio: "16 / 9" }}>
+                <video ref={videoRef} controls muted playsInline
+                  style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }} />
+                {/* client-side watermark overlay (staff accountability) */}
+                <div style={{ position: "absolute", top: 8, right: 10, fontSize: 11, color: "rgba(255,255,255,0.7)", textShadow: "0 1px 2px #000", pointerEvents: "none" }}>
+                  {liveCam.cameraName} · live
+                </div>
+                {liveLoading && (
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13 }}>
+                    Connecting…
+                  </div>
+                )}
+              </div>
+              {liveErr && (
+                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, fontSize: 13, background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B" }}>
+                  {liveErr}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

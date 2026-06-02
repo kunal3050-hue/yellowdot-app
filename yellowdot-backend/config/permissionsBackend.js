@@ -39,7 +39,7 @@ const ROLE_PERMISSIONS = {
 
   teacher: [
     "dashboard", "attendance", "nap-tracker", "food-menu", "food-consumption",
-    "students", "parent-checkin", "staff-checkout",
+    "students", "parent-checkin", "staff-checkout", "cctv",
     "profile", "holidays", "notices", "announcements",
   ],
 

@@ -15,6 +15,8 @@
 const svc       = require("../services/cctvService");
 const testSvc   = require("../services/cameraTestService");
 const verifySvc = require("../services/cameraVerifyService");
+const resolver  = require("../services/cctvAccessResolver");
+const session   = require("../services/streamSessionService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -250,10 +252,103 @@ async function verifyCamera(req, res) {
   }
 }
 
+// ── POST /api/cctv/cameras/:id/live-token ──────────────────────────
+// Staff Live View. Authz via cctvAccessResolver (role + classroom scope).
+// Returns engine HLS/WebRTC URL + short-lived token. NEVER returns RTSP/creds.
+async function liveToken(req, res) {
+  const nowMs = Date.now();
+  const nowISO = new Date(nowMs).toISOString();
+  try {
+    const user = req.user || {};
+    const cam = await svc.getOne(req.params.id);   // masked (no password)
+    if (!cam || cam.deleted) return res.status(404).json({ success: false, message: "Camera not found." });
+
+    const decision = resolver.canViewCamera(
+      { role: user.role, centerId: user.centerId, classrooms: user.classrooms || [] },
+      cam
+    );
+    if (!decision.allowed) {
+      await session.audit("LIVE_VIEW_DENIED", {
+        userId: user.userId, role: user.role, cameraId: cam.cameraId,
+        classroom: cam.classroom, centerId: cam.centerId, ip: req.ip,
+      }, nowISO);
+      return res.status(403).json({ success: false, error: "Not authorized to view this camera.", reason: decision.reason });
+    }
+
+    const engine = process.env.CCTV_STREAM_ENGINE_URL;
+    if (!engine) {
+      return res.status(503).json({ success: false, error: "ENGINE_NOT_PROVISIONED",
+        message: "Live stream engine is not configured yet." });
+    }
+
+    const t = session.issueToken({
+      subjectId: user.userId, kind: "staff", cameraId: cam.cameraId,
+      mediaMtxPath: cam.mediaMtxPath, centerId: cam.centerId, classroom: cam.classroom,
+    }, nowMs);
+
+    await session.audit("LIVE_VIEW_STARTED", {
+      userId: user.userId, role: user.role, kind: "staff", cameraId: cam.cameraId,
+      classroom: cam.classroom, centerId: cam.centerId, sessionId: t.sessionId, ip: req.ip,
+    }, nowISO);
+
+    const base = engine.replace(/\/+$/, "");
+    res.json({
+      success: true,
+      cameraId: cam.cameraId,
+      protocol: "hls",
+      hlsUrl:    `${base}/${cam.mediaMtxPath}/index.m3u8`,
+      webrtcUrl: `${base}/${cam.mediaMtxPath}/whep`,
+      token: t.token,
+      expiresIn: t.expiresIn,
+      sessionId: t.sessionId,
+    });
+  } catch (e) {
+    logErr("POST /api/cctv/cameras/:id/live-token", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
+// ── POST /api/cctv/cameras/:id/live-stop ───────────────────────────
+async function liveStop(req, res) {
+  const nowISO = new Date().toISOString();
+  try {
+    const user = req.user || {};
+    await session.audit("LIVE_VIEW_STOPPED", {
+      userId: user.userId, role: user.role, cameraId: req.params.id,
+      sessionId: req.body?.sessionId || "", ip: req.ip,
+    }, nowISO);
+    res.json({ success: true, stopped: true });
+  } catch (e) {
+    logErr("POST /api/cctv/cameras/:id/live-stop", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
+// ── POST /internal/cctv/auth ───────────────────────────────────────
+// MediaMTX auth hook. Validates the stream token against the requested path.
+// Not behind staff auth (the media server calls it) — it validates the token.
+async function streamAuthHook(req, res) {
+  const nowMs = Date.now();
+  try {
+    const body = req.body || {};
+    // MediaMTX posts { path, query, ... }; token passed as ?token= in the query.
+    const path = body.path || "";
+    const token = body.token || (body.query && /(?:^|&)token=([^&]+)/.exec(body.query)?.[1]) || "";
+    const result = session.verifyToken(token, path, nowMs);
+    if (!result.valid) return res.status(401).json({ error: result.reason });
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    return res.status(401).json({ error: "auth-error" });
+  }
+}
+
 module.exports = {
   getCameras,
   getCamera,
   verifyCamera,
+  liveToken,
+  liveStop,
+  streamAuthHook,
   addCamera,
   updateCamera,
   deleteCamera,

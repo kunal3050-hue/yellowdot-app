@@ -19,17 +19,29 @@ const {
   deleteCamera,
   testConnection,
   verifyCamera,
+  liveToken,
+  liveStop,
+  streamAuthHook,
 } = require("../controllers/cctvController");
 
 // Admin-tier roles that hold CCTV_MANAGE in Phase 1.
 const MANAGE_ROLES = ["admin", "center_admin", "center_owner", "super_admin", "developer"];
 
-// All CCTV routes require an authenticated staff account.
+// ── Media-server auth hook — NOT staff-gated (MediaMTX calls it). ──
+// Validates the stream token itself; must be registered before the
+// router-level authenticate/staffOnly guard below.
+router.post("/internal/cctv/auth", streamAuthHook);
+
+// All remaining CCTV routes require an authenticated staff account.
 router.use(authenticate, staffOnly);
 
 // Read (CCTV_VIEW) — admin-scoped inside the controller.
 router.get("/api/cctv/cameras",     getCameras);
 router.get("/api/cctv/cameras/:id", getCamera);
+
+// Live View (CCTV_VIEW + classroom scope enforced in controller via resolver).
+router.post("/api/cctv/cameras/:id/live-token", liveToken);
+router.post("/api/cctv/cameras/:id/live-stop",  liveStop);
 
 // Manage (CCTV_MANAGE) — admin-tier only.
 router.post  ("/api/cctv/cameras",        authorize(...MANAGE_ROLES), addCamera);

@@ -46,6 +46,15 @@ const cctvService = {
   // Hidden developer diagnostic: TCP reachability only (no auth/stream).
   testConnection: (payload) =>
     request("/api/cctv/cameras/test", { method: "POST", body: JSON.stringify(payload) }),
+
+  // POST /api/cctv/cameras/:id/live-token — Staff Live View.
+  // Returns engine HLS/WebRTC URL + short-lived token (or 503 ENGINE_NOT_PROVISIONED).
+  getLiveToken: (id) =>
+    request(`/api/cctv/cameras/${encodeURIComponent(id)}/live-token`, { method: "POST", body: JSON.stringify({}) }),
+
+  // POST /api/cctv/cameras/:id/live-stop
+  stopLive: (id, sessionId) =>
+    request(`/api/cctv/cameras/${encodeURIComponent(id)}/live-stop`, { method: "POST", body: JSON.stringify({ sessionId }) }),
 };
 
 export default cctvService;
