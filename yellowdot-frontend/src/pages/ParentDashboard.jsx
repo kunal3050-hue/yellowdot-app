@@ -238,24 +238,48 @@ export default function ParentDashboard() {
     if (isDemoMode) return;
     const sid = child?.studentId, today = todayISO();
     Promise.allSettled([
-      safe(`/api/attendance?date=${today}`),
-      safe("/naps/history"),
-      safe(`/api/food-consumption?date=${today}`),
+      safe(`/api/parent-attendance?date=${today}`),
+      safe("/api/parent/naps"),
+      safe(`/api/parent/food-consumption?date=${today}`),
       safe("/api/notices"),
       safe("/api/announcements"),
       safe("/api/invoices"),
     ]).then(([attR, napR, foodR, noticeR, annR, invR]) => {
       if (attR.status === "fulfilled" && attR.value) {
-        const all = Array.isArray(attR.value) ? attR.value : (attR.value.records || []);
-        setAttendance(all.find(r => r.studentId === sid || r.id === sid) || null);
+        // /api/parent-attendance returns row-per-action ({ action, time, parentName }).
+        // Reduce today's rows into a single { checkIn, checkOut, guardianName } record.
+        const rows = Array.isArray(attR.value?.entries) ? attR.value.entries
+                   : Array.isArray(attR.value)         ? attR.value
+                   : [];
+        const todays = rows.filter(r => r.date === today);
+        const ci = todays.find(r => r.action === "Check_In");
+        const co = todays.find(r => r.action === "Check_Out");
+        // time is stored as "HH:MM:SS" — combine with date into a parseable ISO.
+        const iso = r => r ? (r.time ? `${r.date}T${r.time}` : r.createdAt || null) : null;
+        setAttendance((ci || co) ? {
+          studentId:    sid,
+          checkIn:      iso(ci),
+          checkOut:     iso(co),
+          guardianName: ci?.parentName || co?.parentName || "",
+        } : null);
       }
       if (napR.status === "fulfilled" && napR.value) {
+        // napLogs store endTime — normalize to wakeTime the feed/helpers expect.
         const all = Array.isArray(napR.value) ? napR.value : (napR.value.naps || []);
-        setNaps(all.filter(n => (n.studentId === sid || !sid) && (n.startTime?.slice(0,10) === today || n.date === today)));
+        setNaps(all
+          .filter(n => n.date === today || n.startTime?.slice(0,10) === today)
+          .map(n => ({ ...n, wakeTime: n.endTime || n.wakeTime || "" })));
       }
       if (foodR.status === "fulfilled" && foodR.value) {
-        const raw = foodR.value;
-        setFoodRecord(Array.isArray(raw) ? raw.find(r => r.studentId === sid) : (raw[today] || raw) || null);
+        // foodConsumption is row-per-meal ({ mealType, quantity }) — reduce into a
+        // single object keyed by meal (breakfast/lunch/snack/milk) the feed expects.
+        const rows = Array.isArray(foodR.value) ? foodR.value : (foodR.value.entries || []);
+        const meals = rows.reduce((o, r) => {
+          const key = (r.mealType || "").toLowerCase();
+          if (key) o[key] = Number(r.quantity) || 0;
+          return o;
+        }, {});
+        setFoodRecord(Object.keys(meals).length ? meals : null);
       }
       if (noticeR.status === "fulfilled" && noticeR.value) {
         const all = Array.isArray(noticeR.value) ? noticeR.value : (noticeR.value.notices || []);
