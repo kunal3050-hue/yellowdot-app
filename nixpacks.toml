@@ -1,0 +1,17 @@
+# Root Nixpacks config for the Yellow Dot monorepo.
+# Railway builds from the repository root; this targets the Node backend in
+# yellowdot-backend/ explicitly so no dashboard "Root Directory" is required.
+# The install step runs inside yellowdot-backend so its package-lock.json and
+# .npmrc (legacy-peer-deps) are honoured.
+
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = ["cd yellowdot-backend && npm ci"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "cd yellowdot-backend && npm start"
