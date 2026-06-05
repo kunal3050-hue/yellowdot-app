@@ -40,7 +40,10 @@ router.post("/internal/cctv/auth", streamAuthHook);
 router.post("/api/cctv/parent/live-token", authenticate, parentLiveToken);
 
 // All remaining CCTV routes require an authenticated staff account.
-router.use(authenticate, staffOnly);
+// Path-scoped to /api/cctv so this guard does not intercept other routers'
+// paths (router mounted at the app root via app.use()). The parent live-token
+// route above is registered before this guard and is unaffected.
+router.use("/api/cctv", authenticate, staffOnly);
 
 // Parent CCTV settings — admin manages (read + write).
 router.get("/api/cctv/parent/settings", getParentSettings);

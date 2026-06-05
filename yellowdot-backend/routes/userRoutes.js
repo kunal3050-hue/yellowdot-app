@@ -35,7 +35,10 @@ function generateTempPassword() {
 }
 
 // ── All user routes require a registered staff account ─────────────
-router.use(authenticate, staffOnly);
+// Path-scoped so this guard only runs for /api/users/* — a path-less
+// router.use() would 403 EVERY request (incl. parent routes) because the
+// router is mounted at the app root via app.use().
+router.use("/api/users", authenticate, staffOnly);
 
 // center_owner has the same privilege level as center_admin
 const ADMIN_ROLES  = ["admin", "center_admin", "center_owner", "super_admin", "developer"];

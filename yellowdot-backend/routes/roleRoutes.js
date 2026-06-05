@@ -23,7 +23,9 @@ const ADMIN_ROLES  = ["admin", "center_admin", "super_admin", "developer"];
 const MANAGE_ROLES = ["admin", "super_admin", "developer"];
 
 // Role management is strictly admin-level staff.
-router.use(authenticate, staffOnly);
+// Path-scoped to /api/roles so this guard does not intercept other routers'
+// paths (router mounted at the app root via app.use()).
+router.use("/api/roles", authenticate, staffOnly);
 
 // ── GET /api/roles ────────────────────────────────────────────────────────────
 router.get("/api/roles", authorize(...ADMIN_ROLES), async (req, res) => {
