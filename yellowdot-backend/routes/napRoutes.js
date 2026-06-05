@@ -10,7 +10,9 @@ const {
 } = require("../controllers/napController");
 
 // Nap tracking is a staff-only feature.
-router.use(authenticate, staffOnly);
+// Path-scoped to /naps so this router-level guard does not intercept other
+// routers' paths (it is mounted at the app root via app.use()).
+router.use("/naps", authenticate, staffOnly);
 
 router.get("/naps/active",      getActiveNaps);
 router.get("/naps/history",     getNapHistory);

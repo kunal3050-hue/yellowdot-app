@@ -26,7 +26,9 @@ const foodSvc = require("../services/foodConsumptionService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
-router.use(authenticate, requireOwnChild);
+// Path-scoped to /api/parent so this parent-only guard does not intercept
+// staff requests to other routers' paths (router mounted at the app root).
+router.use("/api/parent", authenticate, requireOwnChild);
 
 // GET /api/parent/naps — the linked child's nap log (newest first).
 router.get("/api/parent/naps", async (req, res) => {

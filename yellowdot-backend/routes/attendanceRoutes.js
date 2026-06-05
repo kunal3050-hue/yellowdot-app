@@ -15,7 +15,9 @@ const {
 
 // All attendance endpoints require a registered staff account.
 // Parents use /api/parent-attendance instead.
-router.use(authenticate, staffOnly);
+// Path-scoped to this router's prefixes so it does not intercept other routers'
+// paths (mounted at the app root via app.use()).
+router.use(["/api/attendance", "/api/qr"], authenticate, staffOnly);
 
 // ── Attendance records ──────────────────────────────────────────
 router.get ("/api/attendance",               getAttendance);   // ?date=&class=
