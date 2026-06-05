@@ -55,20 +55,6 @@ const EXTRA_ROLES = [
     },
   },
   {
-    roleId:      "parent",
-    name:        "Parent",
-    description: "Parent/guardian with access to their child's records only",
-    color:       "#db2777",
-    isSystem:    true,
-    homeRoute:   "/parent-home",
-    permissions: {
-      dashboard:   { view: true },
-      fees:        { view: true },
-      pickup_auth: { view: true },
-      parent_app:  { view: true },
-    },
-  },
-  {
     roleId:      "super_admin",
     name:        "Super Admin",
     description: "Platform-level administrator with unrestricted access to all features",

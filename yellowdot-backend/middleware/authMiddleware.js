@@ -148,55 +148,7 @@ async function authenticate(req, res, next) {
       console.log(`[AUTH-DEBUG] Email fallback miss — no users doc with email=${email}`);
     }
 
-    // ── 2. Parent — email match in students collection ────────────────────────
-    if (email) {
-      console.log(`[AUTH-DEBUG] Trying parent lookup for email=${email}`);
-      let studentDoc = null;
-
-      const fatherSnap = await db.collection("students")
-        .where("fatherEmail", "==", email)
-        .limit(1)
-        .get();
-
-      if (!fatherSnap.empty) {
-        studentDoc = fatherSnap.docs[0].data();
-        console.log(`[AUTH-DEBUG] Parent match via fatherEmail — studentId=${studentDoc.studentId}`);
-      } else {
-        const motherSnap = await db.collection("students")
-          .where("motherEmail", "==", email)
-          .limit(1)
-          .get();
-        if (!motherSnap.empty) {
-          studentDoc = motherSnap.docs[0].data();
-          console.log(`[AUTH-DEBUG] Parent match via motherEmail — studentId=${studentDoc.studentId}`);
-        }
-      }
-
-      if (studentDoc) {
-        const resolvedCenter = studentDoc.centerId || studentDoc.center || "";
-        req.user = {
-          userId:    uid,
-          email:     decoded.email || "",
-          role:      "parent",
-          schoolId:  studentDoc.schoolId || DEFAULT_SCHOOL_ID,
-          centerId:  resolvedCenter,
-          center:    resolvedCenter,
-          centers:   [resolvedCenter].filter(Boolean),
-          name:      decoded.name    || "",
-          photoUrl:  decoded.picture || "",
-          student:   {
-            studentId:   studentDoc.studentId,
-            studentName: studentDoc.studentName,
-          },
-          permissions: await roleSvc.getPermissionsForRole("parent", studentDoc.schoolId || DEFAULT_SCHOOL_ID),
-        };
-        return next();
-      }
-
-      console.log(`[AUTH-DEBUG] No parent match for email=${email}`);
-    }
-
-    // ── 3. Authenticated but no matching profile found ────────────────────────
+    // ── 2. Authenticated but no matching staff profile found ──────────────────
     console.warn(
       `[AUTH-DEBUG] PROFILE MISSING — uid=${uid} email=${decoded.email || "(none)"}` +
       ` provider=${decoded.firebase?.sign_in_provider || "?"}` +
@@ -309,49 +261,4 @@ function staffOnly(req, res, next) {
   next();
 }
 
-/**
- * requireOwnChild — for parent-facing endpoints.
- * - Bypass roles pass through with no restriction.
- * - Non-parent roles (staff) receive a 403.
- * - Parent must have a linked student; if a studentId is present in
- *   params/query/body it must match the linked child.
- * Sets req.ownChildId = linkedStudentId so controllers can use it directly.
- */
-function requireOwnChild(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: "Authentication required." });
-  if (isBypassRole(req.user.role)) return next(); // developers / super_admin see all
-
-  if (req.user.role !== "parent") {
-    return res.status(403).json({
-      error: "This endpoint is for parents only.",
-      code:  "STAFF_ACCESS_DENIED",
-    });
-  }
-
-  const linkedId = req.user.student?.studentId;
-  if (!linkedId) {
-    return res.status(403).json({
-      error: "No student linked to this parent account. Contact your administrator.",
-      code:  "NO_LINKED_STUDENT",
-    });
-  }
-
-  // If a studentId was supplied, it must match the linked child
-  const requestedId =
-    req.params.studentId ||
-    req.params.id        ||
-    req.query.studentId  ||
-    req.body?.studentId;
-
-  if (requestedId && requestedId !== linkedId) {
-    return res.status(403).json({
-      error: "You can only access your own child's records.",
-      code:  "CHILD_SCOPE_VIOLATION",
-    });
-  }
-
-  req.ownChildId = linkedId; // controllers read this instead of req.body/query
-  next();
-}
-
-module.exports = { authenticate, authorize, authorizeRoute, blockUnknown, staffOnly, requireOwnChild };
+module.exports = { authenticate, authorize, authorizeRoute, blockUnknown, staffOnly };

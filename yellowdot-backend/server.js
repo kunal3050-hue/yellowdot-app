@@ -50,7 +50,6 @@ const foodMenuRoutes         = require("./routes/foodMenuRoutes");
 const foodConsumptionRoutes  = require("./routes/foodConsumptionRoutes");
 const attendanceRoutes       = require("./routes/attendanceRoutes");
 const parentAttendanceRoutes = require("./routes/parentAttendanceRoutes");
-const parentDailyRoutes      = require("./routes/parentDailyRoutes");
 const pickupRoutes           = require("./routes/pickupRoutes");
 const roleRoutes             = require("./routes/roleRoutes");
 const communicationRoutes    = require("./routes/communicationRoutes");
@@ -77,7 +76,6 @@ app.use(foodMenuRoutes);
 app.use(foodConsumptionRoutes);
 app.use(attendanceRoutes);
 app.use(parentAttendanceRoutes);
-app.use(parentDailyRoutes);     // /api/parent/naps, /api/parent/food-consumption (parent-scoped, read-only)
 app.use(pickupRoutes);
 app.use(roleRoutes);
 app.use(communicationRoutes);

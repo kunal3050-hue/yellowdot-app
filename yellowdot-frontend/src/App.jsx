@@ -7,8 +7,6 @@ import { AuthProvider }  from "./contexts/AuthContext";
 import ProtectedRoute    from "./components/auth/ProtectedRoute";
 import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
-import ParentLayout      from "./layouts/ParentLayout";
-import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
 import SplashScreen      from "./components/SplashScreen";
 
@@ -44,9 +42,6 @@ const InvoiceView         = lazy(() => import("./pages/InvoiceView"));
 const ReceiptView         = lazy(() => import("./pages/ReceiptView"));
 
 
-const ParentDashboard     = lazy(() => import("./pages/ParentDashboard"));
-const ParentCheckIn       = lazy(() => import("./pages/ParentCheckIn"));
-const ParentLiveCCTV      = lazy(() => import("./pages/ParentLiveCCTV"));
 const PickupAuthorization = lazy(() => import("./pages/PickupAuthorization"));
 const PickupHistory       = lazy(() => import("./pages/PickupHistory"));
 const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
@@ -65,8 +60,6 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        {/* DEV-only floating view switcher — tree-shaken in production builds */}
-        <DevRoleSwitch />
         {/* PWA install banner (shows after 2.5s, respects 30-day dismissal) */}
         <InstallPrompt />
         {/* SplashScreen shown while Firebase auth resolves, then fades out */}
@@ -113,32 +106,6 @@ function App() {
                 <ProtectedRoute routeKey="settings">
                   <SecuritySettings />
                 </ProtectedRoute>
-              }
-            />
-
-            {/* ── Parent app ───────────────────────────────────────────────── */}
-            <Route
-              path="/parent-home"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentDashboard /></ParentLayout>
-                  : <ProtectedRoute routeKey="dashboard"><ParentLayout><ParentDashboard /></ParentLayout></ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent-checkin"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentCheckIn /></ParentLayout>
-                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentCheckIn /></ParentLayout></ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent-cctv"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentLiveCCTV /></ParentLayout>
-                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentLiveCCTV /></ParentLayout></ProtectedRoute>
               }
             />
 
@@ -449,11 +416,10 @@ function AuthSplash() {
 }
 
 // ── Smart root redirect ───────────────────────────────────────────────────────
-// Parents → /parent-home  |  Staff → /dashboard
+// Staff → /live-dashboard
 function RootRedirect() {
-  const { role, isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (role === "parent") return <Navigate to="/parent-home" replace />;
   return <Navigate to="/live-dashboard" replace />;
 }

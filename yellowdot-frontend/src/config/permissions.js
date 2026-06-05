@@ -112,11 +112,6 @@ export const ROLE_PERMISSIONS = {
     ROUTES.STAFF_CHECKOUT,
     ROUTES.PROFILE,
   ],
-
-  parent: [
-    ROUTES.DASHBOARD, ROUTES.PARENT_CHECKIN,
-    ROUTES.PICKUP_HISTORY, ROUTES.FEES, ROUTES.PROFILE,
-  ],
 };
 
 // ── Home route after login ─────────────────────────────────────────────────────
@@ -129,7 +124,6 @@ export const ROLE_HOME = {
   teacher:      "/attendance",
   accountant:   "/invoice",
   reception:    "/",
-  parent:       "/parent-checkin",
 };
 
 // ── Display labels ─────────────────────────────────────────────────────────────
@@ -142,7 +136,6 @@ export const ROLE_LABELS = {
   teacher:      "Teacher",
   accountant:   "Accountant",
   reception:    "Reception",
-  parent:       "Parent",
 };
 
 // ── Role hierarchy (highest privilege first) ──────────────────────────────────
@@ -156,7 +149,6 @@ export const ROLE_HIERARCHY = [
   "teacher",
   "accountant",
   "reception",
-  "parent",
 ];
 
 // ── Core permission check ─────────────────────────────────────────────────────

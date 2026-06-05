@@ -48,7 +48,7 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
       });
     }
 
-    const { userId, role, name, email, photoUrl, centers, center, student } = req.user;
+    const { userId, role, name, email, photoUrl, centers, center } = req.user;
 
     // Use permissions resolved by authMiddleware (Firestore-backed with static fallback).
     // req.user.permissions is set by roleSvc.getPermissionsForRole() — do NOT re-derive
@@ -68,7 +68,6 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
         activeCenter: center || centers?.[0] || null,
         photoUrl:     photoUrl || "",
         homeRoute,
-        ...(role === "parent" && student ? { student } : {}),
       },
       permissions,
       roleMatrix,   // granular { moduleId: { action: bool } } for button-level UI enforcement

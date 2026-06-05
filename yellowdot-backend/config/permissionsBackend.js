@@ -51,10 +51,6 @@ const ROLE_PERMISSIONS = {
     "dashboard", "students", "attendance", "parent-checkin",
     "pickup-authorization", "pickup-history", "staff-checkout", "profile",
   ],
-
-  parent: [
-    "dashboard", "parent-checkin", "pickup-history", "fees", "profile",
-  ],
 };
 
 const ROLE_HOME = {
@@ -65,7 +61,6 @@ const ROLE_HOME = {
   teacher:      "/attendance",
   accountant:   "/invoice",
   reception:    "/",
-  parent:       "/parent-home",
 };
 
 module.exports = { BYPASS_ROLES, ROLE_PERMISSIONS, ROLE_HOME, isBypassRole };

@@ -80,10 +80,6 @@ const ROUTE_REGISTRY = [
   { path: "/roles-permissions",   routeKey: ROUTES.ROLES_PERMISSIONS,      label: "Roles & Permissions",  category: "app",    layout: "main"   },
   { path: "/settings",            routeKey: ROUTES.SETTINGS,               label: "Settings",             category: "app",    layout: "main"   },
 
-  // Parent layout
-  { path: "/parent-home",         routeKey: ROUTES.DASHBOARD,              label: "Parent Dashboard",     category: "parent", layout: "parent" },
-  { path: "/parent-checkin",      routeKey: ROUTES.PARENT_CHECKIN,         label: "Parent Check-In",      category: "parent", layout: "parent" },
-
   // Dev
   { path: "/dev/modules",         routeKey: ROUTES.DEV_TOOLS,              label: "Module Explorer",      category: "dev",    layout: "main"   },
 ];

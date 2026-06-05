@@ -67,9 +67,6 @@ const STATIC_ROLE_PERMS = {
     "dashboard","students","attendance","parent-checkin",
     "pickup-authorization","pickup-history","profile",
   ],
-  parent: [
-    "dashboard","parent-checkin","pickup-history","fees","profile",
-  ],
 };
 
 // ── Module → route-key mapping ────────────────────────────────────────────────
@@ -165,7 +162,6 @@ function invalidateCacheAll() {
  */
 async function getPermissionsForRole(roleId, schoolId) {
   if (roleId === "developer" || roleId === "super_admin") return ["*"];
-  if (roleId === "parent") return STATIC_ROLE_PERMS.parent;
 
   const key    = _cacheKey(roleId, schoolId);
   const cached = _cache.get(key);
@@ -182,7 +178,6 @@ async function getPermissionsForRole(roleId, schoolId) {
  */
 async function getRoleMatrix(roleId, schoolId) {
   if (roleId === "developer" || roleId === "super_admin") return { _bypass: true };
-  if (roleId === "parent") return {};
 
   const key    = _cacheKey(roleId, schoolId);
   const cached = _cache.get(key);

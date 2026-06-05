@@ -22,7 +22,6 @@ const {
   liveToken,
   liveStop,
   streamAuthHook,
-  parentLiveToken,
   getParentSettings,
   updateParentSettings,
 } = require("../controllers/cctvController");
@@ -34,10 +33,6 @@ const MANAGE_ROLES = ["admin", "center_admin", "center_owner", "super_admin", "d
 // Validates the stream token itself; must be registered before the
 // router-level authenticate/staffOnly guard below.
 router.post("/internal/cctv/auth", streamAuthHook);
-
-// ── Parent Live View — authenticated but NOT staff (parents are not staff). ──
-// Presence + school-hours + classroom scope enforced in the controller.
-router.post("/api/cctv/parent/live-token", authenticate, parentLiveToken);
 
 // All remaining CCTV routes require an authenticated staff account.
 // Path-scoped to /api/cctv so this guard does not intercept other routers'
