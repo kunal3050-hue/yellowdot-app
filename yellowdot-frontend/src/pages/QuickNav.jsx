@@ -88,7 +88,6 @@ const SECTIONS = [
     id: "presence",
     label: "Presence & Safety",
     items: [
-      { label: "Parent Entry",   path: "/parent-checkin",       icon: "CheckSquare", desc: "Gate check-in" },
       { label: "Pickup",         path: "/pickup-authorization", icon: "Car",         desc: "Authorised pickups" },
       { label: "Staff Checkout", path: "/staff-checkout",       icon: "LogOut",      desc: "End-of-day sign-off" },
       { label: "QR Management",  path: "/qr-management",        icon: "QrCode",      desc: "Generate & print QR" },

@@ -15,7 +15,6 @@ function getHomeRoute(role) {
   const map = {
     super_admin:  "/",          developer:   "/",
     center_admin: "/",          teacher:     "/attendance",
-    parent:       "/parent-checkin",
     accountant:   "/invoice",
     reception:    "/",
   };

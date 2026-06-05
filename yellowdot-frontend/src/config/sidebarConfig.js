@@ -219,13 +219,6 @@ export const SIDEBAR_GROUPS = [
         icon:     "Calendar",
       },
       {
-        id:       "parent_entry",
-        label:    "Parent Entry",
-        path:     "/parent-checkin",
-        routeKey: ROUTES.PARENT_CHECKIN,
-        icon:     "CheckSquare",
-      },
-      {
         id:         "pickup",
         label:      "Pickup",
         path:       "/pickup-authorization",
@@ -313,33 +306,6 @@ export const SIDEBAR_GROUPS = [
         icon:     "Grid",
       },
     ],
-  },
-];
-
-// ── Parent simplified menu ────────────────────────────────────────────────────
-// Replaces the full grouped menu when effectiveRole === "parent".
-// No sections, no collapsible — just a flat list of relevant links.
-export const PARENT_MENU = [
-  {
-    id:       "checkin",
-    label:    "Parent Check-In",
-    path:     "/parent-checkin",
-    routeKey: ROUTES.PARENT_CHECKIN,
-    icon:     "CheckSquare",
-  },
-  {
-    id:       "pickup",
-    label:    "Pickup History",
-    path:     "/pickup-history",
-    routeKey: ROUTES.PICKUP_HISTORY,
-    icon:     "Car",
-  },
-  {
-    id:       "fees",
-    label:    "My Fees",
-    path:     "/fees",
-    routeKey: ROUTES.FEES,
-    icon:     "CreditCard",
   },
 ];
 

@@ -13,7 +13,7 @@
 import { Component, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { SIDEBAR_GROUPS, PARENT_MENU } from "../../config/sidebarConfig";
+import { SIDEBAR_GROUPS } from "../../config/sidebarConfig";
 import { ROUTES, ROLE_PERMISSIONS, ROLE_LABELS, ROLE_HIERARCHY } from "../../config/permissions";
 
 // ── LocalStorage helpers ──────────────────────────────────────────────────────
@@ -95,12 +95,6 @@ function buildSidebarLookup() {
         if (item?.routeKey) {
           map[item.routeKey] = { ...item, groupId: group.id, groupLabel: group.label };
         }
-      }
-    }
-    const parentItems = Array.isArray(PARENT_MENU) ? PARENT_MENU : [];
-    for (const item of parentItems) {
-      if (item?.routeKey) {
-        map[`parent::${item.routeKey}`] = { ...item, groupId: "parent", groupLabel: "Parent" };
       }
     }
   } catch (err) {

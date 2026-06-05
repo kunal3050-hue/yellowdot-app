@@ -37,7 +37,6 @@ const SEARCH_ITEMS = [
   { name: "Food Consumption",  path: "/food-consumption",      icon: "🥣", group: "Daily Ops" },
   // Presence & Safety
   { name: "Attendance",        path: "/attendance",            icon: "📅", group: "Presence & Safety" },
-  { name: "Parent Entry",      path: "/parent-checkin",        icon: "✅", group: "Presence & Safety" },
   { name: "Pickup",            path: "/pickup-authorization",  icon: "🚗", group: "Presence & Safety" },
   { name: "Pickup History",    path: "/pickup-history",        icon: "📋", group: "Presence & Safety" },
   { name: "Staff Checkout",    path: "/staff-checkout",        icon: "🚪", group: "Presence & Safety" },

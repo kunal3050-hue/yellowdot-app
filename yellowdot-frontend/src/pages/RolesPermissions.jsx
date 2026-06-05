@@ -809,7 +809,6 @@ function AdvancedTab({ role, onUpdate, permissions }) {
     { value: "/",                     label: "Dashboard" },
     { value: "/attendance",           label: "Attendance" },
     { value: "/invoice",              label: "Invoices" },
-    { value: "/parent-checkin",       label: "Parent Check-In" },
     { value: "/students",             label: "Students" },
     { value: "/pickup-authorization", label: "Pickup Authorization" },
   ];

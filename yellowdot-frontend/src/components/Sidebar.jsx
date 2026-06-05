@@ -21,7 +21,7 @@ import {
   isBypassRole,
 } from "../config/permissions";
 import {
-  SIDEBAR_GROUPS, PARENT_MENU,
+  SIDEBAR_GROUPS,
   resolveInitialOpen, storeSectionState,
 } from "../config/sidebarConfig";
 
@@ -434,42 +434,6 @@ function DevPanel({ currentRole, onSelect, onClear }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PARENT MENU (simplified flat view)
-// ══════════════════════════════════════════════════════════════════════════════
-
-function ParentMenu({ can, badgeCounts }) {
-  const { pathname } = useLocation();
-
-  return (
-    <nav className="yd-sl-nav">
-      <div className="yd-sl-group">
-        <div className="yd-sl-group-header">
-          <span className="yd-sl-group-label">My Portal</span>
-        </div>
-        <div className="yd-sl-items">
-          {PARENT_MENU.filter(item => !item.routeKey || can(item.routeKey)).map(item => {
-            const active = isItemActive(item, pathname);
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`yd-sl-item${active ? " active" : ""}`}
-              >
-                <span className="yd-sl-item-icon">
-                  <Icon name={item.icon} />
-                </span>
-                <span className="yd-sl-item-label">{item.label}</span>
-                <ItemBadge badge={item.badge} count={badgeCounts?.[item.id]} />
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // AVATAR
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -525,7 +489,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   // Effective role for filtering (dev role override or real role)
   const effectiveRole  = devRole || role;
   const isBypass       = isBypassRole(effectiveRole);
-  const isParent       = effectiveRole === "parent";
 
   // Badge counts — wire to live data when available
   const badgeCounts = {};
@@ -641,9 +604,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
         )}
 
         {/* ── Navigation ───────────────────────────────────────────────── */}
-        {isParent ? (
-          <ParentMenu can={can} badgeCounts={badgeCounts} />
-        ) : (
           <nav className="yd-sl-nav">
 
             {/* Regular config-driven groups (non-developer) */}
@@ -707,7 +667,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
             )}
 
           </nav>
-        )}
 
         {/* ── Developer panel (role switcher UI in footer) ─────────────── */}
         {isBypass && (

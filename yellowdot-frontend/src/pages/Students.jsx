@@ -1443,7 +1443,7 @@ function StudentProfilePanel({ studentId, students, onEdit, onDelete, onRefresh,
 
   // Quick action buttons
   const quickActions = [
-    { label:"Attendance", icon:"📋", action: () => navigate("/parent-checkin"), color:"bg-amber-100 text-amber-700 hover:bg-amber-200" },
+    { label:"Attendance", icon:"📋", action: () => navigate("/attendance"), color:"bg-amber-100 text-amber-700 hover:bg-amber-200" },
     { label:"Food",       icon:"🍽️", action: () => navigate("/food-consumption"), color:"bg-amber-100 text-amber-700 hover:bg-amber-200" },
     { label:"Nap",        icon:"😴", action: () => navigate("/nap-tracker"), color:"bg-purple-100 text-purple-700 hover:bg-purple-200" },
     { label:"QR Code",    icon:"📱", action: () => setShowQRModal(true), color:"bg-purple-100 text-purple-700 hover:bg-purple-200" },

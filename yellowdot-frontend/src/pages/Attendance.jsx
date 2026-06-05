@@ -193,11 +193,6 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, summary, summaryLo
       {/* Child Safety shortcuts */}
       <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-1.5">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-1">Child Safety</p>
-        <Link to="/parent-checkin"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-yd-navy text-white
-                     text-sm font-bold hover:bg-yd-navy-2 transition-colors shadow-yd w-full">
-          <span>📱</span> Parent Check-In
-        </Link>
         <Link to="/pickup-authorization"
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50
                      text-sm font-semibold transition-colors w-full border border-gray-100">
