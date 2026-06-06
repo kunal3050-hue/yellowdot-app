@@ -52,8 +52,9 @@ const ROLE_PERMISSIONS = {
     "pickup-authorization", "pickup-history", "staff-checkout", "profile",
   ],
 
+  // Parent Module V1 — CCTV & self check-in intentionally excluded.
   parent: [
-    "dashboard", "parent-checkin", "pickup-history", "fees", "profile",
+    "dashboard", "profile", "fees",
   ],
 };
 

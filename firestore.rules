@@ -95,6 +95,23 @@ service cloud.firestore {
       return me().studentId;
     }
 
+    // ── Parent Module identity (parents/{uid}) ──────────────────────────
+    // First-class parent account doc, keyed by Firebase uid. Parents have no
+    // users/{uid} doc, so parent-scoped access is resolved from here instead.
+    // These helpers use exists() first so staff (no parents doc) short-circuit
+    // safely without triggering a missing-doc error.
+    function isParentAccount() {
+      return exists(/databases/$(database)/documents/parents/$(request.auth.uid));
+    }
+
+    function myParent() {
+      return get(/databases/$(database)/documents/parents/$(request.auth.uid)).data;
+    }
+
+    function myLinkedStudentIds() {
+      return isParentAccount() ? myParent().studentIds : [];
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // USERS
     // ════════════════════════════════════════════════════════════════════
@@ -127,13 +144,38 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // PARENTS  (Parent Module V1 — parents/{uid} identity docs)
+    // Written exclusively by the backend (Admin SDK) on first parent access.
+    // Client rules below are a defensive second layer.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /parents/{parentUid} {
+      // A parent reads only their own doc; admins read any parent in their school.
+      allow read: if isSignedIn() && (
+        request.auth.uid == parentUid ||
+        (isAdmin() && sameSchool(resource.data.schoolId))
+      );
+
+      // Only admins may write parent docs from the client.
+      // (Provisioning happens server-side via the Admin SDK.)
+      allow create, update: if isSignedIn() && isAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // STUDENTS
     // ════════════════════════════════════════════════════════════════════
 
     match /students/{studentId} {
       // Staff: read any student in their school.
-      // Parent: read only their own linked student.
+      // Parent (parents/{uid} account): read only their own linked children.
+      // Parent-account clause is first so staff short-circuit via exists().
       allow read: if isSignedIn() && (
+        (isParentAccount() &&
+          resource.data.schoolId == myParent().schoolId &&
+          resource.data.studentId in myLinkedStudentIds()) ||
         (isStaff()  && sameSchool(resource.data.schoolId)) ||
         (isParent() && sameSchool(resource.data.schoolId) &&
           resource.data.studentId == myStudentId())
@@ -189,8 +231,12 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════════════════
 
     match /attendance/{entryId} {
-      // Parents can read their own student's attendance.
+      // Parents can read their own children's attendance.
+      // Parent-account clause first so staff short-circuit via exists().
       allow read: if isSignedIn() && (
+        (isParentAccount() &&
+          resource.data.schoolId == myParent().schoolId &&
+          resource.data.studentId in myLinkedStudentIds()) ||
         (isStaff()  && sameSchool(resource.data.schoolId)) ||
         (isParent() && sameSchool(resource.data.schoolId) &&
           resource.data.studentId == myStudentId())
@@ -416,6 +462,27 @@ service cloud.firestore {
       // Only admins may write settings from the client.
       // In practice, all settings writes go through the backend (Admin SDK).
       allow write: if isSignedIn() && isAdmin() && isActive();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // MEMORIES  (Parent Module V1 — photos/videos per child)
+    // Staff write; parents read only their linked children's memories.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /memories/{memoryId} {
+      // Parent-account clause first so staff short-circuit via exists().
+      allow read: if isSignedIn() && (
+        (isParentAccount() &&
+          resource.data.schoolId == myParent().schoolId &&
+          resource.data.studentId in myLinkedStudentIds()) ||
+        (isStaff() && sameSchool(resource.data.schoolId))
+      );
+
+      allow create, update: if isSignedIn() && isTeacherOrAbove() && isActive() &&
+        writingSameSchool();
+
+      allow delete: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
     }
 
     // ════════════════════════════════════════════════════════════════════

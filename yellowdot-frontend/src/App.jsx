@@ -7,7 +7,7 @@ import { AuthProvider }  from "./contexts/AuthContext";
 import ProtectedRoute    from "./components/auth/ProtectedRoute";
 import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
-import ParentLayout      from "./layouts/ParentLayout";
+import { parentRoutes } from "./modules/parent";
 import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
 import SplashScreen      from "./components/SplashScreen";
@@ -44,9 +44,8 @@ const InvoiceView         = lazy(() => import("./pages/InvoiceView"));
 const ReceiptView         = lazy(() => import("./pages/ReceiptView"));
 
 
-const ParentDashboard     = lazy(() => import("./pages/ParentDashboard"));
-const ParentCheckIn       = lazy(() => import("./pages/ParentCheckIn"));
-const ParentLiveCCTV      = lazy(() => import("./pages/ParentLiveCCTV"));
+// Parent screens are defined in src/modules/parent (see parentRoutes).
+// (Self check-in is staff-only via the backend; not exposed in the parent app.)
 const PickupAuthorization = lazy(() => import("./pages/PickupAuthorization"));
 const PickupHistory       = lazy(() => import("./pages/PickupHistory"));
 const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
@@ -116,31 +115,8 @@ function App() {
               }
             />
 
-            {/* ── Parent app ───────────────────────────────────────────────── */}
-            <Route
-              path="/parent-home"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentDashboard /></ParentLayout>
-                  : <ProtectedRoute routeKey="dashboard"><ParentLayout><ParentDashboard /></ParentLayout></ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent-checkin"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentCheckIn /></ParentLayout>
-                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentCheckIn /></ParentLayout></ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent-cctv"
-              element={
-                import.meta.env.DEV
-                  ? <ParentLayout><ParentLiveCCTV /></ParentLayout>
-                  : <ProtectedRoute routeKey="parent-checkin"><ParentLayout><ParentLiveCCTV /></ParentLayout></ProtectedRoute>
-              }
-            />
+            {/* ── Parent Module (src/modules/parent) ───────────────────────── */}
+            {parentRoutes}
 
             {/* ── Root redirect ─────────────────────────────────────────────── */}
             <Route path="/" element={<RootRedirect />} />

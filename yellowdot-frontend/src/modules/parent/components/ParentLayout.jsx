@@ -12,31 +12,36 @@
  *   │  Content           │  scrollable, warm ivory bg
  *   │                    │
  *   ├────────────────────┤
- *   │  Bottom tab bar    │  64px fixed — Home | Fees | Profile
+ *   │  Bottom tab bar    │  64px fixed — Home | Attendance | Fees | Profile
  *   └────────────────────┘
+ *
+ * V1 dock: Home · Attendance · Fees · Profile. No CCTV / Camera, no check-in.
  */
 
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../../contexts/AuthContext";
+import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 
-// ── Design tokens (all inline — no Tailwind dependency) ──────────────────────
+// ── Design tokens — sourced from the centralized Parent Module theme ──────────
+// No hardcoded colours: everything maps to theme variables so the app reads as
+// Yellow Dot the moment it opens.
 const T = {
-  bg:      "#fffdf7",
-  surface: "#ffffff",
-  border:  "#ece7d8",
-  gold:    "#f0c930",
-  text:    "#3d3325",
-  text2:   "#8b7d65",
-  text3:   "#b8a88e",
-  radius:  20,
+  bg:      colors.surface.background,
+  surface: colors.surface.card,
+  border:  colors.surface.border,
+  gold:    colors.yellow500,
+  text:    colors.text.primary,
+  text2:   colors.text.secondary,
+  text3:   colors.text.faint,
+  radius:  radius.card,
 };
 
-// ── Bottom tab definitions ────────────────────────────────────────────────────
+// ── Bottom tab definitions (V1) ───────────────────────────────────────────────
 const TABS = [
-  { path: "/parent-home",   label: "Home",     icon: HomeIcon    },
-  { path: "/parent-cctv",   label: "Camera",   icon: CameraIcon  },
-  { path: "/fees",          label: "Fees",     icon: FeeIcon     },
-  { path: "/profile",       label: "Profile",  icon: ProfileIcon },
+  { path: "/parent-home",       label: "Home",       icon: HomeIcon       },
+  { path: "/parent-attendance", label: "Attendance", icon: AttendanceIcon },
+  { path: "/fees",              label: "Fees",       icon: FeeIcon        },
+  { path: "/parent-profile",    label: "Profile",    icon: ProfileIcon    },
 ];
 
 export default function ParentLayout({ children }) {
@@ -51,44 +56,36 @@ export default function ParentLayout({ children }) {
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-        height: 56,
-        background: "rgba(255,253,247,0.92)",
+        height: layout.topbarHeight,
+        background: colors.surface.backgroundTranslucent,
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: `1px solid ${T.border}`,
         display: "flex", alignItems: "center",
-        padding: "0 20px",
+        padding: `0 ${spacing.xl}px`,
         justifyContent: "space-between",
       }}>
         {/* Logo mark */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
-            width: 30, height: 30, borderRadius: 9,
-            background: "linear-gradient(135deg,#f9dc5a 0%,#f0c930 100%)",
+            width: 30, height: 30, borderRadius: radius.sm,
+            background: colors.brand.gradient,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 900, fontSize: 13, color: "#3d2f00",
-            boxShadow: "0 2px 8px rgba(240,201,48,0.3)",
+            fontWeight: typography.weight.extra, fontSize: typography.size.sm, color: colors.text.onYellow,
+            boxShadow: shadows.primary,
           }}>Y</div>
-          <span style={{ fontWeight: 700, fontSize: 13, color: T.text, letterSpacing: "-0.2px" }}>
+          <span style={{ fontWeight: typography.weight.bold, fontSize: typography.size.sm, color: T.text, letterSpacing: typography.tracking.tight }}>
             Yellow Dot
           </span>
         </div>
 
-        {/* Right: bell + avatar */}
+        {/* Right: avatar (no notifications in V1) */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button style={{
-            width: 34, height: 34, borderRadius: 10, border: `1px solid ${T.border}`,
-            background: T.surface, cursor: "pointer",
+          <Link to="/parent-profile" style={{
+            width: 34, height: 34, borderRadius: radius.sm,
+            background: colors.brand.gradient,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: T.text2,
-          }}>
-            <BellIcon />
-          </button>
-          <Link to="/profile" style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: "linear-gradient(135deg,#f9dc5a,#f0c930)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 800, fontSize: 11, color: "#3d2f00",
+            fontWeight: typography.weight.extra, fontSize: typography.size.xs, color: colors.text.onYellow,
             textDecoration: "none",
           }}>
             {initials}
@@ -99,14 +96,14 @@ export default function ParentLayout({ children }) {
       {/* ── Scrollable content ───────────────────────────────────────────── */}
       <main style={{
         flex: 1,
-        marginTop: 56,
+        marginTop: layout.topbarHeight,
         paddingBottom: 96,
         overflowY: "auto",
       }}>
         <div style={{
-          maxWidth: 640,
+          maxWidth: layout.contentMax,
           margin: "0 auto",
-          padding: "0 0 12px 0",
+          padding: `0 0 ${spacing.md}px 0`,
         }}>
           {children}
         </div>
@@ -115,19 +112,14 @@ export default function ParentLayout({ children }) {
       {/* ── Floating iOS dock ───────────────────────────────────────────── */}
       <div style={{
         position: "fixed",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-        left: 16, right: 16, zIndex: 50,
-        height: 62,
-        background: "rgba(255,253,248,0.92)",
+        bottom: `calc(${layout.safeBottom} + ${spacing.md}px)`,
+        left: spacing.lg, right: spacing.lg, zIndex: 50,
+        height: layout.dockHeight,
+        background: colors.surface.backgroundTranslucent,
         backdropFilter: "blur(28px)",
         WebkitBackdropFilter: "blur(28px)",
-        borderRadius: 26,
-        boxShadow: [
-          "0 10px 44px rgba(140,110,40,0.18)",
-          "0 2px 8px rgba(200,160,40,0.10)",
-          "0 0 0 1px rgba(238,220,148,0.30)",
-          "inset 0 1px 0 rgba(255,255,255,0.85)",
-        ].join(","),
+        borderRadius: radius["2xl"],
+        boxShadow: shadows.lg,
         display: "flex", alignItems: "stretch",
       }}>
         {TABS.map(({ path, label, icon: Icon }) => {
@@ -137,9 +129,10 @@ export default function ParentLayout({ children }) {
               flex: 1, display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               gap: 3, textDecoration: "none",
-              color: active ? "#a07810" : T.text3,
+              color: active ? colors.yellow700 : T.text3,
               transition: "color 0.18s",
               position: "relative",
+              minHeight: 0,
             }}>
               {/* Active glow orb */}
               {active && (
@@ -149,24 +142,24 @@ export default function ParentLayout({ children }) {
                   transform: "translate(-50%, -58%)",
                   width: 50, height: 34,
                   borderRadius: 17,
-                  background: "radial-gradient(ellipse, rgba(240,194,40,0.18) 0%, rgba(240,194,40,0.06) 70%, transparent 100%)",
+                  background: colors.brand.glowSoft,
                   pointerEvents: "none",
                 }} />
               )}
               <Icon active={active} />
               <span style={{
                 fontSize: 9.5,
-                fontWeight: active ? 700 : 450,
-                letterSpacing: "0.02em",
+                fontWeight: active ? typography.weight.bold : typography.weight.medium,
+                letterSpacing: typography.tracking.wide,
                 position: "relative",
               }}>{label}</span>
               {/* Active dot */}
               {active && (
                 <div style={{
                   position: "absolute", bottom: 6,
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: "linear-gradient(135deg,#f9dc5a,#f0c228)",
-                  boxShadow: "0 0 8px rgba(240,194,40,0.6)",
+                  width: 5, height: 5, borderRadius: radius.pill,
+                  background: colors.brand.gradient,
+                  boxShadow: shadows.primary,
                 }} />
               )}
             </Link>
@@ -188,11 +181,12 @@ function HomeIcon({ active }) {
     </svg>
   );
 }
-function CameraIcon({ active }) {
+function AttendanceIcon({ active }) {
   return (
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
-      <path d="M2 7a2 2 0 012-2h2l1.5-2h7L17 5h2a2 2 0 012 2v11a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
-      <circle cx="12" cy="12" r="3.5" />
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 2v4M16 2v4" />
+      <path d="M9 14l2 2 4-4" />
     </svg>
   );
 }
@@ -209,14 +203,6 @@ function ProfileIcon({ active }) {
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  );
-}
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 01-3.46 0" />
     </svg>
   );
 }
