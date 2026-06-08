@@ -15,7 +15,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import useParentFeed from "../hooks/useParentFeed";
-import DailyCareLauncher from "../components/DailyCareLauncher";
 import { colors, spacing, radius, shadows, typography } from "../theme";
 
 // ── Per-type presentation (all within the Yellow identity) ─────────
@@ -56,30 +55,13 @@ export default function HomeFeed() {
     <div style={{ padding: spacing.lg, display: "flex", flexDirection: "column", gap: spacing.lg }}>
 
       {/* ── Greeting header ─────────────────────────────────────────── */}
-      <header style={{
-        padding: `${spacing.xs}px ${spacing.xs}px 0`,
-        display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.md,
-      }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ ...typography.caption, color: colors.text.muted, margin: 0 }}>
-            {greeting()}{firstName ? `, ${firstName}` : ""} 👋
-          </p>
-          <h1 style={{ ...typography.h1, color: colors.text.primary, margin: `${spacing.xs}px 0 0` }}>
-            Today at Yellow Dot
-          </h1>
-        </div>
-        <Link to="/parent-memories" style={{
-          ...typography.caption,
-          flexShrink: 0,
-          display: "inline-flex", alignItems: "center", gap: spacing.xs,
-          padding: `${spacing.sm}px ${spacing.md}px`,
-          borderRadius: radius.pill,
-          background: colors.surface.card,
-          border: `1px solid ${colors.surface.border}`,
-          boxShadow: shadows.sm,
-          color: colors.yellow700, fontWeight: typography.weight.bold,
-          textDecoration: "none",
-        }}>📸 Memories</Link>
+      <header style={{ padding: `${spacing.xs}px ${spacing.xs}px 0` }}>
+        <p style={{ ...typography.caption, color: colors.text.muted, margin: 0 }}>
+          {greeting()}{firstName ? `, ${firstName}` : ""} 👋
+        </p>
+        <h1 style={{ ...typography.h1, color: colors.text.primary, margin: `${spacing.xs}px 0 0` }}>
+          Today at Yellow Dot
+        </h1>
       </header>
 
       {/* ── Feed ────────────────────────────────────────────────────── */}
@@ -93,9 +75,36 @@ export default function HomeFeed() {
         feed.map(item => <FeedCard key={`${item.type}-${item.id}`} item={item} />)
       )}
 
-      {/* Floating Daily Care launcher (FAB + bottom sheet) */}
-      <DailyCareLauncher />
+      {/* ── Quick access — Memories & Fees (Home is the main dashboard) ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.md, marginTop: spacing.xs }}>
+        <QuickCard to="/parent-memories" emoji="📸" title="Memories" subtitle="Photos & videos" />
+        <QuickCard to="/parent-fees"     emoji="💳" title="Fees"     subtitle="Invoices & payments" />
+      </div>
     </div>
+  );
+}
+
+// ── Quick-access card (fully navigable) ─────────────────────────────
+function QuickCard({ to, emoji, title, subtitle }) {
+  return (
+    <Link to={to} style={{
+      display: "flex", flexDirection: "column", gap: spacing.sm,
+      padding: spacing.lg,
+      borderRadius: radius.card,
+      background: colors.surface.card,
+      border: `1px solid ${colors.yellow200}`,
+      boxShadow: shadows.card,
+      textDecoration: "none",
+      minHeight: 104,
+    }}>
+      <span style={{
+        width: 44, height: 44, borderRadius: radius.md,
+        background: colors.yellow100, border: `1px solid ${colors.yellow200}`,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+      }}>{emoji}</span>
+      <span style={{ ...typography.title, color: colors.text.primary }}>{title}</span>
+      <span style={{ ...typography.meta, color: colors.text.muted }}>{subtitle}</span>
+    </Link>
   );
 }
 
