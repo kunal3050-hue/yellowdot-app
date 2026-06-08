@@ -53,6 +53,16 @@ const VIEW_META = {
 
 // ── Date helpers ──────────────────────────────────────────────────
 function todayISO()  { return new Date().toISOString().slice(0, 10); }
+
+// Attendance check-in/out are stored as UTC wall-clock strings ("HH:MM:SS").
+// Combine with the record's ISO date and render in the school timezone (IST).
+// Already-formatted optimistic values (e.g. "10:06 am") pass through unchanged.
+function fmtClock(dateISO, timeStr) {
+  if (!timeStr) return "";
+  const d = new Date(`${dateISO}T${timeStr}Z`);
+  if (isNaN(d.getTime())) return timeStr;
+  return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
+}
 function todayLabel(){
   return new Date().toLocaleDateString("en-IN", {
     weekday:"long", day:"2-digit", month:"long", year:"numeric",
@@ -270,12 +280,12 @@ function StudentRow({ student, entry, saving, onMark, onCheckOut, canMark = true
       </td>
       <td className="px-3 py-2.5">
         {checkIn
-          ? <span className="text-xs font-semibold text-emerald-600">{checkIn}</span>
+          ? <span className="text-xs font-semibold text-emerald-600">{fmtClock(entry?.date, checkIn)}</span>
           : <span className="text-xs text-gray-300">—</span>}
       </td>
       <td className="px-3 py-2.5">
         {checkOut ? (
-          <span className="text-xs font-semibold text-rose-600">{checkOut}</span>
+          <span className="text-xs font-semibold text-rose-600">{fmtClock(entry?.date, checkOut)}</span>
         ) : inside ? (
           <button onClick={() => onCheckOut(entry)}
             className="text-[10px] font-bold px-2 py-1 bg-yd-danger-soft text-yd-danger border border-yd-danger-border rounded-yd-sm hover:bg-yd-danger-border transition-colors">
@@ -678,7 +688,7 @@ function QRScannerView({ toast }) {
                     <p className="text-xs text-gray-500 mt-0.5">{lastResult.student.name} · {lastResult.student.class}</p>
                   )}
                   {lastResult.entry?.checkIn && (
-                    <p className="text-xs text-gray-500">In: {lastResult.entry.checkIn}{lastResult.entry.checkOut ? ` · Out: ${lastResult.entry.checkOut}` : ""}</p>
+                    <p className="text-xs text-gray-500">In: {fmtClock(lastResult.entry.date, lastResult.entry.checkIn)}{lastResult.entry.checkOut ? ` · Out: ${fmtClock(lastResult.entry.date, lastResult.entry.checkOut)}` : ""}</p>
                   )}
                 </div>
               </div>
@@ -927,8 +937,8 @@ function HistoryView({ cls }) {
                   </td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{e.class}</td>
                   <td className="px-4 py-2.5"><StatusBadge status={e.status}/></td>
-                  <td className="px-4 py-2.5 text-xs text-emerald-600 font-semibold">{e.checkIn || "—"}</td>
-                  <td className="px-4 py-2.5 text-xs text-rose-600 font-semibold">{e.checkOut || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-emerald-600 font-semibold">{e.checkIn ? fmtClock(e.date, e.checkIn) : "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-rose-600 font-semibold">{e.checkOut ? fmtClock(e.date, e.checkOut) : "—"}</td>
                   <td className="px-4 py-2.5">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full
                       ${e.attendanceMethod==="QR" ? "bg-purple-100 text-purple-600" : "bg-gray-100 text-gray-500"}`}>
