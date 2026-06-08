@@ -1,6 +1,51 @@
 # Parent Module — Roadmap
 
-> Status: **Phases 1–4 complete. Phase 5 (Fees) not started.**
+> Status: **✅ PRODUCTION READY (V1 — Phases 1–5 complete & verified live).**
+> Deployed commit `d3afa2e` · backend on Railway · frontend on Firebase Hosting
+> (`yellowdot-app`) · verified 2026-06-08.
+>
+> **No new Parent Module features for now.** Future work is tracked below under
+> "Enhancements (post-V1, non-blocking)" and must NOT block this release.
+
+## Production status
+
+V1 shipped: **Parent Authentication, Parent Profile, Child Profile, Home Feed,
+Attendance (view), Fees (view), Memories (view)**. Final production verification
+(authenticated as a real parent) — all green:
+
+| Check | Result |
+|-------|--------|
+| `/api/version` | ✅ `commit=d3afa2e`, `environment=production`, `version=1.0.0` |
+| Parent login (`/api/auth/me`) | ✅ role=parent |
+| Profile (`/api/parent/me`) | ✅ parent + linked children |
+| Home Feed (`/api/parent/feed`) | ✅ |
+| Attendance (`/api/parent/child/:id/attendance`) | ✅ today/%/calendar/history |
+| Fees (`/api/parent/fees`) | ✅ balance/invoices/payments |
+| Child Profile (`/api/parent/child/:id`) | ✅ |
+
+Production hardening done: enriched `/api/version`, parent-auth path-scoping
+(~5× → 1× `authenticate` per request), parent-child link self-heal on `/me`,
+and a 26-test backend suite (`npm test`).
+
+## Enhancements (post-V1, non-blocking)
+
+Tracked as future enhancements — **not** part of the current release:
+- **Memories producer** — staff upload UI + Storage integration (parents can
+  view; there is no in-app way to create memories yet).
+- **Notifications** (parent bell / `parentNotifications`).
+- **Phase 6 — Leave Requests**; **Phase 7 — Events**.
+- Fees: online payment / receipts / PDF. Attendance: any write features.
+- Security: enforce `email_verified`; review Storage rules before media.
+- Scalability: bound/paginate feed & fees reads; add caching; TTL-gate the
+  `/me` link re-sync.
+- Tooling: frontend tests; move Firebase web config to env; GitHub-triggered
+  Railway deploys (auto commit SHA).
+
+---
+
+> Historical phase plan below.
+
+> Status: **Phases 1–5 complete.**
 
 The Parent Module is the warm, cheerful, mobile-first parent experience for
 Yellow Dot. It is **completely separate** from the staff CRM (`MainLayout`) and
@@ -32,7 +77,7 @@ and its own centralized Yellow theme (`src/modules/parent/theme/`).
 | **2** | Home Feed | ✅ Completed | `announcements`, `holidays`, `notices` |
 | **3** | Attendance | ✅ Completed | `attendance`, `holidays` |
 | **4** | Memories | ✅ Completed | `memories` (new) |
-| **5** | Fees | ⬜ Not started | `invoices`, `payments` |
+| **5** | Fees | ✅ Completed | `invoices`, `payments` |
 | **6** | Leave Requests | ⬜ Not started | `leaveRequests` (new) |
 | **7** | Events | ⬜ Not started | `announcements`, `holidays`, `notices` |
 
@@ -62,7 +107,7 @@ and its own centralized Yellow theme (`src/modules/parent/theme/`).
 
 ---
 
-## Phase 5 — Fees (PLAN — not started)
+## Phase 5 — Fees ✅ (shipped)
 
 **Goal:** a parent-facing fees view. Read-only in V1. Fixes the current gap
 where the dock "Fees" tab opens the shared **staff** screen without
