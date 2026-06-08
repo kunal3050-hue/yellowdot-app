@@ -7,6 +7,24 @@
 > **No new Parent Module features for now.** Future work is tracked below under
 > "Enhancements (post-V1, non-blocking)" and must NOT block this release.
 
+## Navigation v2 — ✅ PRODUCTION READY (redesign phase closed)
+
+Deployed commit `8c3e7ea` (Firebase Hosting `yellowdot-app`), verified 2026-06-08.
+
+```
+Bottom nav:  🏠 Home   ·   ☀️ Daily Care (raised center hub)   ·   👤 Profile
+Home:        Greeting · Today's Feed/Announcements · 📸 Memories card · 💳 Fees card
+Daily Care:  📅 Attendance (live) · 😴 Nap · 🍽️ Food Menu · 🍎 Consumption (non-clickable "Coming Soon")
+Profile:     Parent info · Child info · Sign out   (no Settings)
+```
+- Attendance/Fees/Memories removed from the dock; Memories & Fees now on Home.
+- Daily Care FAB launcher + Memories pill removed; dead-end Coming Soon routes
+  removed. Every clickable item performs a real action; unbuilt modules are
+  visible but non-clickable.
+- Verified: Home (feed + cards), Daily Care (Attendance opens; 3 Coming Soon
+  badges), Profile (parent/child/sign-out), all 3 tabs navigate, no orphan
+  routes, no dead-ends.
+
 ## Production status
 
 V1 shipped: **Parent Authentication, Parent Profile, Child Profile, Home Feed,
