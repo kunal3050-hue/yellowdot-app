@@ -19,6 +19,25 @@ const nowISO    = () => new Date().toISOString();
 const todayISO  = () => new Date().toISOString().slice(0, 10);
 const timeStr   = () => new Date().toTimeString().slice(0, 8);
 
+// ── Date / entryId helpers (exported for testing) ──────────────────
+// Attendance dates are stored & queried in ISO (YYYY-MM-DD). A DD/MM/YYYY value
+// would put slashes into the entryId and make Firestore .doc() write to a NESTED
+// subcollection path instead of a top-level doc (silent data loss). Normalize it.
+function normalizeDateToISO(d) {
+  if (!d) return todayISO();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
+    const [dd, mm, yy] = d.split("/");
+    return `${yy}-${mm}-${dd}`;
+  }
+  return d;
+}
+
+// Deterministic, slash-free document id. Slashes are stripped as a last resort
+// so a malformed date can never create a nested path again.
+function buildEntryId(date, studentId) {
+  return `ATT-${normalizeDateToISO(date)}-${studentId}`.replace(/\//g, "-");
+}
+
 // ── Document mapper ────────────────────────────────────────────────
 
 function docToRecord(snap) {
@@ -125,16 +144,8 @@ async function markAttendance({
   studentId, studentName, class: cls, status, date,
   method, centerId, center, markedBy, schoolId = SCHOOL_ID,
 }) {
-  // Normalize date to ISO (YYYY-MM-DD). Defensive: a DD/MM/YYYY value would put
-  // slashes into the entryId and make Firestore write to a nested subcollection
-  // path instead of a top-level doc (silent data loss). Convert it, and strip
-  // any remaining "/" from the entryId as a last resort.
-  let d = date || todayISO();
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
-    const [dd, mm, yy] = d.split("/");
-    d = `${yy}-${mm}-${dd}`;
-  }
-  const entryId   = `ATT-${d}-${studentId}`.replace(/\//g, "-");
+  const d         = normalizeDateToISO(date);
+  const entryId   = buildEntryId(date, studentId);
   const ref       = col().doc(entryId);
   const existing  = await ref.get();
   const resolvedCenter = centerId || center || "";
@@ -209,4 +220,6 @@ module.exports = {
   markAttendance,
   checkOut,
   processQRScan,
+  normalizeDateToISO,
+  buildEntryId,
 };

@@ -9,8 +9,10 @@ const {
   rejectPickupRequest,
 } = require("../controllers/securityController");
 
-// All security routes require a real (non-unknown) account
-router.use(authenticate, blockUnknown);
+// All security routes require a real (non-unknown) account.
+// Path-scoped to this router's own prefixes (mounted at app root via app.use())
+// so the guard does not run for unrelated paths like /api/parent/*.
+router.use(["/api/pickup-request", "/api/pickup-requests"], authenticate, blockUnknown);
 
 // Child status — parents always get their linked child; staff pass :studentId
 router.get("/api/child-status/:studentId", getChildStatus);

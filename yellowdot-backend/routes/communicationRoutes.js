@@ -13,7 +13,9 @@ const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 // Every communication route requires a registered account.
 // Parents can read (holidays, notices, announcements); staff-only routes
 // are further guarded by authorize(CAN_WRITE / CAN_DELETE).
-router.use(authenticate, blockUnknown);
+// Path-scoped to this router's own prefixes (mounted at app root via app.use())
+// so the guard does not run for unrelated paths like /api/parent/*.
+router.use(["/api/announcements", "/api/holidays", "/api/notices"], authenticate, blockUnknown);
 
 function ctx(req) {
   return {

@@ -37,22 +37,28 @@ function parentOnly(req, res, next) {
 }
 
 // ── Resolve parent identity (provision on first access) ────────────
-async function loadParent(req, res, next) {
-  try {
-    const parent = await parentSvc.getOrCreateParent(req.user);
-    if (!parent) {
-      return res.status(403).json({
-        error: "No child is linked to this account. Contact your school administrator.",
-        code:  "NO_LINKED_CHILD",
-      });
+// sync=true (used on the "load" call /api/parent/me) self-heals studentIds
+// when a child is added/removed/relinked or the email mapping changes.
+function makeLoadParent({ sync = false } = {}) {
+  return async function loadParent(req, res, next) {
+    try {
+      const parent = await parentSvc.getOrCreateParent(req.user, { sync });
+      if (!parent) {
+        return res.status(403).json({
+          error: "No child is linked to this account. Contact your school administrator.",
+          code:  "NO_LINKED_CHILD",
+        });
+      }
+      req.parent = parent;
+      next();
+    } catch (e) {
+      console.error("[parentRoutes loadParent]", e.message);
+      res.status(500).json({ error: "Failed to resolve parent profile." });
     }
-    req.parent = parent;
-    next();
-  } catch (e) {
-    console.error("[parentRoutes loadParent]", e.message);
-    res.status(500).json({ error: "Failed to resolve parent profile." });
-  }
+  };
 }
+const loadParent       = makeLoadParent();              // fast path (cached)
+const loadParentSynced = makeLoadParent({ sync: true }); // refresh links
 
 // Path-scoped to /api/parent so this guard runs ONLY for this router's own
 // routes — not for every request (the router is mounted at app root via
@@ -60,7 +66,9 @@ async function loadParent(req, res, next) {
 router.use("/api/parent", authenticate, blockUnknown, parentOnly);
 
 // ── GET /api/parent/me ─────────────────────────────────────────────
-router.get("/api/parent/me", loadParent, async (req, res) => {
+// Uses the synced loader — this is the "load" call the app makes on startup,
+// so it self-heals the parent↔child links here.
+router.get("/api/parent/me", loadParentSynced, async (req, res) => {
   try {
     const children = await parentSvc.getChildren(req.parent);
     const { uid, schoolId, email, name, phone, relation, status, studentIds } = req.parent;
@@ -186,5 +194,8 @@ router.get("/api/parent/child/:studentId/attendance", loadParent, async (req, re
     res.status(500).json({ error: "Failed to load attendance." });
   }
 });
+
+// Exported for unit testing (pure middleware, no I/O).
+router.parentOnly = parentOnly;
 
 module.exports = router;
