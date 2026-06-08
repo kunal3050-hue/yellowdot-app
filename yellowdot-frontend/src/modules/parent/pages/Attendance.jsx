@@ -47,6 +47,15 @@ function fmtHistDate(iso) {
   return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
 }
 
+// checkIn/checkOut are stored as UTC wall-clock strings ("HH:MM:SS"). Combine
+// with the record's date and render in the school timezone (IST) as 12-hour.
+function fmtClock(dateISO, timeStr) {
+  if (!timeStr) return "";
+  const d = new Date(`${dateISO}T${timeStr}Z`);
+  if (isNaN(d.getTime())) return timeStr;
+  return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
 export default function Attendance() {
   const { children, loading: childrenLoading } = useParentProfile();
   const [activeId, setActiveId] = useState(null);
@@ -311,7 +320,7 @@ function History({ history }) {
                   </div>
                   {(h.checkIn || h.checkOut) && (
                     <div style={{ ...typography.meta, color: colors.text.muted }}>
-                      {h.checkIn ? `In ${h.checkIn}` : ""}{h.checkIn && h.checkOut ? " · " : ""}{h.checkOut ? `Out ${h.checkOut}` : ""}
+                      {h.checkIn ? `In ${fmtClock(h.date, h.checkIn)}` : ""}{h.checkIn && h.checkOut ? " · " : ""}{h.checkOut ? `Out ${fmtClock(h.date, h.checkOut)}` : ""}
                     </div>
                   )}
                 </div>
