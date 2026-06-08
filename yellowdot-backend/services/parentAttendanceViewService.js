@@ -21,7 +21,6 @@ const comms             = require("./communicationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
-const pad = n => String(n).padStart(2, "0");
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const currentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 
@@ -50,13 +49,16 @@ async function getChildAttendance({ studentId, schoolId = DEFAULT_SCHOOL_ID, mon
   const ym       = /^\d{4}-\d{2}$/.test(month || "") ? month : currentMonth();
   const [yy, mm] = ym.split("-").map(Number);
   const daysInMonth = new Date(yy, mm, 0).getDate();
-  const from = `${ym}-01`;
-  const to   = `${ym}-${pad(daysInMonth)}`;
 
-  const [records, holidays] = await Promise.all([
-    attendanceService.getAttendanceHistory({ studentId, from, to, limit: 400, schoolId }),
+  // Equality-only fetch (schoolId + studentId) then filter the month in memory.
+  // Avoids the composite index that getAttendanceHistory's range+orderBy needs.
+  const [attResult, holidays] = await Promise.all([
+    attendanceService.getAttendance({ studentId, schoolId }),
     comms.getHolidays({ schoolId, year: String(yy) }),
   ]);
+  const records = (attResult.entries || [])
+    .filter(r => (r.date || "").slice(0, 7) === ym)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   // ── Holiday date set within this month ────────────────────────────
   const holidayDates = new Set();

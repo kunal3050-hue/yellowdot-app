@@ -11,6 +11,7 @@
  *   /parent-child/:id       — Child Profile  (Phase 1)
  *   /parent-attendance      — Attendance view (Phase 3)
  *   /parent-memories        — Memories timeline (Phase 4)
+ *   /parent-fees            — Fees: balance, invoices, payments (Phase 5)
  *
  * No CCTV. No self check-in.
  */
@@ -25,6 +26,7 @@ const ParentProfile = lazy(() => import("../pages/ParentProfile"));
 const ChildProfile  = lazy(() => import("../pages/ChildProfile"));
 const Attendance    = lazy(() => import("../pages/Attendance"));
 const Memories      = lazy(() => import("../pages/Memories"));
+const Fees          = lazy(() => import("../pages/Fees"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
 function wrap(node, routeKey) {
@@ -39,6 +41,7 @@ export const parentRoutes = [
   <Route key="parent-child"      path="/parent-child/:studentId" element={wrap(<ChildProfile />, "profile")} />,
   <Route key="parent-attendance" path="/parent-attendance"     element={wrap(<Attendance />, "dashboard")} />,
   <Route key="parent-memories"    path="/parent-memories"       element={wrap(<Memories />, "dashboard")} />,
+  <Route key="parent-fees"        path="/parent-fees"           element={wrap(<Fees />, "fees")} />,
 ];
 
 export default parentRoutes;
