@@ -15,6 +15,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import useParentFeed from "../hooks/useParentFeed";
+import DailyCareLauncher from "../components/DailyCareLauncher";
 import { colors, spacing, radius, shadows, typography } from "../theme";
 
 // ── Per-type presentation (all within the Yellow identity) ─────────
@@ -91,6 +92,9 @@ export default function HomeFeed() {
       ) : (
         feed.map(item => <FeedCard key={`${item.type}-${item.id}`} item={item} />)
       )}
+
+      {/* Floating Daily Care launcher (FAB + bottom sheet) */}
+      <DailyCareLauncher />
     </div>
   );
 }
