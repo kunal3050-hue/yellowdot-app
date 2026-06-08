@@ -74,41 +74,81 @@ async function _findStudentIdsByEmail(email) {
   return { studentIds: [...ids], schoolId, relation };
 }
 
+/** Set-equality for two id arrays (order-independent). */
+function sameIds(a = [], b = []) {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every(x => set.has(x));
+}
+
 /**
  * Get the parent doc for the authenticated user, provisioning it on first
- * access from email-linked students. Returns the parent record or null if
- * the user has no linked children (not a parent).
+ * access from email-linked students.
+ *
+ * @param {Object}  authUser
+ * @param {Object} [opts]
+ * @param {boolean}[opts.sync] When true (use on the "load" call, e.g. /me),
+ *   re-resolve studentIds from the student email mapping and self-heal the doc
+ *   if a child was added / removed / relinked or the email mapping changed.
+ *   Other endpoints pass sync=false (fast path, use the cached doc).
+ * @returns {Promise<Object|null>} parent record, or null if not a parent.
  */
-async function getOrCreateParent(authUser) {
+async function getOrCreateParent(authUser, { sync = false } = {}) {
   const uid = authUser.userId;
   const ref = col().doc(uid);
   const snap = await ref.get();
 
-  if (snap.exists) {
-    return { uid, ...snap.data() };
+  // ── First access: provision from email match ───────────────────────
+  if (!snap.exists) {
+    const { studentIds, schoolId, relation } = await _findStudentIdsByEmail(authUser.email);
+    if (studentIds.length === 0) return null; // no linked children → not a parent
+
+    const doc = {
+      uid,
+      schoolId:        schoolId || authUser.schoolId || DEFAULT_SCHOOL_ID,
+      email:           (authUser.email || "").toLowerCase(),
+      name:            authUser.name || "",
+      phone:           authUser.phone || "",
+      studentIds,
+      relation,
+      status:          "active",
+      provisionedFrom: "email-match",
+      createdAt:       nowISO(),
+      updatedAt:       nowISO(),
+      lastSyncedAt:    nowISO(),
+    };
+    await ref.set(doc);
+    return { uid, ...doc };
   }
 
-  // Lazy provision from email match
-  const { studentIds, schoolId, relation } = await _findStudentIdsByEmail(authUser.email);
-  if (studentIds.length === 0) {
-    return null; // no linked children → not a provisionable parent
+  const existing = { uid, ...snap.data() };
+
+  // ── Fast path: return cached doc unless a sync was requested ───────
+  if (!sync) return existing;
+
+  // ── Self-heal: re-resolve links from the source of truth ──────────
+  // Safety: never wipe links when we can't determine the email (would be a
+  // false "no children"). Only update when the resolved set actually differs.
+  if (!authUser.email) return existing;
+  const resolved = await _findStudentIdsByEmail(authUser.email);
+  const changed =
+    !sameIds(existing.studentIds || [], resolved.studentIds) ||
+    (resolved.schoolId && resolved.schoolId !== existing.schoolId);
+
+  if (!changed) {
+    await ref.set({ lastSyncedAt: nowISO() }, { merge: true });
+    return existing;
   }
 
-  const doc = {
-    uid,
-    schoolId:        schoolId || authUser.schoolId || DEFAULT_SCHOOL_ID,
-    email:           (authUser.email || "").toLowerCase(),
-    name:            authUser.name || "",
-    phone:           authUser.phone || "",
-    studentIds,
-    relation,
-    status:          "active",
-    provisionedFrom: "email-match",
-    createdAt:       nowISO(),
-    updatedAt:       nowISO(),
+  const update = {
+    studentIds:   resolved.studentIds,
+    schoolId:     resolved.schoolId || existing.schoolId,
+    relation:     resolved.relation || existing.relation,
+    updatedAt:    nowISO(),
+    lastSyncedAt: nowISO(),
   };
-  await ref.set(doc);
-  return { uid, ...doc };
+  await ref.set(update, { merge: true });
+  return { ...existing, ...update };
 }
 
 /** Return the child-safe profiles for all of a parent's linked children. */
@@ -128,4 +168,4 @@ async function getChild(parent, studentId) {
   return toChildSafe(student);
 }
 
-module.exports = { getOrCreateParent, getChildren, getChild, toChildSafe };
+module.exports = { getOrCreateParent, getChildren, getChild, toChildSafe, sameIds };

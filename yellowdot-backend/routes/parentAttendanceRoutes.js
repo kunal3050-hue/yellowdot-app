@@ -7,7 +7,10 @@ const {
   createParentAttendance,
 } = require("../controllers/parentAttendanceController");
 
-router.use(authenticate);
+// Path-scoped: this router is mounted at app root via app.use(router), so a
+// path-less router.use() would run for EVERY request (incl. /api/parent/*),
+// causing redundant token verification. Scope to this router's own prefix.
+router.use("/api/parent-attendance", authenticate);
 
 // Validate gate QR before starting workflow
 router.get ("/api/parent-attendance/validate-gate", validateGate);

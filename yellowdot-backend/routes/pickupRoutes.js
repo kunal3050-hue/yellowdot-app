@@ -23,7 +23,9 @@ const {
 } = require("../controllers/pickupHistoryController");
 
 // All pickup routes require a registered account (no "unknown" role).
-router.use(authenticate, blockUnknown);
+// Path-scoped to this router's own prefixes so the guard does not run for
+// other routers' paths (router is mounted at app root via app.use()).
+router.use(["/api/pickup-authorization", "/api/pickup-history"], authenticate, blockUnknown);
 
 // ── Pickup Authorization ──────────────────────────────────────────
 // GET:  parents see their own child's list (scoped in controller)

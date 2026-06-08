@@ -1,0 +1,2 @@
+# Generated at deploy time by `npm run build:info` (surfaced via /api/version).
+build-info.json

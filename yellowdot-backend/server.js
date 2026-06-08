@@ -24,21 +24,38 @@ app.use(cors({
 app.use(express.json({ limit: "5mb" })); // Allow photo base64 uploads
 
 // ── Version probe (PUBLIC) ──────────────────────────────────────────
-// Reports the deployed git commit so we can instantly confirm which build
-// Railway is serving. Railway injects RAILWAY_GIT_COMMIT_SHA automatically;
-// falls back to APP_COMMIT or "unknown". Registered BEFORE all route modules
-// (some apply a path-less authenticate guard) so it is always public.
+// A quick way to verify exactly what code is live. Resolution order for the
+// commit/branch/buildTimestamp:
+//   1. Env vars (Railway injects RAILWAY_GIT_* on GitHub-triggered deploys;
+//      APP_COMMIT / APP_BUILD_TIME can be set manually).
+//   2. build-info.json (generated at deploy time by `npm run build:info`,
+//      uploaded with the code — covers `railway up` deploys where git env
+//      vars are absent).
+//   3. "unknown".
+// Registered BEFORE all route modules so it is always public.
 const _APP_STARTED_AT = new Date().toISOString();
+const _PKG_VERSION = (() => { try { return require("./package.json").version; } catch { return "unknown"; } })();
+const _BUILD_INFO = (() => {
+  try { return require("./build-info.json"); } catch { return {}; }
+})();
 app.get("/api/version", (req, res) => {
-  const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.APP_COMMIT || "unknown";
+  const commit =
+    process.env.RAILWAY_GIT_COMMIT_SHA || process.env.APP_COMMIT || _BUILD_INFO.commit || "unknown";
+  const branch =
+    process.env.RAILWAY_GIT_BRANCH || process.env.APP_BRANCH || _BUILD_INFO.branch || "unknown";
+  const buildTimestamp =
+    process.env.APP_BUILD_TIME || _BUILD_INFO.builtAt || "unknown";
   res.json({
-    service:     "yellowdot-backend",
-    commit:      sha,
-    commitShort: sha === "unknown" ? "unknown" : sha.slice(0, 7),
-    branch:      process.env.RAILWAY_GIT_BRANCH || process.env.APP_BRANCH || "unknown",
-    startedAt:   _APP_STARTED_AT,
-    uptime:      Math.floor(process.uptime()) + "s",
-    node:        process.version,
+    service:        "yellowdot-backend",
+    version:        _PKG_VERSION,
+    environment:    process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV || "unknown",
+    commit,
+    commitShort:    commit === "unknown" ? "unknown" : commit.slice(0, 7),
+    branch,
+    buildTimestamp,
+    startedAt:      _APP_STARTED_AT,
+    uptime:         Math.floor(process.uptime()) + "s",
+    node:           process.version,
   });
 });
 
