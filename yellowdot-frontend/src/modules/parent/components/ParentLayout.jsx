@@ -37,11 +37,11 @@ const T = {
 };
 
 // ── Bottom tab definitions (V1) ───────────────────────────────────────────────
+// 3 primary tabs. Daily Care is the central, emphasized hub (raised button).
 const TABS = [
-  { path: "/parent-home",       label: "Home",       icon: HomeIcon       },
-  { path: "/parent-attendance", label: "Attendance", icon: AttendanceIcon },
-  { path: "/parent-fees",       label: "Fees",       icon: FeeIcon        },
-  { path: "/parent-profile",    label: "Profile",    icon: ProfileIcon    },
+  { path: "/parent-home",       label: "Home",       icon: HomeIcon                  },
+  { path: "/parent-daily-care", label: "Daily Care", icon: null,        center: true },
+  { path: "/parent-profile",    label: "Profile",    icon: ProfileIcon               },
 ];
 
 export default function ParentLayout({ children }) {
@@ -122,8 +122,36 @@ export default function ParentLayout({ children }) {
         boxShadow: shadows.lg,
         display: "flex", alignItems: "stretch",
       }}>
-        {TABS.map(({ path, label, icon: Icon }) => {
+        {TABS.map(({ path, label, icon: Icon, center }) => {
           const active = pathname === path || (path !== "/parent-home" && pathname.startsWith(path));
+
+          // ── Center "Daily Care" — raised, emphasized primary tab ──
+          if (center) {
+            return (
+              <Link key={path} to={path} style={{
+                flex: 1, position: "relative", textDecoration: "none",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "flex-end",
+                paddingBottom: 8,
+              }}>
+                <div style={{
+                  position: "absolute", top: -24, left: "50%", transform: "translateX(-50%)",
+                  width: 58, height: 58, borderRadius: radius.pill,
+                  background: colors.brand.gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 28,
+                  boxShadow: shadows.primary,
+                  border: `3px solid ${colors.surface.card}`,
+                }}>☀️</div>
+                <span style={{
+                  fontSize: 9.5, fontWeight: typography.weight.bold,
+                  letterSpacing: typography.tracking.wide,
+                  color: active ? colors.yellow700 : colors.yellow600,
+                }}>{label}</span>
+              </Link>
+            );
+          }
+
           return (
             <Link key={path} to={path} style={{
               flex: 1, display: "flex", flexDirection: "column",
@@ -178,23 +206,6 @@ function HomeIcon({ active }) {
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
-    </svg>
-  );
-}
-function AttendanceIcon({ active }) {
-  return (
-    <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
-      <rect x="3" y="4" width="18" height="17" rx="2" />
-      <path d="M3 9h18M8 2v4M16 2v4" />
-      <path d="M9 14l2 2 4-4" />
-    </svg>
-  );
-}
-function FeeIcon({ active }) {
-  return (
-    <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
-      <rect x="1" y="4" width="22" height="16" rx="2" />
-      <line x1="1" y1="10" x2="23" y2="10" />
     </svg>
   );
 }
