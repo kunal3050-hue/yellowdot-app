@@ -12,6 +12,7 @@
  *   /parent-attendance      — Attendance view (Phase 3)
  *   /parent-memories        — Memories timeline (Phase 4)
  *   /parent-fees            — Fees: balance, invoices, payments (Phase 5)
+ *   /parent-daily-care      — Daily Care hub (full screen)
  *   /parent-nap, /parent-food-menu, /parent-consumption — Daily Care (placeholders)
  *
  * No CCTV. No self check-in.
@@ -28,6 +29,7 @@ const ChildProfile  = lazy(() => import("../pages/ChildProfile"));
 const Attendance    = lazy(() => import("../pages/Attendance"));
 const Memories      = lazy(() => import("../pages/Memories"));
 const Fees          = lazy(() => import("../pages/Fees"));
+const DailyCare     = lazy(() => import("../pages/DailyCare"));
 const ComingSoon    = lazy(() => import("../pages/ComingSoon"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
@@ -44,6 +46,7 @@ export const parentRoutes = [
   <Route key="parent-attendance" path="/parent-attendance"     element={wrap(<Attendance />, "dashboard")} />,
   <Route key="parent-memories"    path="/parent-memories"       element={wrap(<Memories />, "dashboard")} />,
   <Route key="parent-fees"        path="/parent-fees"           element={wrap(<Fees />, "fees")} />,
+  <Route key="parent-daily-care"  path="/parent-daily-care"     element={wrap(<DailyCare />, "dashboard")} />,
   // Daily Care launcher targets (placeholders until each module is built)
   <Route key="parent-nap"         path="/parent-nap"            element={wrap(<ComingSoon title="Nap Tracker" emoji="😴" />, "dashboard")} />,
   <Route key="parent-food-menu"   path="/parent-food-menu"      element={wrap(<ComingSoon title="Food Menu" emoji="🍽️" />, "dashboard")} />,
