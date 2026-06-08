@@ -40,7 +40,7 @@ const T = {
 const TABS = [
   { path: "/parent-home",       label: "Home",       icon: HomeIcon       },
   { path: "/parent-attendance", label: "Attendance", icon: AttendanceIcon },
-  { path: "/fees",              label: "Fees",       icon: FeeIcon        },
+  { path: "/parent-fees",       label: "Fees",       icon: FeeIcon        },
   { path: "/parent-profile",    label: "Profile",    icon: ProfileIcon    },
 ];
 

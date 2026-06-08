@@ -48,4 +48,12 @@ export async function getMemories(studentId) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories };
+// Phase 5 — Fees (read-only, for linked children)
+export async function getFees(studentId) {
+  const { data } = await api.get("/api/parent/fees", {
+    params: studentId ? { studentId } : {},
+  });
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees };

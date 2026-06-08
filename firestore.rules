@@ -386,8 +386,12 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════════════════
 
     match /invoices/{invoiceId} {
-      // Finance roles and parents (own student).
+      // Finance roles and parents (own children).
+      // Parent-account clause first so staff short-circuit via exists().
       allow read: if isSignedIn() && (
+        (isParentAccount() &&
+          resource.data.schoolId == myParent().schoolId &&
+          resource.data.studentId in myLinkedStudentIds()) ||
         (isFinance()         && sameSchool(resource.data.schoolId)) ||
         (isTeacherOrAbove()  && sameSchool(resource.data.schoolId)) ||
         (isParent()          && sameSchool(resource.data.schoolId) &&
@@ -409,7 +413,11 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════════════════
 
     match /payments/{paymentId} {
+      // Parent-account clause first so staff short-circuit via exists().
       allow read: if isSignedIn() && (
+        (isParentAccount() &&
+          resource.data.schoolId == myParent().schoolId &&
+          resource.data.studentId in myLinkedStudentIds()) ||
         (isFinance()        && sameSchool(resource.data.schoolId)) ||
         (isTeacherOrAbove() && sameSchool(resource.data.schoolId)) ||
         (isParent()         && sameSchool(resource.data.schoolId) &&

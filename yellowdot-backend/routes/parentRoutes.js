@@ -24,6 +24,7 @@ const parentSvc                      = require("../services/parentProfileService
 const parentFeedSvc                  = require("../services/parentFeedService");
 const parentAttendanceViewSvc        = require("../services/parentAttendanceViewService");
 const memoriesSvc                    = require("../services/memoriesService");
+const parentFeesSvc                  = require("../services/parentFeesService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -93,6 +94,30 @@ router.get("/api/parent/feed", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/feed]", e.message);
     res.status(500).json({ error: "Failed to load feed." });
+  }
+});
+
+// ── GET /api/parent/fees ───────────────────────────────────────────
+// Phase 5 — read-only fees for the parent's linked children.
+// Query: ?studentId=YD001 (optional; must be linked) to filter to one child.
+router.get("/api/parent/fees", loadParent, async (req, res) => {
+  try {
+    const { studentId } = req.query;
+    if (studentId && !req.parent.studentIds?.includes(studentId)) {
+      return res.status(404).json({
+        error: "Child not found or not linked to this account.",
+        code:  "CHILD_NOT_FOUND",
+      });
+    }
+    const data = await parentFeesSvc.getFees({
+      schoolId:   req.parent.schoolId,
+      studentIds: req.parent.studentIds,
+      studentId,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/fees]", e.message);
+    res.status(500).json({ error: "Failed to load fees." });
   }
 });
 
