@@ -58,11 +58,6 @@ function todayLabel(){
     weekday:"long", day:"2-digit", month:"long", year:"numeric",
   });
 }
-function isoToIndia(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-}
 
 // ── Avatar color from name hash ───────────────────────────────────
 const AVATAR_COLORS = [
@@ -320,7 +315,11 @@ function DashboardView({ date, cls, summary, toast, canMark = true, canExport = 
   const [filter,    setFilter   ] = useState("All");
   const [search,    setSearch   ] = useState("");
 
-  const indiaDate = isoToIndia(date);
+  // Backend stores & queries attendance dates in ISO (YYYY-MM-DD). Sending
+  // DD/MM/YYYY here put slashes into the entryId (ATT-08/06/2026-YD008), which
+  // Firestore treated as a nested path — the write "succeeded" (200) but no
+  // top-level attendance doc was created. Always send ISO.
+  const indiaDate = date;
 
   const load = useCallback(async () => {
     try {
@@ -841,8 +840,8 @@ function HistoryView({ cls }) {
     setLoading(true);
     try {
       const res = await attendanceService.getHistory({
-        from:      isoToIndia(from),
-        to:        isoToIndia(to),
+        from,
+        to,
         class:     filterCls === "All" ? "" : filterCls,
         studentId: studentId.trim() || "",
       });
@@ -972,8 +971,8 @@ export default function Attendance() {
     summaryRef.current = true;
     try {
       const [sumRes, insideRes] = await Promise.all([
-        attendanceService.getSummary({ date: isoToIndia(date), class: cls==="All"?"":cls }),
-        attendanceService.getInsideNow({ date: isoToIndia(date), class: cls==="All"?"":cls }),
+        attendanceService.getSummary({ date, class: cls==="All"?"":cls }),
+        attendanceService.getInsideNow({ date, class: cls==="All"?"":cls }),
       ]);
       if (mountedRef.current) setSummary({ ...(sumRes.summary||{}), inside: insideRes.count||0 });
     } catch { /* silent */ } finally {

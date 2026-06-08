@@ -125,8 +125,16 @@ async function markAttendance({
   studentId, studentName, class: cls, status, date,
   method, centerId, center, markedBy, schoolId = SCHOOL_ID,
 }) {
-  const d         = date || todayISO();
-  const entryId   = `ATT-${d}-${studentId}`;
+  // Normalize date to ISO (YYYY-MM-DD). Defensive: a DD/MM/YYYY value would put
+  // slashes into the entryId and make Firestore write to a nested subcollection
+  // path instead of a top-level doc (silent data loss). Convert it, and strip
+  // any remaining "/" from the entryId as a last resort.
+  let d = date || todayISO();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
+    const [dd, mm, yy] = d.split("/");
+    d = `${yy}-${mm}-${dd}`;
+  }
+  const entryId   = `ATT-${d}-${studentId}`.replace(/\//g, "-");
   const ref       = col().doc(entryId);
   const existing  = await ref.get();
   const resolvedCenter = centerId || center || "";
