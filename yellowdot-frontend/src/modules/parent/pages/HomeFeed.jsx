@@ -12,7 +12,6 @@
  * Data: GET /api/parent/feed (via useParentFeed). Theme tokens only.
  */
 
-import { Link } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import useParentFeed from "../hooks/useParentFeed";
 import { colors, spacing, radius, shadows, typography } from "../theme";
@@ -74,37 +73,7 @@ export default function HomeFeed() {
       ) : (
         feed.map(item => <FeedCard key={`${item.type}-${item.id}`} item={item} />)
       )}
-
-      {/* ── Quick access — Memories & Fees (Home is the main dashboard) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.md, marginTop: spacing.xs }}>
-        <QuickCard to="/parent-memories" emoji="📸" title="Memories" subtitle="Photos & videos" />
-        <QuickCard to="/parent-fees"     emoji="💳" title="Fees"     subtitle="Invoices & payments" />
-      </div>
     </div>
-  );
-}
-
-// ── Quick-access card (fully navigable) ─────────────────────────────
-function QuickCard({ to, emoji, title, subtitle }) {
-  return (
-    <Link to={to} style={{
-      display: "flex", flexDirection: "column", gap: spacing.sm,
-      padding: spacing.lg,
-      borderRadius: radius.card,
-      background: colors.surface.card,
-      border: `1px solid ${colors.yellow200}`,
-      boxShadow: shadows.card,
-      textDecoration: "none",
-      minHeight: 104,
-    }}>
-      <span style={{
-        width: 44, height: 44, borderRadius: radius.md,
-        background: colors.yellow100, border: `1px solid ${colors.yellow200}`,
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
-      }}>{emoji}</span>
-      <span style={{ ...typography.title, color: colors.text.primary }}>{title}</span>
-      <span style={{ ...typography.meta, color: colors.text.muted }}>{subtitle}</span>
-    </Link>
   );
 }
 

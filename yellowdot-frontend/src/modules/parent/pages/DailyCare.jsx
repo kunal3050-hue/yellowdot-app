@@ -18,10 +18,14 @@ import useParentProfile from "../hooks/useParentProfile";
 import { colors, spacing, radius, shadows, typography } from "../theme";
 
 const MODULES = [
+  // Active
   { emoji: "📅", label: "Attendance",      to: "/parent-attendance", active: true },
-  { emoji: "😴", label: "Nap Tracker",     active: false },
+  { emoji: "📸", label: "Memories",        to: "/parent-memories",   active: true },
+  { emoji: "💳", label: "Fees",            to: "/parent-fees",       active: true },
+  // Coming soon
   { emoji: "🍽️", label: "Food Menu",       active: false },
   { emoji: "🍎", label: "Consumption Log", active: false },
+  { emoji: "😴", label: "Nap Tracker",     active: false },
 ];
 
 export default function DailyCare() {
