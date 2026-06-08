@@ -113,9 +113,9 @@ export const ROLE_PERMISSIONS = {
     ROUTES.PROFILE,
   ],
 
+  // Parent Module V1 — CCTV & self check-in intentionally excluded.
   parent: [
-    ROUTES.DASHBOARD, ROUTES.PARENT_CHECKIN,
-    ROUTES.PICKUP_HISTORY, ROUTES.FEES, ROUTES.PROFILE,
+    ROUTES.DASHBOARD, ROUTES.PROFILE, ROUTES.FEES,
   ],
 };
 
@@ -129,7 +129,7 @@ export const ROLE_HOME = {
   teacher:      "/attendance",
   accountant:   "/invoice",
   reception:    "/",
-  parent:       "/parent-checkin",
+  parent:       "/parent-home",
 };
 
 // ── Display labels ─────────────────────────────────────────────────────────────

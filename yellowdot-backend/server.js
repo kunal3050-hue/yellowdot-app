@@ -50,13 +50,13 @@ const foodMenuRoutes         = require("./routes/foodMenuRoutes");
 const foodConsumptionRoutes  = require("./routes/foodConsumptionRoutes");
 const attendanceRoutes       = require("./routes/attendanceRoutes");
 const parentAttendanceRoutes = require("./routes/parentAttendanceRoutes");
-const parentDailyRoutes      = require("./routes/parentDailyRoutes");
 const pickupRoutes           = require("./routes/pickupRoutes");
 const roleRoutes             = require("./routes/roleRoutes");
 const communicationRoutes    = require("./routes/communicationRoutes");
 const securityRoutes         = require("./routes/securityRoutes");
 const qrRoutes               = require("./routes/qrRoutes");
 const cctvRoutes             = require("./routes/cctvRoutes");
+const parentRoutes           = require("./routes/parentRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -77,13 +77,13 @@ app.use(foodMenuRoutes);
 app.use(foodConsumptionRoutes);
 app.use(attendanceRoutes);
 app.use(parentAttendanceRoutes);
-app.use(parentDailyRoutes);     // /api/parent/naps, /api/parent/food-consumption (parent-scoped, read-only)
 app.use(pickupRoutes);
 app.use(roleRoutes);
 app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
+app.use(parentRoutes);         // /api/parent/*  (Parent Module V1 — parent-scoped)
 
 // ============================================================
 // UTILITY HELPERS

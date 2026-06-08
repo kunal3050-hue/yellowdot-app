@@ -7,8 +7,9 @@ const firebaseConfig = {
   authDomain: "yellowdot-app.firebaseapp.com",
   projectId: "yellowdot-app",
   storageBucket: "yellowdot-app.firebasestorage.app",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID",
+  messagingSenderId: "230256365087",
+  appId: "1:230256365087:web:125297908a30fb5e28cf2a",
+  measurementId: "G-4XTR5RBQZD",
 };
 
 const app = initializeApp(firebaseConfig);
