@@ -22,10 +22,9 @@ const MODULES = [
   { emoji: "📅", label: "Attendance",      to: "/parent-attendance", active: true },
   { emoji: "📸", label: "Memories",        to: "/parent-memories",   active: true },
   { emoji: "💳", label: "Fees",            to: "/parent-fees",       active: true },
-  { emoji: "🍽️", label: "Food Menu",       to: "/parent-food-menu",  active: true },
+  { emoji: "🍽️", label: "Food Menu",       to: "/parent-food-menu",   active: true },
+  { emoji: "🍎", label: "Consumption Log", to: "/parent-consumption", active: true },
   // Coming soon
-
-  { emoji: "🍎", label: "Consumption Log", active: false },
   { emoji: "😴", label: "Nap Tracker",     active: false },
 ];
 

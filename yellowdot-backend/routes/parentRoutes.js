@@ -26,6 +26,7 @@ const parentAttendanceViewSvc        = require("../services/parentAttendanceView
 const memoriesSvc                    = require("../services/memoriesService");
 const parentFeesSvc                  = require("../services/parentFeesService");
 const parentFoodMenuSvc              = require("../services/parentFoodMenuService");
+const parentConsumptionSvc           = require("../services/parentConsumptionService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -143,6 +144,25 @@ router.get("/api/parent/food-menu", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/food-menu]", e.message);
     res.status(500).json({ error: "Failed to load food menu." });
+  }
+});
+
+// ── GET /api/parent/consumption ────────────────────────────────────
+// Daily Care · Consumption Log (read-only) for ONE linked child.
+// Query: ?studentId=YD001 (defaults to first child) &date=YYYY-MM-DD.
+router.get("/api/parent/consumption", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    if (studentId && !req.parent.studentIds?.includes(studentId)) {
+      return res.status(404).json({ error: "Child not found or not linked to this account.", code: "CHILD_NOT_FOUND" });
+    }
+    const data = await parentConsumptionSvc.getConsumptionView({
+      schoolId: req.parent.schoolId, studentId, date: req.query.date,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/consumption]", e.message);
+    res.status(500).json({ error: "Failed to load consumption log." });
   }
 });
 
