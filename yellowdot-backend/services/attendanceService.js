@@ -17,7 +17,7 @@ const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col       = () => db.collection("attendance");
 const nowISO    = () => new Date().toISOString();
 const todayISO  = () => new Date().toISOString().slice(0, 10);
-const timeStr   = () => new Date().toTimeString().slice(0, 8);
+const timeStr   = () => new Date().toISOString().slice(11, 19); // always UTC — admin fmtClock() appends "Z" when parsing
 
 // ── Date / entryId helpers (exported for testing) ──────────────────
 // Attendance dates are stored & queried in ISO (YYYY-MM-DD). A DD/MM/YYYY value
@@ -51,7 +51,9 @@ function docToRecord(snap) {
     class:       d.class       || "",
     status:      d.status      || "Absent",
     checkIn:     d.checkIn     || "",
+    checkInAt:   d.checkInAt   || null,
     checkOut:    d.checkOut    || "",
+    checkOutAt:  d.checkOutAt  || null,
     method:      d.method      || "Manual",
     centerId:    d.centerId    || d.center || "",
     center:      d.centerId    || d.center || "",
@@ -157,8 +159,10 @@ async function markAttendance({
     studentName: studentName || "",
     class:       cls         || "",
     status:      status      || "Present",
-    checkIn:     existing.exists ? (existing.data().checkIn || timeStr()) : timeStr(),
-    checkOut:    existing.exists ? (existing.data().checkOut || "") : "",
+    checkIn:     existing.exists ? (existing.data().checkIn   || timeStr()) : timeStr(),
+    checkInAt:   existing.exists ? (existing.data().checkInAt || nowISO())  : nowISO(),
+    checkOut:    existing.exists ? (existing.data().checkOut  || "") : "",
+    checkOutAt:  existing.exists ? (existing.data().checkOutAt || null) : null,
     method:      method      || "Manual",
     centerId:    resolvedCenter,
     center:      resolvedCenter,
@@ -168,7 +172,7 @@ async function markAttendance({
     updatedAt:   nowISO(),
   };
 
-  if (status === "Absent") { doc.checkIn = ""; doc.checkOut = ""; }
+  if (status === "Absent") { doc.checkIn = ""; doc.checkInAt = null; doc.checkOut = ""; doc.checkOutAt = null; }
 
   await ref.set(doc, { merge: true });
   return doc;
@@ -181,9 +185,10 @@ async function checkOut(entryId) {
   const ref  = col().doc(entryId);
   const snap = await ref.get();
   if (!snap.exists) return null;
-  const t = timeStr();
-  await ref.update({ checkOut: t, updatedAt: nowISO() });
-  return { ...docToRecord(snap), checkOut: t };
+  const t   = timeStr();
+  const iso = nowISO();
+  await ref.update({ checkOut: t, checkOutAt: iso, updatedAt: iso });
+  return { ...docToRecord(snap), checkOut: t, checkOutAt: iso };
 }
 
 /**
@@ -198,9 +203,10 @@ async function processQRScan({ studentId, studentName, class: cls, centerId, cen
   if (existing.exists) {
     const rec = existing.data();
     if (rec.status !== "Absent" && !rec.checkOut) {
-      const t = timeStr();
-      await ref.update({ checkOut: t, updatedAt: nowISO() });
-      return { action: "checkout", record: { ...docToRecord(existing), checkOut: t } };
+      const t   = timeStr();
+      const iso = nowISO();
+      await ref.update({ checkOut: t, checkOutAt: iso, updatedAt: iso });
+      return { action: "checkout", record: { ...docToRecord(existing), checkOut: t, checkOutAt: iso } };
     }
     if (rec.checkOut) return { action: "already_out", record: docToRecord(existing) };
   }

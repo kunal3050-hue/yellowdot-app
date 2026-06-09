@@ -15,6 +15,7 @@
 const svc        = require("../services/attendanceService");
 const studentSvc = require("../services/studentService");
 const QRCode     = require("qrcode");
+const notif      = require("../services/notificationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -86,6 +87,16 @@ async function markAttendance(req, res) {
       schoolId,
     });
 
+    notif.notifyAsync(() => notif.fireForStudent(studentId, schoolId, {
+      type:     notif.TYPES.ATTENDANCE_MARKED,
+      childId:  studentId,
+      title:    status === "Present" ? `${studentName || studentId} is at school` : `Attendance update for ${studentName || studentId}`,
+      message:  status === "Present"
+        ? `${studentName || studentId} was marked Present at Yellow Dot Preschool.`
+        : `${studentName || studentId} was marked ${status} today.`,
+      deepLink: "/parent-attendance",
+    }));
+
     res.json({ success: true, message: "Attendance saved.", entry });
   } catch (e) {
     logErr("POST /api/attendance/mark", e);
@@ -100,6 +111,16 @@ async function checkOut(req, res) {
   try {
     const entry = await svc.checkOut(req.params.id);
     if (!entry) return res.status(404).json({ success: false, error: "Entry not found." });
+
+    const { schoolId: eSchool } = resolveCtx(req);
+    notif.notifyAsync(() => notif.fireForStudent(entry.studentId, entry.schoolId || eSchool, {
+      type:     notif.TYPES.CHILD_CHECKED_OUT,
+      childId:  entry.studentId,
+      title:    `${entry.studentName || entry.studentId} checked out`,
+      message:  `${entry.studentName || entry.studentId} has checked out at ${entry.checkOut}.`,
+      deepLink: "/parent-attendance",
+    }));
+
     res.json({ success: true, message: "Check-out recorded.", entry });
   } catch (e) {
     logErr("PUT /api/attendance/:id/checkout", e);
@@ -226,6 +247,24 @@ async function processQRScan(req, res) {
       checkout:    `👋 ${student.studentName} checked OUT at ${result.record.checkOut}`,
       already_out: `ℹ️  ${student.studentName} already checked in and out today.`,
     }[result.action] || "Action recorded.";
+
+    if (result.action === "checkin") {
+      notif.notifyAsync(() => notif.fireForStudent(student.studentId, student.schoolId || schoolId, {
+        type:     notif.TYPES.CHILD_CHECKED_IN,
+        childId:  student.studentId,
+        title:    `${student.studentName} arrived at school`,
+        message:  `${student.studentName} has checked in at Yellow Dot Preschool at ${result.record.checkIn}.`,
+        deepLink: "/parent-attendance",
+      }));
+    } else if (result.action === "checkout") {
+      notif.notifyAsync(() => notif.fireForStudent(student.studentId, student.schoolId || schoolId, {
+        type:     notif.TYPES.CHILD_CHECKED_OUT,
+        childId:  student.studentId,
+        title:    `${student.studentName} checked out`,
+        message:  `${student.studentName} has checked out at ${result.record.checkOut}.`,
+        deepLink: "/parent-attendance",
+      }));
+    }
 
     res.json({
       success: true,

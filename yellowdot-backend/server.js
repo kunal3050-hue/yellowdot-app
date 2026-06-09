@@ -74,6 +74,7 @@ const securityRoutes         = require("./routes/securityRoutes");
 const qrRoutes               = require("./routes/qrRoutes");
 const cctvRoutes             = require("./routes/cctvRoutes");
 const parentRoutes           = require("./routes/parentRoutes");
+const notificationRoutes     = require("./routes/notificationRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -82,6 +83,8 @@ const studentNotesSvc   = require("./services/studentNotesService");
 const invoiceSvc        = require("./services/invoiceService");
 const settingsSvc       = require("./services/settingsService");
 const pickupAuthSvc     = require("./services/pickupAuthorizationService");
+const memoriesSvc       = require("./services/memoriesService");
+const notif             = require("./services/notificationService");
 
 // ── Auth middleware ────────────────────────────────────────────────
 const { authenticate, authorize, blockUnknown, staffOnly } = require("./middleware/authMiddleware");
@@ -101,6 +104,7 @@ app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
 app.use(parentRoutes);         // /api/parent/*  (Parent Module V1 — parent-scoped)
+app.use(notificationRoutes);   // /api/parent/notifications/*
 
 // ============================================================
 // UTILITY HELPERS
@@ -369,6 +373,15 @@ app.post("/record-payment", authenticate, authorize("admin","center_admin","acco
   try {
     const { schoolId, centerId, actorUserId } = resolveContext(req);
     const { payment, invoice } = await invoiceSvc.recordPayment(req.body || {}, { schoolId, centerId, actorUserId });
+    if (payment?.studentId) {
+      notif.notifyAsync(() => notif.fireForStudent(payment.studentId, schoolId, {
+        type:     notif.TYPES.PAYMENT_RECEIVED,
+        childId:  payment.studentId,
+        title:    "Payment received",
+        message:  `Payment of ₹${payment.amount || ""} received${invoice?.invoiceNumber ? ` for invoice ${invoice.invoiceNumber}` : ""}. Thank you!`,
+        deepLink: "/parent-fees",
+      }));
+    }
     res.json({ success: true, message: "Payment saved successfully", payment, invoice });
   } catch (err) {
     logRouteError("POST /record-payment", err);
@@ -407,6 +420,15 @@ app.post("/api/payments", authenticate, authorize("admin","center_admin","accoun
   try {
     const { schoolId, centerId, actorUserId } = resolveContext(req);
     const { payment, invoice } = await invoiceSvc.recordPayment(req.body || {}, { schoolId, centerId, actorUserId });
+    if (payment?.studentId) {
+      notif.notifyAsync(() => notif.fireForStudent(payment.studentId, schoolId, {
+        type:     notif.TYPES.PAYMENT_RECEIVED,
+        childId:  payment.studentId,
+        title:    "Payment received",
+        message:  `Payment of ₹${payment.amount || ""} received${invoice?.invoiceNumber ? ` for invoice ${invoice.invoiceNumber}` : ""}. Thank you!`,
+        deepLink: "/parent-fees",
+      }));
+    }
     res.json({ success: true, payment, invoice });
   } catch (e) {
     logRouteError("POST /api/payments", e);
@@ -600,6 +622,60 @@ app.put("/api/settings/:section", authenticate, authorize("admin","super_admin",
   } catch (e) {
     logRouteError(`PUT /api/settings/${req.params.section}`, e);
     res.status(500).json({ error: "Failed to save settings", details: e.message });
+  }
+});
+
+// ============================================================
+// MEMORIES — staff write endpoint
+// Parents read via GET /api/parent/memories (parentRoutes.js).
+// Staff create/delete memories here; notifications fire on create.
+// ============================================================
+
+app.get("/api/memories", authenticate, blockUnknown, staffOnly, async (req, res) => {
+  try {
+    const { schoolId } = resolveContext(req);
+    const { studentId, limit } = req.query;
+    const memories = await memoriesSvc.getForChildren({
+      schoolId,
+      studentIds: studentId ? [studentId] : [],
+      limit: Number(limit) || 100,
+    });
+    res.json({ success: true, memories });
+  } catch (e) {
+    logRouteError("GET /api/memories", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post("/api/memories", authenticate, blockUnknown, authorize("admin","center_admin","super_admin","developer","teacher"), async (req, res) => {
+  try {
+    const { schoolId, actorUserId } = resolveContext(req);
+    const memory = await memoriesSvc.createMemory(req.body || {}, { schoolId, actorUserId });
+
+    notif.notifyAsync(() => notif.fireForStudent(memory.studentId, schoolId, {
+      type:     notif.TYPES.NEW_MEMORY,
+      childId:  memory.studentId,
+      title:    `New memory added for ${memory.studentName || memory.studentId}`,
+      message:  `A new classroom memory has been added for ${memory.studentName || memory.studentId}.`,
+      deepLink: "/parent-memories",
+      batchKey: `memory-${schoolId}-${memory.studentId}-${memory.date || new Date().toISOString().slice(0, 10)}`,
+      batchMessageFn: (count) => `${count} new memories have been added for ${memory.studentName || memory.studentId}.`,
+    }));
+
+    res.json({ success: true, memory });
+  } catch (e) {
+    logRouteError("POST /api/memories", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.delete("/api/memories/:id", authenticate, blockUnknown, authorize("admin","center_admin","super_admin","developer"), async (req, res) => {
+  try {
+    await memoriesSvc.deleteMemory(req.params.id);
+    res.json({ success: true });
+  } catch (e) {
+    logRouteError("DELETE /api/memories/:id", e);
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 

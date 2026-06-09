@@ -494,6 +494,28 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // NOTIFICATIONS  (Parent Module V2)
+    // Written exclusively by the backend (Admin SDK).
+    // Parents may read/update (mark as read) only their own notifications.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /notifications/{notifId} {
+      // A parent may read only their own notifications.
+      allow read: if isSignedIn() && (
+        isParentAccount() && resource.data.parentId == request.auth.uid
+      );
+
+      // A parent may mark a notification as read (update read field only).
+      allow update: if isSignedIn() &&
+        isParentAccount() &&
+        resource.data.parentId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
+
+      // Only the backend (Admin SDK) creates or deletes notifications.
+      allow create, delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // DENY EVERYTHING ELSE
     // Any collection not explicitly listed above is fully locked down.
     // ════════════════════════════════════════════════════════════════════

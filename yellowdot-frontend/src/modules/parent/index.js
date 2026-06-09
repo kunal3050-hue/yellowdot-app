@@ -11,4 +11,5 @@ export { default as ParentLayout } from "./components/ParentLayout";
 export { parentRoutes } from "./routes/parentRoutes";
 export { default as parentService } from "./services/parentService";
 export { default as useParentProfile } from "./hooks/useParentProfile";
+export { default as useNotifications, useUnreadCount } from "./hooks/useNotifications";
 export { theme } from "./theme";

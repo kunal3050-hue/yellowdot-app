@@ -21,6 +21,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { colors, spacing, radius, shadows, typography, layout } from "../theme";
+import { useUnreadCount } from "../hooks/useNotifications";
+import usePushNotifications from "../hooks/usePushNotifications";
 
 // ── Design tokens — sourced from the centralized Parent Module theme ──────────
 // No hardcoded colours: everything maps to theme variables so the app reads as
@@ -45,8 +47,14 @@ const TABS = [
 ];
 
 export default function ParentLayout({ children }) {
-  const { user } = useAuth();
+  const { user }    = useAuth();
   const { pathname } = useLocation();
+  const { count: unreadCount } = useUnreadCount();
+
+  // Register FCM push notification token once on session start.
+  // The hook is fully safe: exits early if the browser doesn't support push,
+  // if permission is denied, or if the VAPID key is not configured.
+  usePushNotifications();
 
   const initials = (user?.name || "P").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -79,8 +87,37 @@ export default function ParentLayout({ children }) {
           </span>
         </div>
 
-        {/* Right: avatar (no notifications in V1) */}
+        {/* Right: notification bell + avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Bell icon with unread badge */}
+          <Link to="/parent-notifications" style={{
+            position: "relative",
+            width: 34, height: 34, borderRadius: radius.sm,
+            background: colors.surface.raised,
+            border: `1px solid ${colors.surface.border}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            textDecoration: "none",
+          }}>
+            <BellIcon hasUnread={unreadCount > 0} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: "absolute", top: -5, right: -5,
+                minWidth: 16, height: 16,
+                background: colors.danger,
+                color: colors.white,
+                fontSize: 9,
+                fontWeight: typography.weight.bold,
+                borderRadius: radius.pill,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                padding: "0 4px",
+                border: `2px solid ${colors.surface.background}`,
+                lineHeight: 1,
+              }}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Link>
+
           <Link to="/parent-profile" style={{
             width: 34, height: 34, borderRadius: radius.sm,
             background: colors.brand.gradient,
@@ -200,6 +237,17 @@ export default function ParentLayout({ children }) {
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SZ = { width: 20, height: 20, fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" };
+
+function BellIcon({ hasUnread }) {
+  return (
+    <svg viewBox="0 0 24 24" width={18} height={18} fill="none"
+      stroke={hasUnread ? colors.yellow600 : colors.gray500}
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
 
 function HomeIcon({ active }) {
   return (

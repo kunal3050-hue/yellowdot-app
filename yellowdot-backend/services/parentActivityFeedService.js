@@ -31,6 +31,32 @@ const comms             = require("./communicationService");
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+// Format a full ISO timestamp as "12:09 PM" in IST.
+// Falls back to converting a bare "HH:MM:SS" UTC string if no ISO is available
+// (covers legacy records written before checkInAt was added).
+function toISTDisplay(isoTimestamp, fallbackUtcHms) {
+  if (isoTimestamp) {
+    const d = new Date(isoTimestamp);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString("en-IN", {
+        hour: "2-digit", minute: "2-digit", hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+    }
+  }
+  // Legacy fallback: bare "HH:MM:SS" stored as UTC, shift by +5:30
+  if (fallbackUtcHms && /^\d{2}:\d{2}/.test(fallbackUtcHms)) {
+    const [h, m] = fallbackUtcHms.split(":").map(Number);
+    const istMins = (h * 60 + m + 330) % 1440;
+    const hh = Math.floor(istMins / 60);
+    const mm = istMins % 60;
+    const period = hh >= 12 ? "PM" : "AM";
+    const h12   = hh % 12 || 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${period}`;
+  }
+  return fallbackUtcHms || "";
+}
+
 // First non-empty, comparable timestamp-ish string.
 function pickTs(...vals) {
   for (const v of vals) if (v && typeof v === "string" && v.length >= 10) return v;
@@ -72,9 +98,11 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
     .slice(0, 21)
     .map(e => {
+      const inTime  = e.checkIn  ? toISTDisplay(e.checkInAt,  e.checkIn)  : "";
+      const outTime = e.checkOut ? toISTDisplay(e.checkOutAt, e.checkOut) : "";
       const subtitle = e.status === "Absent"
         ? "Marked absent"
-        : `${e.status || "Present"}${e.checkIn ? ` · In ${e.checkIn}` : ""}${e.checkOut ? ` · Out ${e.checkOut}` : ""}`;
+        : `${e.status || "Present"}${inTime ? ` · In ${inTime}` : ""}${outTime ? ` · Out ${outTime}` : ""}`;
       return {
         id: `attendance-${e.date}`, kind: "attendance", emoji: "✅",
         title: "Attendance Marked", subtitle, status: e.status || "Present",
