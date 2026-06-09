@@ -28,6 +28,7 @@ const parentFeesSvc                  = require("../services/parentFeesService");
 const parentFoodMenuSvc              = require("../services/parentFoodMenuService");
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
 const parentNapSvc                   = require("../services/parentNapService");
+const parentHolidaysSvc              = require("../services/parentHolidaysService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -183,6 +184,23 @@ router.get("/api/parent/naps", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/naps]", e.message);
     res.status(500).json({ error: "Failed to load nap tracker." });
+  }
+});
+
+// ── GET /api/parent/holidays ───────────────────────────────────────
+// Daily Care · Holiday Calendar (read-only). School-scoped — the calendar
+// is the same for everyone. Query: ?year=YYYY (optional). Reads the existing
+// staff holidays collection; parents see exactly what staff enters.
+router.get("/api/parent/holidays", loadParent, async (req, res) => {
+  try {
+    const data = await parentHolidaysSvc.getHolidaysView({
+      schoolId: req.parent.schoolId,
+      year:     req.query.year,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/holidays]", e.message);
+    res.status(500).json({ error: "Failed to load holidays." });
   }
 });
 

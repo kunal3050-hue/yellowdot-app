@@ -80,4 +80,10 @@ export async function getNaps(studentId, date) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps };
+// Daily Care · Holiday Calendar (read-only, school-scoped)
+export async function getHolidays(year) {
+  const { data } = await api.get("/api/parent/holidays", { params: year ? { year } : {} });
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays };

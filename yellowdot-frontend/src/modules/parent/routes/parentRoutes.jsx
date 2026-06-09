@@ -32,6 +32,7 @@ const DailyCare     = lazy(() => import("../pages/DailyCare"));
 const FoodMenu      = lazy(() => import("../pages/FoodMenu"));
 const Consumption   = lazy(() => import("../pages/Consumption"));
 const NapTracker    = lazy(() => import("../pages/NapTracker"));
+const Holidays      = lazy(() => import("../pages/Holidays"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
 function wrap(node, routeKey) {
@@ -51,6 +52,7 @@ export const parentRoutes = [
   <Route key="parent-food-menu"   path="/parent-food-menu"      element={wrap(<FoodMenu />, "dashboard")} />,
   <Route key="parent-consumption" path="/parent-consumption"    element={wrap(<Consumption />, "dashboard")} />,
   <Route key="parent-nap"         path="/parent-nap"            element={wrap(<NapTracker />, "dashboard")} />,
+  <Route key="parent-holidays"    path="/parent-holidays"       element={wrap(<Holidays />, "dashboard")} />,
 ];
 
 export default parentRoutes;
