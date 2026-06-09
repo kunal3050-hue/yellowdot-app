@@ -71,4 +71,13 @@ export async function getConsumption(studentId, date) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption };
+// Daily Care · Nap Tracker (read-only, one linked child)
+export async function getNaps(studentId, date) {
+  const params = {};
+  if (studentId) params.studentId = studentId;
+  if (date) params.date = date;
+  const { data } = await api.get("/api/parent/naps", { params });
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps };
