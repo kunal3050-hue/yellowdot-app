@@ -111,7 +111,7 @@ export default function Notifications() {
 
   const activeTypes = FILTER_TABS.find(t => t.key === activeTab)?.types ?? null;
 
-  const { notifications, unreadCount, loading, markRead, markAllRead } =
+  const { notifications, unreadCount, loading, error, refresh, markRead, markAllRead } =
     useNotifications({
       autoLoad: true,
     });
@@ -219,7 +219,40 @@ export default function Notifications() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && error && (
+          <div style={{
+            margin: `${spacing.lg}px 0`,
+            padding: `${spacing.md}px ${spacing.lg}px`,
+            borderRadius: radius.card,
+            background: "#FFF1F0",
+            border: "1px solid #FFCCC7",
+            color: "#CF1322",
+          }}>
+            <div style={{ fontWeight: typography.weight.bold, marginBottom: spacing.xs, fontSize: typography.size.sm }}>
+              ⚠️ Could not load notifications
+            </div>
+            <div style={{ fontSize: typography.size.xs, marginBottom: spacing.sm, opacity: 0.85 }}>
+              {error}
+            </div>
+            <button
+              onClick={refresh}
+              style={{
+                fontSize: typography.size.xs,
+                fontWeight: typography.weight.semibold,
+                color: "#CF1322",
+                background: "none",
+                border: "1px solid #FFCCC7",
+                borderRadius: radius.sm,
+                padding: `${spacing.xs}px ${spacing.sm}px`,
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
           <EmptyState tab={activeTab} />
         )}
 

@@ -40,16 +40,26 @@ export default function useNotifications({ autoLoad = true } = {}) {
     setLoading(true);
     setError(null);
     try {
-      const { notifications: list } = await notifSvc.getNotifications({
+      const data = await notifSvc.getNotifications({
         childId: filter.childId || undefined,
         type:    filter.type    || undefined,
         limit:   60,
       });
-      setNotifications(list || []);
-      // Update unread count from the fetched list (avoids a second round-trip)
-      setUnreadCount((list || []).filter(n => !n.read).length);
+      console.info("[useNotifications] API response:", data);
+      const list = data?.notifications;
+      if (!Array.isArray(list)) {
+        console.warn("[useNotifications] Unexpected response shape:", data);
+        setError("Unexpected response from server.");
+        setNotifications([]);
+        return;
+      }
+      setNotifications(list);
+      setUnreadCount(list.filter(n => !n.read).length);
     } catch (e) {
-      setError(e.message || "Failed to load notifications.");
+      const msg = e?.response?.data?.error || e.message || "Failed to load notifications.";
+      const status = e?.response?.status;
+      console.error("[useNotifications] fetchNotifications failed:", status, msg, e);
+      setError(`${status ? `[${status}] ` : ""}${msg}`);
     } finally {
       setLoading(false);
     }
