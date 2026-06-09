@@ -27,6 +27,7 @@ const memoriesSvc                    = require("../services/memoriesService");
 const parentFeesSvc                  = require("../services/parentFeesService");
 const parentFoodMenuSvc              = require("../services/parentFoodMenuService");
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
+const parentNapSvc                   = require("../services/parentNapService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -163,6 +164,25 @@ router.get("/api/parent/consumption", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/consumption]", e.message);
     res.status(500).json({ error: "Failed to load consumption log." });
+  }
+});
+
+// ── GET /api/parent/naps ───────────────────────────────────────────
+// Daily Care · Nap Tracker (read-only) for ONE linked child.
+// Query: ?studentId=YD001 (defaults to first child) &date=YYYY-MM-DD.
+router.get("/api/parent/naps", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    if (studentId && !req.parent.studentIds?.includes(studentId)) {
+      return res.status(404).json({ error: "Child not found or not linked to this account.", code: "CHILD_NOT_FOUND" });
+    }
+    const data = await parentNapSvc.getNapView({
+      schoolId: req.parent.schoolId, studentId, date: req.query.date,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/naps]", e.message);
+    res.status(500).json({ error: "Failed to load nap tracker." });
   }
 });
 
