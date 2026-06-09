@@ -36,55 +36,69 @@ export default function usePushNotifications({ onForegroundMessage } = {}) {
     if (initialized.current) return;
     initialized.current = true;
 
+    console.info("[usePushNotifications] Hook mounted — starting FCM setup.");
+
     (async () => {
       try {
         // 1. Feature detection
-        if (typeof window === "undefined" || !("Notification" in window)) return;
-        if (!("serviceWorker" in navigator))                              return;
+        if (typeof window === "undefined" || !("Notification" in window)) {
+          console.warn("[usePushNotifications] Notification API not available in this environment.");
+          return;
+        }
+        if (!("serviceWorker" in navigator)) {
+          console.warn("[usePushNotifications] Service Worker not supported in this browser.");
+          return;
+        }
+
+        console.info("[usePushNotifications] Browser APIs OK. Current permission:", Notification.permission);
 
         // 2. Check VAPID key is configured
         if (!VAPID_KEY || VAPID_KEY === "YOUR_VAPID_KEY_FROM_FIREBASE_CONSOLE") {
-          console.info(
+          console.warn(
             "[usePushNotifications] FCM VAPID key not configured.\n" +
-            "  → Go to Firebase Console → Project Settings → Cloud Messaging\n" +
-            "  → Web Push certificates → Generate key pair\n" +
-            "  → Set VITE_FCM_VAPID_KEY in .env"
+            "  → Set VITE_FCM_VAPID_KEY in .env and restart Vite."
           );
           return;
         }
+        console.info("[usePushNotifications] VAPID key present:", VAPID_KEY.slice(0, 8) + "...");
 
         // 3. Request notification permission
         //    Calling requestPermission() when already granted/denied is a no-op.
+        console.info("[usePushNotifications] Requesting notification permission...");
         const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          console.info("[usePushNotifications] Notification permission:", permission);
-          return;
-        }
+        console.info("[usePushNotifications] Permission result:", permission);
+        if (permission !== "granted") return;
 
         // 4. Get Firebase Messaging instance (null on unsupported browsers)
+        console.info("[usePushNotifications] Initializing Firebase Messaging...");
         const messaging = await getMessagingInstance();
-        if (!messaging) return;
-
-        // 5. Obtain FCM token (also registers the service worker)
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-        if (!token) {
-          console.warn("[usePushNotifications] No FCM token returned.");
+        if (!messaging) {
+          console.warn("[usePushNotifications] Firebase Messaging not supported (isSupported() returned false).");
           return;
         }
+
+        // 5. Obtain FCM token (also registers the firebase-messaging-sw.js service worker)
+        console.info("[usePushNotifications] Calling getToken()...");
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        if (!token) {
+          console.warn("[usePushNotifications] getToken() returned empty — SW may not be registered yet. Reload and try again.");
+          return;
+        }
+        console.info("[usePushNotifications] FCM token obtained:", token.slice(0, 12) + "...");
 
         // 6. Register token with backend
         await registerFcmToken(token);
-        console.info("[usePushNotifications] FCM token registered.");
+        console.info("[usePushNotifications] FCM token registered. ✅");
 
         // 7. Handle foreground messages (app is open)
         onMessage(messaging, (payload) => {
-          console.info("[usePushNotifications] Foreground message:", payload);
+          console.info("[usePushNotifications] Foreground message received:", payload);
           if (onForegroundMessage) onForegroundMessage(payload);
         });
 
       } catch (e) {
         // Never let push setup crash the app
-        console.warn("[usePushNotifications] Setup failed:", e.message);
+        console.warn("[usePushNotifications] Setup error:", e.message, e);
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
