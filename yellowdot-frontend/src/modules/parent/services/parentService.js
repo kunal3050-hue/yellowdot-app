@@ -62,4 +62,13 @@ export async function getFoodMenu(date) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu };
+// Daily Care · Consumption Log (read-only, one linked child)
+export async function getConsumption(studentId, date) {
+  const params = {};
+  if (studentId) params.studentId = studentId;
+  if (date) params.date = date;
+  const { data } = await api.get("/api/parent/consumption", { params });
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption };
