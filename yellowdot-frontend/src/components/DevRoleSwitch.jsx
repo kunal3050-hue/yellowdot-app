@@ -12,7 +12,10 @@
 
 import { useLocation, Link } from "react-router-dom";
 
-const PARENT_PATHS = ["/parent-home", "/parent-checkin"];
+const PARENT_PATHS = ["/parent-home", "/parent-attendance", "/parent-daily-care",
+  "/parent-profile", "/parent-child", "/parent-notifications",
+  "/parent-memories", "/parent-fees", "/parent-food-menu",
+  "/parent-consumption", "/parent-nap", "/parent-holidays"];
 
 export default function DevRoleSwitch() {
   // Compiled away in production — tree-shaken by Vite
