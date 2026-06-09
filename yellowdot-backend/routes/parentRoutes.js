@@ -29,6 +29,7 @@ const parentFoodMenuSvc              = require("../services/parentFoodMenuServic
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
 const parentNapSvc                   = require("../services/parentNapService");
 const parentHolidaysSvc              = require("../services/parentHolidaysService");
+const parentActivitySvc              = require("../services/parentActivityFeedService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -106,6 +107,26 @@ router.get("/api/parent/feed", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/feed]", e.message);
     res.status(500).json({ error: "Failed to load feed." });
+  }
+});
+
+// ── GET /api/parent/activity ───────────────────────────────────────
+// Home — unified, CHILD-SPECIFIC activity timeline (attendance, food menu,
+// naps, consumption, memories) + the single nearest upcoming holiday.
+// Query: ?studentId=YD001 (defaults to first linked child).
+router.get("/api/parent/activity", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    if (studentId && !req.parent.studentIds?.includes(studentId)) {
+      return res.status(404).json({ error: "Child not found or not linked to this account.", code: "CHILD_NOT_FOUND" });
+    }
+    const data = await parentActivitySvc.getActivityFeed({
+      schoolId: req.parent.schoolId, studentId,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/activity]", e.message);
+    res.status(500).json({ error: "Failed to load activity feed." });
   }
 });
 

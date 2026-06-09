@@ -80,10 +80,16 @@ export async function getNaps(studentId, date) {
   return data;
 }
 
+// Home — unified child-specific activity timeline (+ nearest upcoming holiday)
+export async function getActivity(studentId) {
+  const { data } = await api.get("/api/parent/activity", { params: studentId ? { studentId } : {} });
+  return data;
+}
+
 // Daily Care · Holiday Calendar (read-only, school-scoped)
 export async function getHolidays(year) {
   const { data } = await api.get("/api/parent/holidays", { params: year ? { year } : {} });
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays };
+export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays };
