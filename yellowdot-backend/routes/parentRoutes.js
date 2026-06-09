@@ -25,6 +25,7 @@ const parentFeedSvc                  = require("../services/parentFeedService");
 const parentAttendanceViewSvc        = require("../services/parentAttendanceViewService");
 const memoriesSvc                    = require("../services/memoriesService");
 const parentFeesSvc                  = require("../services/parentFeesService");
+const parentFoodMenuSvc              = require("../services/parentFoodMenuService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -126,6 +127,22 @@ router.get("/api/parent/fees", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/fees]", e.message);
     res.status(500).json({ error: "Failed to load fees." });
+  }
+});
+
+// ── GET /api/parent/food-menu ──────────────────────────────────────
+// Daily Care · Food Menu (read-only). Query: ?date=YYYY-MM-DD (optional).
+// School-scoped (the menu is the same for everyone that day).
+router.get("/api/parent/food-menu", loadParent, async (req, res) => {
+  try {
+    const data = await parentFoodMenuSvc.getFoodMenuView({
+      schoolId: req.parent.schoolId,
+      date:     req.query.date,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/food-menu]", e.message);
+    res.status(500).json({ error: "Failed to load food menu." });
   }
 });
 

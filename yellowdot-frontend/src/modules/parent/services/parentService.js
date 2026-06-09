@@ -56,4 +56,10 @@ export async function getFees(studentId) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees };
+// Daily Care · Food Menu (read-only)
+export async function getFoodMenu(date) {
+  const { data } = await api.get("/api/parent/food-menu", { params: date ? { date } : {} });
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getChildAttendance, getMemories, getFees, getFoodMenu };
