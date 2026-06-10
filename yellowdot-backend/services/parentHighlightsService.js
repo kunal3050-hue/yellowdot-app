@@ -28,8 +28,9 @@ const studentService = require("./studentService");
 const DAY = 86400000;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-// Visual priority — lower sorts earlier.
-const PRIORITY = { emergency: 0, event: 1, birthday: 1, holiday: 2, announcement: 3, notice: 4 };
+// Priority order (lower sorts earlier):
+// Emergency > Event > Holiday > Announcement > Notice > Birthday.
+const PRIORITY = { emergency: 0, event: 1, holiday: 2, announcement: 3, notice: 4, birthday: 5 };
 
 const ANNOUNCEMENT_WINDOW_DAYS = 14; // recent announcements stay highlighted this long
 const BIRTHDAY_WINDOW_DAYS     = 30; // a birthday becomes a highlight this far ahead
@@ -135,17 +136,18 @@ async function getHighlights({ schoolId, studentId } = {}) {
     }
   }
 
-  // ── Rank: emergencies first, then nearest date, then visual priority ─
+  // ── Rank: by priority FIRST, then nearest upcoming date ─────────────
+  // (Emergency > Event > Holiday > Announcement > Notice > Birthday, and
+  // within a type the soonest item leads; undated info sorts newest-first.)
   const proximity = (it) => {
-    if (it.kind === "emergency") return -1e9;
-    if (it.date) { const d = daysBetween(today, it.date); return d == null ? 0 : d; }
-    return 0; // undated info = "now"
+    if (it.date) { const d = daysBetween(today, it.date); return d == null ? 1e9 : d; }
+    return 1e9; // undated info has no upcoming date — order by recency below
   };
   out.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;       // priority first
     const pa = proximity(a), pb = proximity(b);
-    if (pa !== pb) return pa - pb;
-    if (a.priority !== b.priority) return a.priority - b.priority;
-    return String(b.postedAt || "").localeCompare(String(a.postedAt || "")); // newer info first
+    if (pa !== pb) return pa - pb;                                       // then nearest date
+    return String(b.postedAt || "").localeCompare(String(a.postedAt || "")); // newest info first
   });
 
   return out.slice(0, MAX_HIGHLIGHTS);
