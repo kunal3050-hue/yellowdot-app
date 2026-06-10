@@ -24,6 +24,9 @@ import { colors, spacing, radius, shadows, typography } from "../theme";
 
 // ── Per-kind presentation ──────────────────────────────────────────
 const KIND_META = {
+  checkin:     { tint: colors.successSoft, ring: colors.successBorder },
+  checkout:    { tint: "#EFF6FF",          ring: "#BFDBFE" },
+  absent:      { tint: colors.dangerSoft,  ring: colors.dangerBorder },
   attendance:  { tint: colors.successSoft, ring: colors.successBorder },
   foodMenu:    { tint: colors.yellow100,   ring: colors.yellow200 },
   nap:         { tint: colors.yellow50,    ring: colors.yellow200 },
@@ -55,11 +58,6 @@ function fmtWhen(iso) {
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-function fmtHolidayDate(start, end) {
-  const f = (iso) => { const d = new Date(`${iso}T00:00:00`); return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }); };
-  if (!end || end === start) return f(start);
-  return `${f(start)} – ${f(end)}`;
 }
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false }).format(new Date()));
@@ -219,24 +217,56 @@ function NewBadge() {
   );
 }
 
+// Build the calendar tile (month + day) from the SAME date the subtitle uses,
+// so the icon can never drift from the holiday record. (The old static 📅
+// emoji rendered as Apple's fixed "JUL 17" glyph regardless of the real date.)
+function holidayTile(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return { mon: "", day: "" };
+  return { mon: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(), day: String(d.getDate()).padStart(2, "0") };
+}
+// "15 Aug 2026"
+function fmtDayMonthYear(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+// "38 days remaining" / "Tomorrow" / "Today" / "Happening now"
+function holidayCountdown(startDate, endDate) {
+  const today = istToday();
+  const remaining = -daysAgo(startDate, today); // days until startDate (negative = already started)
+  if (remaining > 1)  return `${remaining} days remaining`;
+  if (remaining === 1) return "Tomorrow";
+  if (remaining === 0) return "Today";
+  // Already started but not yet ended (backend only sends upcoming/ongoing).
+  if (endDate && endDate !== startDate && daysAgo(endDate, today) <= 0) return "Happening now";
+  return "Today";
+}
+
 function HolidayBanner({ holiday }) {
+  const { mon, day } = holidayTile(holiday.startDate);
+  const countdown = holidayCountdown(holiday.startDate, holiday.endDate);
   return (
     <div style={{
       borderRadius: radius.card, boxShadow: shadows.card, padding: spacing.lg,
       background: colors.brand.gradient, display: "flex", alignItems: "center", gap: spacing.md,
     }}>
-      <span style={{
+      {/* Date tile — generated from holiday.startDate (same source as subtitle). */}
+      <div style={{
         width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
-        background: colors.surface.card, opacity: 0.92,
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-      }}>📅</span>
+        background: colors.surface.card,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        lineHeight: 1,
+      }}>
+        <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: colors.yellow700 }}>{mon}</span>
+        <span style={{ fontSize: 20, fontWeight: typography.weight.extra, color: colors.text.primary, marginTop: 1 }}>{day}</span>
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ ...typography.meta, color: colors.text.onYellow, fontWeight: typography.weight.bold, opacity: 0.85, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
           Next Holiday
         </div>
         <div style={{ ...typography.title, color: colors.text.onYellow }}>{holiday.title}</div>
         <div style={{ ...typography.caption, color: colors.text.onYellow, opacity: 0.9 }}>
-          {fmtHolidayDate(holiday.startDate, holiday.endDate)}{holiday.type ? ` · ${holiday.type}` : ""}
+          {fmtDayMonthYear(holiday.startDate)}{holiday.type ? ` · ${holiday.type}` : ""}{countdown ? ` · ${countdown}` : ""}
         </div>
       </div>
     </div>
