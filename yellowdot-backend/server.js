@@ -103,8 +103,8 @@ app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
+app.use(notificationRoutes);   // /api/parent/notifications/*  (must be before parentRoutes)
 app.use(parentRoutes);         // /api/parent/*  (Parent Module V1 — parent-scoped)
-app.use(notificationRoutes);   // /api/parent/notifications/*
 
 // ============================================================
 // UTILITY HELPERS
