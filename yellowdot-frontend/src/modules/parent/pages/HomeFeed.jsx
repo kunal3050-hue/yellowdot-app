@@ -254,7 +254,7 @@ function holidayCountdown(startDate, endDate) {
 // language (soft tinted card + a left accent bar). Visual priority and
 // nearest-date ordering are decided server-side; here we only present.
 const HL_META = {
-  emergency:    { label: "Emergency Alert", emoji: "🚨" },
+  emergency:    { label: "Emergency", emoji: "🚨" },
   event:        { label: "Event",           emoji: "🎉" },
   holiday:      { label: "Holiday",          emoji: "📅" },
   announcement: { label: "Announcement",     emoji: "📢" },
@@ -335,13 +335,13 @@ function HighlightCard({ h, onOpen }) {
     <div onClick={() => onOpen(h)} style={{
       cursor: "pointer", boxSizing: "border-box", minHeight: 92,
       borderRadius: radius.card, boxShadow: shadows.card, padding: spacing.lg,
-      background: a.soft, display: "flex", alignItems: "center", gap: spacing.md,
-      border: `1px solid ${a.border}`, borderLeft: `4px solid ${a.c}`,
+      background: colors.surface.card, display: "flex", alignItems: "center", gap: spacing.md,
+      border: `1px solid ${colors.surface.border}`,
     }}>
       {dated ? (
         <div style={{
           width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
-          background: colors.surface.card, border: `1px solid ${a.border}`,
+          background: a.soft, border: `1px solid ${a.border}`,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1,
         }}>
           <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: a.c }}>{tile.mon}</span>
@@ -350,7 +350,7 @@ function HighlightCard({ h, onOpen }) {
       ) : (
         <div style={{
           width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
-          background: colors.surface.card, border: `1px solid ${a.border}`,
+          background: a.soft, border: `1px solid ${a.border}`,
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
         }}>{meta.emoji}</div>
       )}
