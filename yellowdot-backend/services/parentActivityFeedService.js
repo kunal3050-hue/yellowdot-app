@@ -106,7 +106,7 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
       return {
         id: `attendance-${e.date}`, kind: "attendance", emoji: "✅",
         title: "Attendance Marked", subtitle, status: e.status || "Present",
-        date: e.date, timestamp: pickTs(e.updatedAt, e.createdAt, noon(e.date)),
+        date: e.date, timestamp: pickTs(e.checkInAt, e.checkOutAt, e.updatedAt, e.createdAt, noon(e.date)),
       };
     });
 
