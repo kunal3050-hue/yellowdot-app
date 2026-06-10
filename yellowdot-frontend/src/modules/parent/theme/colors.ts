@@ -78,6 +78,16 @@ export const warning = {
   warningBorder: "#FBE08A",
 } as const;
 
+// ── Semantic — INFO (calm blue; for informational highlights only) ─
+// Not a primary brand colour — used sparingly to distinguish announcement
+// cards in the Smart Highlights carousel from the warm yellow family.
+export const info = {
+  info:       "#2D7FF9",
+  infoStrong: "#1D4ED8",
+  infoSoft:   "#EAF2FF",
+  infoBorder: "#BBD3FF",
+} as const;
+
 // ── Surfaces & text (semantic aliases over the ramps above) ────────
 // Prefer these role-based tokens in components for clarity.
 export const surface = {
@@ -130,6 +140,7 @@ export const colors = {
   ...success,
   ...danger,
   ...warning,
+  ...info,
   surface,
   text,
   brand,

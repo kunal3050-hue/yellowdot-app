@@ -250,25 +250,28 @@ function holidayCountdown(startDate, endDate) {
 }
 
 // ── Smart Highlights carousel ───────────────────────────────────────
-// Per-kind presentation. Visual priority is decided server-side; here we only
-// style each kind within the Yellow Dot language. Emergencies use the danger
-// accent so they stand out; dated celebratory items reuse the yellow gradient
-// + date tile; announcements/notices are clean white info cards.
+// Each highlight type gets a distinct accent + icon within the Yellow Dot
+// language (soft tinted card + a left accent bar). Visual priority and
+// nearest-date ordering are decided server-side; here we only present.
 const HL_META = {
-  emergency:    { label: "Emergency",    emoji: "🚨" },
-  event:        { label: "Event",        emoji: "🎉" },
-  birthday:     { label: "Birthday",     emoji: "🎂" },
-  holiday:      { label: "Holiday",      emoji: "📅" },
-  announcement: { label: "Announcement", emoji: "📢", tint: colors.yellow100, ring: colors.yellow200 },
-  notice:       { label: "Notice",       emoji: "📋", tint: colors.gray100,   ring: colors.surface.border },
+  emergency:    { label: "Emergency Alert", emoji: "🚨" },
+  event:        { label: "Event",           emoji: "🎉" },
+  holiday:      { label: "Holiday",          emoji: "📅" },
+  announcement: { label: "Announcement",     emoji: "📢" },
+  notice:       { label: "Notice",           emoji: "📋" },
+  birthday:     { label: "Birthday",         emoji: "🎂" },
 };
-function hlStyle(kind) {
-  if (kind === "emergency")
-    return { bg: colors.danger, fg: colors.white, sub: colors.white, tileBg: colors.white };
-  if (kind === "announcement" || kind === "notice")
-    return { bg: colors.surface.card, fg: colors.text.primary, sub: colors.text.muted, card: true };
-  // holiday / event / birthday — yellow gradient
-  return { bg: colors.brand.gradient, fg: colors.text.onYellow, sub: colors.text.onYellow, tileBg: colors.surface.card };
+// Distinct accent per type: red · amber · yellow · blue · gray (birthday = gold).
+function hlAccent(kind) {
+  switch (kind) {
+    case "emergency":    return { c: colors.dangerStrong,  soft: colors.dangerSoft,  border: colors.dangerBorder };
+    case "event":        return { c: colors.warningStrong, soft: colors.warningSoft, border: colors.warningBorder };
+    case "announcement": return { c: colors.infoStrong,    soft: colors.infoSoft,    border: colors.infoBorder };
+    case "notice":       return { c: colors.gray700,       soft: colors.gray100,     border: colors.gray200 };
+    case "holiday":
+    case "birthday":
+    default:             return { c: colors.yellow700,     soft: colors.yellow100,   border: colors.yellow200 };
+  }
 }
 
 function HighlightsCarousel({ highlights, onOpen }) {
@@ -278,7 +281,7 @@ function HighlightsCarousel({ highlights, onOpen }) {
   useEffect(() => { setIdx(0); }, [highlights.length]); // reset on child switch
   useEffect(() => {
     if (highlights.length <= 1) return;
-    const t = setInterval(() => setIdx(i => (i + 1) % highlights.length), 5000); // auto-rotate 5s
+    const t = setInterval(() => setIdx(i => (i + 1) % highlights.length), 7000); // auto-rotate (6–8s)
     return () => clearInterval(t);
   }, [highlights.length]);
   useEffect(() => {
@@ -322,49 +325,50 @@ function HighlightsCarousel({ highlights, onOpen }) {
 
 function HighlightCard({ h, onOpen }) {
   const meta = HL_META[h.kind] || HL_META.notice;
-  const st = hlStyle(h.kind);
+  const a = hlAccent(h.kind);
   const dated = !!h.date;
   const tile = dated ? holidayTile(h.date) : null;
   const subtitle = dated
     ? `${fmtDayMonthYear(h.date)} · ${holidayCountdown(h.date, h.endDate)}`
-    : `${meta.label}${h.postedAt ? ` · ${fmtWhen(h.postedAt)}` : ""}`;
+    : (h.postedAt ? fmtWhen(h.postedAt) : (h.body || ""));
   return (
     <div onClick={() => onOpen(h)} style={{
       cursor: "pointer", boxSizing: "border-box", minHeight: 92,
       borderRadius: radius.card, boxShadow: shadows.card, padding: spacing.lg,
-      background: st.bg, display: "flex", alignItems: "center", gap: spacing.md,
-      border: st.card ? `1px solid ${colors.surface.border}` : "1px solid transparent",
+      background: a.soft, display: "flex", alignItems: "center", gap: spacing.md,
+      border: `1px solid ${a.border}`, borderLeft: `4px solid ${a.c}`,
     }}>
       {dated ? (
         <div style={{
-          width: 46, height: 46, borderRadius: radius.md, flexShrink: 0, background: st.tileBg,
+          width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
+          background: colors.surface.card, border: `1px solid ${a.border}`,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1,
         }}>
-          <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: colors.yellow700 }}>{tile.mon}</span>
+          <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: a.c }}>{tile.mon}</span>
           <span style={{ fontSize: 20, fontWeight: typography.weight.extra, color: colors.text.primary, marginTop: 1 }}>{tile.day}</span>
         </div>
       ) : (
         <div style={{
           width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
-          background: st.card ? meta.tint : colors.white,
-          border: st.card ? `1px solid ${meta.ring}` : "none",
+          background: colors.surface.card, border: `1px solid ${a.border}`,
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
         }}>{meta.emoji}</div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...typography.meta, color: st.fg, fontWeight: typography.weight.bold, opacity: 0.85, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
+        <div style={{ ...typography.meta, color: a.c, fontWeight: typography.weight.bold, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
           {meta.label}
         </div>
-        <div style={{ ...typography.title, color: st.fg, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
-        <div style={{ ...typography.caption, color: st.sub, opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</div>
+        <div style={{ ...typography.title, color: colors.text.primary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+        <div style={{ ...typography.caption, color: colors.text.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</div>
       </div>
-      <span style={{ ...typography.title, color: st.fg, opacity: 0.5, flexShrink: 0 }}>›</span>
+      <span style={{ ...typography.title, color: a.c, opacity: 0.7, flexShrink: 0 }}>›</span>
     </div>
   );
 }
 
 function HighlightDetailModal({ highlight: h, onClose }) {
   const meta = HL_META[h.kind] || HL_META.notice;
+  const a = hlAccent(h.kind);
   const dated = !!h.date;
   const dateLine = dated
     ? `${fmtDayMonthYear(h.date)} · ${holidayCountdown(h.date, h.endDate)}`
@@ -383,11 +387,11 @@ function HighlightDetailModal({ highlight: h, onClose }) {
         <div style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.md }}>
           <div style={{
             width: 48, height: 48, borderRadius: radius.md, flexShrink: 0,
-            background: h.kind === "emergency" ? colors.dangerSoft : colors.yellow100,
+            background: a.soft, border: `1px solid ${a.border}`,
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
           }}>{meta.emoji}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...typography.meta, color: h.kind === "emergency" ? colors.dangerStrong : colors.text.muted, fontWeight: typography.weight.bold, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
+            <div style={{ ...typography.meta, color: a.c, fontWeight: typography.weight.bold, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
               {meta.label}
             </div>
             <div style={{ ...typography.h2, color: colors.text.primary }}>{h.title}</div>
@@ -399,7 +403,7 @@ function HighlightDetailModal({ highlight: h, onClose }) {
           }}>×</button>
         </div>
         {dateLine && (
-          <div style={{ ...typography.caption, color: colors.yellow700, fontWeight: typography.weight.bold, marginBottom: spacing.md }}>{dateLine}</div>
+          <div style={{ ...typography.caption, color: a.c, fontWeight: typography.weight.bold, marginBottom: spacing.md }}>{dateLine}</div>
         )}
         {h.image ? (
           <img src={h.image} alt="" style={{ width: "100%", borderRadius: radius.md, marginBottom: spacing.md, display: "block" }} />
