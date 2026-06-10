@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import useParentProfile from "../hooks/useParentProfile";
 import useActivityFeed from "../hooks/useActivityFeed";
-import { colors, spacing, radius, shadows, typography } from "../theme";
+import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 
 // ── Per-kind presentation ──────────────────────────────────────────
 const KIND_META = {
@@ -80,9 +80,11 @@ export default function HomeFeed() {
 
   useEffect(() => { if (!activeId && children.length) setActiveId(children[0].studentId); }, [children, activeId]);
 
+  const [detail, setDetail] = useState(null);
+
   const { data, loading, error } = useActivityFeed(activeId);
   const items = useMemo(() => data?.items || [], [data]);
-  const holiday = data?.upcomingHoliday || null;
+  const highlights = useMemo(() => data?.highlights || [], [data]);
 
   // ── Unseen detection (per child, since last visit) ───────────────
   // Capture the previous "last seen" once per child this session, then advance
@@ -149,8 +151,10 @@ export default function HomeFeed() {
         />
       )}
 
-      {/* ── Pinned: nearest upcoming holiday ────────────────────────── */}
-      {!loading && holiday && <HolidayBanner holiday={holiday} />}
+      {/* ── Smart Highlights carousel ───────────────────────────────── */}
+      {!loading && highlights.length > 0 && (
+        <HighlightsCarousel highlights={highlights} onOpen={setDetail} />
+      )}
 
       {/* ── Timeline ────────────────────────────────────────────────── */}
       {loading ? (
@@ -167,6 +171,9 @@ export default function HomeFeed() {
           </section>
         ))
       )}
+
+      {/* ── Highlight detail (in-place modal — no separate Home screen) ── */}
+      {detail && <HighlightDetailModal highlight={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }
@@ -242,32 +249,164 @@ function holidayCountdown(startDate, endDate) {
   return "Today";
 }
 
-function HolidayBanner({ holiday }) {
-  const { mon, day } = holidayTile(holiday.startDate);
-  const countdown = holidayCountdown(holiday.startDate, holiday.endDate);
+// ── Smart Highlights carousel ───────────────────────────────────────
+// Per-kind presentation. Visual priority is decided server-side; here we only
+// style each kind within the Yellow Dot language. Emergencies use the danger
+// accent so they stand out; dated celebratory items reuse the yellow gradient
+// + date tile; announcements/notices are clean white info cards.
+const HL_META = {
+  emergency:    { label: "Emergency",    emoji: "🚨" },
+  event:        { label: "Event",        emoji: "🎉" },
+  birthday:     { label: "Birthday",     emoji: "🎂" },
+  holiday:      { label: "Holiday",      emoji: "📅" },
+  announcement: { label: "Announcement", emoji: "📢", tint: colors.yellow100, ring: colors.yellow200 },
+  notice:       { label: "Notice",       emoji: "📋", tint: colors.gray100,   ring: colors.surface.border },
+};
+function hlStyle(kind) {
+  if (kind === "emergency")
+    return { bg: colors.danger, fg: colors.white, sub: colors.white, tileBg: colors.white };
+  if (kind === "announcement" || kind === "notice")
+    return { bg: colors.surface.card, fg: colors.text.primary, sub: colors.text.muted, card: true };
+  // holiday / event / birthday — yellow gradient
+  return { bg: colors.brand.gradient, fg: colors.text.onYellow, sub: colors.text.onYellow, tileBg: colors.surface.card };
+}
+
+function HighlightsCarousel({ highlights, onOpen }) {
+  const [idx, setIdx] = useState(0);
+  const trackRef = useRef(null);
+
+  useEffect(() => { setIdx(0); }, [highlights.length]); // reset on child switch
+  useEffect(() => {
+    if (highlights.length <= 1) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % highlights.length), 5000); // auto-rotate 5s
+    return () => clearInterval(t);
+  }, [highlights.length]);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (el) el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+  }, [idx]);
+
+  function onScroll() {
+    const el = trackRef.current;
+    if (!el) return;
+    const i = Math.round(el.scrollLeft / el.clientWidth);
+    if (i !== idx) setIdx(i);
+  }
+
   return (
-    <div style={{
-      borderRadius: radius.card, boxShadow: shadows.card, padding: spacing.lg,
-      background: colors.brand.gradient, display: "flex", alignItems: "center", gap: spacing.md,
-    }}>
-      {/* Date tile — generated from holiday.startDate (same source as subtitle). */}
-      <div style={{
-        width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
-        background: colors.surface.card,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        lineHeight: 1,
+    <div>
+      <div ref={trackRef} onScroll={onScroll} style={{
+        display: "flex", overflowX: "auto", scrollSnapType: "x mandatory",
+        WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none",
       }}>
-        <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: colors.yellow700 }}>{mon}</span>
-        <span style={{ fontSize: 20, fontWeight: typography.weight.extra, color: colors.text.primary, marginTop: 1 }}>{day}</span>
+        {highlights.map(h => (
+          <div key={h.id} style={{ flex: "0 0 100%", minWidth: "100%", scrollSnapAlign: "start", boxSizing: "border-box" }}>
+            <HighlightCard h={h} onOpen={onOpen} />
+          </div>
+        ))}
       </div>
+      {highlights.length > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: spacing.sm }}>
+          {highlights.map((_, i) => (
+            <button key={i} aria-label={`Go to highlight ${i + 1}`} onClick={() => setIdx(i)} style={{
+              width: i === idx ? 18 : 6, height: 6, borderRadius: radius.pill,
+              border: "none", padding: 0, cursor: "pointer", transition: "width 0.2s",
+              background: i === idx ? colors.yellow500 : colors.gray300,
+            }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HighlightCard({ h, onOpen }) {
+  const meta = HL_META[h.kind] || HL_META.notice;
+  const st = hlStyle(h.kind);
+  const dated = !!h.date;
+  const tile = dated ? holidayTile(h.date) : null;
+  const subtitle = dated
+    ? `${fmtDayMonthYear(h.date)} · ${holidayCountdown(h.date, h.endDate)}`
+    : `${meta.label}${h.postedAt ? ` · ${fmtWhen(h.postedAt)}` : ""}`;
+  return (
+    <div onClick={() => onOpen(h)} style={{
+      cursor: "pointer", boxSizing: "border-box", minHeight: 92,
+      borderRadius: radius.card, boxShadow: shadows.card, padding: spacing.lg,
+      background: st.bg, display: "flex", alignItems: "center", gap: spacing.md,
+      border: st.card ? `1px solid ${colors.surface.border}` : "1px solid transparent",
+    }}>
+      {dated ? (
+        <div style={{
+          width: 46, height: 46, borderRadius: radius.md, flexShrink: 0, background: st.tileBg,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1,
+        }}>
+          <span style={{ fontSize: 9, fontWeight: typography.weight.extra, letterSpacing: typography.tracking.wide, color: colors.yellow700 }}>{tile.mon}</span>
+          <span style={{ fontSize: 20, fontWeight: typography.weight.extra, color: colors.text.primary, marginTop: 1 }}>{tile.day}</span>
+        </div>
+      ) : (
+        <div style={{
+          width: 46, height: 46, borderRadius: radius.md, flexShrink: 0,
+          background: st.card ? meta.tint : colors.white,
+          border: st.card ? `1px solid ${meta.ring}` : "none",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+        }}>{meta.emoji}</div>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...typography.meta, color: colors.text.onYellow, fontWeight: typography.weight.bold, opacity: 0.85, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
-          Next Holiday
+        <div style={{ ...typography.meta, color: st.fg, fontWeight: typography.weight.bold, opacity: 0.85, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
+          {meta.label}
         </div>
-        <div style={{ ...typography.title, color: colors.text.onYellow }}>{holiday.title}</div>
-        <div style={{ ...typography.caption, color: colors.text.onYellow, opacity: 0.9 }}>
-          {fmtDayMonthYear(holiday.startDate)}{holiday.type ? ` · ${holiday.type}` : ""}{countdown ? ` · ${countdown}` : ""}
+        <div style={{ ...typography.title, color: st.fg, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+        <div style={{ ...typography.caption, color: st.sub, opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</div>
+      </div>
+      <span style={{ ...typography.title, color: st.fg, opacity: 0.5, flexShrink: 0 }}>›</span>
+    </div>
+  );
+}
+
+function HighlightDetailModal({ highlight: h, onClose }) {
+  const meta = HL_META[h.kind] || HL_META.notice;
+  const dated = !!h.date;
+  const dateLine = dated
+    ? `${fmtDayMonthYear(h.date)} · ${holidayCountdown(h.date, h.endDate)}`
+    : (h.postedAt ? fmtWhen(h.postedAt) : "");
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 60, background: colors.surface.scrim,
+      display: "flex", alignItems: "flex-end", justifyContent: "center",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: "100%", maxWidth: layout.contentMax, background: colors.surface.card,
+        borderTopLeftRadius: radius["2xl"], borderTopRightRadius: radius["2xl"],
+        padding: spacing.xl, boxShadow: shadows.lg, maxHeight: "80vh", overflowY: "auto",
+        paddingBottom: `calc(${spacing.xl}px + ${layout.safeBottom})`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.md }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: radius.md, flexShrink: 0,
+            background: h.kind === "emergency" ? colors.dangerSoft : colors.yellow100,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+          }}>{meta.emoji}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...typography.meta, color: h.kind === "emergency" ? colors.dangerStrong : colors.text.muted, fontWeight: typography.weight.bold, textTransform: "uppercase", letterSpacing: typography.tracking.wider }}>
+              {meta.label}
+            </div>
+            <div style={{ ...typography.h2, color: colors.text.primary }}>{h.title}</div>
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{
+            width: 32, height: 32, borderRadius: radius.pill, flexShrink: 0,
+            border: `1px solid ${colors.surface.border}`, background: colors.surface.raised,
+            color: colors.text.muted, fontSize: 16, lineHeight: 1, cursor: "pointer",
+          }}>×</button>
         </div>
+        {dateLine && (
+          <div style={{ ...typography.caption, color: colors.yellow700, fontWeight: typography.weight.bold, marginBottom: spacing.md }}>{dateLine}</div>
+        )}
+        {h.image ? (
+          <img src={h.image} alt="" style={{ width: "100%", borderRadius: radius.md, marginBottom: spacing.md, display: "block" }} />
+        ) : null}
+        <p style={{ ...typography.body, color: colors.text.secondary, margin: 0, whiteSpace: "pre-wrap" }}>
+          {h.body || "No further details."}
+        </p>
       </div>
     </div>
   );

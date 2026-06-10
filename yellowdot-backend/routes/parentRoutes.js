@@ -30,6 +30,7 @@ const parentConsumptionSvc           = require("../services/parentConsumptionSer
 const parentNapSvc                   = require("../services/parentNapService");
 const parentHolidaysSvc              = require("../services/parentHolidaysService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
+const parentHighlightsSvc            = require("../services/parentHighlightsService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -120,10 +121,11 @@ router.get("/api/parent/activity", loadParent, async (req, res) => {
     if (studentId && !req.parent.studentIds?.includes(studentId)) {
       return res.status(404).json({ error: "Child not found or not linked to this account.", code: "CHILD_NOT_FOUND" });
     }
-    const data = await parentActivitySvc.getActivityFeed({
-      schoolId: req.parent.schoolId, studentId,
-    });
-    res.json(data);
+    const [data, highlights] = await Promise.all([
+      parentActivitySvc.getActivityFeed({ schoolId: req.parent.schoolId, studentId }),
+      parentHighlightsSvc.getHighlights({ schoolId: req.parent.schoolId, studentId }),
+    ]);
+    res.json({ ...data, highlights });
   } catch (e) {
     console.error("[GET /api/parent/activity]", e.message);
     res.status(500).json({ error: "Failed to load activity feed." });
