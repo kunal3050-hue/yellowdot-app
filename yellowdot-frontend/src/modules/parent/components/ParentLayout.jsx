@@ -19,7 +19,6 @@
  */
 
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../../../contexts/AuthContext";
 import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 import { useUnreadCount } from "../hooks/useNotifications";
 import usePushNotifications from "../hooks/usePushNotifications";
@@ -47,7 +46,6 @@ const TABS = [
 ];
 
 export default function ParentLayout({ children }) {
-  const { user }    = useAuth();
   const { pathname } = useLocation();
   const { count: unreadCount } = useUnreadCount();
 
@@ -55,8 +53,6 @@ export default function ParentLayout({ children }) {
   // The hook is fully safe: exits early if the browser doesn't support push,
   // if permission is denied, or if the VAPID key is not configured.
   usePushNotifications();
-
-  const initials = (user?.name || "P").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column" }}>
@@ -87,7 +83,7 @@ export default function ParentLayout({ children }) {
           </span>
         </div>
 
-        {/* Right: notification bell + avatar */}
+        {/* Right: notification bell only (Profile lives in the bottom nav) */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {/* Bell icon with unread badge */}
           <Link to="/parent-notifications" style={{
@@ -118,15 +114,6 @@ export default function ParentLayout({ children }) {
             )}
           </Link>
 
-          <Link to="/parent-profile" style={{
-            width: 34, height: 34, borderRadius: radius.sm,
-            background: colors.brand.gradient,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: typography.weight.extra, fontSize: typography.size.xs, color: colors.text.onYellow,
-            textDecoration: "none",
-          }}>
-            {initials}
-          </Link>
         </div>
       </header>
 

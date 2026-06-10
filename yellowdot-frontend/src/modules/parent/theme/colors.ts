@@ -81,10 +81,10 @@ export const warning = {
 // ── Surfaces & text (semantic aliases over the ramps above) ────────
 // Prefer these role-based tokens in components for clarity.
 export const surface = {
-  /** App canvas — warm ivory so it reads "Yellow Dot" on open. */
-  background:    "#FFFDF7",
-  /** Frosted ivory for blurred bars (top bar / bottom dock). */
-  backgroundTranslucent: "rgba(255,253,247,0.92)",
+  /** App canvas — pure white for a clean, bright, modern look. */
+  background:    "#FFFFFF",
+  /** Frosted white for blurred bars (top bar / bottom dock). */
+  backgroundTranslucent: "rgba(255,255,255,0.92)",
   /** Dark scrim behind fullscreen overlays (lightbox/modals). */
   scrim:         "rgba(31,29,24,0.92)",
   /** Cards, sheets, bars. */
