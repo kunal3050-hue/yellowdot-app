@@ -12,8 +12,20 @@ import useConsumption from "../hooks/useConsumption";
 import { colors, spacing, radius, shadows, typography } from "../theme";
 
 const MEAL_EMOJI = {
-  "Breakfast": "🍳", "Mid-Morning": "🥤", "Roti Sabzi": "🫓",
-  "Dal Rice": "🍛", "Milk": "🥛", "Snacks": "🍪",
+  "Breakfast":     "🍳",
+  "Mid-Morning":   "☕",
+  "Morning Snack": "☕",
+  "Lunch":         "🍽️",
+  "Roti Sabzi":    "🫓",
+  "Dal Rice":      "🍚",
+  "Milk":          "🥛",
+  "Water":         "💧",
+  "Snacks":        "🍪",
+  "Snack":         "🍪",
+  "Evening Snack": "🍪",
+  "Evening Snacks":"🍪",
+  "Fruits":        "🍎",
+  "Dinner":        "🍽️",
 };
 const todayISO = () => new Date().toISOString().slice(0, 10);
 function fmtDate(iso) {

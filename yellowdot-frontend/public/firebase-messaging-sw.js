@@ -1,16 +1,54 @@
 /**
- * firebase-messaging-sw.js — FCM Service Worker
- * ─────────────────────────────────────────────────
- * Handles background push notifications for the Yellow Dot Parent App.
- * This file must live at the root of the public directory so the browser
- * registers it at /firebase-messaging-sw.js (the path FCM expects).
+ * firebase-messaging-sw.js — Combined Workbox + FCM Service Worker
+ * ─────────────────────────────────────────────────────────────────
+ * This single file handles BOTH:
+ *   1. Workbox precaching (VitePWA injects self.__WB_MANIFEST at build time)
+ *   2. Firebase Cloud Messaging background push notifications
  *
- * Uses the Firebase compat SDK via importScripts — compatible with all
- * browsers that support Service Workers + Web Push.
- *
- * Note: version must match or be close to the firebase npm package version.
+ * Why combined: Vite PWA's generated Workbox SW (/sw.js) and the Firebase
+ * messaging SW (/firebase-messaging-sw.js) cannot both control scope "/" —
+ * the first to skipWaiting wins and the other remains in "waiting" state,
+ * causing getToken() to fail. Using one file eliminates the conflict.
  */
 
+// ── 1. Workbox Precaching ──────────────────────────────────────────
+importScripts("https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js");
+
+workbox.core.skipWaiting();
+workbox.core.clientsClaim();
+
+// VitePWA replaces self.__WB_MANIFEST with the actual precache manifest at build time.
+workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
+workbox.precaching.cleanupOutdatedCaches();
+
+// SPA navigation fallback — serve index.html for all nav requests except API / Firebase internals
+workbox.routing.registerRoute(
+  new workbox.routing.NavigationRoute(
+    workbox.precaching.createHandlerBoundToURL("/index.html"),
+    { denylist: [/^\/__/, /\/api\//] }
+  )
+);
+
+// Runtime: Firestore — network-first, 8s timeout
+workbox.routing.registerRoute(
+  /^https:\/\/firestore\.googleapis\.com\/.*/i,
+  new workbox.strategies.NetworkFirst({
+    cacheName: "firestore-cache-v2",
+    networkTimeoutSeconds: 8,
+    plugins: [new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] })],
+  })
+);
+
+// Runtime: Google Fonts — stale-while-revalidate
+workbox.routing.registerRoute(
+  /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: "google-fonts-cache-v2",
+    plugins: [new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] })],
+  })
+);
+
+// ── 2. Firebase Cloud Messaging ───────────────────────────────────
 importScripts("https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js");
 
@@ -25,28 +63,25 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ── Background message handler ────────────────────────────────────
-// Called when a push arrives while the app is in the background / closed.
-// Foreground messages are handled by onMessage() in the app itself.
+// Background message handler — app is closed or in background
 messaging.onBackgroundMessage(function (payload) {
   console.log("[firebase-messaging-sw] Background message:", payload);
 
-  const title   = payload.notification?.title || "Yellow Dot";
-  const body    = payload.notification?.body  || "";
-  const deepLink = payload.data?.deepLink     || "/parent-notifications";
+  const title    = payload.notification?.title || "Yellow Dot";
+  const body     = payload.notification?.body  || "";
+  const deepLink = payload.data?.deepLink      || "/parent-notifications";
 
   return self.registration.showNotification(title, {
     body,
-    icon:  "/icons/pwa-192x192.png",
-    badge: "/icons/pwa-192x192.png",
-    tag:   payload.data?.type || "yd-notification",
-    data:  { deepLink, ...payload.data },
+    icon:    "/icons/pwa-192x192.png",
+    badge:   "/icons/pwa-192x192.png",
+    tag:     payload.data?.type || "yd-notification",
+    data:    { deepLink, ...payload.data },
     vibrate: [200, 100, 200],
   });
 });
 
-// ── Notification click handler ────────────────────────────────────
-// Deep-links the user to the relevant screen when they tap the notification.
+// Notification click → deep-link into the app
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   const deepLink = event.notification.data?.deepLink || "/parent-notifications";
@@ -55,17 +90,13 @@ self.addEventListener("notificationclick", function (event) {
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(function (clientList) {
-        // If the app is already open, navigate the existing tab
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && "focus" in client) {
             client.focus();
             return client.navigate(deepLink);
           }
         }
-        // Otherwise open a new tab at the deep-link path
-        if (clients.openWindow) {
-          return clients.openWindow(deepLink);
-        }
+        if (clients.openWindow) return clients.openWindow(deepLink);
       })
   );
 });

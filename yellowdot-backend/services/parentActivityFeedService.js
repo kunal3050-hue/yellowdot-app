@@ -27,6 +27,7 @@ const fc                = require("./foodConsumptionService");
 const foodMenuService   = require("./foodMenuService");
 const memoriesService   = require("./memoriesService");
 const comms             = require("./communicationService");
+const careService       = require("./careService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -83,32 +84,48 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
   if (!studentId) return EMPTY(studentId);
 
   // All equality-only queries (schoolId [+ studentId]) — no composite indexes.
-  const [att, menus, naps, cons, mems, holidays] = await Promise.all([
+  const [att, menus, naps, cons, mems, holidays, careLogs] = await Promise.all([
     attendanceService.getAttendance({ studentId, schoolId }),
     foodMenuService.getMenus({ schoolId }),
     napService.getNapHistory({ studentId, schoolId, limit: 50 }),
     fc.getConsumption({ studentId, schoolId }),
     memoriesService.getForChildren({ schoolId, studentId, limit: 50 }),
     comms.getHolidays({ schoolId }),
+    careService.getCareHistory({ studentId, schoolId, limit: 50 }),
   ]);
 
-  // ── ✅ Attendance (per day) ───────────────────────────────────────
-  const attItems = (att.entries || [])
-    .filter(e => e.date)
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .slice(0, 21)
-    .map(e => {
-      const inTime  = e.checkIn  ? toISTDisplay(e.checkInAt,  e.checkIn)  : "";
-      const outTime = e.checkOut ? toISTDisplay(e.checkOutAt, e.checkOut) : "";
-      const subtitle = e.status === "Absent"
-        ? "Marked absent"
-        : `${e.status || "Present"}${inTime ? ` · In ${inTime}` : ""}${outTime ? ` · Out ${outTime}` : ""}`;
-      return {
-        id: `attendance-${e.date}`, kind: "attendance", emoji: "✅",
-        title: "Attendance Marked", subtitle, status: e.status || "Present",
-        date: e.date, timestamp: pickTs(e.checkInAt, e.checkOutAt, e.updatedAt, e.createdAt, noon(e.date)),
-      };
-    });
+  // ── 🟢🔵 Attendance — split into separate check-in and check-out events ──
+  // Each event gets its own feed item and its own sort timestamp so they appear
+  // at the correct positions in the timeline (check-in at 9 AM, check-out at 5 PM).
+  const attItems = [];
+  for (const e of (att.entries || []).filter(e => e.date)) {
+    if (e.status === "Absent") {
+      attItems.push({
+        id: `absent-${e.date}`, kind: "absent", emoji: "⭕",
+        title: "Marked Absent", subtitle: "Did not attend.",
+        date: e.date, timestamp: pickTs(e.updatedAt, e.createdAt, noon(e.date)),
+      });
+    } else {
+      if (e.checkIn || e.checkInAt) {
+        const inTime = toISTDisplay(e.checkInAt, e.checkIn);
+        attItems.push({
+          id: `checkin-${e.date}`, kind: "checkin", emoji: "🟢",
+          title: "Checked In",
+          subtitle: `Arrived at daycare${inTime ? ` · ${inTime}` : ""}`,
+          date: e.date, timestamp: pickTs(e.checkInAt, e.createdAt, noon(e.date)),
+        });
+      }
+      if (e.checkOut || e.checkOutAt) {
+        const outTime = toISTDisplay(e.checkOutAt, e.checkOut);
+        attItems.push({
+          id: `checkout-${e.date}`, kind: "checkout", emoji: "🔵",
+          title: "Checked Out",
+          subtitle: `Left daycare${outTime ? ` · ${outTime}` : ""}`,
+          date: e.date, timestamp: pickTs(e.checkOutAt, e.updatedAt, noon(e.date)),
+        });
+      }
+    }
+  }
 
   // ── 🍽️ Food Menu (per day, school-scoped) ─────────────────────────
   const menuByDate = {};
@@ -139,23 +156,89 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
     };
   });
 
-  // ── 🍎 Consumption (per day) ──────────────────────────────────────
-  const consByDate = {};
-  for (const e of cons) {
-    if (!e.date || !(e.foodItem || e.status)) continue;
-    const o = consByDate[e.date] || (consByDate[e.date] = { ate: 0, skipped: 0, n: 0, ts: "" });
-    o.n++;
-    if (e.status === "Ate") o.ate++; else if (e.status) o.skipped++;
-    const t = pickTs(e.updatedAt, e.createdAt);
-    if (t > o.ts) o.ts = t;
+  // ── 🍽 Consumption (one item per meal entry — actual food name + quantity) ──
+  const MEAL_EMOJI = {
+    "Breakfast":     "🍳",
+    "Mid-Morning":   "☕",
+    "Morning Snack": "☕",
+    "Lunch":         "🍽️",
+    "Roti Sabzi":    "🫓",
+    "Dal Rice":      "🍚",
+    "Milk":          "🥛",
+    "Water":         "💧",
+    "Snacks":        "🍪",
+    "Snack":         "🍪",
+    "Evening Snack": "🍪",
+    "Evening Snacks":"🍪",
+    "Fruits":        "🍎",
+    "Dinner":        "🍽️",
+  };
+
+  // Food-item keyword → emoji (checked before falling back to meal-type emoji)
+  const FOOD_EMOJI_PATTERNS = [
+    [/\b(dal|dhal|lentil|sambar)\b/i,                     "🍲"],
+    [/\b(rice|khichdi|biryani|pulao|pongal)\b/i,          "🍚"],
+    [/\b(roti|chapati|chapatti|paratha|bread|naan)\b/i,   "🫓"],
+    [/\b(dosa|idli|uttapam|upma|poha|pohe|puri|vada)\b/i, "🥞"],
+    [/\b(fruit|apple|banana|mango|orange|grapes|papaya|watermelon|guava)\b/i, "🍎"],
+    [/\b(egg|omelette|omelet|boiled egg)\b/i,             "🥚"],
+    [/\b(milk|curd|yogurt|lassi|buttermilk|chaas)\b/i,    "🥛"],
+    [/\b(cookie|biscuit|cake|ladoo|laddoo|sweet)\b/i,     "🍪"],
+    [/\b(soup|broth)\b/i,                                 "🥣"],
+    [/\b(sandwich|toast)\b/i,                             "🥪"],
+    [/\b(juice|drink|water)\b/i,                          "🥤"],
+  ];
+
+  function getFoodEmoji(mealType, foodItem) {
+    if (foodItem) {
+      for (const [pat, em] of FOOD_EMOJI_PATTERNS) {
+        if (pat.test(foodItem)) return em;
+      }
+    }
+    return MEAL_EMOJI[mealType] || "🍽️";
   }
-  const consItems = Object.entries(consByDate)
-    .sort((a, b) => b[0].localeCompare(a[0])).slice(0, 21)
-    .map(([date, o]) => ({
-      id: `consumption-${date}`, kind: "consumption", emoji: "🍎",
-      title: "Consumption Logged",
-      subtitle: `Ate ${o.ate}${o.skipped ? ` · Skipped ${o.skipped}` : ""} of ${o.n} meal${o.n === 1 ? "" : "s"}`,
-      date, timestamp: o.ts || noon(date),
+
+  function toTitleCase(str) {
+    if (!str) return str;
+    return str.replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function expandUnit(u) {
+    if (!u) return u;
+    const map = { pcs: "pieces", pc: "piece", tbsp: "tbsp", tsp: "tsp" };
+    return map[u.toLowerCase().trim()] || u;
+  }
+
+  function buildConsSubtitle(e) {
+    const food = toTitleCase((e.foodItem || "").trim());
+    const unit = expandUnit(e.unit || "");
+    const qty  = e.quantity ? `${e.quantity}${unit ? " " + unit : ""}` : "";
+    const isLiquid = ["Milk", "Water"].includes(e.mealType);
+    if (isLiquid) return qty ? `Drank ${qty}` : (food || e.status || "Logged");
+    if (e.status === "Didn't Eat" || e.status === "Skipped") {
+      return food ? `${food} • Didn't eat` : "Didn't eat";
+    }
+    if (food && qty) return `${food} • Ate ${qty}`;
+    if (food)        return food;
+    if (qty)         return `Ate ${qty}`;
+    return e.status || "Logged";
+  }
+
+  const consItems = (cons || [])
+    .filter(e => e.date && e.mealType)
+    .map(e => ({
+      id:        `consumption-${e.date}-${e.mealType}`,
+      kind:      "consumption",
+      emoji:     getFoodEmoji(e.mealType, e.foodItem),
+      title:     e.mealType,
+      subtitle:  buildConsSubtitle(e),
+      mealType:  e.mealType,
+      foodItem:  e.foodItem || "",
+      quantity:  e.quantity || "",
+      unit:      e.unit     || "",
+      status:    e.status   || "",
+      date:      e.date,
+      timestamp: pickTs(e.updatedAt, e.createdAt, noon(e.date)),
     }));
 
   // ── 📸 Memories (per memory) ──────────────────────────────────────
@@ -167,7 +250,23 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
     date: m.date, timestamp: pickTs(m.createdAt, noon(m.date)),
   }));
 
-  const items = [...attItems, ...menuItems, ...napItems, ...consItems, ...memItems]
+  // ── 🩲 Care & Hygiene (per event) ──────────────────────────────────
+  const CARE_EMOJI = {
+    Urine: "🟡", Motion: "🟤", Both: "🟢",
+    "Diaper Change": "🔵", "Toilet Visit": "🚽",
+    Accident: "⚠️", "Water Refilled": "💧",
+  };
+  const careItems = (careLogs || []).map(c => ({
+    id:        `care-${c.logId}`,
+    kind:      "care",
+    emoji:     CARE_EMOJI[c.type] || "🩺",
+    title:     c.type,
+    subtitle:  c.notes || "Logged at school",
+    date:      c.date,
+    timestamp: pickTs(c.loggedAt, c.createdAt, noon(c.date)),
+  }));
+
+  const items = [...attItems, ...menuItems, ...napItems, ...consItems, ...memItems, ...careItems]
     .filter(i => i.timestamp)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 100);

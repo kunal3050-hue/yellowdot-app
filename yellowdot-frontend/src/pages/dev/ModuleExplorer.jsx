@@ -46,7 +46,7 @@ const ROUTE_REGISTRY = [
   { path: "/students/new",        routeKey: ROUTES.STUDENTS,               label: "New Admission",        category: "sub",    layout: "bare"   },
   { path: "/add-student",         routeKey: ROUTES.STUDENTS,               label: "Add Student",          category: "sub",    layout: "bare"   },
   { path: "/edit-student/:id",    routeKey: ROUTES.STUDENTS,               label: "Edit Student",         category: "sub",    layout: "bare"   },
-  { path: "/student-profile/:id", routeKey: ROUTES.STUDENTS,               label: "Student Profile",      category: "sub",    layout: "bare"   },
+  // /student-profile/:id removed — student profiles live inside /students
 
   // Attendance & Daily Ops
   { path: "/attendance",          routeKey: ROUTES.ATTENDANCE,             label: "Attendance",           category: "app",    layout: "bare"   },
@@ -69,6 +69,13 @@ const ROUTE_REGISTRY = [
   { path: "/pickup-history",      routeKey: ROUTES.PICKUP_HISTORY,         label: "Pickup History",       category: "app",    layout: "bare"   },
   { path: "/staff-checkout",      routeKey: ROUTES.STAFF_CHECKOUT,         label: "Staff Checkout",       category: "app",    layout: "main"   },
   { path: "/pickup-migration",    routeKey: ROUTES.ATTENDANCE,             label: "Family Safety Setup",  category: "app",    layout: "bare",  orphan: true },
+
+  // Academics
+  { path: "/academics/classes",             routeKey: ROUTES.ACADEMICS_CLASSES,             label: "Classes",              category: "app",    layout: "main"   },
+  { path: "/academics/batches",             routeKey: ROUTES.ACADEMICS_BATCHES,             label: "Batches",              category: "app",    layout: "main"   },
+  { path: "/academics/teacher-allocation",  routeKey: ROUTES.ACADEMICS_TEACHER_ALLOCATION,  label: "Teacher Allocation",   category: "app",    layout: "main"   },
+  { path: "/academics/classroom-allocation",routeKey: ROUTES.ACADEMICS_CLASSROOM_ALLOCATION,label: "Classroom Allocation", category: "app",    layout: "main"   },
+  { path: "/academics/student-allocation",  routeKey: ROUTES.ACADEMICS_STUDENT_ALLOCATION,  label: "Student Enrollment",   category: "app",    layout: "main"   },
 
   // Communications
   { path: "/holidays",            routeKey: ROUTES.HOLIDAYS,               label: "Holidays",             category: "app",    layout: "bare"   },

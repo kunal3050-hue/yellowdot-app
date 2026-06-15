@@ -31,6 +31,45 @@ const VIEWS          = ["dashboard", "scanner", "qrcards", "history"];
 const STATUS_OPTIONS = ["Present", "Absent", "Late"];
 const CLASS_LIST     = ["All", "Playgroup", "Nursery", "LKG", "UKG", "Daycare"];
 
+// Batch options keyed by class name. Each entry has { id, code, label }.
+// id="" means "All Batches" (no batch filter). Matches Phase 1/2 batch codes
+// and covers legacy class names (LKG/UKG) used in live student data.
+const BATCH_OPTIONS_FOR = {
+  All:        [{ id:"", code:"", label:"All Batches" }],
+  Playgroup:  [
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"PGB-AM", code:"PGB-AM", label:"Morning · PGB-AM"     },
+    { id:"PGB-PM", code:"PGB-PM", label:"Afternoon · PGB-PM"   },
+  ],
+  Nursery:    [
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"NRB-AM", code:"NRB-AM", label:"Morning · NRB-AM"     },
+    { id:"NRB-PM", code:"NRB-PM", label:"Afternoon · NRB-PM"   },
+  ],
+  LKG:        [
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"LKG-AM", code:"LKG-AM", label:"Morning · LKG-AM"     },
+    { id:"LKG-PM", code:"LKG-PM", label:"Afternoon · LKG-PM"   },
+  ],
+  UKG:        [
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"UKG-AM", code:"UKG-AM", label:"Morning · UKG-AM"     },
+    { id:"UKG-PM", code:"UKG-PM", label:"Afternoon · UKG-PM"   },
+  ],
+  "Junior KG":[
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"JKB-AM", code:"JKB-AM", label:"Morning · JKB-AM"     },
+  ],
+  "Senior KG":[
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"SKB-AM", code:"SKB-AM", label:"Morning · SKB-AM"     },
+  ],
+  Daycare:    [
+    { id:"",       code:"",       label:"All Batches"          },
+    { id:"DC-FD",  code:"DC-FD",  label:"Full Day · DC-FD"     },
+  ],
+};
+
 const STATUS_STYLE = {
   Present: "bg-yd-success-soft  text-yd-success border-yd-success-border",
   Absent:  "bg-yd-danger-soft   text-yd-danger  border-yd-danger-border",
@@ -144,7 +183,7 @@ function StatusBadge({ status }) {
 // ═══════════════════════════════════════════════════════════════════
 // Sidebar
 // ═══════════════════════════════════════════════════════════════════
-function Sidebar({ view, setView, date, setDate, cls, setCls, summary, summaryLoading }) {
+function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, summary, summaryLoading }) {
   const statItems = [
     { label:"Total",   val:summary.total,     bg:"bg-yd-bg            text-yd-text"    },
     { label:"Present", val:summary.present,   bg:"bg-yd-success-soft  text-yd-success" },
@@ -188,9 +227,18 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, summary, summaryLo
         </div>
         <div>
           <label className="block text-[10px] font-semibold text-gray-500 mb-1">Class</label>
-          <select value={cls} onChange={e => setCls(e.target.value)}
+          <select value={cls} onChange={e => { setCls(e.target.value); setBatch(""); }}
             className="yd-input text-xs">
             {CLASS_LIST.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold text-gray-500 mb-1">Batch</label>
+          <select value={batch} onChange={e => setBatch(e.target.value)}
+            className="yd-input text-xs">
+            {(BATCH_OPTIONS_FOR[cls] || BATCH_OPTIONS_FOR.All).map(b => (
+              <option key={b.id} value={b.id}>{b.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -313,17 +361,111 @@ function StudentRow({ student, entry, saving, onMark, onCheckOut, canMark = true
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// BatchGroupCard — collapsible batch section used in By Batch view
+// ═══════════════════════════════════════════════════════════════════
+function BatchGroupCard({ group, entryMap, onMark, onCheckOut, saving, canMark }) {
+  const [expanded, setExpanded] = useState(false);
+  const totalMarked = group.present + group.absent + group.late;
+  const pct = group.students.length > 0
+    ? Math.round((group.present + group.late) / group.students.length * 100)
+    : 0;
+
+  return (
+    <div className="border border-gray-100 rounded-2xl bg-white shadow-sm overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-yd-yellow-pale transition-colors text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            group.present > 0 ? "bg-yd-success" : "bg-gray-300"
+          }`}/>
+          <span className="font-bold text-gray-800 text-sm">
+            {group.code ? group.code : "No Batch Assigned"}
+          </span>
+          <span className="text-xs text-gray-400">{group.students.length} students</span>
+          {group.code && totalMarked === group.students.length && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yd-success-soft text-yd-success border border-yd-success-border">
+              Complete
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-3">
+            {group.present > 0 && (
+              <span className="text-xs font-bold text-yd-success">{group.present} Present</span>
+            )}
+            {group.absent > 0 && (
+              <span className="text-xs font-bold text-yd-danger">{group.absent} Absent</span>
+            )}
+            {group.late > 0 && (
+              <span className="text-xs font-bold text-yd-warn">{group.late} Late</span>
+            )}
+            {group.unmarked > 0 && (
+              <span className="text-xs font-bold text-gray-400">{group.unmarked} Unmarked</span>
+            )}
+            {totalMarked > 0 && (
+              <span className="text-[10px] text-gray-400">{pct}% rate</span>
+            )}
+          </div>
+          <span className="text-gray-400 text-xs font-bold">{expanded ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100">
+          {group.students.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No students in this batch.</p>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                  {["Student","Class","Status","Check-In","Check-Out","Method","Live"].map(h => (
+                    <th key={h} className="text-left px-4 py-2">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {group.students.map(s => {
+                  const sid = s.Student_ID || s.id;
+                  return (
+                    <StudentRow key={sid}
+                      student={{ id:sid, name:s.Student_Name||s.name, class:s.Class||s.class }}
+                      entry={entryMap[sid]}
+                      saving={!!saving[sid]}
+                      onMark={onMark}
+                      onCheckOut={onCheckOut}
+                      canMark={canMark}
+                    />
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // DashboardView
 // ═══════════════════════════════════════════════════════════════════
-function DashboardView({ date, cls, summary, toast, canMark = true, canExport = true }) {
-  const mountedRef  = useRef(true);
-  const savingRef   = useRef({});
+function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true, canExport = true }) {
+  const mountedRef      = useRef(true);
+  const savingRef       = useRef({});
+  const activeBatchRef  = useRef(activeBatch);
+  const [viewMode,  setViewMode ] = useState("all"); // "all" | "byBatch"
   const [students,  setStudents ] = useState([]);
   const [entries,   setEntries  ] = useState([]);
   const [loading,   setLoading  ] = useState(true);
   const [saving,    setSaving   ] = useState({});
   const [filter,    setFilter   ] = useState("All");
   const [search,    setSearch   ] = useState("");
+
+  // Keep ref in sync so handleMark always sees the latest batch selection
+  // without needing it in the useCallback dep array.
+  useEffect(() => { activeBatchRef.current = activeBatch; }, [activeBatch]);
 
   // Backend stores & queries attendance dates in ISO (YYYY-MM-DD). Sending
   // DD/MM/YYYY here put slashes into the entryId (ATT-08/06/2026-YD008), which
@@ -392,6 +534,9 @@ function DashboardView({ date, cls, summary, toast, canMark = true, canExport = 
     try {
       await attendanceService.markAttendance({
         studentId: sid, studentName: student.name, class: student.class,
+        batchId:   activeBatchRef.current?.id   || "",
+        batchCode: activeBatchRef.current?.code || "",
+        teacherId: "",
         status, date: indiaDate, attendanceMethod: "Manual",
       });
     } catch (e) {
@@ -435,6 +580,32 @@ function DashboardView({ date, cls, summary, toast, canMark = true, canExport = 
     });
   }, [students, entryMap, filter, search]);
 
+  // Groups students by the batchCode recorded on their attendance entry.
+  // Students with no entry yet (or entry with no batchCode) land in "__none__".
+  const batchGroups = useMemo(() => {
+    const groups = {};
+    for (const s of students) {
+      const sid    = s.Student_ID || s.id;
+      const entry  = entryMap[sid];
+      const code   = entry?.batchCode || "";
+      const key    = code || "__none__";
+      if (!groups[key]) {
+        groups[key] = { code, present:0, absent:0, late:0, unmarked:0, students:[] };
+      }
+      const st = entry?.status;
+      if      (st === "Present") groups[key].present++;
+      else if (st === "Absent")  groups[key].absent++;
+      else if (st === "Late")    groups[key].late++;
+      else                       groups[key].unmarked++;
+      groups[key].students.push(s);
+    }
+    return Object.values(groups).sort((a, b) => {
+      if (!a.code && b.code)  return 1;
+      if (a.code  && !b.code) return -1;
+      return a.code.localeCompare(b.code);
+    });
+  }, [students, entryMap]);
+
   const insideCount = entries.filter(e => e.checkIn && !e.checkOut && e.status !== "Absent").length;
   const marked      = Object.keys(entryMap).length;
 
@@ -447,19 +618,19 @@ function DashboardView({ date, cls, summary, toast, canMark = true, canExport = 
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* Sub-header */}
+
+      {/* Sub-header — always visible */}
       <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-yd-navy">Attendance Dashboard</h2>
           <p className="text-xs text-gray-400">{todayLabel()} · {students.length} students · {marked} marked</p>
         </div>
-        {/* Stat chips */}
         <div className="flex items-center gap-3 flex-wrap">
           {[
             { label:"Present", val:summary.present, c:"text-yd-success" },
-            { label:"Absent",  val:summary.absent,  c:"text-yd-danger"     },
+            { label:"Absent",  val:summary.absent,  c:"text-yd-danger"  },
             { label:"Late",    val:summary.late,     c:"text-yd-warn"   },
-            { label:"Inside",  val:insideCount,      c:"text-yd-info"    },
+            { label:"Inside",  val:insideCount,      c:"text-yd-info"   },
           ].map(({ label, val, c }) => (
             <div key={label} className="flex items-center gap-1">
               <span className={`text-xl font-black ${c}`}>{val ?? 0}</span>
@@ -469,66 +640,118 @@ function DashboardView({ date, cls, summary, toast, canMark = true, canExport = 
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-2 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[160px] max-w-xs">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm">🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student…"
-            className="yd-input text-xs pl-8"/>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {["All","Present","Absent","Late","Inside","Unmarked"].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all
-                ${filter===f ? "bg-yd-navy text-white border-yd-navy" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
-              {f}
-            </button>
-          ))}
-        </div>
-        {canMark && filter === "Unmarked" && displayStudents.length > 0 && (
-          <button
-            onClick={async () => { for (const s of displayStudents) { const sid=s.Student_ID||s.id; await handleMark({id:sid,name:s.Student_Name||s.name,class:s.Class||s.class},"Present"); } }}
-            className="btn btn-success btn-sm ml-auto">
-            ✓ Mark All Present
+      {/* View mode toggle — always visible */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-2 flex items-center gap-2">
+        {[["all","All Students"],["byBatch","By Batch"]].map(([mode, label]) => (
+          <button key={mode} onClick={() => setViewMode(mode)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all
+              ${viewMode === mode
+                ? "bg-yd-navy text-white border-yd-navy"
+                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+            {label}
           </button>
+        ))}
+        {activeBatch?.code && (
+          <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-yd-yellow-soft text-yd-navy border border-yd-yellow/30">
+            {activeBatch.code}
+          </span>
         )}
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-y-auto">
-        {displayStudents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="text-5xl mb-4">{filter==="Unmarked"?"🎉":"🔍"}</div>
-            <p className="font-bold text-gray-700">{filter==="Unmarked"?"All students marked!":filter==="All"?"No students found":`No ${filter.toLowerCase()} students`}</p>
-            {filter !== "All" && <p className="text-sm text-gray-400 mt-1">Change filter to see more.</p>}
+      {/* ── All Students view ───────────────────────────────────────── */}
+      {viewMode === "all" && (
+        <>
+          {/* Toolbar */}
+          <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-2 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[160px] max-w-xs">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm">🔍</span>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student…"
+                className="yd-input text-xs pl-8"/>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {["All","Present","Absent","Late","Inside","Unmarked"].map(f => (
+                <button key={f} onClick={() => setFilter(f)}
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all
+                    ${filter===f ? "bg-yd-navy text-white border-yd-navy" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                  {f}
+                </button>
+              ))}
+            </div>
+            {canMark && filter === "Unmarked" && displayStudents.length > 0 && (
+              <button
+                onClick={async () => { for (const s of displayStudents) { const sid=s.Student_ID||s.id; await handleMark({id:sid,name:s.Student_Name||s.name,class:s.Class||s.class},"Present"); } }}
+                className="btn btn-success btn-sm ml-auto">
+                ✓ Mark All Present
+              </button>
+            )}
           </div>
-        ) : (
-          <table className="w-full">
-            <thead className="sticky top-0 bg-yd-navy z-10">
-              <tr className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
-                {["Student","Class","Status","Check-In","Check-Out","Method","Live"].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayStudents.map(s => {
-                const sid = s.Student_ID || s.id;
-                return (
-                  <StudentRow key={sid}
-                    student={{ id:sid, name:s.Student_Name||s.name, class:s.Class||s.class }}
-                    entry={entryMap[sid]}
-                    saving={!!saving[sid]}
-                    onMark={handleMark}
-                    onCheckOut={handleCheckOut}
-                    canMark={canMark}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+
+          {/* Table */}
+          <div className="flex-1 overflow-y-auto">
+            {displayStudents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="text-5xl mb-4">{filter==="Unmarked"?"🎉":"🔍"}</div>
+                <p className="font-bold text-gray-700">{filter==="Unmarked"?"All students marked!":filter==="All"?"No students found":`No ${filter.toLowerCase()} students`}</p>
+                {filter !== "All" && <p className="text-sm text-gray-400 mt-1">Change filter to see more.</p>}
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-yd-navy z-10">
+                  <tr className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                    {["Student","Class","Status","Check-In","Check-Out","Method","Live"].map(h => (
+                      <th key={h} className="text-left px-4 py-2.5">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayStudents.map(s => {
+                    const sid = s.Student_ID || s.id;
+                    return (
+                      <StudentRow key={sid}
+                        student={{ id:sid, name:s.Student_Name||s.name, class:s.Class||s.class }}
+                        entry={entryMap[sid]}
+                        saving={!!saving[sid]}
+                        onMark={handleMark}
+                        onCheckOut={handleCheckOut}
+                        canMark={canMark}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── By Batch view ───────────────────────────────────────────── */}
+      {viewMode === "byBatch" && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {loading ? (
+            <div className="space-y-3 animate-pulse">
+              {[...Array(3)].map((_,i) => <div key={i} className="h-16 bg-gray-50 rounded-2xl"/>)}
+            </div>
+          ) : students.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <div className="text-5xl mb-3">🔍</div>
+              <p className="font-bold text-gray-700">No students found</p>
+              <p className="text-sm text-gray-400 mt-1">Adjust the class or date filter.</p>
+            </div>
+          ) : (
+            batchGroups.map(group => (
+              <BatchGroupCard key={group.code || "__none__"}
+                group={group}
+                entryMap={entryMap}
+                onMark={handleMark}
+                onCheckOut={handleCheckOut}
+                saving={saving}
+                canMark={canMark}
+              />
+            ))
+          )}
+        </div>
+      )}
+
     </div>
   );
 }
@@ -971,6 +1194,15 @@ export default function Attendance() {
   const [view,       setView    ] = useState("dashboard");
   const [date,       setDate    ] = useState(todayISO());
   const [cls,        setCls     ] = useState("All");
+  const [batch,      setBatch   ] = useState("");
+
+  // Resolve the selected batch option object (id + code) from the sidebar selection.
+  // null when "All Batches" is selected — handleMark sends batchId:"" in that case.
+  const activeBatch = useMemo(() => {
+    if (!batch) return null;
+    return (BATCH_OPTIONS_FOR[cls] || []).find(b => b.id === batch) || null;
+  }, [cls, batch]);
+
   const [summary,    setSummary ] = useState({ total:0, present:0, absent:0, late:0, inside:0, qrScanned:0 });
   const [sumLoading, setSumLoad ] = useState(true);
 
@@ -1007,11 +1239,12 @@ export default function Attendance() {
         view={view}   setView={setView}
         date={date}   setDate={setDate}
         cls={cls}     setCls={setCls}
+        batch={batch} setBatch={setBatch}
         summary={summary} summaryLoading={sumLoading}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
-        {view === "dashboard" && <DashboardView date={date} cls={cls} summary={summary} toast={toast} canMark={perm.mark} canExport={perm.export}/>}
+        {view === "dashboard" && <DashboardView date={date} cls={cls} activeBatch={activeBatch} summary={summary} toast={toast} canMark={perm.mark} canExport={perm.export}/>}
         {view === "scanner"   && <QRScannerView toast={toast}/>}
         {view === "qrcards"   && <StudentQRView cls={cls}/>}
         {view === "history"   && <HistoryView cls={cls}/>}

@@ -15,32 +15,44 @@ const ROLE_PERMISSIONS = {
 
   admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption",
+    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
+    "academics-classes", "academics-batches",
+    "academics-teacher-allocation", "academics-classroom-allocation",
+    "academics-student-allocation",
   ],
 
   center_owner: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption",
+    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
+    "academics-classes", "academics-batches",
+    "academics-teacher-allocation", "academics-classroom-allocation",
+    "academics-student-allocation",
   ],
 
   center_admin: [
     "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption",
+    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
+    "academics-classes", "academics-batches",
+    "academics-teacher-allocation", "academics-classroom-allocation",
+    "academics-student-allocation",
   ],
 
   teacher: [
     "dashboard", "attendance", "nap-tracker", "food-menu", "food-consumption",
+    "care-hygiene",
     "students", "parent-checkin", "staff-checkout", "cctv",
     "profile", "holidays", "notices", "announcements",
+    "academics-classes", "academics-batches",
+    "academics-student-allocation",
   ],
 
   accountant: [

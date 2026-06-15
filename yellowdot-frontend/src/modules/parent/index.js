@@ -12,4 +12,5 @@ export { parentRoutes } from "./routes/parentRoutes";
 export { default as parentService } from "./services/parentService";
 export { default as useParentProfile } from "./hooks/useParentProfile";
 export { default as useNotifications, useUnreadCount } from "./hooks/useNotifications";
+export { default as useCareLog } from "./hooks/useCareLog";
 export { theme } from "./theme";

@@ -33,6 +33,7 @@ const Attendance          = lazy(() => import("./pages/Attendance"));
 const NapTracker          = lazy(() => import("./pages/NapTracker"));
 const FoodMenu            = lazy(() => import("./pages/FoodMenu"));
 const FoodConsumption     = lazy(() => import("./pages/FoodConsumption"));
+const CareHygiene         = lazy(() => import("./pages/CareHygiene"));
 
 const Fees                = lazy(() => import("./pages/Fees"));
 const Invoice             = lazy(() => import("./pages/Invoice"));
@@ -56,6 +57,12 @@ const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
 const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
 const QRManagement        = lazy(() => import("./pages/QRManagement"));
+const AcademicsClasses            = lazy(() => import("./pages/academics/AcademicsClasses"));
+const AcademicsBatches            = lazy(() => import("./pages/academics/AcademicsBatches"));
+const AcademicsTeacherAllocation  = lazy(() => import("./pages/academics/AcademicsTeacherAllocation"));
+const AcademicsClassroomAllocation= lazy(() => import("./pages/academics/AcademicsClassroomAllocation"));
+const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/AcademicsStudentAllocation"));
+
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
@@ -222,6 +229,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/care-hygiene"
+              element={
+                <ProtectedRoute routeKey="care-hygiene">
+                  <CareHygiene />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ── Invoices & fees ──────────────────────────────────────────── */}
             <Route
@@ -341,6 +356,48 @@ function App() {
               element={
                 <ProtectedRoute routeKey="attendance">
                   <PickupMigration />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Academics ────────────────────────────────────────────────── */}
+            <Route
+              path="/academics/classes"
+              element={
+                <ProtectedRoute routeKey="academics-classes">
+                  <MainLayout><AcademicsClasses /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/batches"
+              element={
+                <ProtectedRoute routeKey="academics-batches">
+                  <MainLayout><AcademicsBatches /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/teacher-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-teacher-allocation">
+                  <MainLayout><AcademicsTeacherAllocation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/classroom-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-classroom-allocation">
+                  <MainLayout><AcademicsClassroomAllocation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/student-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-student-allocation">
+                  <MainLayout><AcademicsStudentAllocation /></MainLayout>
                 </ProtectedRoute>
               }
             />

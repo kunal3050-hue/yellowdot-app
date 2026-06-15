@@ -7,6 +7,7 @@ const express  = require("express");
 const router   = express.Router();
 const { authenticate, authorize, blockUnknown } = require("../middleware/authMiddleware");
 const svc      = require("../services/communicationService");
+const notif    = require("../services/notificationService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -45,6 +46,15 @@ router.post("/api/holidays", authenticate, authorize(...CAN_WRITE), async (req, 
   try {
     const { schoolId, actorUserId } = ctx(req);
     const holiday = await svc.createHoliday(req.body || {}, { schoolId, actorUserId });
+    const isEmergency = String(holiday.type || "").toLowerCase().includes("emergency");
+    notif.notifyAsync(() => notif.fireForSchool(schoolId, {
+      type:     isEmergency ? notif.TYPES.EMERGENCY_CLOSURE : notif.TYPES.HOLIDAY_ANNOUNCED,
+      title:    isEmergency ? "School closure announced" : `Holiday: ${holiday.title || "School holiday"}`,
+      message:  isEmergency
+        ? `Emergency closure: ${holiday.title}. School will be closed on ${holiday.startDate || "the announced date"}.`
+        : `School holiday announced: ${holiday.title} on ${holiday.startDate || "upcoming date"}.`,
+      deepLink: "/parent-holidays",
+    }));
     res.json({ success: true, holiday });
   } catch (e) { fail(res, "POST /api/holidays", e); }
 });
@@ -80,6 +90,12 @@ router.post("/api/notices", authenticate, authorize(...CAN_WRITE), async (req, r
   try {
     const { schoolId, actorUserId } = ctx(req);
     const notice = await svc.createNotice(req.body || {}, { schoolId, actorUserId });
+    notif.notifyAsync(() => notif.fireForSchool(schoolId, {
+      type:     notif.TYPES.CIRCULAR_PUBLISHED,
+      title:    notice.title || "New circular from school",
+      message:  `A new circular has been published: "${notice.title || "School notice"}". Please check the app for details.`,
+      deepLink: "/parent-home",
+    }));
     res.json({ success: true, notice });
   } catch (e) { fail(res, "POST /api/notices", e); }
 });
@@ -115,6 +131,15 @@ router.post("/api/announcements", authenticate, authorize(...CAN_WRITE), async (
   try {
     const { schoolId, actorUserId } = ctx(req);
     const announcement = await svc.createAnnouncement(req.body || {}, { schoolId, actorUserId });
+    const isActivity = String(announcement.type || "").toLowerCase() === "activity";
+    notif.notifyAsync(() => notif.fireForSchool(schoolId, {
+      type:     isActivity ? notif.TYPES.NEW_ACTIVITY : notif.TYPES.ANNOUNCEMENT,
+      title:    announcement.title || (isActivity ? "New activity posted" : "School update"),
+      message:  announcement.body
+        ? `${announcement.title || "New update"}: ${String(announcement.body).slice(0, 120)}`
+        : `${announcement.title || "New update from Yellow Dot"}.`,
+      deepLink: "/parent-home",
+    }));
     res.json({ success: true, announcement });
   } catch (e) { fail(res, "POST /api/announcements", e); }
 });

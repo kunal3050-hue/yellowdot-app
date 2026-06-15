@@ -36,6 +36,9 @@ const ICONS = {
   Settings:    () => <I d={<><circle cx="10" cy="10" r="2.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></>} />,
   Grid:        () => <I d={<><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></>} />,
   Sliders:     () => <I d={<><path d="M4 6h12M4 10h12M4 14h12"/><circle cx="8" cy="6" r="1.5" fill="#fff" stroke="currentColor"/><circle cx="13" cy="10" r="1.5" fill="#fff" stroke="currentColor"/><circle cx="7" cy="14" r="1.5" fill="#fff" stroke="currentColor"/></>} />,
+  BookOpen:    () => <I d={<><path d="M2 3h5a3 3 0 013 3v11a2.5 2.5 0 00-2.5-2.5H2z"/><path d="M18 3h-5a3 3 0 00-3 3v11a2.5 2.5 0 012.5-2.5H18z"/></>} />,
+  Layers:      () => <I d={<><polygon points="10 2 2 6 10 10 18 6 10 2"/><polyline points="2 14 10 18 18 14"/><polyline points="2 10 10 14 18 10"/></>} />,
+  Heart:       () => <I d={<><path d="M10 17s-7-4.35-7-8.5A4.5 4.5 0 0110 4.5 4.5 4.5 0 0117 8.5c0 4.15-7 8.5-7 8.5z"/></>} />,
 };
 
 /* ── All sections with their modules ───────────────────────────────────── */
@@ -57,6 +60,13 @@ const SECTIONS = [
     ],
   },
   {
+    id: "academics",
+    label: "Academics",
+    items: [
+      { label: "Classes & Batches", path: "/academics/classes", icon: "BookOpen", desc: "Manage classes, batches, timings and allocations" },
+    ],
+  },
+  {
     id: "finance",
     label: "Finance",
     items: [
@@ -73,6 +83,7 @@ const SECTIONS = [
       { label: "Nap Tracker",      path: "/nap-tracker",      icon: "Moon",       desc: "Sleep schedules" },
       { label: "Food Menu",        path: "/food-menu",        icon: "Utensils",   desc: "Meal planning" },
       { label: "Consumption Log",  path: "/food-consumption", icon: "Clipboard",  desc: "Intake records" },
+      { label: "Care & Hygiene",   path: "/care-hygiene",     icon: "Heart",      desc: "Diaper & hygiene logs" },
     ],
   },
   {

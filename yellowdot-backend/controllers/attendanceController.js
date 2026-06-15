@@ -69,6 +69,7 @@ async function markAttendance(req, res) {
     const { schoolId, centerId, actorUserId } = resolveCtx(req);
     const {
       studentId, studentName, class: studentClass,
+      batchId, batchCode, teacherId,
       status, date, checkIn, checkOut, attendanceMethod, center, markedBy,
     } = req.body || {};
 
@@ -80,6 +81,7 @@ async function markAttendance(req, res) {
 
     const entry = await svc.markAttendance({
       studentId, studentName, class: studentClass,
+      batchId, batchCode, teacherId,
       status, date, method: attendanceMethod,
       center:   center   || centerId || "",
       centerId: centerId || center   || "",

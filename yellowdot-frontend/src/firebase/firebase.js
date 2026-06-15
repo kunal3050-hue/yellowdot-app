@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBwRMjTuDbOHMFdBtVV55kYoOcL-1L7tKM",
@@ -15,6 +16,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db   = getFirestore(app);
+
+// Firebase Messaging — only available in browsers that support Service Workers
+// and the Push API (most modern mobile browsers). Returns null on unsupported
+// environments (e.g. Safari < 16.4, Node, SSR).
+let _messaging = null;
+export async function getMessagingInstance() {
+  if (_messaging) return _messaging;
+  try {
+    const supported = await isSupported();
+    if (!supported) return null;
+    _messaging = getMessaging(app);
+    return _messaging;
+  } catch {
+    return null;
+  }
+}
 
 export default app;

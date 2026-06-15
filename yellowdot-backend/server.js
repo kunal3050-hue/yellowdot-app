@@ -75,6 +75,7 @@ const qrRoutes               = require("./routes/qrRoutes");
 const cctvRoutes             = require("./routes/cctvRoutes");
 const parentRoutes           = require("./routes/parentRoutes");
 const notificationRoutes     = require("./routes/notificationRoutes");
+const careRoutes             = require("./routes/careRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -104,6 +105,7 @@ app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
 app.use(notificationRoutes);   // /api/parent/notifications/*  (must be before parentRoutes)
+app.use(careRoutes);           // /api/care/*  (Care & Hygiene — staff only)
 app.use(parentRoutes);         // /api/parent/*  (Parent Module V1 — parent-scoped)
 
 // ============================================================

@@ -43,6 +43,7 @@ const TYPES = {
   NAP_STARTED:        "nap_started",
   NAP_ENDED:          "nap_ended",
   FOOD_CONSUMPTION:   "food_consumption",
+  CARE_LOGGED:        "care_logged",
   // Memories & Activities
   NEW_MEMORY:         "new_memory",
   NEW_ACTIVITY:       "new_activity",
@@ -72,6 +73,7 @@ const TYPE_META = {
   [TYPES.NAP_STARTED]:       { priority: PRIORITY.MEDIUM },
   [TYPES.NAP_ENDED]:         { priority: PRIORITY.MEDIUM },
   [TYPES.FOOD_CONSUMPTION]:  { priority: PRIORITY.MEDIUM },
+  [TYPES.CARE_LOGGED]:       { priority: PRIORITY.MEDIUM },
   [TYPES.NEW_MEMORY]:        { priority: PRIORITY.MEDIUM },
   [TYPES.NEW_ACTIVITY]:      { priority: PRIORITY.MEDIUM },
   [TYPES.HOLIDAY_ANNOUNCED]: { priority: PRIORITY.LOW    },

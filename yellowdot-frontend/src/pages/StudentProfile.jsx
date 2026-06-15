@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { api } from "../services/authService";
+import ParentLedger from "../components/finance/ParentLedger";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -48,25 +49,27 @@ function compressPhoto(file) {
 
 function TabBar({ tabs, active, onChange }) {
   return (
-    <div className="flex gap-2 mb-8 bg-white rounded-[20px] p-2 shadow-sm w-fit">
-      {tabs.map(t => (
-        <button
-          key={t.key}
-          onClick={() => onChange(t.key)}
-          className={`px-7 py-3 rounded-[14px] font-bold text-sm transition-all duration-200 relative ${
-            active === t.key
-              ? "bg-yellow-400 text-white shadow-md"
-              : "text-gray-500 hover:bg-gray-100"
-          }`}
-        >
-          {t.label}
-          {t.badge > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-              {t.badge}
-            </span>
-          )}
-        </button>
-      ))}
+    <div className="mb-8 overflow-x-auto">
+      <div className="flex gap-1.5 bg-white rounded-[20px] p-2 shadow-sm w-fit min-w-full sm:min-w-0">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => onChange(t.key)}
+            className={`px-4 py-2.5 rounded-[12px] font-bold text-xs whitespace-nowrap transition-all duration-200 relative flex-shrink-0 ${
+              active === t.key
+                ? "bg-yellow-400 text-white shadow-md"
+                : "text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            {t.label}
+            {t.badge > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -830,10 +833,18 @@ function StudentProfile() {
   const incompleteCount   = persons.filter(p => p.isIncomplete).length;
 
   const TABS = [
-    { key: "overview",  label: "👤 Overview" },
-    { key: "pickup",    label: "🛡️ Pickup Authorization", badge: incompleteCount },
-    { key: "medical",   label: "🏥 Medical" },
-    { key: "notes",     label: "📝 Notes" },
+    { key: "overview",    label: "Overview"    },
+    { key: "parents",     label: "Parents"     },
+    { key: "attendance",  label: "Attendance"  },
+    { key: "food",        label: "Food"        },
+    { key: "naps",        label: "Naps"        },
+    { key: "pickup",      label: "Pickup", badge: incompleteCount },
+    { key: "medical",     label: "Medical"     },
+    { key: "billing",     label: "Billing"     },
+    { key: "finance",     label: "Finance"     },
+    { key: "docs",        label: "Docs"        },
+    { key: "notes",       label: "Notes"       },
+    { key: "timeline",    label: "Timeline"    },
   ];
 
   return (
@@ -943,6 +954,123 @@ function StudentProfile() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: PARENTS ── */}
+        {activeTab === "parents" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Father */}
+              <div className="bg-white rounded-[35px] p-8 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-xl">👨</div>
+                  <h2 className="text-xl font-black text-[#0F172A]">Father</h2>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { label: "Name",      value: student.Father_Name      },
+                    { label: "WhatsApp",  value: student.Father_Whatsapp  },
+                    { label: "Phone",     value: student.Father_Phone     },
+                    { label: "Email",     value: student.Father_Email     },
+                    { label: "Occupation",value: student.Father_Occupation},
+                  ].map(f => f.value ? (
+                    <div key={f.label}>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{f.label}</p>
+                      <p className="text-sm font-bold text-[#0F172A] mt-0.5 break-all">{f.value}</p>
+                    </div>
+                  ) : null)}
+                  {!student.Father_Name && <p className="text-sm text-gray-400 italic">No father details on record.</p>}
+                </div>
+              </div>
+              {/* Mother */}
+              <div className="bg-white rounded-[35px] p-8 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-xl">👩</div>
+                  <h2 className="text-xl font-black text-[#0F172A]">Mother</h2>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { label: "Name",      value: student.Mother_Name      },
+                    { label: "WhatsApp",  value: student.Mother_Whatsapp  },
+                    { label: "Phone",     value: student.Mother_Phone     },
+                    { label: "Email",     value: student.Mother_Email     },
+                    { label: "Occupation",value: student.Mother_Occupation},
+                  ].map(f => f.value ? (
+                    <div key={f.label}>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{f.label}</p>
+                      <p className="text-sm font-bold text-[#0F172A] mt-0.5 break-all">{f.value}</p>
+                    </div>
+                  ) : null)}
+                  {!student.Mother_Name && <p className="text-sm text-gray-400 italic">No mother details on record.</p>}
+                </div>
+              </div>
+            </div>
+            {/* Address */}
+            {(student.Address || student.City || student.State) && (
+              <div className="bg-white rounded-[35px] p-8 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center text-xl">🏠</div>
+                  <h2 className="text-xl font-black text-[#0F172A]">Home Address</h2>
+                </div>
+                <p className="text-sm font-semibold text-gray-600">
+                  {[student.Address, student.City, student.State, student.Pincode].filter(Boolean).join(", ")}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB: ATTENDANCE ── */}
+        {activeTab === "attendance" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-xl">📅</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Attendance</h2>
+            </div>
+            <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="bg-green-50 rounded-[24px] p-6 text-center">
+                <p className="text-green-500 text-xs font-bold uppercase tracking-wide mb-2">Present</p>
+                <h3 className="text-4xl font-black text-green-700">—</h3>
+              </div>
+              <div className="bg-red-50 rounded-[24px] p-6 text-center">
+                <p className="text-red-400 text-xs font-bold uppercase tracking-wide mb-2">Absent</p>
+                <h3 className="text-4xl font-black text-red-600">—</h3>
+              </div>
+              <div className="bg-yellow-50 rounded-[24px] p-6 text-center">
+                <p className="text-yellow-600 text-xs font-bold uppercase tracking-wide mb-2">Attendance %</p>
+                <h3 className="text-4xl font-black text-yellow-700">—</h3>
+              </div>
+            </div>
+            <p className="text-center text-sm text-gray-400 italic">Full attendance calendar coming soon.</p>
+          </div>
+        )}
+
+        {/* ── TAB: FOOD ── */}
+        {activeTab === "food" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-xl">🍱</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Food &amp; Meals</h2>
+            </div>
+            <p className="text-gray-400">Meal consumption records for this student will appear here.</p>
+            <div className="mt-8 bg-orange-50 rounded-[24px] p-8 text-orange-400 italic text-center text-sm">
+              Meal tracking coming soon.
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: NAPS ── */}
+        {activeTab === "naps" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-xl">😴</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Nap Tracker</h2>
+            </div>
+            <p className="text-gray-400">Nap logs and sleep records for this student will appear here.</p>
+            <div className="mt-8 bg-purple-50 rounded-[24px] p-8 text-purple-400 italic text-center text-sm">
+              Nap history coming soon.
             </div>
           </div>
         )}
@@ -1152,6 +1280,51 @@ function StudentProfile() {
           </div>
         )}
 
+        {/* ── TAB: BILLING ── */}
+        {activeTab === "billing" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-yellow-50 flex items-center justify-center text-xl">🧾</div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Billing</h2>
+              </div>
+              <a
+                href="/invoice"
+                className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold text-sm px-5 py-2.5 rounded-2xl transition-all"
+              >
+                + New Invoice
+              </a>
+            </div>
+            <p className="text-gray-400 text-sm mb-6">
+              Create and manage invoices for this student. Use the Finance tab for ledger, statement, and payment history.
+            </p>
+            <div className="grid grid-cols-2 gap-5">
+              <a href="/invoice" className="flex items-center gap-4 p-5 rounded-[24px] border border-gray-100 hover:border-yellow-300 hover:shadow-md transition-all group">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-xl group-hover:bg-blue-100 transition-colors">📄</div>
+                <div>
+                  <p className="font-black text-[#0F172A] text-sm">View All Invoices</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Open full invoice management</p>
+                </div>
+              </a>
+              <a href="/fees" className="flex items-center gap-4 p-5 rounded-[24px] border border-gray-100 hover:border-yellow-300 hover:shadow-md transition-all group">
+                <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-xl group-hover:bg-green-100 transition-colors">💰</div>
+                <div>
+                  <p className="font-black text-[#0F172A] text-sm">Fee Templates</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Manage fee structures</p>
+                </div>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: FINANCE ── */}
+        {activeTab === "finance" && (
+          <ParentLedger
+            studentId={studentId}
+            studentName={student?.Student_Name}
+          />
+        )}
+
         {/* ── TAB: MEDICAL ── */}
         {activeTab === "medical" && (
           <div className="bg-white rounded-[35px] p-10 shadow-sm">
@@ -1174,13 +1347,59 @@ function StudentProfile() {
           </div>
         )}
 
+        {/* ── TAB: DOCS ── */}
+        {activeTab === "docs" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-xl">📁</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Documents</h2>
+            </div>
+            <p className="text-gray-400 mb-6">Birth certificate, vaccination records, admission forms and other documents.</p>
+            <div className="mt-4 bg-indigo-50 rounded-[24px] p-8 text-indigo-300 italic text-center text-sm">
+              Document uploads coming soon.
+            </div>
+          </div>
+        )}
+
         {/* ── TAB: NOTES ── */}
         {activeTab === "notes" && (
           <div className="bg-white rounded-[35px] p-10 shadow-sm">
-            <h2 className="text-3xl font-black text-[#0F172A] mb-4">Notes</h2>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-xl">📝</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Notes</h2>
+            </div>
             <p className="text-gray-400">Staff notes and observations about the student will appear here.</p>
             <div className="mt-8 bg-gray-50 rounded-[24px] p-8 text-gray-400 italic text-center">
               No notes added yet.
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: TIMELINE ── */}
+        {activeTab === "timeline" && (
+          <div className="bg-white rounded-[35px] p-10 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center text-xl">🕐</div>
+              <h2 className="text-2xl font-black text-[#0F172A]">Timeline</h2>
+            </div>
+            <p className="text-gray-400 mb-6">Chronological activity log — admissions, fee events, updates, milestones.</p>
+            <div className="space-y-0">
+              {[
+                { icon: "🎓", color: "bg-yellow-100 text-yellow-600", label: "Admission", desc: `Admitted to ${student.Class || "—"}`, date: student.Admission_Date },
+              ].filter(e => e.date).map((e, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-base flex-shrink-0 ${e.color}`}>{e.icon}</div>
+                    <div className="w-px flex-1 bg-gray-100 mt-1" />
+                  </div>
+                  <div className="pb-6 pt-1.5">
+                    <p className="font-bold text-sm text-[#0F172A]">{e.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{e.desc}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{e.date}</p>
+                  </div>
+                </div>
+              ))}
+              <div className="mt-4 text-center text-sm text-gray-400 italic">Full activity timeline coming soon.</div>
             </div>
           </div>
         )}

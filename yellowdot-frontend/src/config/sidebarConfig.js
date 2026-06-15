@@ -108,6 +108,51 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Academics ──────────────────────────────────────────────────────────────
+  {
+    id:          "academics",
+    label:       "Academics",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "academics_classes",
+        label:    "Classes",
+        path:     "/academics/classes",
+        routeKey: ROUTES.ACADEMICS_CLASSES,
+        icon:     "BookOpen",
+      },
+      {
+        id:       "academics_batches",
+        label:    "Batches",
+        path:     "/academics/batches",
+        routeKey: ROUTES.ACADEMICS_BATCHES,
+        icon:     "Layers",
+      },
+      {
+        id:       "academics_teacher_allocation",
+        label:    "Teacher Allocation",
+        path:     "/academics/teacher-allocation",
+        routeKey: ROUTES.ACADEMICS_TEACHER_ALLOCATION,
+        icon:     "Briefcase",
+      },
+      {
+        id:       "academics_classroom_allocation",
+        label:    "Classroom Allocation",
+        path:     "/academics/classroom-allocation",
+        routeKey: ROUTES.ACADEMICS_CLASSROOM_ALLOCATION,
+        icon:     "Grid",
+      },
+      {
+        id:       "academics_student_allocation",
+        label:    "Student Enrollment",
+        path:     "/academics/student-allocation",
+        routeKey: ROUTES.ACADEMICS_STUDENT_ALLOCATION,
+        icon:     "UserCheck",
+      },
+    ],
+  },
+
   // ── Finance ────────────────────────────────────────────────────────────────
   {
     id:          "finance",
@@ -121,6 +166,13 @@ export const SIDEBAR_GROUPS = [
         path:     "/fees",
         routeKey: ROUTES.FEES,
         icon:     "CreditCard",
+      },
+      {
+        id:       "collections",
+        label:    "Collections",
+        path:     "/collections",
+        routeKey: ROUTES.FEES,   // reuses Fees permission — no new route key
+        icon:     "BarChart2",
       },
       {
         id:         "invoices",
@@ -167,6 +219,13 @@ export const SIDEBAR_GROUPS = [
         path:     "/food-consumption",
         routeKey: ROUTES.FOOD_CONSUMPTION,
         icon:     "ClipboardList",
+      },
+      {
+        id:       "care_hygiene",
+        label:    "Care & Hygiene",
+        path:     "/care-hygiene",
+        routeKey: ROUTES.CARE_HYGIENE,
+        icon:     "Heart",
       },
     ],
   },

@@ -40,6 +40,8 @@ const STATIC_ROLE_PERMS = {
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
+    "academics-classes","academics-batches",
+    "academics-teacher-allocation","academics-classroom-allocation",
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -47,6 +49,8 @@ const STATIC_ROLE_PERMS = {
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
+    "academics-classes","academics-batches",
+    "academics-teacher-allocation","academics-classroom-allocation",
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -54,11 +58,14 @@ const STATIC_ROLE_PERMS = {
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements","cctv",
+    "academics-classes","academics-batches",
+    "academics-teacher-allocation","academics-classroom-allocation",
   ],
   teacher: [
     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
     "students","parent-checkin","profile",
     "holidays","notices","announcements",
+    "academics-classes","academics-batches",
   ],
   accountant: [
     "dashboard","fees","invoice","analytics","students","profile",
@@ -96,6 +103,8 @@ const MODULE_ROUTE_MAP = {
   parent_app:        ["parent-checkin"],
   documents:         [],
   communications:    ["holidays","notices","announcements"],
+  academics:         ["academics-classes","academics-batches",
+                      "academics-teacher-allocation","academics-classroom-allocation"],
 };
 
 // ── Derive route keys from granular permission matrix ─────────────────────────

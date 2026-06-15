@@ -13,6 +13,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import ParentLedger from "../components/ParentLedger";
 import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -1094,75 +1095,17 @@ function MedicalTab({ student, toast }) {
 }
 
 // ── Billing Tab ───────────────────────────────────────────────────
+// Primary UI is <ParentLedger> (Summary · Ledger · Invoices · Payments
+// + Export CSV / Print Statement). The legacy Total Paid / Outstanding
+// cards and inline invoice list were removed — that data now lives in
+// the ledger's Summary and Invoices sub-tabs.
 function BillingTab({ student }) {
-  const [invoices, setInvoices] = useState([]);
-  const [loading,  setLoading ] = useState(true);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    get("/api/invoices")
-      .then(res => {
-        if (!mountedRef.current) return;
-        const allInv = res.success ? (res.invoices || []) : (Array.isArray(res) ? res : []);
-        const filtered = allInv.filter(inv => (inv.studentId || inv.Student_ID || "") === student.Student_ID);
-        setInvoices(filtered);
-      })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setLoading(false); });
-    return () => { mountedRef.current = false; };
-  }, [student.Student_ID]);
-
-  const totalPaid = invoices.reduce((s, i) => s + (Number(i.paidAmount || i.Paid_Amount) || 0), 0);
-  const totalDue  = invoices.reduce((s, i) => s + (Number(i.balance    || i.Balance)     || 0), 0);
-
   return (
-    <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-gray-900">Billing & Invoices</h3>
+    <div className="p-4">
+      <div className="flex items-center justify-end">
         <Link to="/generate-invoice" className="px-2.5 py-1 bg-yd-yellow text-[#1f1f1f] rounded-lg text-[11px] font-bold hover:bg-yd-yellow-dark shadow-sm">+ Invoice</Link>
       </div>
-      {loading
-        ? <div className="space-y-1">{[...Array(3)].map((_,i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse"/>)}</div>
-        : (<>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-              <p className="text-xl font-black text-emerald-700">₹{totalPaid.toFixed(0)}</p>
-              <p className="text-[10px] font-bold text-emerald-600 mt-0.5">Total Paid</p>
-            </div>
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center">
-              <p className="text-xl font-black text-rose-700">₹{totalDue.toFixed(0)}</p>
-              <p className="text-[10px] font-bold text-rose-600 mt-0.5">Outstanding</p>
-            </div>
-          </div>
-          {invoices.length === 0
-            ? <div className="text-center py-8 text-gray-400"><div className="text-3xl mb-2">📄</div><p className="text-xs font-semibold">No invoices yet</p></div>
-            : <div className="space-y-1 max-h-64 overflow-y-auto">
-                {invoices.slice(0, 20).map((inv, i) => {
-                  const status = inv.status || inv.Payment_Status || "Pending";
-                  const paid   = status === "Paid";
-                  const num    = inv.invoiceNumber || inv.Invoice_Number || "";
-                  const fee    = inv.feeType       || inv.Fees_Type     || "";
-                  const total  = Number(inv.totalAmount || inv.Total_Amount) || 0;
-                  return (
-                    <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full border
-                        ${paid ? "bg-yd-success-soft text-yd-success border-yd-success-border"
-                        : status === "Overdue" ? "bg-yd-danger-soft text-yd-danger border-yd-danger-border"
-                        : status === "Partial" ? "bg-yd-info-soft text-yd-info border-yd-info-border"
-                        : "bg-amber-100 text-amber-700 border-amber-200"}`}>{status}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-700 truncate">{num}</p>
-                        <p className="text-[10px] text-gray-400">{fee}</p>
-                      </div>
-                      <span className="text-xs font-black text-gray-900">₹{total.toLocaleString("en-IN")}</span>
-                    </div>
-                  );
-                })}
-              </div>
-          }
-        </>)
-      }
+      <ParentLedger student={student} />
     </div>
   );
 }

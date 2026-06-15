@@ -32,6 +32,7 @@ const KIND_META = {
   nap:         { tint: colors.yellow50,    ring: colors.yellow200 },
   consumption: { tint: colors.yellow100,   ring: colors.yellow200 },
   memory:      { tint: colors.yellow200,   ring: colors.yellow300 },
+  care:        { tint: colors.infoSoft,    ring: colors.infoBorder },
 };
 
 const SEEN_PREFIX = "yd_feed_seen_";

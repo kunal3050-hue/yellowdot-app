@@ -92,4 +92,34 @@ export async function getHolidays(year) {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays };
+// Care & Hygiene (read-only, one linked child)
+export async function getCareLog(studentId, date) {
+  const params = {};
+  if (studentId) params.studentId = studentId;
+  if (date) params.date = date;
+  const { data } = await api.get("/api/parent/care", { params });
+  return data;
+}
+
+// Notifications
+export async function getNotifications(params = {}) {
+  const { data } = await api.get("/api/parent/notifications", { params });
+  return data;
+}
+
+export async function getUnreadNotificationCount() {
+  const { data } = await api.get("/api/parent/notifications/unread-count");
+  return data.count ?? 0;
+}
+
+export async function markNotificationRead(id) {
+  const { data } = await api.patch(`/api/parent/notifications/${id}/read`);
+  return data;
+}
+
+export async function markAllNotificationsRead() {
+  const { data } = await api.patch("/api/parent/notifications/read-all");
+  return data;
+}
+
+export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
