@@ -1,6 +1,32 @@
 {
   "indexes": [
     {
+      "collectionGroup": "careLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",  "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "ASCENDING" },
+        { "fieldPath": "loggedAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "careLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",   "order": "ASCENDING" },
+        { "fieldPath": "studentId",  "order": "ASCENDING" },
+        { "fieldPath": "loggedAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "careLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",  "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [

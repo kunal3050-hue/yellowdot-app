@@ -72,24 +72,22 @@ async function logCare({ studentId, studentName, class: cls, type, notes, logged
 
 /**
  * Fetch care logs for a child or classroom.
- * Filters: studentId, date, from, to, type, centerId.
+ * Uses a single Firestore equality filter (schoolId) to avoid
+ * composite-index requirements. All other filtering is done in memory.
  */
-async function getCareHistory({ studentId, date, from, to, type, centerId, limit: lim = 100, schoolId = SCHOOL_ID } = {}) {
-  let q = col().where("schoolId", "==", schoolId);
-  if (studentId) q = q.where("studentId", "==", studentId);
-  if (date)      q = q.where("date",      "==", date);
-  if (from && !date) q = q.where("date",  ">=", from);
-  if (to   && !date) q = q.where("date",  "<=", to);
+async function getCareHistory({ studentId, date, from, to, type, centerId, limit: lim = 500, schoolId = SCHOOL_ID } = {}) {
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  let records = snap.docs.map(docToLog);
 
-  q = q.orderBy("loggedAt", "desc").limit(Number(lim) || 100);
+  if (studentId) records = records.filter(r => r.studentId === studentId);
+  if (date)      records = records.filter(r => r.date === date);
+  if (from && !date) records = records.filter(r => r.date >= from);
+  if (to   && !date) records = records.filter(r => r.date <= to);
+  if (type)      records = records.filter(r => r.type === type);
+  if (centerId)  records = records.filter(r => r.centerId === centerId);
 
-  const snap    = await q.get();
-  let records   = snap.docs.map(docToLog);
-
-  if (type)     records = records.filter(r => r.type === type);
-  if (centerId) records = records.filter(r => r.centerId === centerId);
-
-  return records;
+  records.sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
+  return records.slice(0, Number(lim) || 500);
 }
 
 /**
@@ -97,9 +95,8 @@ async function getCareHistory({ studentId, date, from, to, type, centerId, limit
  */
 async function getDailySummary({ date, centerId, schoolId = SCHOOL_ID } = {}) {
   const d  = date || todayISO();
-  const q  = col().where("schoolId", "==", schoolId).where("date", "==", d);
-  const snap = await q.get();
-  let records = snap.docs.map(docToLog);
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  let records = snap.docs.map(docToLog).filter(r => r.date === d);
   if (centerId) records = records.filter(r => r.centerId === centerId);
 
   const counts = { Urine: 0, Motion: 0, Both: 0, "Diaper Change": 0, "Toilet Visit": 0, Accident: 0, "Water Refilled": 0 };
