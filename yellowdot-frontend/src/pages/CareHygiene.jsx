@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import { logCare, getCareHistory, getCareSummary } from "../services/careService";
-import { auth } from "../firebase/firebase";
+import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
 
 // ─────────────────────────────────────────────────────────────────
@@ -209,11 +209,8 @@ export default function CareHygiene() {
     if (!mountedRef.current) return;
     setLoading(true); setBootError(false);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      const BASE  = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
       const [studRes, histRes, sumRes] = await Promise.all([
-        fetch(`${BASE}/students`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        api({ method: "GET", url: "/students" }).then(r => r.data),
         getCareHistory({ date: todayISO(), limit: 500 }),
         getCareSummary({ date: todayISO() }),
       ]);
