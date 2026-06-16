@@ -2,9 +2,10 @@
 // Notices — formal parent communications / circulars
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import communicationService from "../services/communicationService";
+import academicsService from "../services/academicsService";
 
 const NOTICE_TYPES = ["General", "Academic", "Fees", "Transport", "Event", "Safety", "Urgent"];
 
@@ -48,9 +49,123 @@ function timeAgo(isoStr) {
   return fmtDate(isoStr);
 }
 
+// ── ClassBadges ───────────────────────────────────────────────────────────────
+
+function ClassBadges({ notice, classMap }) {
+  if (notice.appliesTo === "selected") {
+    const ids = notice.classIds || [];
+    if (ids.length === 0) return null;
+    return (
+      <>
+        {ids.slice(0, 3).map(id => (
+          <span key={id}
+            className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#edf4ff] text-[#2563b8] text-[10px] font-semibold border border-[#bfdbfe]">
+            {classMap[id] || id}
+          </span>
+        ))}
+        {ids.length > 3 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#F1F1F1] text-[#6b7280] text-[10px] font-semibold border border-[#e5e7eb]">
+            +{ids.length - 3} more
+          </span>
+        )}
+      </>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#f0fdf4] text-[#15803d] text-[10px] font-semibold border border-[#bbf7d0]">
+      All Classes
+    </span>
+  );
+}
+
+// ── ClassMultiSelect ──────────────────────────────────────────────────────────
+
+function ClassMultiSelect({ classes, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const toggle = (id) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter(x => x !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const label = selectedIds.length === 0
+    ? "Select classes…"
+    : selectedIds.length === 1
+      ? (classes.find(c => c.id === selectedIds[0])?.name || selectedIds[0])
+      : `${selectedIds.length} classes selected`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all
+          ${open ? "ring-2 ring-[#f4c430]/35 border-[#c9a830]/60" : "border-[#F1F1F1]"}
+          bg-white text-left`}>
+        <span className={selectedIds.length === 0 ? "text-[#c4b090]" : "text-[#2a1c06] font-medium"}>
+          {label}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b090" strokeWidth="2.5" strokeLinecap="round"
+          className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-white border border-[#F1F1F1] rounded-2xl shadow-xl overflow-hidden"
+          style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.10)" }}>
+          <div className="max-h-48 overflow-y-auto py-1.5">
+            {classes.length === 0 ? (
+              <div className="px-4 py-3 text-[#a3957e] text-sm text-center">No active classes found</div>
+            ) : classes.map(cls => {
+              const checked = selectedIds.includes(cls.id);
+              return (
+                <button key={cls.id} type="button" onClick={() => toggle(cls.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
+                    ${checked ? "bg-[#fffdf0]" : "hover:bg-[#faf8f0]"}`}>
+                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-all
+                    ${checked ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {checked && (
+                      <svg width="9" height="9" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4l3 3 5-6" stroke="#5a4010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className={checked ? "text-[#2a1c06] font-semibold" : "text-[#5a4010]"}>{cls.name}</span>
+                  {cls.ageGroup && (
+                    <span className="text-[#a3957e] text-[11px] ml-auto">{cls.ageGroup}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {selectedIds.length > 0 && (
+            <div className="px-4 py-2 border-t border-[#F1F1F1]">
+              <button type="button" onClick={() => onChange([])}
+                className="text-[11px] font-semibold text-[#a3957e] hover:text-[#7a5e18] transition-colors">
+                Clear selection
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── NoticeCard ────────────────────────────────────────────────────────────────
 
-function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
+function NoticeCard({ notice, onEdit, onDelete, onPublish, classMap }) {
   const typeStyle   = TYPE_STYLE[notice.type]   || TYPE_STYLE["General"];
   const statusStyle = STATUS_STYLE[notice.status]|| STATUS_STYLE["draft"];
 
@@ -71,6 +186,7 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
               Ack. required
             </span>
           )}
+          <ClassBadges notice={notice} classMap={classMap} />
         </div>
         <span className="text-[10px] text-[#c4b090] font-normal flex-shrink-0">{timeAgo(notice.createdAt)}</span>
       </div>
@@ -126,23 +242,42 @@ function NoticeCard({ notice, onEdit, onDelete, onPublish }) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-const EMPTY = { title: "", body: "", type: "General", status: "draft", publishAt: "", expiresAt: "", requireAck: false };
+const EMPTY = {
+  title: "", body: "", type: "General", status: "draft",
+  publishAt: "", expiresAt: "", requireAck: false,
+  appliesTo: "all", classIds: [],
+};
 
 function NoticeModal({ initial, onSave, onClose }) {
   const [form, setForm] = useState(initial ? {
     ...EMPTY, ...initial,
     publishAt: initial.publishAt ? initial.publishAt.slice(0,16) : "",
     expiresAt: initial.expiresAt ? initial.expiresAt.slice(0,16) : "",
+    appliesTo: initial.appliesTo || "all",
+    classIds:  initial.classIds  || [],
   } : EMPTY);
-  const [saving, setSaving] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [classes, setClasses] = useState([]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    try { await onSave(form); }
+    const payload = {
+      ...form,
+      classIds: form.appliesTo === "all" ? [] : form.classIds,
+    };
+    try { await onSave(payload); }
     finally { setSaving(false); }
   };
+
+  const canSave = form.title.trim() && !(form.appliesTo === "selected" && form.classIds.length === 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -177,12 +312,48 @@ function NoticeModal({ initial, onSave, onClose }) {
               className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
           </div>
 
-          {/* Body */}
+          {/* Content */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Content</label>
             <textarea value={form.body} onChange={e => set("body", e.target.value)}
               rows={5} placeholder="Write the notice content…"
               className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
+          </div>
+
+          {/* Affected Classes */}
+          <div>
+            <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">
+              Affected Classes *
+            </label>
+            <div className="flex gap-3 mb-3">
+              {[
+                { value: "all",      label: "All Classes" },
+                { value: "selected", label: "Selected Classes" },
+              ].map(({ value, label }) => (
+                <button key={value} type="button"
+                  onClick={() => set("appliesTo", value)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all flex-1 justify-center
+                    ${form.appliesTo === value
+                      ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
+                      : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
+                    }`}>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${form.appliesTo === value ? "border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {form.appliesTo === value && (
+                      <div className="w-2 h-2 rounded-full bg-[#c9a830]" />
+                    )}
+                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {form.appliesTo === "selected" && (
+              <ClassMultiSelect
+                classes={classes}
+                selectedIds={form.classIds}
+                onChange={ids => set("classIds", ids)}
+              />
+            )}
           </div>
 
           {/* Type + Status */}
@@ -245,7 +416,7 @@ function NoticeModal({ initial, onSave, onClose }) {
             className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving || !form.title.trim()}
+          <button onClick={handleSave} disabled={saving || !canSave}
             className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-[#5a4010] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
             style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}>
             {saving ? "Saving…" : initial ? "Save Changes" : "Create Notice"}
@@ -295,6 +466,7 @@ export default function Notices() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [modal,      setModal]      = useState(null);
   const [search,     setSearch]     = useState("");
+  const [classMap,   setClassMap]   = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -304,6 +476,16 @@ export default function Notices() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(list => {
+        const map = {};
+        list.forEach(c => { map[c.id] = c.name; });
+        setClassMap(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async (form) => {
     if (modal.mode === "edit") {
@@ -418,7 +600,7 @@ export default function Notices() {
             <div className="max-w-4xl columns-1 md:columns-2" style={{ columnGap: "1.25rem" }}>
               {filtered.map(n => (
                 <div key={n.id} className="mb-4 break-inside-avoid">
-                  <NoticeCard notice={n}
+                  <NoticeCard notice={n} classMap={classMap}
                     onEdit={n => setModal({ mode: "edit", data: n })}
                     onDelete={handleDelete}
                     onPublish={handlePublish}

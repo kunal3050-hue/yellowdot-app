@@ -89,6 +89,8 @@ async function createNotice(data, { schoolId = SCHOOL_ID, actorUserId = "system"
     publishAt:   data.publishAt  || null,
     expiresAt:   data.expiresAt  || null,
     requireAck:  data.requireAck ?? false,
+    appliesTo:   data.appliesTo  || "all",
+    classIds:    data.classIds   || [],
     audience:    data.audience   || { classes: [], centers: [] },
     attachments: data.attachments || [],
     createdAt:   nowISO(),

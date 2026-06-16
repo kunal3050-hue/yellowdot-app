@@ -84,7 +84,7 @@ function mapNoticeEvent(n) {
  * @param {{schoolId?: string}} opts
  * @returns {Promise<Array>} feed items, newest first
  */
-async function getFeed({ schoolId = DEFAULT_SCHOOL_ID } = {}) {
+async function getFeed({ schoolId = DEFAULT_SCHOOL_ID, studentClassId } = {}) {
   const [announcements, holidays, notices] = await Promise.all([
     comms.getAnnouncements({ schoolId }),
     comms.getHolidays({ schoolId }),
@@ -95,8 +95,16 @@ async function getFeed({ schoolId = DEFAULT_SCHOOL_ID } = {}) {
   // Holidays are measured from endDate (still "upcoming" until they end).
   const visibleHolidays = holidays.filter(h =>
     isEventVisible(pickDate(h.endDate, h.startDate, h.createdAt)));
-  const visibleEventNotices = notices.filter(n =>
-    n.status !== "draft" && isEventVisible(pickDate(n.publishAt, n.createdAt)));
+  const visibleEventNotices = notices.filter(n => {
+    if (n.status === "draft") return false;
+    if (!isEventVisible(pickDate(n.publishAt, n.createdAt))) return false;
+    const appliesTo = n.appliesTo || "all";
+    if (appliesTo === "selected") {
+      if (!studentClassId) return true;
+      return (n.classIds || []).includes(studentClassId);
+    }
+    return true;
+  });
 
   const feed = [
     ...announcements.map(mapAnnouncement),

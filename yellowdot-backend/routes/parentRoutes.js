@@ -29,6 +29,7 @@ const parentFoodMenuSvc              = require("../services/parentFoodMenuServic
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
 const parentNapSvc                   = require("../services/parentNapService");
 const parentHolidaysSvc              = require("../services/parentHolidaysService");
+const parentNoticesSvc               = require("../services/parentNoticesService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
 const careSvc                        = require("../services/careService");
@@ -103,13 +104,46 @@ router.get("/api/parent/children", loadParent, async (req, res) => {
 
 // ── GET /api/parent/feed ───────────────────────────────────────────
 // Phase 2 — Home Feed. Merged school content (announcements/activities/events).
+// Resolves the first linked child's classId to filter class-specific event notices.
 router.get("/api/parent/feed", loadParent, async (req, res) => {
   try {
-    const feed = await parentFeedSvc.getFeed({ schoolId: req.parent.schoolId });
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const feed = await parentFeedSvc.getFeed({ schoolId: req.parent.schoolId, studentClassId });
     res.json({ feed });
   } catch (e) {
     console.error("[GET /api/parent/feed]", e.message);
     res.status(500).json({ error: "Failed to load feed." });
+  }
+});
+
+// ── GET /api/parent/notices ────────────────────────────────────────
+// Published notices filtered by the child's class.
+// Query: ?studentId=YD001 (optional; defaults to first linked child).
+router.get("/api/parent/notices", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal — fall back to showing all notices */ }
+    }
+    const data = await parentNoticesSvc.getNoticesView({
+      schoolId:      req.parent.schoolId,
+      studentClassId,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/notices]", e.message);
+    res.status(500).json({ error: "Failed to load notices." });
   }
 });
 
