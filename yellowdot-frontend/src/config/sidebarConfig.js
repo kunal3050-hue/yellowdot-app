@@ -265,6 +265,13 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.EVENTS,
         icon:     "CalendarCheck",
       },
+      {
+        id:       "ptm",
+        label:    "PTM",
+        path:     "/ptm",
+        routeKey: ROUTES.PTM,
+        icon:     "UsersRound",
+      },
     ],
   },
 

@@ -32,6 +32,9 @@ const parentHolidaysSvc              = require("../services/parentHolidaysServic
 const parentNoticesSvc               = require("../services/parentNoticesService");
 const parentEventSvc                 = require("../services/parentEventService");
 const eventSvc                       = require("../services/eventService");
+const parentPtmSvc                   = require("../services/parentPtmService");
+const ptmSvc                         = require("../services/ptmService");
+const notif                          = require("../services/notificationService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
 const careSvc                        = require("../services/careService");
@@ -419,6 +422,104 @@ router.post("/api/parent/events/:id/rsvp", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[POST /api/parent/events/:id/rsvp]", e.message);
     res.status(500).json({ error: "Failed to submit RSVP." });
+  }
+});
+
+// ── GET /api/parent/ptm ────────────────────────────────────────────
+// PTMs visible to this parent's child (class-filtered) with slot + booking info.
+router.get("/api/parent/ptm", loadParent, async (req, res) => {
+  try {
+    const parent = req.parent;
+    const studentId    = req.query.studentId || parent.studentIds?.[0];
+    const SCHOOL_ID    = process.env.SCHOOL_ID || "ydseawoods";
+
+    let studentClassId = null;
+    if (studentId) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || null;
+      } catch { /* class resolution failed — show all */ }
+    }
+
+    const data = await parentPtmSvc.getPtmsView({ schoolId: SCHOOL_ID, studentClassId, studentId, parentId: parent.parentId });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/ptm]", e.message);
+    res.status(500).json({ error: "Failed to load PTMs." });
+  }
+});
+
+// ── POST /api/parent/ptm/:id/book ─────────────────────────────────
+// Book a slot in a PTM for a linked child.
+router.post("/api/parent/ptm/:id/book", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const { studentId, slotId } = req.body;
+    if (!studentId || !slotId) return res.status(400).json({ error: "studentId and slotId are required" });
+
+    // Ensure student belongs to this parent
+    if (!parent.studentIds?.includes(studentId)) {
+      return res.status(403).json({ error: "Student not linked to this account." });
+    }
+
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!ptm) return res.status(404).json({ error: "PTM not found" });
+
+    const booking = await ptmSvc.bookSlot({ ptmId: ptm.id, slotId, studentId, parentId: parent.parentId });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(studentId, SCHOOL_ID, {
+        type:     notif.TYPES.PTM_BOOKED,
+        title:    `PTM Slot Booked`,
+        message:  `Your slot for "${ptm.title}" has been confirmed.`,
+        deepLink: "/parent-ptm",
+      })
+    );
+
+    res.status(201).json({ booking });
+  } catch (e) {
+    console.error("[POST /api/parent/ptm/:id/book]", e.message);
+    const status = e.message.includes("not available") || e.message.includes("Already has") ? 409 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
+// ── PATCH /api/parent/ptm/bookings/:bookingId/reschedule ───────────
+router.patch("/api/parent/ptm/bookings/:bookingId/reschedule", loadParent, async (req, res) => {
+  try {
+    const { newSlotId } = req.body;
+    if (!newSlotId) return res.status(400).json({ error: "newSlotId is required" });
+
+    const booking = await ptmSvc.rescheduleBooking(req.params.bookingId, newSlotId, { parentId: req.parent.parentId });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(booking.studentId, SCHOOL_ID, {
+        type:     notif.TYPES.PTM_RESCHEDULED,
+        title:    "PTM Slot Rescheduled",
+        message:  "Your PTM appointment has been rescheduled successfully.",
+        deepLink: "/parent-ptm",
+      })
+    );
+
+    res.json({ booking });
+  } catch (e) {
+    console.error("[PATCH /api/parent/ptm/bookings/:bookingId/reschedule]", e.message);
+    const status = e.message.includes("not found") ? 404 : e.message.includes("not available") ? 409 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
+// ── DELETE /api/parent/ptm/bookings/:bookingId ────────────────────
+router.delete("/api/parent/ptm/bookings/:bookingId", loadParent, async (req, res) => {
+  try {
+    await ptmSvc.cancelBooking(req.params.bookingId, { parentId: req.parent.parentId });
+    res.json({ success: true });
+  } catch (e) {
+    console.error("[DELETE /api/parent/ptm/bookings/:bookingId]", e.message);
+    const status = e.message.includes("not found") ? 404 : 500;
+    res.status(status).json({ error: e.message });
   }
 });
 

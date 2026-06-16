@@ -198,6 +198,14 @@ const ICONS = {
       <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" strokeWidth="2" />
     </svg>
   ),
+  // UsersRound — PTM
+  UsersRound: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <path d="M18 21a8 8 0 0 0-16 0" />
+      <circle cx="10" cy="8" r="5" />
+      <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+    </svg>
+  ),
   // CalendarCheck — events
   CalendarCheck: () => (
     <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>

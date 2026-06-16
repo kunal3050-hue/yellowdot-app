@@ -67,6 +67,7 @@ const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
 const Events              = lazy(() => import("./pages/Events"));
+const PTM                 = lazy(() => import("./pages/PTM"));
 
 function App() {
   return (
@@ -433,6 +434,14 @@ function App() {
               element={
                 <ProtectedRoute routeKey="events">
                   <Events />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ptm"
+              element={
+                <ProtectedRoute routeKey="ptm">
+                  <PTM />
                 </ProtectedRoute>
               }
             />

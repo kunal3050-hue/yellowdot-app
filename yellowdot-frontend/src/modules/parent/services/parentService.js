@@ -119,6 +119,29 @@ export async function submitRsvp(eventId, studentId, response) {
 }
 
 // Care & Hygiene (read-only, one linked child)
+// PTM (Parent-Teacher Meetings)
+export async function getPtms(studentId) {
+  const params = {};
+  if (studentId) params.studentId = studentId;
+  const { data } = await api.get("/api/parent/ptm", { params });
+  return data;
+}
+
+export async function bookPtmSlot(ptmId, studentId, slotId) {
+  const { data } = await api.post(`/api/parent/ptm/${ptmId}/book`, { studentId, slotId });
+  return data;
+}
+
+export async function reschedulePtmBooking(bookingId, newSlotId) {
+  const { data } = await api.patch(`/api/parent/ptm/bookings/${bookingId}/reschedule`, { newSlotId });
+  return data;
+}
+
+export async function cancelPtmBooking(bookingId) {
+  const { data } = await api.delete(`/api/parent/ptm/bookings/${bookingId}`);
+  return data;
+}
+
 export async function getCareLog(studentId, date) {
   const params = {};
   if (studentId) params.studentId = studentId;
@@ -148,4 +171,4 @@ export async function markAllNotificationsRead() {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
+export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getPtms, bookPtmSlot, reschedulePtmBooking, cancelPtmBooking, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
