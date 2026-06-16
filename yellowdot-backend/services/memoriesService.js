@@ -18,7 +18,8 @@
 const { db } = require("../firebaseAdmin");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
-const col = () => db.collection("memories");
+const col    = () => db.collection("memories");
+const nowISO = () => new Date().toISOString();
 
 function toMemory(snap) {
   const d  = snap.data ? snap.data() : snap;
@@ -57,4 +58,44 @@ async function getForChildren({ schoolId = SCHOOL_ID, studentIds = [], studentId
   return list.slice(0, Number(limit) || 100);
 }
 
-module.exports = { getForChildren };
+/**
+ * Create a new memory (staff-only).
+ */
+async function createMemory(data, { schoolId = SCHOOL_ID, actorUserId = "system" } = {}) {
+  const {
+    studentId, studentName = "", centerId = "",
+    type = "photo", mediaUrl = "", thumbnailUrl = "",
+    caption = "", date,
+  } = data;
+
+  if (!studentId) throw new Error("studentId is required.");
+  if (!mediaUrl)  throw new Error("mediaUrl is required.");
+
+  const doc = {
+    schoolId,
+    studentId,
+    studentName,
+    centerId,
+    type:         type === "video" ? "video" : "photo",
+    mediaUrl,
+    thumbnailUrl: thumbnailUrl || mediaUrl,
+    caption,
+    date:         date || nowISO().slice(0, 10),
+    createdAt:    nowISO(),
+    updatedAt:    nowISO(),
+    createdBy:    actorUserId,
+  };
+
+  const ref = await col().add(doc);
+  return { id: ref.id, ...doc };
+}
+
+/**
+ * Delete a memory by id.
+ */
+async function deleteMemory(id) {
+  await col().doc(id).delete();
+  return true;
+}
+
+module.exports = { getForChildren, createMemory, deleteMemory };

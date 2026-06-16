@@ -108,6 +108,51 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Academics ──────────────────────────────────────────────────────────────
+  {
+    id:          "academics",
+    label:       "Academics",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "academics_classes",
+        label:    "Classes",
+        path:     "/academics/classes",
+        routeKey: ROUTES.ACADEMICS_CLASSES,
+        icon:     "BookOpen",
+      },
+      {
+        id:       "academics_batches",
+        label:    "Batches",
+        path:     "/academics/batches",
+        routeKey: ROUTES.ACADEMICS_BATCHES,
+        icon:     "Layers",
+      },
+      {
+        id:       "academics_teacher_allocation",
+        label:    "Teacher Allocation",
+        path:     "/academics/teacher-allocation",
+        routeKey: ROUTES.ACADEMICS_TEACHER_ALLOCATION,
+        icon:     "Briefcase",
+      },
+      {
+        id:       "academics_classroom_allocation",
+        label:    "Classroom Allocation",
+        path:     "/academics/classroom-allocation",
+        routeKey: ROUTES.ACADEMICS_CLASSROOM_ALLOCATION,
+        icon:     "Grid",
+      },
+      {
+        id:       "academics_student_allocation",
+        label:    "Student Enrollment",
+        path:     "/academics/student-allocation",
+        routeKey: ROUTES.ACADEMICS_STUDENT_ALLOCATION,
+        icon:     "UserCheck",
+      },
+    ],
+  },
+
   // ── Finance ────────────────────────────────────────────────────────────────
   {
     id:          "finance",
@@ -121,6 +166,13 @@ export const SIDEBAR_GROUPS = [
         path:     "/fees",
         routeKey: ROUTES.FEES,
         icon:     "CreditCard",
+      },
+      {
+        id:       "collections",
+        label:    "Collections",
+        path:     "/collections",
+        routeKey: ROUTES.FEES,   // reuses Fees permission — no new route key
+        icon:     "BarChart2",
       },
       {
         id:         "invoices",
@@ -168,6 +220,13 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.FOOD_CONSUMPTION,
         icon:     "ClipboardList",
       },
+      {
+        id:       "care_hygiene",
+        label:    "Care & Hygiene",
+        path:     "/care-hygiene",
+        routeKey: ROUTES.CARE_HYGIENE,
+        icon:     "Heart",
+      },
     ],
   },
 
@@ -199,53 +258,43 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.ANNOUNCEMENTS,
         icon:     "Megaphone",
       },
+      {
+        id:       "events",
+        label:    "Events",
+        path:     "/events",
+        routeKey: ROUTES.EVENTS,
+        icon:     "CalendarCheck",
+      },
+      {
+        id:       "ptm",
+        label:    "PTM",
+        path:     "/ptm",
+        routeKey: ROUTES.PTM,
+        icon:     "UsersRound",
+      },
     ],
   },
 
-  // ── Presence & Safety ──────────────────────────────────────────────────────
-  // Groups all in-person attendance and safety items.
-  // Future additions: Staff Attendance QR, Visitor Management.
+  // ── Safety & Compliance ────────────────────────────────────────────────────
   {
     id:          "presence_safety",
-    label:       "Presence & Safety",
+    label:       "Safety & Compliance",
     collapsible: true,
     defaultOpen: true,
     items: [
       {
-        id:       "attendance",
-        label:    "Attendance",
-        path:     "/attendance",
+        id:       "incidents",
+        label:    "Incident Reports",
+        path:     "/incidents",
+        routeKey: ROUTES.INCIDENTS,
+        icon:     "AlertTriangle",
+      },
+      {
+        id:       "child_presence",
+        label:    "Child Presence",
+        path:     "/child-presence",
         routeKey: ROUTES.ATTENDANCE,
-        icon:     "Calendar",
-      },
-      {
-        id:       "parent_entry",
-        label:    "Parent Entry",
-        path:     "/parent-checkin",
-        routeKey: ROUTES.PARENT_CHECKIN,
-        icon:     "CheckSquare",
-      },
-      {
-        id:         "pickup",
-        label:      "Pickup",
-        path:       "/pickup-authorization",
-        routeKey:   ROUTES.PICKUP_AUTHORIZATION,
-        icon:       "Car",
-        matchPaths: ["/pickup-authorization", "/pickup-history"],
-      },
-      {
-        id:       "staff_checkout",
-        label:    "Staff Checkout",
-        path:     "/staff-checkout",
-        routeKey: ROUTES.STAFF_CHECKOUT,
-        icon:     "LogOut",
-      },
-      {
-        id:       "qr_management",
-        label:    "QR Management",
-        path:     "/qr-management",
-        routeKey: ROUTES.QR_MANAGEMENT,
-        icon:     "QrCode",
+        icon:     "UserCheck",
       },
     ],
   },

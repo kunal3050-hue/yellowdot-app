@@ -30,9 +30,11 @@ const EditStudent         = lazy(() => import("./pages/EditStudent"));
 const StudentProfile      = lazy(() => import("./pages/StudentProfile"));
 
 const Attendance          = lazy(() => import("./pages/Attendance"));
+const ChildPresence       = lazy(() => import("./pages/ChildPresence"));
 const NapTracker          = lazy(() => import("./pages/NapTracker"));
 const FoodMenu            = lazy(() => import("./pages/FoodMenu"));
 const FoodConsumption     = lazy(() => import("./pages/FoodConsumption"));
+const CareHygiene         = lazy(() => import("./pages/CareHygiene"));
 
 const Fees                = lazy(() => import("./pages/Fees"));
 const Invoice             = lazy(() => import("./pages/Invoice"));
@@ -56,9 +58,18 @@ const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
 const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
 const QRManagement        = lazy(() => import("./pages/QRManagement"));
+const AcademicsClasses            = lazy(() => import("./pages/academics/AcademicsClasses"));
+const AcademicsBatches            = lazy(() => import("./pages/academics/AcademicsBatches"));
+const AcademicsTeacherAllocation  = lazy(() => import("./pages/academics/AcademicsTeacherAllocation"));
+const AcademicsClassroomAllocation= lazy(() => import("./pages/academics/AcademicsClassroomAllocation"));
+const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/AcademicsStudentAllocation"));
+
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
+const Events              = lazy(() => import("./pages/Events"));
+const PTM                 = lazy(() => import("./pages/PTM"));
+const Incidents           = lazy(() => import("./pages/Incidents"));
 
 function App() {
   return (
@@ -222,6 +233,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/care-hygiene"
+              element={
+                <ProtectedRoute routeKey="care-hygiene">
+                  <CareHygiene />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ── Invoices & fees ──────────────────────────────────────────── */}
             <Route
@@ -299,6 +318,16 @@ function App() {
               }
             />
 
+            {/* ── Child Presence (unified: Attendance + Parent Entry + Staff Checkout) */}
+            <Route
+              path="/child-presence"
+              element={
+                <ProtectedRoute routeKey="attendance">
+                  <MainLayout><ChildPresence /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* ── Presence & Safety ────────────────────────────────────────── */}
             <Route
               path="/qr-management"
@@ -345,6 +374,48 @@ function App() {
               }
             />
 
+            {/* ── Academics ────────────────────────────────────────────────── */}
+            <Route
+              path="/academics/classes"
+              element={
+                <ProtectedRoute routeKey="academics-classes">
+                  <MainLayout><AcademicsClasses /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/batches"
+              element={
+                <ProtectedRoute routeKey="academics-batches">
+                  <MainLayout><AcademicsBatches /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/teacher-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-teacher-allocation">
+                  <MainLayout><AcademicsTeacherAllocation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/classroom-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-classroom-allocation">
+                  <MainLayout><AcademicsClassroomAllocation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/academics/student-allocation"
+              element={
+                <ProtectedRoute routeKey="academics-student-allocation">
+                  <MainLayout><AcademicsStudentAllocation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* ── Communication ────────────────────────────────────────────── */}
             <Route
               path="/holidays"
@@ -367,6 +438,30 @@ function App() {
               element={
                 <ProtectedRoute routeKey="announcements">
                   <Announcements />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute routeKey="events">
+                  <Events />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ptm"
+              element={
+                <ProtectedRoute routeKey="ptm">
+                  <PTM />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incidents"
+              element={
+                <ProtectedRoute routeKey="incidents">
+                  <Incidents />
                 </ProtectedRoute>
               }
             />

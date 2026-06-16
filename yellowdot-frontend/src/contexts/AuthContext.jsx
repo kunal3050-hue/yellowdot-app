@@ -130,15 +130,18 @@ export function AuthProvider({ children }) {
   // missing communications permissions, silently re-fetch once per session.
   // This handles users who were already logged in before the backend update.
   const _refreshedRef = useRef(false);
-  const ADMIN_ROLES   = ["admin", "center_owner", "center_admin"];
-  const COMMS_KEYS    = ["holidays", "notices", "announcements"];
+  const ADMIN_ROLES     = ["admin", "center_owner", "center_admin"];
+  const COMMS_KEYS      = ["holidays", "notices", "announcements"];
+  const ACADEMICS_KEYS  = ["academics-classes", "academics-batches"];
   useEffect(() => {
     if (loading || !user || _refreshedRef.current) return;
     const role = user?.role;
-    if (!ADMIN_ROLES.includes(role)) return;
     const hasWildcard = permissions.includes("*");
-    const missingComms = !hasWildcard && COMMS_KEYS.some(k => !permissions.includes(k));
-    if (missingComms) {
+    if (hasWildcard) return; // bypass roles never need refresh
+    const missingComms     = ADMIN_ROLES.includes(role) && COMMS_KEYS.some(k => !permissions.includes(k));
+    const missingAcademics = (ADMIN_ROLES.includes(role) || role === "teacher")
+                             && ACADEMICS_KEYS.some(k => !permissions.includes(k));
+    if (missingComms || missingAcademics) {
       _refreshedRef.current = true;
       console.log("[AuthContext] Stale permissions detected for", role, "— auto-refreshing…");
       refreshPermissions().then(fresh => {

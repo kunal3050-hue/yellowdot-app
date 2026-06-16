@@ -8,7 +8,8 @@
  * POST /naps/wakeup       — end a nap
  */
 
-const svc = require("../services/napService");
+const svc   = require("../services/napService");
+const notif = require("../services/notificationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -110,6 +111,14 @@ async function startNap(req, res) {
       actorUserId,
     });
 
+    notif.notifyAsync(() => notif.fireForStudent(sid, schoolId, {
+      type:     notif.TYPES.NAP_STARTED,
+      childId:  sid,
+      title:    `${name} is napping`,
+      message:  `${name}'s nap started at ${nap.startTime}.`,
+      deepLink: "/parent-daily-care",
+    }));
+
     res.json({
       success:    true,
       message:    `${name}'s nap started.`,
@@ -135,6 +144,15 @@ async function wakeUp(req, res) {
 
     const nap = await svc.wakeUp(napId, { updatedBy: actorUserId, mood, notes });
     if (!nap) return res.status(404).json({ success: false, message: "Nap not found." });
+
+    const dur = nap.duration ? `${nap.duration} min` : "";
+    notif.notifyAsync(() => notif.fireForStudent(nap.studentId, nap.schoolId, {
+      type:     notif.TYPES.NAP_ENDED,
+      childId:  nap.studentId,
+      title:    `${nap.studentName || nap.studentId} woke up`,
+      message:  `${nap.studentName || nap.studentId} slept from ${nap.startTime} to ${nap.endTime}${dur ? ` (${dur})` : ""}.`,
+      deepLink: "/parent-daily-care",
+    }));
 
     res.json({
       success:          true,

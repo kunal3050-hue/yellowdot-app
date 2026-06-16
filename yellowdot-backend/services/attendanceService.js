@@ -49,6 +49,9 @@ function docToRecord(snap) {
     studentId:   d.studentId   || "",
     studentName: d.studentName || "",
     class:       d.class       || "",
+    batchId:     d.batchId     || "",
+    batchCode:   d.batchCode   || "",
+    teacherId:   d.teacherId   || "",
     status:      d.status      || "Absent",
     checkIn:     d.checkIn     || "",
     checkInAt:   d.checkInAt   || null,
@@ -144,6 +147,7 @@ async function getAttendanceHistory({ studentId, from, to, limit: lim = 100, sch
  */
 async function markAttendance({
   studentId, studentName, class: cls, status, date,
+  batchId, batchCode, teacherId,
   method, centerId, center, markedBy, schoolId = SCHOOL_ID,
 }) {
   const d         = normalizeDateToISO(date);
@@ -158,6 +162,9 @@ async function markAttendance({
     studentId:   studentId   || "",
     studentName: studentName || "",
     class:       cls         || "",
+    batchId:     batchId     || "",
+    batchCode:   batchCode   || "",
+    teacherId:   teacherId   || "",
     status:      status      || "Present",
     checkIn:     existing.exists ? (existing.data().checkIn   || timeStr()) : timeStr(),
     checkInAt:   existing.exists ? (existing.data().checkInAt || nowISO())  : nowISO(),

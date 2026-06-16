@@ -1,17 +1,12 @@
 /**
- * parentHolidaysService.js — Parent Module · Daily Care · Holiday Calendar (read-only)
- * ───────────────────────────────────────────────────────────────────────────────
- * Read-only parent view of the SCHOOL holiday calendar. Reuses the existing
- * staff/admin holidays collection (no separate parent collection, no schema
- * change). Parents see exactly what staff enters.
+ * parentHolidaysService.js — Parent Module · Holiday Calendar (read-only)
  *
- *   holidays/{id}: { title, startDate(YYYY-MM-DD), endDate, type,
- *                    description, recurring, pushToParents, schoolId }
+ * Reads the staff holidays collection and filters by class relevance:
+ *   appliesTo === "all"       → visible to every parent
+ *   appliesTo === "selected"  → visible only if student.classId is in classIds
  *
- * Type-agnostic: any `type` string staff enters (e.g. "School Closed",
- * "Half Day", "National Holiday", "Festival Holiday", "Special Event") flows
- * straight through — the parent UI styles by type with a safe fallback, so new
- * types need no backend change.
+ * If studentClassId is unknown (student has no classId assigned yet) we show
+ * all holidays so parents never see an empty calendar by accident.
  */
 
 const communicationService = require("./communicationService");
@@ -21,29 +16,41 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 function toSafe(h) {
   const startDate = h.startDate || "";
   return {
-    id: h.id,
-    title: h.title || "",
+    id:          h.id,
+    title:       h.title       || "",
     startDate,
-    endDate: h.endDate || startDate,
-    type: h.type || "School Holiday",
+    endDate:     h.endDate     || startDate,
+    type:        h.type        || "School Holiday",
     description: h.description || "",
-    recurring: !!h.recurring,
+    recurring:   !!h.recurring,
+    appliesTo:   h.appliesTo   || "all",
+    classIds:    h.classIds    || [],
   };
 }
 
 /**
  * @param {Object} opts
- * @param {string} opts.schoolId
- * @param {string} [opts.year]  optional YYYY filter (calendar browses client-side)
+ * @param {string}  opts.schoolId
+ * @param {string}  [opts.year]           optional YYYY filter
+ * @param {string}  [opts.studentClassId] child's classId for filtering
  */
-async function getHolidaysView({ schoolId, year } = {}) {
-  // Equality-only query (schoolId) — reuses staff service, no composite index.
-  // Fetch the full calendar so the parent calendar can browse any month
-  // without re-fetching; optionally narrow by year.
+async function getHolidaysView({ schoolId, year, studentClassId } = {}) {
   const all = await communicationService.getHolidays({ schoolId, year });
-  const holidays = all.map(toSafe).sort((a, b) => a.startDate.localeCompare(b.startDate));
 
-  const today = todayISO();
+  const holidays = all
+    .filter(h => {
+      const appliesTo = h.appliesTo || "all";
+      if (appliesTo === "selected") {
+        // If the student has no classId yet, show the holiday (safe fallback).
+        if (!studentClassId) return true;
+        return (h.classIds || []).includes(studentClassId);
+      }
+      return true; // "all" or legacy records with no appliesTo field
+    })
+    .map(toSafe)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  const today    = todayISO();
   const upcoming = holidays.filter(h => (h.endDate || h.startDate) >= today);
 
   return { today, holidays, upcoming };

@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Modal, useToast } from "../components/ui";
 import settingsService, { DEFAULT_SETTINGS } from "../services/settingsService";
+import QRManagement from "./QRManagement";
 import {
   ROUTES, ROLE_LABELS, ROLE_HIERARCHY, ROLE_PERMISSIONS,
   isBypassRole,
@@ -51,6 +52,7 @@ const Icons = {
   Save:        () => svg(<><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>),
   UserPlus:    () => svg(<><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>),
   AlertTriangle: () => svg(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
+  QrCode:        () => svg(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14.01" y2="14"/><line x1="18" y1="14" x2="18.01" y2="14"/><line x1="14" y1="18" x2="14" y2="21"/><line x1="21" y1="18" x2="21" y2="21"/></>),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -68,6 +70,7 @@ const SECTIONS = [
   { id: "notifications", label: "Notifications",    icon: "Bell",       desc: "Alerts and delivery channels" },
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
   { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
+  { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",   desc: "QR codes for gate entry and check-in" },
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -1196,6 +1199,22 @@ function PaymentSection({ data, onSave, saving }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SECTION 12 — GATE CONFIGURATION
+// ══════════════════════════════════════════════════════════════════
+
+function GateConfigSection() {
+  return (
+    <>
+      <SectionHeader
+        title="Gate Configuration"
+        desc="Generate and manage QR codes for your school gates."
+      />
+      <QRManagement embedded />
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // LOADING SKELETON
 // ══════════════════════════════════════════════════════════════════
 
@@ -1275,6 +1294,7 @@ export default function Settings() {
       case "notifications": return <NotifSection       {...props} />;
       case "parent":        return <ParentSection      {...props} />;
       case "payment":       return <PaymentSection     {...props} />;
+      case "gate_config":   return <GateConfigSection />;
       default:              return null;
     }
   };

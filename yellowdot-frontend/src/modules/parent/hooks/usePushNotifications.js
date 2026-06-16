@@ -77,11 +77,25 @@ export default function usePushNotifications({ onForegroundMessage } = {}) {
           return;
         }
 
-        // 5. Obtain FCM token (also registers the firebase-messaging-sw.js service worker)
+        // 5. Get the active service worker registration.
+        //    VitePWA now uses firebase-messaging-sw.js as the single combined SW
+        //    (Workbox precaching + FCM messaging). navigator.serviceWorker.ready
+        //    returns that active registration, which we pass to getToken() so
+        //    Firebase subscribes to push through the correct SW with no scope conflict.
+        console.info("[usePushNotifications] Waiting for active service worker...");
+        let swRegistration;
+        try {
+          swRegistration = await navigator.serviceWorker.ready;
+          console.info("[usePushNotifications] Active SW:", swRegistration.active?.scriptURL);
+        } catch (swErr) {
+          console.warn("[usePushNotifications] SW not ready:", swErr.message);
+          return;
+        }
+
         console.info("[usePushNotifications] Calling getToken()...");
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration });
         if (!token) {
-          console.warn("[usePushNotifications] getToken() returned empty — SW may not be registered yet. Reload and try again.");
+          console.warn("[usePushNotifications] getToken() returned empty — reload and try again.");
           return;
         }
         console.info("[usePushNotifications] FCM token obtained:", token.slice(0, 12) + "...");

@@ -6,7 +6,8 @@
  * PUT  /api/food-consumption               — alias for POST (same upsert)
  */
 
-const svc = require("../services/foodConsumptionService");
+const svc   = require("../services/foodConsumptionService");
+const notif = require("../services/notificationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -82,6 +83,19 @@ async function saveConsumption(req, res) {
       },
       { schoolId, centerId, actorUserId }
     );
+
+    const pct    = Number(entry.quantity) > 0 ? `${entry.quantity}${entry.unit ? " " + entry.unit : ""}` : "";
+    const ateMsg = entry.status === "Ate" && pct
+      ? `${entry.studentName || entry.studentId} consumed ${pct} of ${entry.mealType?.toLowerCase() || "meal"}.`
+      : `${entry.studentName || entry.studentId} had ${entry.mealType?.toLowerCase() || "a meal"} — marked as "${entry.status}".`;
+
+    notif.notifyAsync(() => notif.fireForStudent(entry.studentId, entry.schoolId || schoolId, {
+      type:     notif.TYPES.FOOD_CONSUMPTION,
+      childId:  entry.studentId,
+      title:    `${entry.mealType || "Meal"} update for ${entry.studentName || entry.studentId}`,
+      message:  ateMsg,
+      deepLink: "/parent-daily-care",
+    }));
 
     res.json({ success: true, message: "Consumption saved.", entryId: entry.entryId, entry });
   } catch (e) {

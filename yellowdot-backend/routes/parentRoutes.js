@@ -29,8 +29,18 @@ const parentFoodMenuSvc              = require("../services/parentFoodMenuServic
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
 const parentNapSvc                   = require("../services/parentNapService");
 const parentHolidaysSvc              = require("../services/parentHolidaysService");
+const parentNoticesSvc               = require("../services/parentNoticesService");
+const parentEventSvc                 = require("../services/parentEventService");
+const eventSvc                       = require("../services/eventService");
+const parentPtmSvc                   = require("../services/parentPtmService");
+const ptmSvc                         = require("../services/ptmService");
+const parentIncidentSvc              = require("../services/parentIncidentService");
+const incidentSvc                    = require("../services/incidentService");
+const notif                          = require("../services/notificationService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
+const careSvc                        = require("../services/careService");
+const studentSvc                     = require("../services/studentService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -101,13 +111,46 @@ router.get("/api/parent/children", loadParent, async (req, res) => {
 
 // ── GET /api/parent/feed ───────────────────────────────────────────
 // Phase 2 — Home Feed. Merged school content (announcements/activities/events).
+// Resolves the first linked child's classId to filter class-specific event notices.
 router.get("/api/parent/feed", loadParent, async (req, res) => {
   try {
-    const feed = await parentFeedSvc.getFeed({ schoolId: req.parent.schoolId });
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const feed = await parentFeedSvc.getFeed({ schoolId: req.parent.schoolId, studentClassId });
     res.json({ feed });
   } catch (e) {
     console.error("[GET /api/parent/feed]", e.message);
     res.status(500).json({ error: "Failed to load feed." });
+  }
+});
+
+// ── GET /api/parent/notices ────────────────────────────────────────
+// Published notices filtered by the child's class.
+// Query: ?studentId=YD001 (optional; defaults to first linked child).
+router.get("/api/parent/notices", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal — fall back to showing all notices */ }
+    }
+    const data = await parentNoticesSvc.getNoticesView({
+      schoolId:      req.parent.schoolId,
+      studentClassId,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/notices]", e.message);
+    res.status(500).json({ error: "Failed to load notices." });
   }
 });
 
@@ -211,14 +254,24 @@ router.get("/api/parent/naps", loadParent, async (req, res) => {
 });
 
 // ── GET /api/parent/holidays ───────────────────────────────────────
-// Daily Care · Holiday Calendar (read-only). School-scoped — the calendar
-// is the same for everyone. Query: ?year=YYYY (optional). Reads the existing
-// staff holidays collection; parents see exactly what staff enters.
+// Daily Care · Holiday Calendar (read-only).
+// Query: ?year=YYYY (optional), ?studentId=YD001 (optional — defaults to first
+// linked child). Filters class-specific holidays to only the child's class.
 router.get("/api/parent/holidays", loadParent, async (req, res) => {
   try {
+    // Resolve classId for the requested (or first) linked child.
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal — fall back to showing all holidays */ }
+    }
     const data = await parentHolidaysSvc.getHolidaysView({
-      schoolId: req.parent.schoolId,
-      year:     req.query.year,
+      schoolId:       req.parent.schoolId,
+      year:           req.query.year,
+      studentClassId,
     });
     res.json(data);
   } catch (e) {
@@ -293,7 +346,236 @@ router.get("/api/parent/child/:studentId/attendance", loadParent, async (req, re
   }
 });
 
+// ── GET /api/parent/care ───────────────────────────────────────────
+// Care & Hygiene log for ONE linked child.
+// Query: ?studentId=YD001 (defaults to first child) &date=YYYY-MM-DD.
+router.get("/api/parent/care", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    if (studentId && !req.parent.studentIds?.includes(studentId)) {
+      return res.status(404).json({ error: "Child not found or not linked to this account.", code: "CHILD_NOT_FOUND" });
+    }
+    const records = await careSvc.getCareHistory({
+      studentId,
+      date:     req.query.date,
+      schoolId: req.parent.schoolId,
+    });
+    res.json({ records });
+  } catch (e) {
+    console.error("[GET /api/parent/care]", e.message);
+    res.status(500).json({ error: "Failed to load care log." });
+  }
+});
+
+// ── GET /api/parent/events ─────────────────────────────────────────
+// Events filtered to child's class, enriched with parent's RSVP status.
+// Query: ?studentId=YD001 (optional; defaults to first linked child).
+router.get("/api/parent/events", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId, resolvedStudentId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      resolvedStudentId = studentId;
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const data = await parentEventSvc.getEventsView({
+      schoolId:       req.parent.schoolId,
+      studentClassId,
+      studentId:      resolvedStudentId,
+      parentId:       req.parent.uid,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/events]", e.message);
+    res.status(500).json({ error: "Failed to load events." });
+  }
+});
+
+// ── POST /api/parent/events/:id/rsvp ──────────────────────────────
+// Body: { response: "attending" | "not_attending" | "maybe", studentId }
+router.post("/api/parent/events/:id/rsvp", loadParent, async (req, res) => {
+  try {
+    const eventId  = req.params.id;
+    const studentId = req.body.studentId || req.parent.studentIds?.[0];
+    const response  = req.body.response;
+
+    if (!["attending", "not_attending", "maybe"].includes(response)) {
+      return res.status(400).json({ error: "Invalid response. Use: attending, not_attending, or maybe." });
+    }
+    if (!studentId || !req.parent.studentIds?.includes(studentId)) {
+      return res.status(403).json({ error: "Student not linked to this account." });
+    }
+
+    const event = await eventSvc.getEvent(eventId);
+    if (!event || event.schoolId !== req.parent.schoolId) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+    if (!event.rsvpRequired) {
+      return res.status(400).json({ error: "This event does not require RSVP." });
+    }
+
+    const rsvp = await eventSvc.upsertRsvp({
+      eventId, studentId, parentId: req.parent.uid, response,
+    });
+    res.json({ rsvp });
+  } catch (e) {
+    console.error("[POST /api/parent/events/:id/rsvp]", e.message);
+    res.status(500).json({ error: "Failed to submit RSVP." });
+  }
+});
+
+// ── GET /api/parent/ptm ────────────────────────────────────────────
+// PTMs visible to this parent's child (class-filtered) with slot + booking info.
+router.get("/api/parent/ptm", loadParent, async (req, res) => {
+  try {
+    const parent = req.parent;
+    const studentId    = req.query.studentId || parent.studentIds?.[0];
+    const SCHOOL_ID    = process.env.SCHOOL_ID || "ydseawoods";
+
+    let studentClassId = null;
+    if (studentId) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || null;
+      } catch { /* class resolution failed — show all */ }
+    }
+
+    const data = await parentPtmSvc.getPtmsView({ schoolId: SCHOOL_ID, studentClassId, studentId, parentId: parent.parentId });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/ptm]", e.message);
+    res.status(500).json({ error: "Failed to load PTMs." });
+  }
+});
+
+// ── POST /api/parent/ptm/:id/book ─────────────────────────────────
+// Book a slot in a PTM for a linked child.
+router.post("/api/parent/ptm/:id/book", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const { studentId, slotId } = req.body;
+    if (!studentId || !slotId) return res.status(400).json({ error: "studentId and slotId are required" });
+
+    // Ensure student belongs to this parent
+    if (!parent.studentIds?.includes(studentId)) {
+      return res.status(403).json({ error: "Student not linked to this account." });
+    }
+
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!ptm) return res.status(404).json({ error: "PTM not found" });
+
+    const booking = await ptmSvc.bookSlot({ ptmId: ptm.id, slotId, studentId, parentId: parent.parentId });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(studentId, SCHOOL_ID, {
+        type:     notif.TYPES.PTM_BOOKED,
+        title:    `PTM Slot Booked`,
+        message:  `Your slot for "${ptm.title}" has been confirmed.`,
+        deepLink: "/parent-ptm",
+      })
+    );
+
+    res.status(201).json({ booking });
+  } catch (e) {
+    console.error("[POST /api/parent/ptm/:id/book]", e.message);
+    const status = e.message.includes("not available") || e.message.includes("Already has") ? 409 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
+// ── PATCH /api/parent/ptm/bookings/:bookingId/reschedule ───────────
+router.patch("/api/parent/ptm/bookings/:bookingId/reschedule", loadParent, async (req, res) => {
+  try {
+    const { newSlotId } = req.body;
+    if (!newSlotId) return res.status(400).json({ error: "newSlotId is required" });
+
+    const booking = await ptmSvc.rescheduleBooking(req.params.bookingId, newSlotId, { parentId: req.parent.parentId });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(booking.studentId, SCHOOL_ID, {
+        type:     notif.TYPES.PTM_RESCHEDULED,
+        title:    "PTM Slot Rescheduled",
+        message:  "Your PTM appointment has been rescheduled successfully.",
+        deepLink: "/parent-ptm",
+      })
+    );
+
+    res.json({ booking });
+  } catch (e) {
+    console.error("[PATCH /api/parent/ptm/bookings/:bookingId/reschedule]", e.message);
+    const status = e.message.includes("not found") ? 404 : e.message.includes("not available") ? 409 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
+// ── DELETE /api/parent/ptm/bookings/:bookingId ────────────────────
+router.delete("/api/parent/ptm/bookings/:bookingId", loadParent, async (req, res) => {
+  try {
+    await ptmSvc.cancelBooking(req.params.bookingId, { parentId: req.parent.parentId });
+    res.json({ success: true });
+  } catch (e) {
+    console.error("[DELETE /api/parent/ptm/bookings/:bookingId]", e.message);
+    const status = e.message.includes("not found") ? 404 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
 // Exported for unit testing (pure middleware, no I/O).
+// ── GET /api/parent/incidents ──────────────────────────────────────
+// Incident reports for all linked children.
+router.get("/api/parent/incidents", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    const data = await parentIncidentSvc.getIncidentsForParent({
+      schoolId:   SCHOOL_ID,
+      studentIds: parent.studentIds || [],
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/incidents]", e.message);
+    res.status(500).json({ error: "Failed to load incidents." });
+  }
+});
+
+// ── POST /api/parent/incidents/:id/acknowledge ─────────────────────
+// Parent acknowledges an incident report.
+router.post("/api/parent/incidents/:id/acknowledge", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const incident  = await incidentSvc.getIncident(req.params.id);
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    // Ensure this incident belongs to one of the parent's children
+    if (!(parent.studentIds || []).includes(incident.studentId)) {
+      return res.status(403).json({ error: "Not authorised to acknowledge this incident." });
+    }
+
+    const { acknowledgementNotes = "" } = req.body;
+    const ack = await incidentSvc.acknowledge(req.params.id, { parentId: parent.parentId, acknowledgementNotes });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(incident.studentId, SCHOOL_ID, {
+        type:     notif.TYPES.INCIDENT_ACKNOWLEDGED,
+        title:    "Incident Acknowledged",
+        message:  `Parent has acknowledged the incident report: ${incident.incidentType}.`,
+        deepLink: "/incidents",
+      })
+    );
+
+    res.json({ acknowledgement: ack });
+  } catch (e) {
+    console.error("[POST /api/parent/incidents/:id/acknowledge]", e.message);
+    res.status(500).json({ error: "Failed to acknowledge incident." });
+  }
+});
+
 router.parentOnly = parentOnly;
 
 module.exports = router;

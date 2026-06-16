@@ -7,10 +7,15 @@ export default defineConfig({
     react(),
 
     VitePWA({
+      // injectManifest: VitePWA reads public/firebase-messaging-sw.js as the SW
+      // template, injects self.__WB_MANIFEST, and outputs dist/firebase-messaging-sw.js.
+      // This makes ONE SW that handles both Workbox precaching and FCM messaging,
+      // eliminating the /sw.js vs /firebase-messaging-sw.js scope "/" conflict that
+      // previously caused getToken() to fail.
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'firebase-messaging-sw.js',
       registerType: 'autoUpdate',
-
-      // Bump this string whenever you want to force a full cache bust
-      // (changing it invalidates the Workbox precache manifest revision)
       selfDestroying: false,
 
       // Assets to include in the precache manifest
@@ -92,74 +97,8 @@ export default defineConfig({
         ],
       },
 
-      // ── Workbox (service worker) config ───────────────────────────────────
-      workbox: {
-        // Precache all built static assets (content-hashed → auto-invalidated)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-
-        // SPA fallback — serve index.html for all navigation requests
-        navigateFallback: '/index.html',
-
-        // Don't cache Firebase auth redirects or admin routes
-        navigateFallbackDenylist: [/^\/__/, /\/api\//],
-
-        // ── Cache hygiene ────────────────────────────────────────────────────
-        // Delete old precache storage (e.g. yellow splash from v1.1) when the
-        // new SW activates. This is the key to preventing stale assets.
-        cleanupOutdatedCaches: true,
-
-        // Runtime caching strategies
-        // NOTE: cache names are versioned (v2). Old unversioned caches (v1)
-        // become orphans the moment this SW activates and are cleaned up by
-        // the browser's storage eviction. Bump the suffix on every major
-        // asset overhaul to force a clean runtime cache.
-        runtimeCaching: [
-          // Firebase Firestore — network-first
-          {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firestore-cache-v2',
-              networkTimeoutSeconds: 8,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // Firebase Cloud Functions — network-first
-          {
-            urlPattern: /^https:\/\/.*\.cloudfunctions\.net\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'functions-cache-v2',
-              networkTimeoutSeconds: 8,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // Google Fonts — stale-while-revalidate
-          {
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-cache-v2',
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // Face-detection ML models (large binary, cache aggressively)
-          {
-            urlPattern: /\/models\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'ml-models-cache-v2',
-              cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-        ],
-
-        // New SW skips waiting → activates immediately on install.
-        // clientsClaim → takes over all open tabs without requiring a reload.
-        skipWaiting: true,
-        clientsClaim: true,
-      },
+      // Runtime caching and skipWaiting/clientsClaim are now handled directly
+      // inside public/firebase-messaging-sw.js (the combined Workbox + FCM SW).
 
       // Don't enable SW in dev — it breaks HMR
       devOptions: { enabled: false },

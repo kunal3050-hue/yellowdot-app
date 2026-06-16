@@ -95,10 +95,23 @@ async function getHighlights({ schoolId, studentId } = {}) {
     });
   }
 
+  // Resolve classId for filtering once (child doc already fetched above).
+  const classId = child?.classId || null;
+
+  function classVisible(item) {
+    const appliesTo = item.appliesTo || "all";
+    if (appliesTo === "selected") {
+      if (!classId) return true; // classId unknown → show all (safe fallback)
+      return (item.classIds || []).includes(classId);
+    }
+    return true;
+  }
+
   // ── Notices → emergency / event / notice (published, not expired) ───
   for (const n of notices) {
     if (n.status && n.status !== "published") continue;            // drafts hidden
     if (n.expiresAt && new Date(n.expiresAt).getTime() < nowMs) continue; // expired
+    if (!classVisible(n)) continue;
     const kind = isEmergency(n.type) ? "emergency" : (String(n.type) === "Event" ? "event" : "notice");
     out.push({
       id: `notice-${n.id}`, kind, priority: PRIORITY[kind],
@@ -110,6 +123,7 @@ async function getHighlights({ schoolId, studentId } = {}) {
 
   // ── Announcements → emergency / announcement (recent only) ──────────
   for (const a of announcements) {
+    if (!classVisible(a)) continue;
     const posted = a.publishAt || a.createdAt || "";
     const ageDays = posted ? (nowMs - new Date(posted).getTime()) / DAY : 0;
     const kind = isEmergency(a.type) ? "emergency" : "announcement";

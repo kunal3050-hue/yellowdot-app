@@ -62,7 +62,7 @@ function fmtDate(iso) {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function QRManagement() {
+export default function QRManagement({ embedded = false }) {
   const { user, role }       = useAuth();
   const centerId             = user?.centerId || user?.center || user?.activeCenter || "";
   const [config, setConfig]  = useState(null);   // Firestore QR config
@@ -208,21 +208,23 @@ export default function QRManagement() {
       {/* Print CSS — injected once */}
       <style>{PRINT_CSS}</style>
 
-      <div style={styles.page}>
+      <div style={embedded ? {} : styles.page}>
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>QR Management</h1>
-            <p style={styles.subtitle}>
-              Generate and print QR codes for attendance, check-in, and visitor scanning.
-            </p>
+        {!embedded && (
+          <div style={styles.header}>
+            <div>
+              <h1 style={styles.title}>QR Management</h1>
+              <p style={styles.subtitle}>
+                Generate and print QR codes for attendance, check-in, and visitor scanning.
+              </p>
+            </div>
+            <div style={styles.headerBadge}>
+              <span style={styles.badgeDot} />
+              V1 · Static
+            </div>
           </div>
-          <div style={styles.headerBadge}>
-            <span style={styles.badgeDot} />
-            V1 · Static
-          </div>
-        </div>
+        )}
 
         {/* ── Main card ────────────────────────────────────────────────────── */}
         <div style={styles.card}>

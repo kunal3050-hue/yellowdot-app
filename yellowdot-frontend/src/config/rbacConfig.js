@@ -127,6 +127,15 @@ export const PERMISSION_CATEGORIES = [
     ],
   },
   {
+    id:    "academics",
+    label: "Academics",
+    icon:  "🎓",
+    modules: [
+      { id: "classes_batches",       label: "Classes & Batches",       actions: ["view"] },
+      { id: "student_enrollment",    label: "Student Enrollment",       actions: ["view"] },
+    ],
+  },
+  {
     id:    "security",
     label: "Security",
     icon:  "📹",
@@ -157,6 +166,9 @@ const MODULE_ROUTE_MAP = {
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
   cctv:              ["cctv"],
+  classes_batches:   ["academics-classes", "academics-batches",
+                      "academics-teacher-allocation", "academics-classroom-allocation"],
+  student_enrollment: ["academics-student-allocation"],
   notifications:     [],
   parent_app:        ["parent-checkin"],
   documents:         [],

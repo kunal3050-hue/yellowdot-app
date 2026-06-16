@@ -142,6 +142,7 @@ function docToPayment(snap) {
   const id = snap.id   || d.paymentId || "";
   return {
     paymentId:     d.paymentId     || id,
+    receiptNumber: d.receiptNumber || "",
     invoiceNumber: d.invoiceNumber || "",
     studentId:     d.studentId     || "",
     studentName:   d.studentName   || "",
