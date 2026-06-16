@@ -18,12 +18,9 @@ const studentSvc = require("../services/studentService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
 
-// All event staff routes require auth
-router.use(authenticate, blockUnknown);
-
 // ── List ──────────────────────────────────────────────────────────────────────
 
-router.get("/api/events", async (req, res) => {
+router.get("/api/events", authenticate, blockUnknown, async (req, res) => {
   try {
     const events = await eventSvc.getEvents({ schoolId: SCHOOL_ID });
     // Enrich with attending RSVP count
@@ -41,7 +38,7 @@ router.get("/api/events", async (req, res) => {
 
 // ── Create ────────────────────────────────────────────────────────────────────
 
-router.post("/api/events", async (req, res) => {
+router.post("/api/events", authenticate, blockUnknown, async (req, res) => {
   try {
     const actorUserId = req.user?.uid || "system";
     const event = await eventSvc.createEvent(req.body, { schoolId: SCHOOL_ID, actorUserId });
@@ -64,7 +61,7 @@ router.post("/api/events", async (req, res) => {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
-router.put("/api/events/:id", async (req, res) => {
+router.put("/api/events/:id", authenticate, blockUnknown, async (req, res) => {
   try {
     const actorUserId = req.user?.uid || "system";
     const event = await eventSvc.updateEvent(req.params.id, req.body, { actorUserId });
@@ -87,7 +84,7 @@ router.put("/api/events/:id", async (req, res) => {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
-router.delete("/api/events/:id", async (req, res) => {
+router.delete("/api/events/:id", authenticate, blockUnknown, async (req, res) => {
   try {
     const deleted = await eventSvc.deleteEvent(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Event not found." });
@@ -99,7 +96,7 @@ router.delete("/api/events/:id", async (req, res) => {
 
 // ── RSVPs (staff read) ────────────────────────────────────────────────────────
 
-router.get("/api/events/:id/rsvps", async (req, res) => {
+router.get("/api/events/:id/rsvps", authenticate, blockUnknown, async (req, res) => {
   try {
     const rsvps = await eventSvc.getRsvpsForEvent(req.params.id);
     res.json({ rsvps });

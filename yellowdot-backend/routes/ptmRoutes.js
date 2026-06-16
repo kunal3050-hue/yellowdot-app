@@ -30,14 +30,11 @@ const express    = require("express");
 const router     = express.Router();
 const ptmSvc     = require("../services/ptmService");
 const userSvc    = require("../services/userService");
-const { verifyToken } = require("../services/authService");
+const { authenticate } = require("../middleware/authMiddleware");
 const notif      = require("../services/notificationService");
 const studentSvc = require("../services/studentService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
-
-// All PTM routes require authentication
-router.use(verifyToken);
 
 // ── Helper: notify affected students ──────────────────────────────
 
@@ -58,7 +55,7 @@ async function notifyAffectedStudents(ptm, type, { title, message, deepLink } = 
 
 // ── PTMs ───────────────────────────────────────────────────────────
 
-router.get("/api/ptm", async (req, res) => {
+router.get("/api/ptm", authenticate, async (req, res) => {
   try {
     const ptms = await ptmSvc.getPtms({ schoolId: SCHOOL_ID });
     // Attach stats to each PTM
@@ -71,7 +68,7 @@ router.get("/api/ptm", async (req, res) => {
   }
 });
 
-router.post("/api/ptm", async (req, res) => {
+router.post("/api/ptm", authenticate, async (req, res) => {
   try {
     const { title, description, meetingDate, startTime, endTime, venue, appliesTo, classIds, teacherIds } = req.body;
     if (!title || !meetingDate || !startTime || !endTime) {
@@ -92,7 +89,7 @@ router.post("/api/ptm", async (req, res) => {
   }
 });
 
-router.put("/api/ptm/:id", async (req, res) => {
+router.put("/api/ptm/:id", authenticate, async (req, res) => {
   try {
     const ptm = await ptmSvc.updatePtm(req.params.id, req.body, { actorUserId: req.user?.uid });
     if (!ptm) return res.status(404).json({ error: "PTM not found" });
@@ -102,7 +99,7 @@ router.put("/api/ptm/:id", async (req, res) => {
   }
 });
 
-router.delete("/api/ptm/:id", async (req, res) => {
+router.delete("/api/ptm/:id", authenticate, async (req, res) => {
   try {
     await ptmSvc.deletePtm(req.params.id);
     res.json({ success: true });
@@ -113,7 +110,7 @@ router.delete("/api/ptm/:id", async (req, res) => {
 
 // ── Slots ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/slots", async (req, res) => {
+router.get("/api/ptm/:id/slots", authenticate, async (req, res) => {
   try {
     const slots = await ptmSvc.getSlotsForPtm(req.params.id);
     res.json({ slots });
@@ -122,7 +119,7 @@ router.get("/api/ptm/:id/slots", async (req, res) => {
   }
 });
 
-router.post("/api/ptm/:id/slots/generate", async (req, res) => {
+router.post("/api/ptm/:id/slots/generate", authenticate, async (req, res) => {
   try {
     const { teacherId, teacherName, startTime, endTime, durationMinutes } = req.body;
     if (!teacherId || !startTime || !endTime || !durationMinutes) {
@@ -145,7 +142,7 @@ router.post("/api/ptm/:id/slots/generate", async (req, res) => {
   }
 });
 
-router.delete("/api/ptm/:id/slots/:slotId", async (req, res) => {
+router.delete("/api/ptm/:id/slots/:slotId", authenticate, async (req, res) => {
   try {
     await ptmSvc.deleteSlot(req.params.slotId);
     res.json({ success: true });
@@ -157,7 +154,7 @@ router.delete("/api/ptm/:id/slots/:slotId", async (req, res) => {
 
 // ── Bookings ───────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/bookings", async (req, res) => {
+router.get("/api/ptm/:id/bookings", authenticate, async (req, res) => {
   try {
     const bookings = await ptmSvc.getBookingsForPtm(req.params.id);
     res.json({ bookings });
@@ -166,7 +163,7 @@ router.get("/api/ptm/:id/bookings", async (req, res) => {
   }
 });
 
-router.patch("/api/ptm/bookings/:bookingId/status", async (req, res) => {
+router.patch("/api/ptm/bookings/:bookingId/status", authenticate, async (req, res) => {
   try {
     const { status } = req.body;
     await ptmSvc.updateBookingStatus(req.params.bookingId, status);
@@ -178,7 +175,7 @@ router.patch("/api/ptm/bookings/:bookingId/status", async (req, res) => {
 
 // ── Notes ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/notes/:studentId", async (req, res) => {
+router.get("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
   try {
     const notes = await ptmSvc.getNotes(req.params.id, req.params.studentId);
     res.json({ notes });
@@ -187,7 +184,7 @@ router.get("/api/ptm/:id/notes/:studentId", async (req, res) => {
   }
 });
 
-router.put("/api/ptm/:id/notes/:studentId", async (req, res) => {
+router.put("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
   try {
     const { summary, strengths, improvements, actionItems, sharedWithParent } = req.body;
     const notes = await ptmSvc.upsertNotes({
@@ -208,7 +205,7 @@ router.put("/api/ptm/:id/notes/:studentId", async (req, res) => {
 
 // ── Stats ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/stats", async (req, res) => {
+router.get("/api/ptm/:id/stats", authenticate, async (req, res) => {
   try {
     const stats = await ptmSvc.getPtmStats(req.params.id);
     res.json({ stats });
@@ -219,7 +216,7 @@ router.get("/api/ptm/:id/stats", async (req, res) => {
 
 // ── Teachers list (for PTM teacher selector) ───────────────────────
 
-router.get("/api/ptm/teachers", async (req, res) => {
+router.get("/api/ptm/teachers", authenticate, async (req, res) => {
   try {
     const users = await userSvc.listUsers({ schoolId: SCHOOL_ID, role: "teacher", status: "active" });
     res.json({ teachers: users });
