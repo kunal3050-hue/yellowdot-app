@@ -146,7 +146,7 @@ export const ROLE_HOME = {
   admin:        "/",
   center_admin: "/",
   center_owner: "/",
-  teacher:      "/attendance",
+  teacher:      "/child-presence",
   accountant:   "/invoice",
   reception:    "/",
   parent:       "/parent-home",

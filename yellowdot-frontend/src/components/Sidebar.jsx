@@ -267,6 +267,13 @@ const ICONS = {
       <polyline points="2 12 12 17 22 12" />
     </svg>
   ),
+  UserCheck: () => (
+    <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill={IC.fill} stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+      <polyline points="16 11 18 13 22 9"/>
+    </svg>
+  ),
   QrCode: () => (
     <svg viewBox="0 0 24 24" width={IC.size} height={IC.size} fill="none" stroke={IC.stroke} strokeWidth={IC.strokeWidth} strokeLinecap={IC.strokeLinecap} strokeLinejoin={IC.strokeLinejoin}>
       {/* top-left block */}

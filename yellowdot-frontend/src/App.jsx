@@ -30,6 +30,7 @@ const EditStudent         = lazy(() => import("./pages/EditStudent"));
 const StudentProfile      = lazy(() => import("./pages/StudentProfile"));
 
 const Attendance          = lazy(() => import("./pages/Attendance"));
+const ChildPresence       = lazy(() => import("./pages/ChildPresence"));
 const NapTracker          = lazy(() => import("./pages/NapTracker"));
 const FoodMenu            = lazy(() => import("./pages/FoodMenu"));
 const FoodConsumption     = lazy(() => import("./pages/FoodConsumption"));
@@ -313,6 +314,16 @@ function App() {
               element={
                 <ProtectedRoute routeKey="cctv">
                   <MainLayout><CCTV /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Child Presence (unified: Attendance + Parent Entry + Staff Checkout) */}
+            <Route
+              path="/child-presence"
+              element={
+                <ProtectedRoute routeKey="attendance">
+                  <MainLayout><ChildPresence /></MainLayout>
                 </ProtectedRoute>
               }
             />

@@ -632,6 +632,10 @@ function StudentProfile() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit,    setShowAudit]    = useState(false);
 
+  // ── Pickup History ────────────────────────────────────────────
+  const [phEntries, setPhEntries] = useState([]);
+  const [phLoading, setPhLoading] = useState(false);
+
   // ── Fetch student ─────────────────────────────────────────────
   useEffect(() => {
     api.get(`/students/${id}`)
@@ -711,6 +715,24 @@ function StudentProfile() {
   useEffect(() => {
     if (showAudit) loadAuditLogs();
   }, [showAudit, loadAuditLogs]);
+
+  // ── Pickup History ────────────────────────────────────────────
+  const loadPickupHistory = useCallback(async () => {
+    if (!studentId) return;
+    setPhLoading(true);
+    try {
+      const res = await api.get(`/api/pickup-history?studentId=${studentId}&limit=30`);
+      setPhEntries(res.data?.entries || res.data || []);
+    } catch (e) {
+      console.error("[StudentProfile] Pickup history fetch failed:", e.message);
+    } finally {
+      setPhLoading(false);
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    if (activeTab === "pickup" && studentId) loadPickupHistory();
+  }, [activeTab, studentId, loadPickupHistory]);
 
   // ── Toast helper ──────────────────────────────────────────────
   function showToast(msg) {
@@ -1274,6 +1296,50 @@ function StudentProfile() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Pickup History ──────────────────────────────────────── */}
+            <div className="mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Pickup History</h3>
+                {phLoading && (
+                  <div className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
+                )}
+              </div>
+              {!phLoading && phEntries.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-6">No pickup events recorded for this student.</p>
+              ) : (
+                <div className="space-y-2">
+                  {phEntries.map((h, i) => (
+                    <div key={h.entryId || h.id || i} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
+                      {/* Collector photo or initial */}
+                      {h.selfieImage && h.selfieImage !== "staff-checkout" ? (
+                        <img src={h.selfieImage} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400 flex-shrink-0">
+                          {(h.pickupName || "?").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      {/* Collector name + relation */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#0F172A] truncate">{h.pickupName || "Unknown"}</p>
+                        <p className="text-xs text-gray-400">{h.relation || "—"}</p>
+                      </div>
+                      {/* Status badge */}
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${
+                        h.approvalStatus === "Authorized" ? "bg-green-50 text-green-600" :
+                        h.approvalStatus === "Emergency"  ? "bg-orange-50 text-orange-500" :
+                        h.approvalStatus === "Blocked"    ? "bg-red-50 text-red-500" :
+                        "bg-gray-100 text-gray-500"
+                      }`}>
+                        {h.approvalStatus || "Recorded"}
+                      </span>
+                      {/* Date */}
+                      <p className="text-xs text-gray-400 flex-shrink-0 hidden sm:block">{h.date || fmtDate(h.checkoutTime)}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
