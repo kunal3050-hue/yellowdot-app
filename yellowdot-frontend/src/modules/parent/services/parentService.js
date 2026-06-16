@@ -86,9 +86,14 @@ export async function getActivity(studentId) {
   return data;
 }
 
-// Daily Care · Holiday Calendar (read-only, school-scoped)
-export async function getHolidays(year) {
-  const { data } = await api.get("/api/parent/holidays", { params: year ? { year } : {} });
+// Daily Care · Holiday Calendar (read-only, class-filtered)
+// Pass studentId so the backend can resolve the child's classId and filter
+// class-specific holidays accordingly.
+export async function getHolidays(year, studentId) {
+  const params = {};
+  if (year)      params.year      = year;
+  if (studentId) params.studentId = studentId;
+  const { data } = await api.get("/api/parent/holidays", { params });
   return data;
 }
 

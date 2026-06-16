@@ -2,9 +2,10 @@
 // Holidays — school calendar & closure management
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import communicationService from "../services/communicationService";
+import academicsService from "../services/academicsService";
 
 const HOLIDAY_TYPES = [
   "National Holiday", "Festival", "School Holiday",
@@ -30,12 +31,6 @@ function fmtDate(iso) {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function fmtMonthYear(iso) {
-  if (!iso) return "";
-  const d = new Date(iso + "T00:00:00");
-  return MONTHS[d.getMonth()] + " " + d.getFullYear();
-}
-
 function dayNum(iso) {
   if (!iso) return "";
   return new Date(iso + "T00:00:00").getDate();
@@ -43,9 +38,38 @@ function dayNum(iso) {
 
 function todayISO() { return new Date().toISOString().split("T")[0]; }
 
+// ── ClassBadges ───────────────────────────────────────────────────────────────
+
+function ClassBadges({ holiday, classMap }) {
+  if (holiday.appliesTo === "selected") {
+    const ids = holiday.classIds || [];
+    if (ids.length === 0) return null;
+    return (
+      <>
+        {ids.slice(0, 3).map(id => (
+          <span key={id}
+            className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#edf4ff] text-[#2563b8] text-[10px] font-semibold border border-[#bfdbfe]">
+            {classMap[id] || id}
+          </span>
+        ))}
+        {ids.length > 3 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#F1F1F1] text-[#6b7280] text-[10px] font-semibold border border-[#e5e7eb]">
+            +{ids.length - 3} more
+          </span>
+        )}
+      </>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#f0fdf4] text-[#15803d] text-[10px] font-semibold border border-[#bbf7d0]">
+      All Classes
+    </span>
+  );
+}
+
 // ── HolidayCard ───────────────────────────────────────────────────────────────
 
-function HolidayCard({ holiday, onEdit, onDelete }) {
+function HolidayCard({ holiday, onEdit, onDelete, classMap }) {
   const isSingle  = holiday.startDate === holiday.endDate;
   const typeStyle = TYPE_STYLE[holiday.type] || "bg-[#f8f0d4] text-[#8b7228] border-[#e8daa0]";
   const isToday   = holiday.startDate <= todayISO() && todayISO() <= (holiday.endDate || holiday.startDate);
@@ -56,7 +80,7 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
       hover:shadow-[0_10px_36px_rgba(212,170,31,0.13)] hover:-translate-y-1
       ${isToday ? "bg-[#fffdf0] border-[#e8d89a]" : "bg-white border-[#F1F1F1] hover:border-[#e0d4a0] hover:bg-white"}
     `}>
-      {/* Date block — large gold tile */}
+      {/* Date block */}
       <div className="flex-shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] rounded-3xl"
         style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 16px rgba(212,170,31,0.32), inset 0 1px 0 rgba(255,255,255,0.55)" }}>
         <span className="text-[#7a5010] text-[10px] font-bold leading-none tracking-widest uppercase">
@@ -85,6 +109,7 @@ function HolidayCard({ holiday, onEdit, onDelete }) {
               Parent App
             </span>
           )}
+          <ClassBadges holiday={holiday} classMap={classMap} />
         </div>
         {holiday.description && (
           <p className="text-[#8b7d65] text-[13px] mt-2 leading-relaxed line-clamp-2">{holiday.description}</p>
@@ -137,27 +162,18 @@ function CalendarGrid({ holidays }) {
   return (
     <div className="bg-white rounded-3xl border border-[#F1F1F1] overflow-hidden"
       style={{ boxShadow: "0 4px 20px rgba(212,170,31,0.07)" }}>
-      {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0ebe0]">
         <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#f8f0d4] text-[#8b7228] transition-all">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <span className="text-[#2a1c06] font-bold text-sm">{MONTHS[viewMonth]} {viewYear}</span>
         <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#f8f0d4] text-[#8b7228] transition-all">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
-      {/* Day labels */}
       <div className="grid grid-cols-7 px-4 pt-3">
-        {DAYS.map(d => (
-          <div key={d} className="text-center text-[10px] font-semibold text-[#c4b090] py-1">{d}</div>
-        ))}
+        {DAYS.map(d => <div key={d} className="text-center text-[10px] font-semibold text-[#c4b090] py-1">{d}</div>)}
       </div>
-      {/* Cells */}
       <div className="grid grid-cols-7 px-4 pb-5 gap-y-1">
         {cells.map((day, i) => {
           if (!day) return <div key={i} />;
@@ -165,11 +181,9 @@ function CalendarGrid({ holidays }) {
           const isToday = isCurrentMonth && day === todayD;
           return (
             <div key={i} title={h?.title || ""}
-              className={`
-                flex flex-col items-center justify-center h-9 rounded-xl text-sm transition-all cursor-default
+              className={`flex flex-col items-center justify-center h-9 rounded-xl text-sm transition-all cursor-default
                 ${isToday ? "ring-2 ring-[#f4c430]/50" : ""}
-                ${h ? "bg-[#f9dc5a]/20 font-bold text-[#5a4010]" : "text-[#8b7d65]"}
-              `}>
+                ${h ? "bg-[#f9dc5a]/20 font-bold text-[#5a4010]" : "text-[#8b7d65]"}`}>
               <span className="text-xs leading-none">{day}</span>
               {h && <span className="w-1.5 h-1.5 bg-[#c9a830] rounded-full mt-0.5" />}
             </div>
@@ -180,19 +194,125 @@ function CalendarGrid({ holidays }) {
   );
 }
 
+// ── ClassMultiSelect ──────────────────────────────────────────────────────────
+
+function ClassMultiSelect({ classes, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const toggle = (id) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter(x => x !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const label = selectedIds.length === 0
+    ? "Select classes…"
+    : selectedIds.length === 1
+      ? (classes.find(c => c.id === selectedIds[0])?.name || selectedIds[0])
+      : `${selectedIds.length} classes selected`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all
+          ${open ? "ring-2 ring-[#f4c430]/35 border-[#c9a830]/60" : "border-[#F1F1F1]"}
+          bg-white text-left`}>
+        <span className={selectedIds.length === 0 ? "text-[#c4b090]" : "text-[#2a1c06] font-medium"}>
+          {label}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b090" strokeWidth="2.5" strokeLinecap="round"
+          className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-white border border-[#F1F1F1] rounded-2xl shadow-xl overflow-hidden"
+          style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.10)" }}>
+          <div className="max-h-48 overflow-y-auto py-1.5">
+            {classes.length === 0 ? (
+              <div className="px-4 py-3 text-[#a3957e] text-sm text-center">No active classes found</div>
+            ) : classes.map(cls => {
+              const checked = selectedIds.includes(cls.id);
+              return (
+                <button key={cls.id} type="button" onClick={() => toggle(cls.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
+                    ${checked ? "bg-[#fffdf0]" : "hover:bg-[#faf8f0]"}`}>
+                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-all
+                    ${checked ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {checked && (
+                      <svg width="9" height="9" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4l3 3 5-6" stroke="#5a4010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className={checked ? "text-[#2a1c06] font-semibold" : "text-[#5a4010]"}>{cls.name}</span>
+                  {cls.ageGroup && (
+                    <span className="text-[#a3957e] text-[11px] ml-auto">{cls.ageGroup}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {selectedIds.length > 0 && (
+            <div className="px-4 py-2 border-t border-[#F1F1F1]">
+              <button type="button" onClick={() => onChange([])}
+                className="text-[11px] font-semibold text-[#a3957e] hover:text-[#7a5e18] transition-colors">
+                Clear selection
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-const EMPTY = { title: "", startDate: "", endDate: "", type: "School Holiday", description: "", recurring: false, pushToParents: true };
+const EMPTY = {
+  title: "", startDate: "", endDate: "", type: "School Holiday",
+  description: "", recurring: false, pushToParents: true,
+  appliesTo: "all", classIds: [],
+};
 
 function HolidayModal({ initial, onSave, onClose }) {
-  const [form, setForm] = useState(initial || EMPTY);
-  const [saving, setSaving] = useState(false);
+  const [form,    setForm]    = useState(() => ({
+    ...EMPTY,
+    ...initial,
+    appliesTo: initial?.appliesTo || "all",
+    classIds:  initial?.classIds  || [],
+  }));
+  const [saving,  setSaving]  = useState(false);
+  const [classes, setClasses] = useState([]);
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.startDate) return;
     setSaving(true);
-    try { await onSave(form); }
+    const payload = {
+      ...form,
+      classIds: form.appliesTo === "all" ? [] : form.classIds,
+    };
+    try { await onSave(payload); }
     finally { setSaving(false); }
   };
 
@@ -201,9 +321,11 @@ function HolidayModal({ initial, onSave, onClose }) {
       style={{ backgroundColor: "rgba(31,26,23,0.52)", backdropFilter: "blur(6px)" }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: "90vh" }}
         onClick={e => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1]"
+        <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1] flex-shrink-0"
           style={{ background: "linear-gradient(160deg,#fff7d6 0%,#f8ebbf 50%,#f5e4a8 100%)" }}>
           <div className="flex items-center justify-between">
             <div>
@@ -252,6 +374,43 @@ function HolidayModal({ initial, onSave, onClose }) {
             </select>
           </div>
 
+          {/* Affected Classes */}
+          <div>
+            <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">
+              Affected Classes *
+            </label>
+            <div className="flex gap-3 mb-3">
+              {[
+                { value: "all",      label: "All Classes" },
+                { value: "selected", label: "Selected Classes" },
+              ].map(({ value, label }) => (
+                <button key={value} type="button"
+                  onClick={() => set("appliesTo", value)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all flex-1 justify-center
+                    ${form.appliesTo === value
+                      ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
+                      : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
+                    }`}>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${form.appliesTo === value ? "border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {form.appliesTo === value && (
+                      <div className="w-2 h-2 rounded-full bg-[#c9a830]" />
+                    )}
+                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {form.appliesTo === "selected" && (
+              <ClassMultiSelect
+                classes={classes}
+                selectedIds={form.classIds}
+                onChange={ids => set("classIds", ids)}
+              />
+            )}
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Description</label>
@@ -288,12 +447,13 @@ function HolidayModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-7 py-4 border-t border-[#F1F1F1] flex gap-3 bg-white">
+        <div className="px-7 py-4 border-t border-[#F1F1F1] flex gap-3 bg-white flex-shrink-0">
           <button onClick={onClose} disabled={saving}
             className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving || !form.title.trim() || !form.startDate}
+          <button onClick={handleSave}
+            disabled={saving || !form.title.trim() || !form.startDate || (form.appliesTo === "selected" && form.classIds.length === 0)}
             className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-[#5a4010] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
             style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}>
             {saving ? "Saving…" : initial ? "Save Changes" : "Add Holiday"}
@@ -334,13 +494,14 @@ function EmptyState({ onAdd }) {
 
 export default function Holidays() {
   const currentYear = String(new Date().getFullYear());
-  const [holidays, setHolidays]   = useState([]);
-  const [loading,  setLoading]    = useState(true);
-  const [year,     setYear]       = useState(currentYear);
-  const [view,     setView]       = useState("list");   // "list" | "calendar"
+  const [holidays,   setHolidays]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [year,       setYear]       = useState(currentYear);
+  const [view,       setView]       = useState("list");
   const [typeFilter, setTypeFilter] = useState("All");
-  const [modal,    setModal]      = useState(null);     // null | { mode, data }
-  const [search,   setSearch]     = useState("");
+  const [modal,      setModal]      = useState(null);
+  const [search,     setSearch]     = useState("");
+  const [classMap,   setClassMap]   = useState({});
 
   const load = useCallback(async (y) => {
     setLoading(true);
@@ -350,6 +511,17 @@ export default function Holidays() {
   }, []);
 
   useEffect(() => { load(year); }, [year, load]);
+
+  // Fetch classes once to build a classId → name map for display
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(list => {
+        const map = {};
+        list.forEach(c => { map[c.id] = c.name; });
+        setClassMap(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async (form) => {
     if (modal.mode === "edit") {
@@ -368,7 +540,7 @@ export default function Holidays() {
     setHolidays(prev => prev.filter(h => h.id !== id));
   };
 
-  const years = [currentYear, String(Number(currentYear) + 1), String(Number(currentYear) - 1)];
+  const years    = [currentYear, String(Number(currentYear) + 1), String(Number(currentYear) - 1)];
   const filtered = holidays
     .filter(h => typeFilter === "All" || h.type === typeFilter)
     .filter(h => !search || h.title.toLowerCase().includes(search.toLowerCase()));
@@ -417,7 +589,9 @@ export default function Holidays() {
               <button onClick={() => setModal({ mode: "add", data: null })}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[#5a4010] text-sm font-semibold transition-all active:scale-95"
                 style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 3px 10px rgba(212,170,31,0.28)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
                 Add Holiday
               </button>
             </div>
@@ -466,7 +640,7 @@ export default function Holidays() {
                   </p>
                   <div className="space-y-3">
                     {upcoming.map(h => (
-                      <HolidayCard key={h.id} holiday={h}
+                      <HolidayCard key={h.id} holiday={h} classMap={classMap}
                         onEdit={h => setModal({ mode: "edit", data: h })}
                         onDelete={handleDelete} />
                     ))}
@@ -480,7 +654,7 @@ export default function Holidays() {
                   </p>
                   <div className="space-y-3">
                     {past.map(h => (
-                      <HolidayCard key={h.id} holiday={h}
+                      <HolidayCard key={h.id} holiday={h} classMap={classMap}
                         onEdit={h => setModal({ mode: "edit", data: h })}
                         onDelete={handleDelete} />
                     ))}

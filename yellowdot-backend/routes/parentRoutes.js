@@ -32,6 +32,7 @@ const parentHolidaysSvc              = require("../services/parentHolidaysServic
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
 const careSvc                        = require("../services/careService");
+const studentSvc                     = require("../services/studentService");
 
 // ── Parent-only guard ──────────────────────────────────────────────
 function parentOnly(req, res, next) {
@@ -212,14 +213,24 @@ router.get("/api/parent/naps", loadParent, async (req, res) => {
 });
 
 // ── GET /api/parent/holidays ───────────────────────────────────────
-// Daily Care · Holiday Calendar (read-only). School-scoped — the calendar
-// is the same for everyone. Query: ?year=YYYY (optional). Reads the existing
-// staff holidays collection; parents see exactly what staff enters.
+// Daily Care · Holiday Calendar (read-only).
+// Query: ?year=YYYY (optional), ?studentId=YD001 (optional — defaults to first
+// linked child). Filters class-specific holidays to only the child's class.
 router.get("/api/parent/holidays", loadParent, async (req, res) => {
   try {
+    // Resolve classId for the requested (or first) linked child.
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal — fall back to showing all holidays */ }
+    }
     const data = await parentHolidaysSvc.getHolidaysView({
-      schoolId: req.parent.schoolId,
-      year:     req.query.year,
+      schoolId:       req.parent.schoolId,
+      year:           req.query.year,
+      studentClassId,
     });
     res.json(data);
   } catch (e) {
