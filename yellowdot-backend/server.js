@@ -76,6 +76,7 @@ const cctvRoutes             = require("./routes/cctvRoutes");
 const parentRoutes           = require("./routes/parentRoutes");
 const eventRoutes            = require("./routes/eventRoutes");
 const ptmRoutes              = require("./routes/ptmRoutes");
+const incidentRoutes         = require("./routes/incidentRoutes");
 const notificationRoutes     = require("./routes/notificationRoutes");
 const careRoutes             = require("./routes/careRoutes");
 const academicsRoutes        = require("./routes/academicsRoutes");
@@ -111,8 +112,9 @@ app.use(notificationRoutes);   // /api/parent/notifications/*  (must be before p
 app.use(careRoutes);           // /api/care/*  (Care & Hygiene — staff only)
 app.use(academicsRoutes);      // /api/academics/*  (Class Management)
 app.use(eventRoutes);          // /api/events/*  (Events — staff CRUD)
-app.use(ptmRoutes);            // /api/ptm/*     (PTM — staff CRUD + slot management)
-app.use(parentRoutes);         // /api/parent/*  (Parent Module V1 — parent-scoped)
+app.use(ptmRoutes);            // /api/ptm/*       (PTM — staff CRUD + slot management)
+app.use(incidentRoutes);       // /api/incidents/* (Incident Reports — staff CRUD)
+app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
 
 // ============================================================
 // UTILITY HELPERS

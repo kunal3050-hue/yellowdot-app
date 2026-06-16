@@ -34,6 +34,8 @@ const parentEventSvc                 = require("../services/parentEventService")
 const eventSvc                       = require("../services/eventService");
 const parentPtmSvc                   = require("../services/parentPtmService");
 const ptmSvc                         = require("../services/ptmService");
+const parentIncidentSvc              = require("../services/parentIncidentService");
+const incidentSvc                    = require("../services/incidentService");
 const notif                          = require("../services/notificationService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
@@ -524,6 +526,56 @@ router.delete("/api/parent/ptm/bookings/:bookingId", loadParent, async (req, res
 });
 
 // Exported for unit testing (pure middleware, no I/O).
+// ── GET /api/parent/incidents ──────────────────────────────────────
+// Incident reports for all linked children.
+router.get("/api/parent/incidents", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    const data = await parentIncidentSvc.getIncidentsForParent({
+      schoolId:   SCHOOL_ID,
+      studentIds: parent.studentIds || [],
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/incidents]", e.message);
+    res.status(500).json({ error: "Failed to load incidents." });
+  }
+});
+
+// ── POST /api/parent/incidents/:id/acknowledge ─────────────────────
+// Parent acknowledges an incident report.
+router.post("/api/parent/incidents/:id/acknowledge", loadParent, async (req, res) => {
+  try {
+    const parent    = req.parent;
+    const incident  = await incidentSvc.getIncident(req.params.id);
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    // Ensure this incident belongs to one of the parent's children
+    if (!(parent.studentIds || []).includes(incident.studentId)) {
+      return res.status(403).json({ error: "Not authorised to acknowledge this incident." });
+    }
+
+    const { acknowledgementNotes = "" } = req.body;
+    const ack = await incidentSvc.acknowledge(req.params.id, { parentId: parent.parentId, acknowledgementNotes });
+
+    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+    notif.notifyAsync(() =>
+      notif.fireForStudent(incident.studentId, SCHOOL_ID, {
+        type:     notif.TYPES.INCIDENT_ACKNOWLEDGED,
+        title:    "Incident Acknowledged",
+        message:  `Parent has acknowledged the incident report: ${incident.incidentType}.`,
+        deepLink: "/incidents",
+      })
+    );
+
+    res.json({ acknowledgement: ack });
+  } catch (e) {
+    console.error("[POST /api/parent/incidents/:id/acknowledge]", e.message);
+    res.status(500).json({ error: "Failed to acknowledge incident." });
+  }
+});
+
 router.parentOnly = parentOnly;
 
 module.exports = router;

@@ -56,6 +56,11 @@ const TYPES = {
   EVENT_CREATED:      "event_created",
   EVENT_UPDATED:      "event_updated",
   EVENT_REMINDER:     "event_reminder",
+  // Incidents
+  INCIDENT_REPORTED:  "incident_reported",
+  INCIDENT_UPDATED:   "incident_updated",
+  INCIDENT_ACKNOWLEDGED: "incident_acknowledged",
+  CRITICAL_INCIDENT:  "critical_incident",
   // PTM (Parent-Teacher Meetings)
   PTM_CREATED:        "ptm_created",
   PTM_BOOKED:         "ptm_booked",
@@ -93,6 +98,10 @@ const TYPE_META = {
   [TYPES.EVENT_CREATED]:     { priority: PRIORITY.MEDIUM },
   [TYPES.EVENT_UPDATED]:     { priority: PRIORITY.LOW    },
   [TYPES.EVENT_REMINDER]:    { priority: PRIORITY.MEDIUM },
+  [TYPES.INCIDENT_REPORTED]:    { priority: PRIORITY.HIGH   },
+  [TYPES.INCIDENT_UPDATED]:     { priority: PRIORITY.MEDIUM },
+  [TYPES.INCIDENT_ACKNOWLEDGED]:{ priority: PRIORITY.LOW    },
+  [TYPES.CRITICAL_INCIDENT]:    { priority: PRIORITY.HIGH   },
   [TYPES.PTM_CREATED]:       { priority: PRIORITY.MEDIUM },
   [TYPES.PTM_BOOKED]:        { priority: PRIORITY.MEDIUM },
   [TYPES.PTM_RESCHEDULED]:   { priority: PRIORITY.MEDIUM },

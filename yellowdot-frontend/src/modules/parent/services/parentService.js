@@ -156,6 +156,19 @@ export async function getNotifications(params = {}) {
   return data;
 }
 
+// Incident Reports (read-only, own children only)
+export async function getIncidents() {
+  const { data } = await api.get("/api/parent/incidents");
+  return data;
+}
+
+export async function acknowledgeIncident(incidentId, notes = "") {
+  const { data } = await api.post(`/api/parent/incidents/${incidentId}/acknowledge`, {
+    acknowledgementNotes: notes,
+  });
+  return data;
+}
+
 export async function getUnreadNotificationCount() {
   const { data } = await api.get("/api/parent/notifications/unread-count");
   return data.count ?? 0;

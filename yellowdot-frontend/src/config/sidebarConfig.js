@@ -275,15 +275,20 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
-  // ── Presence & Safety ──────────────────────────────────────────────────────
-  // Groups all in-person attendance and safety items.
-  // Future additions: Staff Attendance QR, Visitor Management.
+  // ── Safety & Compliance ────────────────────────────────────────────────────
   {
     id:          "presence_safety",
-    label:       "Presence & Safety",
+    label:       "Safety & Compliance",
     collapsible: true,
     defaultOpen: true,
     items: [
+      {
+        id:       "incidents",
+        label:    "Incident Reports",
+        path:     "/incidents",
+        routeKey: ROUTES.INCIDENTS,
+        icon:     "AlertTriangle",
+      },
       {
         id:       "attendance",
         label:    "Attendance",
