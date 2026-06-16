@@ -52,6 +52,10 @@ const TYPES = {
   CIRCULAR_PUBLISHED: "circular_published",
   ANNOUNCEMENT:       "announcement",
   EMERGENCY_CLOSURE:  "emergency_closure",
+  // Events
+  EVENT_CREATED:      "event_created",
+  EVENT_UPDATED:      "event_updated",
+  EVENT_REMINDER:     "event_reminder",
   // Billing
   FEE_REMINDER:       "fee_reminder",
   FEE_DUE_TODAY:      "fee_due_today",
@@ -80,6 +84,9 @@ const TYPE_META = {
   [TYPES.CIRCULAR_PUBLISHED]:{ priority: PRIORITY.LOW    },
   [TYPES.ANNOUNCEMENT]:      { priority: PRIORITY.LOW    },
   [TYPES.EMERGENCY_CLOSURE]: { priority: PRIORITY.HIGH   },
+  [TYPES.EVENT_CREATED]:     { priority: PRIORITY.MEDIUM },
+  [TYPES.EVENT_UPDATED]:     { priority: PRIORITY.LOW    },
+  [TYPES.EVENT_REMINDER]:    { priority: PRIORITY.MEDIUM },
   [TYPES.FEE_REMINDER]:      { priority: PRIORITY.LOW    },
   [TYPES.FEE_DUE_TODAY]:     { priority: PRIORITY.MEDIUM },
   [TYPES.FEE_OVERDUE]:       { priority: PRIORITY.HIGH   },

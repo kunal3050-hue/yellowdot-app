@@ -258,6 +258,13 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.ANNOUNCEMENTS,
         icon:     "Megaphone",
       },
+      {
+        id:       "events",
+        label:    "Events",
+        path:     "/events",
+        routeKey: ROUTES.EVENTS,
+        icon:     "CalendarCheck",
+      },
     ],
   },
 

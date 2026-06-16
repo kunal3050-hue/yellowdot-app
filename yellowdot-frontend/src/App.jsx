@@ -66,6 +66,7 @@ const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/Academi
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
+const Events              = lazy(() => import("./pages/Events"));
 
 function App() {
   return (
@@ -424,6 +425,14 @@ function App() {
               element={
                 <ProtectedRoute routeKey="announcements">
                   <Announcements />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute routeKey="events">
+                  <Events />
                 </ProtectedRoute>
               }
             />

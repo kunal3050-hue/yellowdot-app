@@ -30,6 +30,8 @@ const parentConsumptionSvc           = require("../services/parentConsumptionSer
 const parentNapSvc                   = require("../services/parentNapService");
 const parentHolidaysSvc              = require("../services/parentHolidaysService");
 const parentNoticesSvc               = require("../services/parentNoticesService");
+const parentEventSvc                 = require("../services/parentEventService");
+const eventSvc                       = require("../services/eventService");
 const parentActivitySvc              = require("../services/parentActivityFeedService");
 const parentHighlightsSvc            = require("../services/parentHighlightsService");
 const careSvc                        = require("../services/careService");
@@ -357,6 +359,66 @@ router.get("/api/parent/care", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/care]", e.message);
     res.status(500).json({ error: "Failed to load care log." });
+  }
+});
+
+// ── GET /api/parent/events ─────────────────────────────────────────
+// Events filtered to child's class, enriched with parent's RSVP status.
+// Query: ?studentId=YD001 (optional; defaults to first linked child).
+router.get("/api/parent/events", loadParent, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.parent.studentIds?.[0];
+    let studentClassId, resolvedStudentId;
+    if (studentId && req.parent.studentIds?.includes(studentId)) {
+      resolvedStudentId = studentId;
+      try {
+        const student = await studentSvc.getOne(studentId);
+        studentClassId = student?.classId || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const data = await parentEventSvc.getEventsView({
+      schoolId:       req.parent.schoolId,
+      studentClassId,
+      studentId:      resolvedStudentId,
+      parentId:       req.parent.uid,
+    });
+    res.json(data);
+  } catch (e) {
+    console.error("[GET /api/parent/events]", e.message);
+    res.status(500).json({ error: "Failed to load events." });
+  }
+});
+
+// ── POST /api/parent/events/:id/rsvp ──────────────────────────────
+// Body: { response: "attending" | "not_attending" | "maybe", studentId }
+router.post("/api/parent/events/:id/rsvp", loadParent, async (req, res) => {
+  try {
+    const eventId  = req.params.id;
+    const studentId = req.body.studentId || req.parent.studentIds?.[0];
+    const response  = req.body.response;
+
+    if (!["attending", "not_attending", "maybe"].includes(response)) {
+      return res.status(400).json({ error: "Invalid response. Use: attending, not_attending, or maybe." });
+    }
+    if (!studentId || !req.parent.studentIds?.includes(studentId)) {
+      return res.status(403).json({ error: "Student not linked to this account." });
+    }
+
+    const event = await eventSvc.getEvent(eventId);
+    if (!event || event.schoolId !== req.parent.schoolId) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+    if (!event.rsvpRequired) {
+      return res.status(400).json({ error: "This event does not require RSVP." });
+    }
+
+    const rsvp = await eventSvc.upsertRsvp({
+      eventId, studentId, parentId: req.parent.uid, response,
+    });
+    res.json({ rsvp });
+  } catch (e) {
+    console.error("[POST /api/parent/events/:id/rsvp]", e.message);
+    res.status(500).json({ error: "Failed to submit RSVP." });
   }
 });
 

@@ -105,6 +105,19 @@ export async function getNotices(studentId) {
   return data;
 }
 
+// Events (class-filtered, with RSVP status)
+export async function getEvents(studentId) {
+  const params = {};
+  if (studentId) params.studentId = studentId;
+  const { data } = await api.get("/api/parent/events", { params });
+  return data;
+}
+
+export async function submitRsvp(eventId, studentId, response) {
+  const { data } = await api.post(`/api/parent/events/${eventId}/rsvp`, { studentId, response });
+  return data;
+}
+
 // Care & Hygiene (read-only, one linked child)
 export async function getCareLog(studentId, date) {
   const params = {};
@@ -135,4 +148,4 @@ export async function markAllNotificationsRead() {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
+export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
