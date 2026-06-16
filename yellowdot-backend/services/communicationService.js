@@ -139,6 +139,8 @@ async function createAnnouncement(data, { schoolId = SCHOOL_ID, actorUserId = "s
     mediaUrl:        data.mediaUrl        || "",
     publishAt:       data.publishAt       || nowISO(),
     commentsEnabled: data.commentsEnabled ?? false,
+    appliesTo:       data.appliesTo       || "all",
+    classIds:        data.classIds        || [],
     audience:        data.audience        || { classes: [], centers: [] },
     seenCount:       0,
     reactions:       {},

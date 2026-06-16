@@ -2,9 +2,10 @@
 // Announcements — quick updates, live feed, parent-app posts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import communicationService from "../services/communicationService";
+import academicsService from "../services/academicsService";
 
 const ANN_TYPES = ["General", "Emergency", "Celebration", "Reminder", "Activity Update", "Achievement"];
 
@@ -36,6 +37,120 @@ function timeAgo(isoStr) {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+// ── ClassBadges ───────────────────────────────────────────────────────────────
+
+function ClassBadges({ ann, classMap }) {
+  if (ann.appliesTo === "selected") {
+    const ids = ann.classIds || [];
+    if (ids.length === 0) return null;
+    return (
+      <>
+        {ids.slice(0, 3).map(id => (
+          <span key={id}
+            className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#edf4ff] text-[#2563b8] text-[10px] font-semibold border border-[#bfdbfe]">
+            {classMap[id] || id}
+          </span>
+        ))}
+        {ids.length > 3 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#F1F1F1] text-[#6b7280] text-[10px] font-semibold border border-[#e5e7eb]">
+            +{ids.length - 3} more
+          </span>
+        )}
+      </>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[#f0fdf4] text-[#15803d] text-[10px] font-semibold border border-[#bbf7d0]">
+      All Classes
+    </span>
+  );
+}
+
+// ── ClassMultiSelect ──────────────────────────────────────────────────────────
+
+function ClassMultiSelect({ classes, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const toggle = (id) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter(x => x !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const label = selectedIds.length === 0
+    ? "Select classes…"
+    : selectedIds.length === 1
+      ? (classes.find(c => c.id === selectedIds[0])?.name || selectedIds[0])
+      : `${selectedIds.length} classes selected`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all
+          ${open ? "ring-2 ring-[#f4c430]/35 border-[#c9a830]/60" : "border-[#F1F1F1]"}
+          bg-white text-left`}>
+        <span className={selectedIds.length === 0 ? "text-[#c4b090]" : "text-[#2a1c06] font-medium"}>
+          {label}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b090" strokeWidth="2.5" strokeLinecap="round"
+          className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-white border border-[#F1F1F1] rounded-2xl shadow-xl overflow-hidden"
+          style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.10)" }}>
+          <div className="max-h-48 overflow-y-auto py-1.5">
+            {classes.length === 0 ? (
+              <div className="px-4 py-3 text-[#a3957e] text-sm text-center">No active classes found</div>
+            ) : classes.map(cls => {
+              const checked = selectedIds.includes(cls.id);
+              return (
+                <button key={cls.id} type="button" onClick={() => toggle(cls.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
+                    ${checked ? "bg-[#fffdf0]" : "hover:bg-[#faf8f0]"}`}>
+                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-all
+                    ${checked ? "bg-[#f4c430] border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {checked && (
+                      <svg width="9" height="9" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4l3 3 5-6" stroke="#5a4010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className={checked ? "text-[#2a1c06] font-semibold" : "text-[#5a4010]"}>{cls.name}</span>
+                  {cls.ageGroup && (
+                    <span className="text-[#a3957e] text-[11px] ml-auto">{cls.ageGroup}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {selectedIds.length > 0 && (
+            <div className="px-4 py-2 border-t border-[#F1F1F1]">
+              <button type="button" onClick={() => onChange([])}
+                className="text-[11px] font-semibold text-[#a3957e] hover:text-[#7a5e18] transition-colors">
+                Clear selection
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── QuickComposer — "What would you like to share?" ──────────────────────────
 
 function QuickComposer({ onOpen }) {
@@ -47,7 +162,6 @@ function QuickComposer({ onOpen }) {
                    hover:border-[#e0d4a0] hover:shadow-[0_6px_22px_rgba(212,170,31,0.10)] hover:bg-white
                    transition-all duration-[200ms] cursor-pointer group"
       >
-        {/* School avatar orb */}
         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-stone-700
                         flex items-center justify-center flex-shrink-0
                         group-hover:scale-105 transition-transform duration-[200ms]">
@@ -55,15 +169,11 @@ function QuickComposer({ onOpen }) {
             <path d="M3 11l19-9-9 19-2-8-8-2z"/>
           </svg>
         </div>
-
-        {/* Placeholder */}
         <div className="flex-1 px-4 py-2.5 rounded-xl bg-[#faf6ea] border border-[#F1F1F1] text-sm text-[#c4b090] select-none
                         group-hover:bg-[#fff9ee] group-hover:border-[#e0d4a0] transition-all">
           What would you like to share today?
         </div>
-
-        {/* Post chip */}
-        <div className="flex-shrink-0 px-4 py-2 rounded-xl text-[#5a4010] text-xs font-semibold select-none flex-shrink-0"
+        <div className="flex-shrink-0 px-4 py-2 rounded-xl text-[#5a4010] text-xs font-semibold select-none"
           style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 2px 8px rgba(212,170,31,0.25)" }}>
           Post
         </div>
@@ -74,7 +184,7 @@ function QuickComposer({ onOpen }) {
 
 // ── AnnouncementCard ──────────────────────────────────────────────────────────
 
-function AnnouncementCard({ ann, onEdit, onDelete }) {
+function AnnouncementCard({ ann, onEdit, onDelete, classMap }) {
   const typeStyle = TYPE_STYLE[ann.type] || TYPE_STYLE["General"];
   const emoji     = TYPE_EMOJI[ann.type] || "📢";
 
@@ -82,7 +192,6 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
     <div className="group p-5 sm:p-6 rounded-3xl border border-[#F1F1F1] bg-white hover:border-[#e0d4a0] hover:shadow-[0_8px_30px_rgba(212,170,31,0.11)] hover:-translate-y-1 transition-all duration-[200ms]">
       {/* Top row */}
       <div className="flex items-start gap-3">
-        {/* Emoji orb */}
         <div className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center text-xl select-none"
           style={{ background: "linear-gradient(160deg,#fdf8e8 0%,#f5e4a8 100%)", boxShadow: "0 2px 8px rgba(212,170,31,0.18)" }}>
           {emoji}
@@ -90,9 +199,12 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-semibold ${typeStyle}`}>
-              {ann.type}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-semibold ${typeStyle}`}>
+                {ann.type}
+              </span>
+              <ClassBadges ann={ann} classMap={classMap} />
+            </div>
             <span className="text-[10px] text-[#c4b090] font-normal flex-shrink-0">{timeAgo(ann.createdAt)}</span>
           </div>
           <h3 className="mt-1.5 text-[#2a1c06] font-bold text-base leading-snug">{ann.title}</h3>
@@ -106,7 +218,6 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
 
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-[#f0ebe0] flex items-center justify-between">
-        {/* Stats */}
         <div className="flex items-center gap-4">
           {ann.seenCount > 0 && (
             <div className="flex items-center gap-1.5 text-[#a3957e] text-xs">
@@ -126,7 +237,6 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
           )}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(ann)} title="Edit"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-[#f8f0d4] hover:bg-[#f0e4a0] text-[#8b7228] transition-all">
@@ -150,25 +260,45 @@ function AnnouncementCard({ ann, onEdit, onDelete }) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-const EMPTY = { title: "", body: "", type: "General", commentsEnabled: false };
+const EMPTY = {
+  title: "", body: "", type: "General", commentsEnabled: false,
+  appliesTo: "all", classIds: [],
+};
 
 function AnnouncementModal({ initial, onSave, onClose }) {
-  const [form, setForm] = useState(initial ? { ...EMPTY, ...initial } : EMPTY);
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(initial ? {
+    ...EMPTY, ...initial,
+    appliesTo: initial.appliesTo || "all",
+    classIds:  initial.classIds  || [],
+  } : EMPTY);
+  const [saving,  setSaving]  = useState(false);
+  const [classes, setClasses] = useState([]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    try { await onSave(form); }
+    const payload = {
+      ...form,
+      classIds: form.appliesTo === "all" ? [] : form.classIds,
+    };
+    try { await onSave(payload); }
     finally { setSaving(false); }
   };
+
+  const canSave = form.title.trim() && !(form.appliesTo === "selected" && form.classIds.length === 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: "rgba(31,26,23,0.52)", backdropFilter: "blur(6px)" }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      <div className="w-full max-w-lg max-h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="px-7 pt-6 pb-5 border-b border-[#F1F1F1] flex-shrink-0"
@@ -189,7 +319,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-white">
-          {/* Type selector — visual chips */}
+          {/* Type selector */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">Type</label>
             <div className="flex flex-wrap gap-2">
@@ -214,12 +344,48 @@ function AnnouncementModal({ initial, onSave, onClose }) {
               className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all placeholder-[#c4b090]"/>
           </div>
 
-          {/* Body */}
+          {/* Message */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-1.5">Message</label>
             <textarea value={form.body} onChange={e => set("body", e.target.value)}
               rows={4} placeholder="Add details, emoji, anything the parents need to know…"
               className="w-full px-4 py-2.5 rounded-xl border border-[#F1F1F1] bg-white text-sm text-[#2a1c06] outline-none focus:ring-2 focus:ring-[#f4c430]/35 focus:border-[#c9a830]/60 transition-all resize-none placeholder-[#c4b090]"/>
+          </div>
+
+          {/* Affected Classes */}
+          <div>
+            <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">
+              Affected Classes *
+            </label>
+            <div className="flex gap-3 mb-3">
+              {[
+                { value: "all",      label: "All Classes" },
+                { value: "selected", label: "Selected Classes" },
+              ].map(({ value, label }) => (
+                <button key={value} type="button"
+                  onClick={() => set("appliesTo", value)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all flex-1 justify-center
+                    ${form.appliesTo === value
+                      ? "bg-[#f9dc5a]/30 border-[#d4b830] text-[#5a4010]"
+                      : "bg-white border-[#F1F1F1] text-[#a3957e] hover:border-[#d4c8a0]"
+                    }`}>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${form.appliesTo === value ? "border-[#c9a830]" : "border-[#d4c8b0]"}`}>
+                    {form.appliesTo === value && (
+                      <div className="w-2 h-2 rounded-full bg-[#c9a830]" />
+                    )}
+                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {form.appliesTo === "selected" && (
+              <ClassMultiSelect
+                classes={classes}
+                selectedIds={form.classIds}
+                onChange={ids => set("classIds", ids)}
+              />
+            )}
           </div>
 
           {/* Comments toggle */}
@@ -248,7 +414,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
             className="flex-1 py-2.5 rounded-2xl border border-[#F1F1F1] text-sm font-bold text-[#6f624f] hover:bg-[#faf6ea] transition-all disabled:opacity-50">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving || !form.title.trim()}
+          <button onClick={handleSave} disabled={saving || !canSave}
             className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-[#5a4010] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
             style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}>
             {saving ? "Posting…" : initial ? "Save Changes" : "Post Announcement"}
@@ -291,6 +457,7 @@ export default function Announcements() {
   const [typeFilter,    setTypeFilter]    = useState("All");
   const [modal,         setModal]         = useState(null);
   const [search,        setSearch]        = useState("");
+  const [classMap,      setClassMap]      = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -300,6 +467,16 @@ export default function Announcements() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    academicsService.getClasses()
+      .then(list => {
+        const map = {};
+        list.forEach(c => { map[c.id] = c.name; });
+        setClassMap(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async (form) => {
     if (modal.mode === "edit") {
@@ -336,7 +513,6 @@ export default function Announcements() {
               <p className="text-[#a3957e] text-sm mt-0.5 font-normal">Quick updates & live parent feed</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
               <div className="relative">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#c4b090]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -389,7 +565,7 @@ export default function Announcements() {
           ) : (
             <div className="max-w-2xl space-y-3">
               {filtered.map(a => (
-                <AnnouncementCard key={a.id} ann={a}
+                <AnnouncementCard key={a.id} ann={a} classMap={classMap}
                   onEdit={a => setModal({ mode: "edit", data: a })}
                   onDelete={handleDelete}
                 />

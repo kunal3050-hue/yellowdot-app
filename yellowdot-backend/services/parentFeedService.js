@@ -106,8 +106,17 @@ async function getFeed({ schoolId = DEFAULT_SCHOOL_ID, studentClassId } = {}) {
     return true;
   });
 
+  const visibleAnnouncements = announcements.filter(a => {
+    const appliesTo = a.appliesTo || "all";
+    if (appliesTo === "selected") {
+      if (!studentClassId) return true;
+      return (a.classIds || []).includes(studentClassId);
+    }
+    return true;
+  });
+
   const feed = [
-    ...announcements.map(mapAnnouncement),
+    ...visibleAnnouncements.map(mapAnnouncement),
     ...visibleHolidays.map(mapHolidayEvent),
     ...visibleEventNotices.map(mapNoticeEvent),
   ];
