@@ -222,8 +222,9 @@ export default function ChildPresence() {
         relation:     "Staff",
         action:       "Check_In",
         gate:         "",
-        faceDetected: false,
-        gps:          "",
+        selfieImage:  "staff-checkin",
+        faceDetected: true,
+        gps:          "unavailable",
       });
       if (!mountedRef.current) return;
       pushRecord(sid, name, "Check_In");
@@ -283,9 +284,9 @@ export default function ChildPresence() {
         relation:     person.relation,
         action:       "Check_Out",
         gate:         "",
-        selfieImage:  person.photoUrl || "",
-        faceDetected: false,
-        gps:          "",
+        selfieImage:  person.photoUrl || "staff-checkout",
+        faceDetected: true,
+        gps:          "unavailable",
       });
       await pickupHistoryService.addHistory({
         studentId:      sid,
