@@ -291,7 +291,7 @@ export const SIDEBAR_GROUPS = [
       },
       {
         id:       "child_presence",
-        label:    "Child Presence",
+        label:    "Gate Register",
         path:     "/child-presence",
         routeKey: ROUTES.ATTENDANCE,
         icon:     "UserCheck",
