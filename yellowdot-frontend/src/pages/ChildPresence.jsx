@@ -1,21 +1,21 @@
 /**
  * ChildPresence.jsx — Unified child presence tracking
  * Route:   /child-presence  (routeKey: "attendance")
- * Replaces: Attendance + Parent Entry + Staff Checkout in the sidebar nav
+ * Screen:  Gate Register
  *
  * Single question: "Is the child currently inside the school?"
- * Three states:    Not Arrived · Checked In · Checked Out
+ * Three states:    Not Arrived · Present · Picked Up
  *
- * Check-in:  one-click (staff records the arrival)
- * Check-out: requires selecting the collector from the authorized list,
- *            or photographing an unknown person and sending to parent for approval.
+ * Sort order:   Present → Not Arrived → Picked Up (alphabetical within each group)
+ * Check-in:     one-click, search stays focused for rapid sequential arrivals
+ * Check-out:    authorized-person modal; persons preloaded in background
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../services/authService";
-import parentAttendanceService  from "../services/parentAttendanceService";
+import parentAttendanceService    from "../services/parentAttendanceService";
 import pickupAuthorizationService from "../services/pickupAuthorizationService";
 import pickupHistoryService       from "../services/pickupHistoryService";
 import securityService            from "../services/securityService";
@@ -24,14 +24,24 @@ import securityService            from "../services/securityService";
 
 const STATUS_CFG = {
   NOT_ARRIVED: { label: "Not Arrived", dot: "#D97706", bg: "#FEF3C7", text: "#92400E" },
-  CHECKED_IN:  { label: "Checked In",  dot: "#10B981", bg: "#D1FAE5", text: "#065F46" },
-  CHECKED_OUT: { label: "Checked Out", dot: "#9CA3AF", bg: "#F3F4F6", text: "#4B5563" },
+  CHECKED_IN:  { label: "Present",     dot: "#10B981", bg: "#D1FAE5", text: "#065F46" },
+  CHECKED_OUT: { label: "Picked Up",   dot: "#9CA3AF", bg: "#F3F4F6", text: "#4B5563" },
 };
+
+// Present first — they're inside and need monitoring
+const STATUS_ORDER = { CHECKED_IN: 0, NOT_ARRIVED: 1, CHECKED_OUT: 2 };
 
 const RELATION_OPTS = [
   "Unknown", "Father", "Mother", "Grandmother", "Grandfather",
   "Uncle", "Aunt", "Driver", "Guardian", "Other",
 ];
+
+// Parents pick up most often; drivers/unknowns least
+const RELATION_PRIORITY = {
+  Father: 0, Mother: 0, Parent: 0,
+  Grandmother: 1, Grandfather: 1, Aunt: 1, Uncle: 1, Guardian: 1,
+  Driver: 2, Other: 3, Unknown: 4,
+};
 
 const SPRING = "cubic-bezier(0.22,1,0.36,1)";
 
@@ -51,6 +61,13 @@ function todayLabel() {
   });
 }
 
+function fmtTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-IN", {
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+
 function snapVideo(video, w = 480, h = 360) {
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
@@ -62,6 +79,17 @@ function stuId(s)   { return s.Student_ID || s.id || ""; }
 function stuName(s) { return s.Student_Name || s.name || "—"; }
 function stuCls(s)  { return s.Class || s.class || "—"; }
 
+// Sort by relation priority; emergency contacts go last (not for daily pickup)
+function sortPersons(persons) {
+  return [...persons].sort((a, b) => {
+    if (a.emergency !== b.emergency) return a.emergency ? 1 : -1;
+    const pa = RELATION_PRIORITY[a.relation] ?? 5;
+    const pb = RELATION_PRIORITY[b.relation] ?? 5;
+    if (pa !== pb) return pa - pb;
+    return (a.pickupName || "").localeCompare(b.pickupName || "");
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function ChildPresence() {
@@ -69,22 +97,26 @@ export default function ChildPresence() {
   const mountedRef = useRef(true);
 
   // Core data
-  const [students, setStudents] = useState([]);
-  const [records,  setRecords]  = useState([]);   // today's parentAttendance records
-  const [loading,  setLoading]  = useState(true);
+  const [students,  setStudents]  = useState([]);
+  const [records,   setRecords]   = useState([]);   // today's parentAttendance records
+  const [loading,   setLoading]   = useState(true);
   const [dataError, setDataError] = useState(null);
 
   // Filters
   const [search,      setSearch]      = useState("");
   const [classFilter, setClassFilter] = useState("");
+  const searchRef = useRef(null);
 
   // Per-row busy (by studentId)
   const [busyIds, setBusyIds] = useState({});
 
+  // Authorized-persons cache: Map<studentId, Person[]> — preloaded in background
+  const [authCache, setAuthCache] = useState(new Map());
+
   // Checkout modal
-  const [checkoutStu,  setCheckoutStu]  = useState(null); // null = closed
-  const [authPersons,  setAuthPersons]  = useState([]);
-  const [authLoading,  setAuthLoading]  = useState(false);
+  const [checkoutStu, setCheckoutStu] = useState(null);
+  const [authPersons, setAuthPersons] = useState([]);
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Unknown-person sub-flow inside checkout modal
   const [unknownStep,     setUnknownStep]     = useState("select"); // select|camera|preview|sent
@@ -116,6 +148,11 @@ export default function ChildPresence() {
     };
   }, []);
 
+  // Auto-focus search on mount so receptionist can type immediately
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
+
   // ── Load ────────────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -135,13 +172,52 @@ export default function ChildPresence() {
     } catch {
       if (mountedRef.current) setDataError("Could not load data. Check your connection and retry.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setTimeout(() => searchRef.current?.focus(), 50);
+      }
     }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Status derivation ───────────────────────────────────────────────────────
+  // ── Background preload of authorized persons ──────────────────────────────
+  // Runs after the student list loads so the pickup modal opens instantly.
+  useEffect(() => {
+    if (students.length === 0) return;
+
+    let cancelled = false;
+    const CONCURRENCY = 4;
+    const queue = [...students];
+    let active = 0;
+
+    function processNext() {
+      while (active < CONCURRENCY && queue.length > 0) {
+        const stu = queue.shift();
+        const sid = stuId(stu);
+        active++;
+        pickupAuthorizationService.getPersons({ studentId: sid, status: "Active" })
+          .then(res => {
+            if (cancelled) return;
+            const list = Array.isArray(res) ? res : (res.entries || res.data || []);
+            setAuthCache(prev => {
+              const next = new Map(prev);
+              next.set(sid, list);
+              return next;
+            });
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (!cancelled) { active--; processNext(); }
+          });
+      }
+    }
+
+    processNext();
+    return () => { cancelled = true; };
+  }, [students]);
+
+  // ── Status derivation ────────────────────────────────────────────────────────
   const statusMap = useMemo(() => {
     const map = new Map();
     for (const r of records) {
@@ -152,26 +228,34 @@ export default function ChildPresence() {
     return map;
   }, [records]);
 
-  function getStatus(sid) {
+  function getStatusDetail(sid) {
     const recs = statusMap.get(sid) || [];
-    if (!recs.length) return "NOT_ARRIVED";
+    if (!recs.length) return { status: "NOT_ARRIVED", time: null, collector: null };
     const latest = recs.reduce((a, b) =>
       new Date(a.timestamp || a.createdAt || 0) >=
       new Date(b.timestamp || b.createdAt || 0) ? a : b
     );
-    return latest.action === "Check_In" ? "CHECKED_IN" : "CHECKED_OUT";
+    const time = latest.timestamp || latest.createdAt || null;
+    if (latest.action === "Check_In") {
+      return { status: "CHECKED_IN", time, collector: null };
+    }
+    return { status: "CHECKED_OUT", time, collector: latest.parentName || null };
+  }
+
+  function getStatus(sid) {
+    return getStatusDetail(sid).status;
   }
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const counts = useMemo(() => {
-    let notArrived = 0, checkedIn = 0, checkedOut = 0;
+    let notArrived = 0, present = 0, pickedUp = 0;
     for (const s of students) {
       const st = getStatus(stuId(s));
       if      (st === "NOT_ARRIVED") notArrived++;
-      else if (st === "CHECKED_IN")  checkedIn++;
-      else                           checkedOut++;
+      else if (st === "CHECKED_IN")  present++;
+      else                           pickedUp++;
     }
-    return { notArrived, checkedIn, checkedOut, total: students.length };
+    return { notArrived, present, pickedUp, total: students.length };
   }, [students, statusMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Classes ─────────────────────────────────────────────────────────────────
@@ -180,17 +264,23 @@ export default function ChildPresence() {
     return Array.from(set).sort();
   }, [students]);
 
-  // ── Filtered list ───────────────────────────────────────────────────────────
+  // ── Filtered + sorted list ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return students.filter(s => {
+    const result = students.filter(s => {
       const n  = stuName(s).toLowerCase();
       const c  = stuCls(s).toLowerCase();
       const id = stuId(s).toLowerCase();
       return (!q || n.includes(q) || c.includes(q) || id.includes(q))
           && (!classFilter || stuCls(s) === classFilter);
     });
-  }, [students, search, classFilter]);
+    return result.sort((a, b) => {
+      const oa = STATUS_ORDER[getStatus(stuId(a))] ?? 99;
+      const ob = STATUS_ORDER[getStatus(stuId(b))] ?? 99;
+      if (oa !== ob) return oa - ob;
+      return stuName(a).localeCompare(stuName(b));
+    });
+  }, [students, search, classFilter, statusMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Toast ───────────────────────────────────────────────────────────────────
   function showToast(msg, type = "success") {
@@ -200,12 +290,13 @@ export default function ChildPresence() {
   }
 
   // ── Optimistic record push ───────────────────────────────────────────────────
-  function pushRecord(sid, sname, action) {
+  function pushRecord(sid, sname, action, extra = {}) {
     setRecords(prev => [...prev, {
       studentId:   sid,
       studentName: sname,
       action,
       timestamp:   new Date().toISOString(),
+      ...extra,
     }]);
   }
 
@@ -228,11 +319,15 @@ export default function ChildPresence() {
       });
       if (!mountedRef.current) return;
       pushRecord(sid, name, "Check_In");
-      showToast(`${name} checked in`);
+      showToast(`${name} — arrived`);
     } catch {
       showToast("Check-in failed. Try again.", "error");
     } finally {
-      if (mountedRef.current) setBusyIds(b => ({ ...b, [sid]: false }));
+      if (mountedRef.current) {
+        setBusyIds(b => ({ ...b, [sid]: false }));
+        // Keep focus on search for rapid sequential morning arrivals
+        setTimeout(() => searchRef.current?.focus(), 50);
+      }
     }
   }
 
@@ -243,20 +338,27 @@ export default function ChildPresence() {
     setCapturedPhoto("");
     setUnknownName("");
     setUnknownRelation("Unknown");
-    setAuthPersons([]);
-    setAuthLoading(true);
-    try {
-      const res = await pickupAuthorizationService.getPersons({
-        studentId: stuId(stu),
-        status: "Active",
-      });
-      if (!mountedRef.current) return;
-      const list = Array.isArray(res) ? res : (res.entries || res.data || []);
-      setAuthPersons(list);
-    } catch {
-      if (mountedRef.current) setAuthPersons([]);
-    } finally {
-      if (mountedRef.current) setAuthLoading(false);
+
+    const sid    = stuId(stu);
+    const cached = authCache.get(sid);
+
+    if (cached !== undefined) {
+      // Preloaded — open instantly, no spinner
+      setAuthPersons(sortPersons(cached));
+      setAuthLoading(false);
+    } else {
+      setAuthPersons([]);
+      setAuthLoading(true);
+      try {
+        const res = await pickupAuthorizationService.getPersons({ studentId: sid, status: "Active" });
+        if (!mountedRef.current) return;
+        const list = Array.isArray(res) ? res : (res.entries || res.data || []);
+        setAuthPersons(sortPersons(list));
+      } catch {
+        if (mountedRef.current) setAuthPersons([]);
+      } finally {
+        if (mountedRef.current) setAuthLoading(false);
+      }
     }
   }
 
@@ -269,11 +371,11 @@ export default function ChildPresence() {
 
   // ── Checkout — authorized person ────────────────────────────────────────────
   async function handleCheckoutPerson(person) {
-    const stu    = checkoutStu;
-    const sid    = stuId(stu);
-    const name   = stuName(stu);
-    const staff  = user?.displayName || user?.name || "Staff";
-    const now    = new Date().toISOString();
+    const stu   = checkoutStu;
+    const sid   = stuId(stu);
+    const name  = stuName(stu);
+    const staff = user?.displayName || user?.name || "Staff";
+    const now   = new Date().toISOString();
     closeCheckout();
     setBusyIds(b => ({ ...b, [sid]: true }));
     try {
@@ -301,8 +403,9 @@ export default function ChildPresence() {
         date:           todayIso(),
       });
       if (!mountedRef.current) return;
-      pushRecord(sid, name, "Check_Out");
-      showToast(`${name} checked out — ${person.pickupName}`);
+      // Include parentName so the row shows "Picked Up · [name] · [time]" immediately
+      pushRecord(sid, name, "Check_Out", { parentName: person.pickupName });
+      showToast(`${name} — picked up by ${person.pickupName}`);
     } catch {
       showToast("Checkout failed. Try again.", "error");
     } finally {
@@ -318,7 +421,6 @@ export default function ChildPresence() {
         video: { facingMode: "environment", width: 480, height: 360 },
       });
       streamRef.current = stream;
-      // videoRef.current may already be mounted by now (async boundary)
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
       showToast("Camera access denied.", "error");
@@ -444,14 +546,14 @@ export default function ChildPresence() {
         {/* Header */}
         <div style={S.hdr}>
           <div>
-            <h1 style={S.title}>Child Presence</h1>
+            <h1 style={S.title}>Gate Register</h1>
             <p style={S.dateStr}>{todayLabel()}</p>
           </div>
           <button
             onClick={toggleScanner}
-            style={{ ...S.btn, ...(scannerOpen ? S.btnWarm : S.btnGhost) }}
+            style={{ ...S.btn, ...(scannerOpen ? S.btnWarm : S.btnPrimary) }}
           >
-            <IcoQr /> {scannerOpen ? "Close Scanner" : "QR Scanner"}
+            <IcoQr /> {scannerOpen ? "Close Scanner" : "Scan Badge"}
           </button>
         </div>
 
@@ -472,9 +574,9 @@ export default function ChildPresence() {
                     scanResult.action === "check-in"  ? "#065F46" :
                     scanResult.action === "check-out" ? "#991B1B" : "#374151",
                 }}>
-                  {scanResult.action === "check-in"    ? "✓ Checked In" :
-                   scanResult.action === "check-out"   ? "✓ Checked Out" :
-                   scanResult.action === "already-done"? "Already recorded" : "⚠ Error"}
+                  {scanResult.action === "check-in"     ? "✓ Arrived" :
+                   scanResult.action === "check-out"    ? "✓ Picked Up" :
+                   scanResult.action === "already-done" ? "Already recorded" : "⚠ Error"}
                   {scanResult.student && ` — ${scanResult.student.studentName || scanResult.student.name || ""}`}
                 </div>
               )}
@@ -485,14 +587,15 @@ export default function ChildPresence() {
         {/* Summary bar */}
         <div style={S.sumBar}>
           <Chip label="Not Arrived" n={counts.notArrived} dot="#D97706" bg="#FEF3C7" text="#92400E" />
-          <Chip label="Checked In"  n={counts.checkedIn}  dot="#10B981" bg="#D1FAE5" text="#065F46" />
-          <Chip label="Checked Out" n={counts.checkedOut} dot="#9CA3AF" bg="#F3F4F6" text="#4B5563" />
+          <Chip label="Present"     n={counts.present}    dot="#10B981" bg="#D1FAE5" text="#065F46" />
+          <Chip label="Picked Up"   n={counts.pickedUp}   dot="#9CA3AF" bg="#F3F4F6" text="#4B5563" />
           <Chip label="Total"       n={counts.total}      dot="#6B7280" bg="#FAFAFA" text="#111827" bold />
         </div>
 
         {/* Filters */}
         <div style={S.filters}>
           <input
+            ref={searchRef}
             style={S.searchIn}
             placeholder="Search by name or class…"
             value={search}
@@ -529,13 +632,13 @@ export default function ChildPresence() {
           <div style={S.list}>
             {filtered.map(stu => {
               const sid    = stuId(stu);
-              const status = getStatus(sid);
+              const detail = getStatusDetail(sid);
               return (
                 <Row
                   key={sid}
                   name={stuName(stu)}
                   cls={stuCls(stu)}
-                  status={status}
+                  detail={detail}
                   busy={!!busyIds[sid]}
                   onCheckIn={() => handleCheckIn(stu)}
                   onCheckOut={() => openCheckout(stu)}
@@ -596,10 +699,23 @@ function Chip({ label, n, dot, bg, text, bold }) {
 }
 
 // ── Student row ───────────────────────────────────────────────────────────────
-function Row({ name, cls, status, busy, onCheckIn, onCheckOut }) {
-  const cfg   = STATUS_CFG[status];
+function Row({ name, cls, detail, busy, onCheckIn, onCheckOut }) {
+  const { status, time, collector } = detail;
+  const cfg    = STATUS_CFG[status];
   const canIn  = status === "NOT_ARRIVED";
   const canOut = status === "CHECKED_IN";
+
+  // Inline context: "Arrived 8:32 AM" or "Mom · 3:15 PM"
+  let subText = null;
+  if (status === "CHECKED_IN" && time) {
+    subText = `Arrived ${fmtTime(time)}`;
+  } else if (status === "CHECKED_OUT" && time) {
+    const parts = [];
+    if (collector && collector !== "Staff") parts.push(collector);
+    parts.push(fmtTime(time));
+    subText = parts.join(" · ");
+  }
+
   return (
     <div style={S.row}>
       <div style={S.ava}><span style={S.avaText}>{initials(name)}</span></div>
@@ -607,20 +723,23 @@ function Row({ name, cls, status, busy, onCheckIn, onCheckOut }) {
         <span style={S.rowName}>{name}</span>
         <span style={S.rowCls}>{cls}</span>
       </div>
-      <div style={{ ...S.badge, background: cfg.bg, color: cfg.text }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-        {cfg.label}
+      <div style={S.statusCol}>
+        <div style={{ ...S.badge, background: cfg.bg, color: cfg.text }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
+          {cfg.label}
+        </div>
+        {subText && <span style={S.subText}>{subText}</span>}
       </div>
       <div style={S.rowAct}>
         {busy ? (
-          <span style={{ display: "flex", justifyContent: "center", width: 88 }}><Spin size={18} /></span>
+          <span style={{ display: "flex", justifyContent: "center", width: 96 }}><Spin size={18} /></span>
         ) : canIn ? (
           <button style={{ ...S.actBtn, background: "#D1FAE5", color: "#065F46" }} onClick={onCheckIn}>
             Check In
           </button>
         ) : canOut ? (
           <button style={{ ...S.actBtn, background: "#FEE2E2", color: "#991B1B" }} onClick={onCheckOut}>
-            Check Out
+            Pick Up
           </button>
         ) : (
           <span style={{ color: "#D1D5DB", fontSize: 18, paddingRight: 8 }}>—</span>
@@ -675,7 +794,7 @@ function CheckoutModal({
                 ))}
                 {/* Unknown person */}
                 <button style={{ ...S.pRow, background: "#FFF7ED", borderColor: "#FED7AA" }} onClick={onStartCamera}>
-                  <div style={{ ...S.pFallback, background: "#FED7AA", color: "#C2410C", fontSize: 18 }}>?</div>
+                  <div style={{ ...S.pFallback, background: "#FED7AA", color: "#C2410C", fontSize: 20 }}>?</div>
                   <div style={S.pInfo}>
                     <span style={S.pName}>Unknown Person</span>
                     <span style={S.pRel}>Photograph &amp; send to parent for approval</span>
@@ -785,7 +904,7 @@ const S = {
     animation: `cp-in 0.3s ${SPRING} both`,
   },
 
-  hdr: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" },
+  hdr:     { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" },
   title:   { fontSize: 26, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.5px" },
   dateStr: { fontSize: 13, color: "#9CA3AF", margin: "4px 0 0" },
 
@@ -799,22 +918,25 @@ const S = {
   classIn:  { padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#374151", outline: "none", background: "#FAFAFA", cursor: "pointer" },
 
   // List
-  list: { display: "flex", flexDirection: "column", gap: 3 },
-  row:  { display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "#FFFFFF", border: "1px solid #F3F4F6", borderRadius: 12 },
-  ava:  { width: 38, height: 38, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  list:     { display: "flex", flexDirection: "column", gap: 3 },
+  row:      { display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "#FFFFFF", border: "1px solid #F3F4F6", borderRadius: 12 },
+  ava:      { width: 38, height: 38, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   avaText:  { fontSize: 12, fontWeight: 800, color: "#92400E" },
   rowInfo:  { flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 },
   rowName:  { fontSize: 14, fontWeight: 700, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   rowCls:   { fontSize: 12, color: "#9CA3AF" },
-  badge:    { display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" },
-  rowAct:   { flexShrink: 0, minWidth: 88, display: "flex", justifyContent: "flex-end" },
-  actBtn:   { padding: "6px 13px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none" },
+  statusCol:{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start", flexShrink: 0 },
+  badge:    { display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
+  subText:  { fontSize: 11, color: "#9CA3AF", whiteSpace: "nowrap", paddingLeft: 2 },
+  rowAct:   { flexShrink: 0, minWidth: 96, display: "flex", justifyContent: "flex-end" },
+  actBtn:   { padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none", whiteSpace: "nowrap" },
 
   // Buttons
-  btn:      { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", userSelect: "none" },
-  btnGhost: { background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB" },
-  btnWarm:  { background: "#FEF3C7", color: "#92400E", border: "1.5px solid #FDE68A" },
-  btnDark:  { background: "#111827", color: "#FFFFFF" },
+  btn:        { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", userSelect: "none" },
+  btnGhost:   { background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB" },
+  btnWarm:    { background: "#FEF3C7", color: "#92400E", border: "1.5px solid #FDE68A" },
+  btnDark:    { background: "#111827", color: "#FFFFFF" },
+  btnPrimary: { background: "#F4C400", color: "#111827", border: "none" },
 
   // Scanner
   scanPanel:   { background: "#111827", borderRadius: 16, marginBottom: 16, overflow: "hidden", animation: `cp-in 0.25s ${SPRING} both` },
@@ -831,11 +953,11 @@ const S = {
   mTitle:  { fontSize: 18, fontWeight: 800, color: "#111827", margin: 0 },
   mSub:    { fontSize: 13, color: "#6B7280", margin: 0, lineHeight: 1.55 },
 
-  // Person list
+  // Person list — 80×80 photos for face-matching at the gate
   pList:    { display: "flex", flexDirection: "column", gap: 8 },
   pRow:     { display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 12, cursor: "pointer", width: "100%", textAlign: "left" },
-  pPhoto:   { width: 42, height: 42, borderRadius: 10, objectFit: "cover", flexShrink: 0 },
-  pFallback:{ width: 42, height: 42, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#92400E", flexShrink: 0 },
+  pPhoto:   { width: 80, height: 80, borderRadius: 10, objectFit: "cover", flexShrink: 0 },
+  pFallback:{ width: 80, height: 80, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#92400E", flexShrink: 0 },
   pInfo:    { flex: 1, display: "flex", flexDirection: "column", gap: 2 },
   pName:    { fontSize: 14, fontWeight: 700, color: "#111827" },
   pRel:     { fontSize: 12, color: "#9CA3AF" },
