@@ -26,6 +26,7 @@ const FILTER_TABS = [
   { key: "memories",      label: "Memories",       types: ["new_memory","new_activity"] },
   { key: "communication", label: "Communication",  types: ["holiday_announced","circular_published","announcement","emergency_closure"] },
   { key: "billing",       label: "Billing",        types: ["fee_reminder","fee_due_today","fee_overdue","payment_received"] },
+  { key: "security",     label: "Security",       types: ["pickup_request"] },
 ];
 
 // ── Priority colours ──────────────────────────────────────────────
@@ -53,6 +54,7 @@ const TYPE_ICON = {
   fee_due_today:       "💳",
   fee_overdue:         "🔴",
   payment_received:    "✅",
+  pickup_request:      "🚨",
 };
 
 // ── Date grouping helpers ─────────────────────────────────────────
@@ -418,6 +420,7 @@ const EMPTY_ICONS = {
   memories:      "📸",
   communication: "📢",
   billing:       "💰",
+  security:      "🚨",
 };
 const EMPTY_MSG = {
   all:           "No notifications yet. You'll be notified when there are updates for your child.",
@@ -426,6 +429,7 @@ const EMPTY_MSG = {
   memories:      "No new memories yet.",
   communication: "No school communications yet.",
   billing:       "No billing notifications yet.",
+  security:      "No security alerts. You'll be notified if an unknown person arrives to collect your child.",
 };
 
 function EmptyState({ tab }) {

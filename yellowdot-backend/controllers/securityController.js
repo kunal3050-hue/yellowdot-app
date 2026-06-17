@@ -10,6 +10,7 @@
  */
 
 const svc     = require("../services/securityService");
+const notif   = require("../services/notificationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -73,6 +74,17 @@ async function createPickupRequest(req, res) {
       relation, staffName, gate,
       schoolId, centerId, requestedBy: actorUserId,
     });
+
+    // Notify parent — fire-and-forget so it never blocks the 200 response
+    notif.notifyAsync(() =>
+      notif.fireForStudent(studentId, schoolId, {
+        type:     notif.TYPES.PICKUP_REQUEST,
+        title:    `Unknown person at the gate for ${studentName}`,
+        message:  `${personName || "Someone"} (${relation || "unknown relation"}) is requesting to pick up ${studentName}. Staff member: ${staffName || "Staff"}.`,
+        deepLink: "/parent-notifications",
+        childId:  studentId,
+      })
+    );
 
     res.json({
       success: true,
