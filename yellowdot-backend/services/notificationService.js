@@ -67,6 +67,8 @@ const TYPES = {
   PTM_RESCHEDULED:    "ptm_rescheduled",
   PTM_CANCELLED:      "ptm_cancelled",
   PTM_REMINDER:       "ptm_reminder",
+  // Security
+  PICKUP_REQUEST:     "pickup_request",
   // Billing
   FEE_REMINDER:       "fee_reminder",
   FEE_DUE_TODAY:      "fee_due_today",
@@ -102,6 +104,7 @@ const TYPE_META = {
   [TYPES.INCIDENT_UPDATED]:     { priority: PRIORITY.MEDIUM },
   [TYPES.INCIDENT_ACKNOWLEDGED]:{ priority: PRIORITY.LOW    },
   [TYPES.CRITICAL_INCIDENT]:    { priority: PRIORITY.HIGH   },
+  [TYPES.PICKUP_REQUEST]:       { priority: PRIORITY.HIGH   },
   [TYPES.PTM_CREATED]:       { priority: PRIORITY.MEDIUM },
   [TYPES.PTM_BOOKED]:        { priority: PRIORITY.MEDIUM },
   [TYPES.PTM_RESCHEDULED]:   { priority: PRIORITY.MEDIUM },
