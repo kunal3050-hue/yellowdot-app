@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import useParentProfile from "../hooks/useParentProfile";
 import useActivityFeed from "../hooks/useActivityFeed";
+import { useActiveChild } from "../contexts/ActiveChildContext";
 import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 
 // ── Per-kind presentation ──────────────────────────────────────────
@@ -31,8 +32,12 @@ const KIND_META = {
   foodMenu:    { tint: colors.yellow100,   ring: colors.yellow200 },
   nap:         { tint: colors.yellow50,    ring: colors.yellow200 },
   consumption: { tint: colors.yellow100,   ring: colors.yellow200 },
-  memory:      { tint: colors.yellow200,   ring: colors.yellow300 },
-  care:        { tint: colors.infoSoft,    ring: colors.infoBorder },
+  memory:           { tint: colors.yellow200,   ring: colors.yellow300 },
+  care:             { tint: colors.infoSoft,    ring: colors.infoBorder },
+  observation:      { tint: "#EEF2FF",          ring: "#C7D2FE" },
+  artwork:          { tint: "#FDF4FF",          ring: "#E9D5FF" },
+  achievement:      { tint: "#FFFBEB",          ring: "#FDE68A" },
+  "event-highlight":{ tint: colors.yellow100,   ring: colors.yellow200 },
 };
 
 const SEEN_PREFIX = "yd_feed_seen_";
@@ -77,9 +82,7 @@ const SECTIONS = [
 export default function HomeFeed() {
   const { user } = useAuth();
   const { children } = useParentProfile();
-  const [activeId, setActiveId] = useState(null);
-
-  useEffect(() => { if (!activeId && children.length) setActiveId(children[0].studentId); }, [children, activeId]);
+  const { activeId, setActiveId } = useActiveChild();
 
   const [detail, setDetail] = useState(null);
 

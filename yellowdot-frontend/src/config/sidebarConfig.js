@@ -91,6 +91,14 @@ export const SIDEBAR_GROUPS = [
         matchPaths: ["/add-student", "/edit-student", "/student-profile"],
       },
       {
+        id:         "families",
+        label:      "Families",
+        path:       "/families",
+        routeKey:   ROUTES.FAMILIES,
+        icon:       "Heart",
+        matchPaths: ["/family/"],
+      },
+      {
         id:         "staff",
         label:      "Staff",
         path:       "/user-management",
@@ -271,6 +279,24 @@ export const SIDEBAR_GROUPS = [
         path:     "/ptm",
         routeKey: ROUTES.PTM,
         icon:     "UsersRound",
+      },
+    ],
+  },
+
+  // ── Child Journey ─────────────────────────────────────────────────────────
+  {
+    id:          "child_journey",
+    label:       "Child Journey",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:         "child_journey_dashboard",
+        label:      "Child Journey",
+        path:       "/child-journey",
+        routeKey:   ROUTES.CHILD_JOURNEY,
+        icon:       "BookOpen",
+        matchPaths: ["/child-journey/"],
       },
     ],
   },

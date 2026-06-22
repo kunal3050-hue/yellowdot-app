@@ -79,9 +79,10 @@ export const PERMISSION_CATEGORIES = [
     label: "People",
     icon:  "👥",
     modules: [
-      { id: "students",   label: "Students",   actions: ["view", "create", "edit", "delete", "export"] },
-      { id: "admissions", label: "Admissions", actions: ["view", "create", "edit", "approve"] },
-      { id: "attendance", label: "Attendance", actions: ["view", "mark", "edit", "export"] },
+      { id: "students",          label: "Students",          actions: ["view", "create", "edit", "delete", "export"] },
+      { id: "admissions",        label: "Admissions",        actions: ["view", "create", "edit", "approve"] },
+      { id: "family_management", label: "Family Management", actions: ["view", "create", "edit", "delete"] },
+      { id: "attendance",        label: "Attendance",        actions: ["view", "mark", "edit", "export"] },
     ],
   },
   {
@@ -144,6 +145,16 @@ export const PERMISSION_CATEGORIES = [
       { id: "cctv", label: "CCTV", actions: ["view", "manage"] },
     ],
   },
+  {
+    id:    "child_journey",
+    label: "Child Journey",
+    icon:  "📖",
+    modules: [
+      { id: "observations",    label: "Observations",    actions: ["view", "create", "edit", "delete"] },
+      { id: "journey_media",   label: "Photos & Videos", actions: ["view", "create", "delete"] },
+      { id: "artwork",         label: "Artwork",         actions: ["view", "create", "edit", "delete"] },
+    ],
+  },
 ];
 
 // ── Module → route-key mapping (mirrors backend roleService.js) ───────────────
@@ -172,6 +183,10 @@ const MODULE_ROUTE_MAP = {
   notifications:     [],
   parent_app:        ["parent-checkin"],
   documents:         [],
+  family_management: ["families"],
+  observations:      ["child-journey"],
+  journey_media:     ["child-journey"],
+  artwork:           ["child-journey"],
 };
 
 /** Derive sidebar route keys from a granular permission matrix. */

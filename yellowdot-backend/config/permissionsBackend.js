@@ -22,6 +22,8 @@ const ROLE_PERMISSIONS = {
     "academics-classes", "academics-batches",
     "academics-teacher-allocation", "academics-classroom-allocation",
     "academics-student-allocation",
+    "families",
+    "child-journey",
   ],
 
   center_owner: [
@@ -33,6 +35,8 @@ const ROLE_PERMISSIONS = {
     "academics-classes", "academics-batches",
     "academics-teacher-allocation", "academics-classroom-allocation",
     "academics-student-allocation",
+    "families",
+    "child-journey",
   ],
 
   center_admin: [
@@ -44,6 +48,8 @@ const ROLE_PERMISSIONS = {
     "academics-classes", "academics-batches",
     "academics-teacher-allocation", "academics-classroom-allocation",
     "academics-student-allocation",
+    "families",
+    "child-journey",
   ],
 
   teacher: [
@@ -53,6 +59,7 @@ const ROLE_PERMISSIONS = {
     "profile", "holidays", "notices", "announcements",
     "academics-classes", "academics-batches",
     "academics-student-allocation",
+    "child-journey",
   ],
 
   accountant: [

@@ -21,13 +21,15 @@
  * client can pin exactly one nearest-upcoming holiday at the top.
  */
 
-const attendanceService = require("./attendanceService");
-const napService        = require("./napService");
-const fc                = require("./foodConsumptionService");
-const foodMenuService   = require("./foodMenuService");
-const memoriesService   = require("./memoriesService");
-const comms             = require("./communicationService");
-const careService       = require("./careService");
+const attendanceService    = require("./attendanceService");
+const parentAttendanceSvc  = require("./parentAttendanceService");
+const napService           = require("./napService");
+const fc                   = require("./foodConsumptionService");
+const foodMenuService      = require("./foodMenuService");
+const memoriesService      = require("./memoriesService");
+const journeyService       = require("./journeyService");
+const comms                = require("./communicationService");
+const careService          = require("./careService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -84,21 +86,52 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
   if (!studentId) return EMPTY(studentId);
 
   // All equality-only queries (schoolId [+ studentId]) — no composite indexes.
-  const [att, menus, naps, cons, mems, holidays, careLogs] = await Promise.all([
+  const [att, gateAtt, menus, naps, cons, mems, holidays, careLogs, observations] = await Promise.all([
     attendanceService.getAttendance({ studentId, schoolId }),
+    parentAttendanceSvc.getAll({ studentId, schoolId }),
     foodMenuService.getMenus({ schoolId }),
     napService.getNapHistory({ studentId, schoolId, limit: 50 }),
     fc.getConsumption({ studentId, schoolId }),
     memoriesService.getForChildren({ schoolId, studentId, limit: 50 }),
     comms.getHolidays({ schoolId }),
     careService.getCareHistory({ studentId, schoolId, limit: 50 }),
+    journeyService.getForStudent({ schoolId, studentId, kinds: ["observation", "artwork", "achievement", "event-highlight"], limit: 30 }),
   ]);
 
-  // ── 🟢🔵 Attendance — split into separate check-in and check-out events ──
-  // Each event gets its own feed item and its own sort timestamp so they appear
-  // at the correct positions in the timeline (check-in at 9 AM, check-out at 5 PM).
+  // ── 🟢🔵 Attendance — Gate Register is primary source of truth ────────────
+  // parentAttendance (Gate Register) takes precedence for any date it covers.
+  // attendance (staff academic records) fills in for dates with no gate record,
+  // preserving historical data and absent markings.
+
+  // Deduplicate gate records: latest per date+action wins
+  const gateByKey = {};
+  for (const r of (gateAtt || [])) {
+    const key = `${r.date}-${r.action}`;
+    if (!gateByKey[key] || (r.createdAt || "") > (gateByKey[key].createdAt || "")) {
+      gateByKey[key] = r;
+    }
+  }
+  // Dates covered by gate records — staff attendance records for these dates are suppressed
+  const gateDates = new Set(Object.values(gateByKey).map(r => r.date));
+
+  // Gate attendance items
   const attItems = [];
-  for (const e of (att.entries || []).filter(e => e.date)) {
+  for (const r of Object.values(gateByKey)) {
+    const isIn  = r.action === "Check_In";
+    const tStr  = toISTDisplay(r.createdAt, r.time);
+    attItems.push({
+      id:        `gate-${isIn ? "checkin" : "checkout"}-${r.date}`,
+      kind:      isIn ? "checkin" : "checkout",
+      emoji:     isIn ? "🟢" : "🔵",
+      title:     isIn ? "Checked In" : "Checked Out",
+      subtitle:  `${isIn ? "Arrived at daycare" : "Left daycare"}${tStr ? ` · ${tStr}` : ""}`,
+      date:      r.date,
+      timestamp: pickTs(r.createdAt, noon(r.date)),
+    });
+  }
+
+  // Staff attendance records — only for dates NOT covered by gate records
+  for (const e of (att.entries || []).filter(e => e.date && !gateDates.has(e.date))) {
     if (e.status === "Absent") {
       attItems.push({
         id: `absent-${e.date}`, kind: "absent", emoji: "⭕",
@@ -266,7 +299,65 @@ async function getActivityFeed({ schoolId = DEFAULT_SCHOOL_ID, studentId } = {})
     timestamp: pickTs(c.loggedAt, c.createdAt, noon(c.date)),
   }));
 
-  const items = [...attItems, ...menuItems, ...napItems, ...consItems, ...memItems, ...careItems]
+  // ── 👩‍🏫 Journey entries (observations, artwork, achievements, event-highlights) ─
+  const DOMAIN_LABELS = {
+    social: "Social Development", emotional: "Emotional Development",
+    communication: "Communication", creativity: "Creativity",
+    leadership: "Leadership", confidence: "Confidence",
+    fine_motor: "Fine Motor Skills", gross_motor: "Gross Motor Skills",
+  };
+  const LEVEL_DOTS = (n) => "⭐".repeat(Math.min(n || 0, 5));
+
+  const journeyItems = (observations || []).map(e => {
+    switch (e.kind) {
+      case "observation":
+        return {
+          id:        `obs-${e.id}`,
+          kind:      "observation",
+          emoji:     "👩‍🏫",
+          title:     DOMAIN_LABELS[e.domain] || "Observation",
+          subtitle:  `${LEVEL_DOTS(e.level)}${e.level ? "  " : ""}${e.observationText?.slice(0, 90) || ""}`,
+          date:      e.date,
+          timestamp: pickTs(e.createdAt, noon(e.date)),
+        };
+      case "artwork":
+        return {
+          id:        `art-${e.id}`,
+          kind:      "artwork",
+          emoji:     "🎨",
+          title:     e.artworkTitle || "Artwork",
+          subtitle:  e.artworkCategory ? `${e.artworkCategory.charAt(0).toUpperCase()}${e.artworkCategory.slice(1)}${e.caption ? ` · ${e.caption}` : ""}` : (e.caption || "New artwork"),
+          image:     e.thumbnailUrl || e.mediaUrl || "",
+          date:      e.date,
+          timestamp: pickTs(e.createdAt, noon(e.date)),
+        };
+      case "achievement":
+        return {
+          id:        `ach-${e.id}`,
+          kind:      "achievement",
+          emoji:     "🏆",
+          title:     "Achievement",
+          subtitle:  e.caption || e.observationText || "A new achievement was recorded.",
+          date:      e.date,
+          timestamp: pickTs(e.createdAt, noon(e.date)),
+        };
+      case "event-highlight":
+        return {
+          id:        `evt-${e.id}`,
+          kind:      "event-highlight",
+          emoji:     "🎉",
+          title:     "Event Highlight",
+          subtitle:  e.caption || "A school event was shared.",
+          image:     e.thumbnailUrl || e.mediaUrl || "",
+          date:      e.date,
+          timestamp: pickTs(e.createdAt, noon(e.date)),
+        };
+      default:
+        return null;
+    }
+  }).filter(Boolean);
+
+  const items = [...attItems, ...menuItems, ...napItems, ...consItems, ...memItems, ...careItems, ...journeyItems]
     .filter(i => i.timestamp)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 100);

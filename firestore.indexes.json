@@ -50,6 +50,53 @@
         { "fieldPath": "batchKey",  "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "journeyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",   "order": "ASCENDING" },
+        { "fieldPath": "studentId",  "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journeyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",      "order": "ASCENDING" },
+        { "fieldPath": "studentId",     "order": "ASCENDING" },
+        { "fieldPath": "academicYear",  "order": "ASCENDING" },
+        { "fieldPath": "date",          "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journeyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",   "order": "ASCENDING" },
+        { "fieldPath": "studentId",  "order": "ASCENDING" },
+        { "fieldPath": "kind",       "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journeyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",  "order": "ASCENDING" },
+        { "fieldPath": "classId",   "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journeyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",      "order": "ASCENDING" },
+        { "fieldPath": "sourceModule",  "order": "ASCENDING" },
+        { "fieldPath": "date",          "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

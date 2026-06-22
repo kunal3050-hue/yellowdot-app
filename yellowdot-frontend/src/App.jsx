@@ -64,6 +64,12 @@ const AcademicsTeacherAllocation  = lazy(() => import("./pages/academics/Academi
 const AcademicsClassroomAllocation= lazy(() => import("./pages/academics/AcademicsClassroomAllocation"));
 const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/AcademicsStudentAllocation"));
 
+const Families            = lazy(() => import("./pages/Families"));
+const FamilyProfile       = lazy(() => import("./pages/FamilyProfile"));
+
+const ChildJourney        = lazy(() => import("./pages/ChildJourney"));
+const NewObservation      = lazy(() => import("./pages/NewObservation"));
+
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
 const Announcements       = lazy(() => import("./pages/Announcements"));
@@ -196,6 +202,42 @@ function App() {
               element={
                 <ProtectedRoute routeKey="students">
                   <StudentProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Families ─────────────────────────────────────────────────── */}
+            <Route
+              path="/families"
+              element={
+                <ProtectedRoute routeKey="families">
+                  <Families />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/family/:familyId"
+              element={
+                <ProtectedRoute routeKey="families">
+                  <FamilyProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Child Journey ────────────────────────────────────────────── */}
+            <Route
+              path="/child-journey"
+              element={
+                <ProtectedRoute routeKey="child-journey">
+                  <ChildJourney />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/child-journey/observe"
+              element={
+                <ProtectedRoute routeKey="child-journey">
+                  <NewObservation />
                 </ProtectedRoute>
               }
             />

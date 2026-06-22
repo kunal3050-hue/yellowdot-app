@@ -47,6 +47,11 @@ const TYPES = {
   // Memories & Activities
   NEW_MEMORY:         "new_memory",
   NEW_ACTIVITY:       "new_activity",
+  // Child Journey
+  NEW_OBSERVATION:    "new_observation",
+  NEW_ARTWORK:        "new_artwork",
+  MILESTONE_ACHIEVED: "milestone_achieved",
+  ANNUAL_BOOK_READY:  "annual_book_ready",
   // School Communication
   HOLIDAY_ANNOUNCED:  "holiday_announced",
   CIRCULAR_PUBLISHED: "circular_published",
@@ -93,6 +98,10 @@ const TYPE_META = {
   [TYPES.CARE_LOGGED]:       { priority: PRIORITY.MEDIUM },
   [TYPES.NEW_MEMORY]:        { priority: PRIORITY.MEDIUM },
   [TYPES.NEW_ACTIVITY]:      { priority: PRIORITY.MEDIUM },
+  [TYPES.NEW_OBSERVATION]:   { priority: PRIORITY.MEDIUM },
+  [TYPES.NEW_ARTWORK]:       { priority: PRIORITY.LOW    },
+  [TYPES.MILESTONE_ACHIEVED]:{ priority: PRIORITY.HIGH   },
+  [TYPES.ANNUAL_BOOK_READY]: { priority: PRIORITY.MEDIUM },
   [TYPES.HOLIDAY_ANNOUNCED]: { priority: PRIORITY.LOW    },
   [TYPES.CIRCULAR_PUBLISHED]:{ priority: PRIORITY.LOW    },
   [TYPES.ANNOUNCEMENT]:      { priority: PRIORITY.LOW    },

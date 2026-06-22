@@ -48,7 +48,7 @@ app.get("/api/version", (req, res) => {
   res.json({
     service:        "yellowdot-backend",
     version:        _PKG_VERSION,
-    environment:    process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV || "unknown",
+    environment:    process.env.APP_ENV || process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV || "unknown",
     commit,
     commitShort:    commit === "unknown" ? "unknown" : commit.slice(0, 7),
     branch,
@@ -80,6 +80,8 @@ const incidentRoutes         = require("./routes/incidentRoutes");
 const notificationRoutes     = require("./routes/notificationRoutes");
 const careRoutes             = require("./routes/careRoutes");
 const academicsRoutes        = require("./routes/academicsRoutes");
+const familyRoutes           = require("./routes/familyRoutes");
+const journeyRoutes          = require("./routes/journeyRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -114,6 +116,8 @@ app.use(academicsRoutes);      // /api/academics/*  (Class Management)
 app.use(eventRoutes);          // /api/events/*  (Events — staff CRUD)
 app.use(ptmRoutes);            // /api/ptm/*       (PTM — staff CRUD + slot management)
 app.use(incidentRoutes);       // /api/incidents/* (Incident Reports — staff CRUD)
+app.use(familyRoutes);         // /api/families/*  (Family & Sibling Management)
+app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
 
 // ============================================================
