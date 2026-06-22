@@ -13,4 +13,5 @@ export { default as parentService } from "./services/parentService";
 export { default as useParentProfile } from "./hooks/useParentProfile";
 export { default as useNotifications, useUnreadCount } from "./hooks/useNotifications";
 export { default as useCareLog } from "./hooks/useCareLog";
+export { ActiveChildProvider, useActiveChild } from "./contexts/ActiveChildContext";
 export { theme } from "./theme";

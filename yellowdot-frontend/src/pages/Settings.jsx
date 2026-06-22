@@ -1,12 +1,13 @@
 /**
  * Settings.jsx — Yellow Dot full settings module
  * ───────────────────────────────────────────────
- * 10 sections: School Profile · Academic Year · Fee Settings ·
- * Attendance Rules · User Management ·
- * Role Permissions · Branding · Notifications · Parent App
+ * Sections: School Profile · Academic Year · Fee Settings ·
+ * Attendance Rules · User Management · Role Permissions ·
+ * Branding · Notifications · Parent App · Payment ·
+ * Gate Config · Release & Build (developer only)
  *
  * Developer role has unrestricted access to every section.
- * Admin/Center Admin can access all except Role Permissions.
+ * Admin/Center Admin can access all except Role Permissions and Release & Build.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -18,6 +19,9 @@ import {
   ROUTES, ROLE_LABELS, ROLE_HIERARCHY, ROLE_PERMISSIONS,
   isBypassRole,
 } from "../config/permissions";
+import { APP_ENV, APP_NAME, APP_VERSION, currentEnvMeta } from "../config/environment";
+import { FLAGS, FLAG_GROUPS } from "../config/featureFlags";
+import { RELEASE_NOTES, CHANGE_TYPE_META } from "../config/releaseNotes";
 
 // ══════════════════════════════════════════════════════════════════
 // ICONS  (Lucide-style SVG, 16×16)
@@ -53,6 +57,7 @@ const Icons = {
   UserPlus:    () => svg(<><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>),
   AlertTriangle: () => svg(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
   QrCode:        () => svg(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14.01" y2="14"/><line x1="18" y1="14" x2="18.01" y2="14"/><line x1="14" y1="18" x2="14" y2="21"/><line x1="21" y1="18" x2="21" y2="21"/></>),
+  GitBranch:     () => svg(<><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M18 9a9 9 0 01-9 9"/></>),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -70,7 +75,8 @@ const SECTIONS = [
   { id: "notifications", label: "Notifications",    icon: "Bell",       desc: "Alerts and delivery channels" },
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
   { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
-  { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",   desc: "QR codes for gate entry and check-in" },
+  { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",      desc: "QR codes for gate entry and check-in" },
+  { id: "release",      label: "Release & Build",    icon: "GitBranch",   desc: "Environment, version, feature flags", developerOnly: true },
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -1215,6 +1221,152 @@ function GateConfigSection() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SECTION 13 — RELEASE & BUILD  (developer role only)
+// ══════════════════════════════════════════════════════════════════
+
+function ReleaseSection() {
+  const [buildInfo, setBuildInfo] = useState(null);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/version`)
+      .then((r) => r.json())
+      .then(setBuildInfo)
+      .catch(() => setBuildInfo({ error: true }));
+  }, []);
+
+  // Use explicit scope groups so the display is correct regardless of env
+  const enabledInAll = FLAG_GROUPS.production;
+  const stagingOnly  = FLAG_GROUPS.staging;
+  const disabled     = FLAG_GROUPS.planned;
+
+  return (
+    <>
+      <SectionHeader
+        title="Release & Build"
+        desc="Environment identity, build metadata, feature flags, and release history."
+      />
+
+      {/* ── Environment Identity ──────────────────────────────────── */}
+      <Card title="Environment" icon="GitBranch">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "4px 12px", borderRadius: 20,
+            background: currentEnvMeta.bg,
+            border: `1px solid ${currentEnvMeta.border}`,
+            color: currentEnvMeta.color,
+            fontWeight: 700, fontSize: 13, letterSpacing: "0.02em",
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentEnvMeta.color, display: "inline-block" }} />
+            {currentEnvMeta.label.toUpperCase()}
+          </span>
+          <span style={{ color: "var(--yd-text-muted)", fontSize: 13 }}>
+            {APP_NAME} · v{APP_VERSION}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+          {[
+            { label: "App Name",    value: APP_NAME },
+            { label: "Environment", value: currentEnvMeta.label },
+            { label: "Frontend Version", value: `v${APP_VERSION}` },
+            buildInfo && !buildInfo.error && { label: "Backend Version", value: `v${buildInfo.version}` },
+            buildInfo && !buildInfo.error && { label: "Commit",          value: buildInfo.commitShort || "—" },
+            buildInfo && !buildInfo.error && { label: "Branch",          value: buildInfo.branch || "—" },
+            buildInfo && !buildInfo.error && { label: "Built At",        value: buildInfo.buildTimestamp && buildInfo.buildTimestamp !== "unknown" ? new Date(buildInfo.buildTimestamp).toLocaleDateString() : "—" },
+            buildInfo && !buildInfo.error && { label: "Server Uptime",   value: buildInfo.uptime || "—" },
+          ].filter(Boolean).map(({ label, value }) => (
+            <div key={label} style={{ background: "var(--yd-surface)", borderRadius: 8, padding: "8px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--yd-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--yd-text)", fontFamily: "monospace" }}>{value}</div>
+            </div>
+          ))}
+          {buildInfo === null && (
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Fetching build info…</div>
+          )}
+          {buildInfo?.error && (
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Backend unreachable — build info unavailable.</div>
+          )}
+        </div>
+      </Card>
+
+      {/* ── Feature Flags ─────────────────────────────────────────── */}
+      <Card title="Feature Flags" icon="Shield">
+        <div style={{ marginBottom: 8, fontSize: 12, color: "var(--yd-text-muted)" }}>
+          Flags control which modules ship in each environment. Flip a flag in
+          <code style={{ margin: "0 4px", fontSize: 11, background: "var(--yd-surface)", padding: "1px 5px", borderRadius: 4 }}>src/config/featureFlags.js</code>
+          to promote a module from Yellow Dot → KUE Boxs Care.
+        </div>
+
+        {[
+          { group: "Live in production (KUE Boxs Care)", items: enabledInAll, color: "#059669", bg: "#ECFDF5" },
+          { group: "Yellow Dot only — pending promotion", items: stagingOnly,  color: "#D97706", bg: "#FFFBEB" },
+          { group: "Coming soon — not yet built",          items: disabled,     color: "#9CA3AF", bg: "var(--yd-surface)" },
+        ].map(({ group, items, color, bg }) => items.length > 0 && (
+          <div key={group} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{group}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {items.map((flag) => (
+                <span key={flag} style={{
+                  fontSize: 11, padding: "2px 8px", borderRadius: 4,
+                  background: bg, color, border: `1px solid ${color}30`,
+                  fontFamily: "monospace", fontWeight: 500,
+                }}>
+                  {flag}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      {/* ── Release Notes ─────────────────────────────────────────── */}
+      <Card title="Release History" icon="Bell">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {RELEASE_NOTES.map((rel) => (
+            <div key={rel.version} style={{
+              borderLeft: "3px solid",
+              borderColor: rel.environment === "production" ? "#059669" : "#D97706",
+              paddingLeft: 14,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: "var(--yd-text)" }}>v{rel.version}</span>
+                <span style={{
+                  fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 600, textTransform: "uppercase",
+                  background: rel.environment === "production" ? "#ECFDF5" : "#FFFBEB",
+                  color:      rel.environment === "production" ? "#059669" : "#D97706",
+                }}>
+                  {rel.environment}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>{rel.date}</span>
+                <span style={{ fontSize: 13, color: "var(--yd-text)", fontWeight: 500 }}>{rel.title}</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 3 }}>
+                {rel.changes.map((ch, i) => {
+                  const meta = CHANGE_TYPE_META[ch.type] || CHANGE_TYPE_META.feature;
+                  return (
+                    <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 7, fontSize: 12, color: "var(--yd-text-muted)" }}>
+                      <span style={{
+                        fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 700,
+                        textTransform: "uppercase", background: meta.color + "18", color: meta.color,
+                        flexShrink: 0,
+                      }}>
+                        {meta.label}
+                      </span>
+                      {ch.text}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // LOADING SKELETON
 // ══════════════════════════════════════════════════════════════════
 
@@ -1295,6 +1447,7 @@ export default function Settings() {
       case "parent":        return <ParentSection      {...props} />;
       case "payment":       return <PaymentSection     {...props} />;
       case "gate_config":   return <GateConfigSection />;
+      case "release":       return <ReleaseSection />;
       default:              return null;
     }
   };
@@ -1306,26 +1459,37 @@ export default function Settings() {
       <nav className="yd-stg-nav">
         <div className="yd-stg-nav-hd">
           <div className="yd-stg-nav-title">Settings</div>
-          <div className="yd-stg-nav-sub">System configuration</div>
+          <div className="yd-stg-nav-sub" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            System configuration
+            {isDeveloper && (
+              <span style={{
+                fontSize: 9, padding: "1px 6px", borderRadius: 10, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.05em",
+                background: currentEnvMeta.bg, color: currentEnvMeta.color,
+                border: `1px solid ${currentEnvMeta.border}`,
+              }}>
+                {currentEnvMeta.label}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="yd-stg-nav-list">
-          {SECTIONS.map((sec, idx) => {
+          {SECTIONS.filter((sec) => !sec.developerOnly || isDeveloper).map((sec, idx) => {
             const I = Icons[sec.icon];
             // Separator before User Management group
             const needsSep = idx === 5;
             return (
-              <>
-                {needsSep && <div key={sec.id + "_sep"} className="yd-stg-nav-sep" />}
+              <div key={sec.id} style={{ display: "contents" }}>
+                {needsSep && <div className="yd-stg-nav-sep" />}
                 <button
-                  key={sec.id}
                   className={`yd-stg-nav-btn${activeId === sec.id ? " active" : ""}`}
                   onClick={() => setActiveId(sec.id)}
                 >
                   <span className="yd-stg-nav-icon">{I && <I />}</span>
                   {sec.label}
                 </button>
-              </>
+              </div>
             );
           })}
         </div>

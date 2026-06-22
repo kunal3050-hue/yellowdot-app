@@ -18,10 +18,12 @@
  * V1 dock: Home · Attendance · Fees · Profile. No CCTV / Camera, no check-in.
  */
 
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 import { useUnreadCount } from "../hooks/useNotifications";
 import usePushNotifications from "../hooks/usePushNotifications";
+import { ActiveChildProvider, useActiveChild } from "../contexts/ActiveChildContext";
 
 // ── Design tokens — sourced from the centralized Parent Module theme ──────────
 // No hardcoded colours: everything maps to theme variables so the app reads as
@@ -45,7 +47,119 @@ const TABS = [
   { path: "/parent-profile",    label: "Profile",    icon: ProfileIcon               },
 ];
 
-export default function ParentLayout({ children }) {
+// ── Child switcher dropdown ───────────────────────────────────────────────────
+
+function ChildSwitcher() {
+  const { activeChild, children, setActiveId } = useActiveChild();
+  const [open, setOpen] = useState(false);
+
+  // Only render if there are multiple children
+  if (!children || children.length <= 1) return null;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 10px 5px 6px",
+          borderRadius: radius.md,
+          border: `1px solid ${colors.surface.border}`,
+          background: colors.surface.raised,
+          cursor: "pointer",
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.semibold,
+          color: colors.text.primary,
+          maxWidth: 160,
+        }}
+      >
+        {/* Avatar */}
+        {activeChild?.profileImage ? (
+          <img src={activeChild.profileImage} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+        ) : (
+          <div style={{
+            width: 22, height: 22, borderRadius: "50%",
+            background: colors.brand.glowSoft,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 11, fontWeight: typography.weight.bold, color: colors.yellow700, flexShrink: 0,
+          }}>
+            {(activeChild?.studentName || "?").charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {activeChild?.studentName?.split(" ")[0] || "Select"}
+        </span>
+        <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />
+          {/* Dropdown */}
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
+            background: colors.surface.card,
+            border: `1px solid ${colors.surface.border}`,
+            borderRadius: radius.lg,
+            boxShadow: shadows.lg,
+            minWidth: 180, overflow: "hidden",
+          }}>
+            <div style={{ padding: "8px 12px 6px", fontSize: 10, fontWeight: typography.weight.bold, color: colors.text.faint, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Switch Child
+            </div>
+            {children.map(child => {
+              const isActive = child.studentId === activeChild?.studentId;
+              return (
+                <button
+                  key={child.studentId}
+                  onClick={() => { setActiveId(child.studentId); setOpen(false); }}
+                  style={{
+                    width: "100%", textAlign: "left",
+                    padding: "9px 12px", border: "none",
+                    background: isActive ? colors.brand.glowSoft : "transparent",
+                    cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+                  }}
+                >
+                  {child.profileImage ? (
+                    <img src={child.profileImage} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{
+                      width: 28, height: 28, borderRadius: "50%",
+                      background: isActive ? colors.brand.glowSoft : colors.surface.raised,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: typography.weight.bold,
+                      color: isActive ? colors.yellow700 : colors.text.secondary,
+                    }}>
+                      {(child.studentName || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: isActive ? typography.weight.bold : typography.weight.medium, color: isActive ? colors.yellow700 : colors.text.primary }}>
+                      {child.studentName}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: colors.text.faint }}>
+                      {child.class || ""}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <span style={{ marginLeft: "auto", fontSize: 14, color: colors.yellow600 }}>✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Layout shell ──────────────────────────────────────────────────────────────
+
+function ParentLayoutInner({ children }) {
   const { pathname } = useLocation();
   const { count: unreadCount } = useUnreadCount();
 
@@ -83,8 +197,9 @@ export default function ParentLayout({ children }) {
           </span>
         </div>
 
-        {/* Right: notification bell only (Profile lives in the bottom nav) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Right: child switcher (multi-child only) + notification bell */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ChildSwitcher />
           {/* Bell icon with unread badge */}
           <Link to="/parent-notifications" style={{
             position: "relative",
@@ -219,6 +334,16 @@ export default function ParentLayout({ children }) {
         })}
       </div>
     </div>
+  );
+}
+
+// ── Public export — wraps inner layout with the child context ─────────────────
+
+export default function ParentLayout({ children }) {
+  return (
+    <ActiveChildProvider>
+      <ParentLayoutInner>{children}</ParentLayoutInner>
+    </ActiveChildProvider>
   );
 }
 
