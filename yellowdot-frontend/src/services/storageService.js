@@ -25,3 +25,29 @@ export async function uploadIncidentPhoto(file) {
 export async function uploadIncidentPhotos(files) {
   return Promise.all(Array.from(files).map(f => uploadIncidentPhoto(f)));
 }
+
+/**
+ * Upload an artwork image to Firebase Storage.
+ * Returns the public download URL.
+ */
+export async function uploadArtwork(file) {
+  const ext      = file.name.split(".").pop();
+  const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path     = `journey/artwork/${uniqueId}.${ext}`;
+  const storageRef = ref(storage, path);
+  const snapshot = await uploadBytes(storageRef, file);
+  return getDownloadURL(snapshot.ref);
+}
+
+/**
+ * Upload a journey media file (photo/video) to Firebase Storage.
+ * Returns the public download URL.
+ */
+export async function uploadJourneyMedia(file) {
+  const ext      = file.name.split(".").pop();
+  const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path     = `journey/media/${uniqueId}.${ext}`;
+  const storageRef = ref(storage, path);
+  const snapshot = await uploadBytes(storageRef, file);
+  return getDownloadURL(snapshot.ref);
+}

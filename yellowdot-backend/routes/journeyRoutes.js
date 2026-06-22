@@ -13,8 +13,9 @@
 
 const express    = require("express");
 const router     = express.Router();
-const journeySvc = require("../services/journeyService");
-const notif      = require("../services/notificationService");
+const journeySvc    = require("../services/journeyService");
+const milestoneSvc  = require("../services/milestoneService");
+const notif         = require("../services/notificationService");
 const { authenticate, blockUnknown } = require("../middleware/authMiddleware");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
@@ -146,6 +147,36 @@ router.delete("/api/journey/:id", authenticate, blockUnknown, async (req, res) =
     const status = /not found/i.test(e.message) ? 404 : /forbidden/i.test(e.message) ? 403 : 500;
     res.status(status).json({ error: e.message });
   }
+});
+
+// ── POST /api/milestones — teacher creates a milestone ────────────────────────
+router.post("/api/milestones", authenticate, blockUnknown, async (req, res) => {
+  try {
+    const { schoolId, actorUserId } = resolveCtx(req);
+    const entry = await milestoneSvc.createTeacherMilestone(req.body, { schoolId, actorUserId });
+    res.status(201).json({ entry });
+  } catch (e) {
+    const status = /required/i.test(e.message) ? 400 : 500;
+    res.status(status).json({ error: e.message });
+  }
+});
+
+// ── POST /api/milestones/check — trigger auto-milestone check for a student ──
+router.post("/api/milestones/check", authenticate, blockUnknown, async (req, res) => {
+  try {
+    const { schoolId } = resolveCtx(req);
+    const { studentId, date } = req.body;
+    if (!studentId) return res.status(400).json({ error: "studentId is required." });
+    const created = await milestoneSvc.checkAutoMilestones({ studentId, schoolId, date });
+    res.json({ created, count: created.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/milestones/presets — list teacher-created milestone presets ──────
+router.get("/api/milestones/presets", authenticate, (req, res) => {
+  res.json({ presets: milestoneSvc.TEACHER_MILESTONES });
 });
 
 // ── GET /api/parent/journey — child's unified journey (parent view) ───────────

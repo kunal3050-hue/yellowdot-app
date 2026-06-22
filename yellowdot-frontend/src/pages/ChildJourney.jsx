@@ -222,21 +222,35 @@ export default function ChildJourney() {
 
       <div className="cj-page" style={{ flex: 1, padding: "32px 28px", maxWidth: 960, margin: "0 auto" }}>
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, gap: 16, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: W.charcoal1, letterSpacing: -0.5 }}>
               📖 Child Journey
             </h1>
             <p style={{ margin: "6px 0 0", fontSize: 14, color: W.muted1 }}>
-              Record observations and document each child's developmental story.
+              Record observations, artwork, and milestones for every child.
             </p>
           </div>
-          <button
-            className="cj-add-btn"
-            onClick={() => navigate("/child-journey/observe")}
-            style={{ padding: "10px 20px", borderRadius: 12, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-            + New Observation
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              className="cj-add-btn"
+              onClick={() => navigate("/child-journey/observe")}
+              style={{ padding: "9px 16px", borderRadius: 12, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              👩‍🏫 Observation
+            </button>
+            <button
+              className="cj-add-btn"
+              onClick={() => navigate("/child-journey/artwork")}
+              style={{ padding: "9px 16px", borderRadius: 12, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              🎨 Artwork
+            </button>
+            <button
+              className="cj-add-btn"
+              onClick={() => navigate("/child-journey/milestone")}
+              style={{ padding: "9px 16px", borderRadius: 12, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              ⭐ Milestone
+            </button>
+          </div>
         </div>
 
         {/* ── Quick stats ──────────────────────────────────────────────────── */}
@@ -301,14 +315,19 @@ export default function ChildJourney() {
               No journey entries yet
             </div>
             <div style={{ fontSize: 14, color: W.muted1, marginBottom: 20 }}>
-              Start recording observations to build each child's developmental story.
+              Start recording observations, artwork, or milestones to build each child's story.
             </div>
-            <button
-              className="cj-add-btn"
-              onClick={() => navigate("/child-journey/observe")}
-              style={{ padding: "10px 24px", borderRadius: 12, fontSize: 14 }}>
-              + Add First Observation
-            </button>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="cj-add-btn" onClick={() => navigate("/child-journey/observe")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>
+                👩‍🏫 Observation
+              </button>
+              <button className="cj-add-btn" onClick={() => navigate("/child-journey/artwork")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>
+                🎨 Artwork
+              </button>
+              <button className="cj-add-btn" onClick={() => navigate("/child-journey/milestone")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>
+                ⭐ Milestone
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>

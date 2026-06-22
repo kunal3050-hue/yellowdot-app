@@ -1,24 +1,13 @@
 /**
- * parentRoutes.jsx — Parent Module route table (V1)
- * ──────────────────────────────────────────────────────────────────
- * Exports an array of <Route> elements consumed by the top-level
- * <Routes> in App.jsx. Every parent screen is wrapped in ParentLayout
- * and (in production) guarded by ProtectedRoute.
+ * parentRoutes.jsx — Parent Module route table
  *
- * V1 surface:
- *   /parent-home            — Home Feed (Phase 2)
- *   /parent-profile         — Parent Profile (Phase 1)
- *   /parent-child/:id       — Child Profile  (Phase 1)
- *   /parent-attendance      — Attendance view (Phase 3)
- *   /parent-memories        — Memories timeline (Phase 4)
- *   /parent-fees            — Fees: balance, invoices, payments (Phase 5)
- *   /parent-daily-care      — Daily Care hub (full screen)
- *
- * No CCTV. No self check-in.
+ * V2 additions:
+ *   /parent-journey   — Unified Child Journey timeline (replaces /parent-memories)
+ *   /parent-memories  — Redirects to /parent-journey (V1 backwards compat)
  */
 
 import { lazy } from "react";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "../../../components/auth/ProtectedRoute";
 import ParentLayout from "../components/ParentLayout";
 
@@ -26,7 +15,7 @@ const HomeFeed       = lazy(() => import("../pages/HomeFeed"));
 const ParentProfile  = lazy(() => import("../pages/ParentProfile"));
 const ChildProfile   = lazy(() => import("../pages/ChildProfile"));
 const Attendance     = lazy(() => import("../pages/Attendance"));
-const Memories       = lazy(() => import("../pages/Memories"));
+const ParentJourney  = lazy(() => import("../pages/ParentJourney"));
 const Fees           = lazy(() => import("../pages/Fees"));
 const DailyCare      = lazy(() => import("../pages/DailyCare"));
 const FoodMenu       = lazy(() => import("../pages/FoodMenu"));
@@ -36,8 +25,9 @@ const Holidays       = lazy(() => import("../pages/Holidays"));
 const Notifications  = lazy(() => import("../pages/Notifications"));
 const CareHygiene    = lazy(() => import("../pages/CareHygiene"));
 const ParentEvents   = lazy(() => import("../pages/Events"));
-const ParentPTM        = lazy(() => import("../pages/PTM"));
+const ParentPTM      = lazy(() => import("../pages/PTM"));
 const ParentIncidents  = lazy(() => import("../pages/Incidents"));
+const PickupApproval   = lazy(() => import("../pages/PickupApproval"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
 function wrap(node, routeKey) {
@@ -51,7 +41,10 @@ export const parentRoutes = [
   <Route key="parent-profile"         path="/parent-profile"           element={wrap(<ParentProfile />,  "profile")} />,
   <Route key="parent-child"           path="/parent-child/:studentId"  element={wrap(<ChildProfile />, "profile")} />,
   <Route key="parent-attendance"      path="/parent-attendance"        element={wrap(<Attendance />, "dashboard")} />,
-  <Route key="parent-memories"        path="/parent-memories"          element={wrap(<Memories />, "dashboard")} />,
+  // V2: unified Child Journey timeline
+  <Route key="parent-journey"         path="/parent-journey"           element={wrap(<ParentJourney />, "dashboard")} />,
+  // V1 redirect: /parent-memories → /parent-journey
+  <Route key="parent-memories"        path="/parent-memories"          element={<Navigate to="/parent-journey" replace />} />,
   <Route key="parent-fees"            path="/parent-fees"              element={wrap(<Fees />, "fees")} />,
   <Route key="parent-daily-care"      path="/parent-daily-care"        element={wrap(<DailyCare />, "dashboard")} />,
   <Route key="parent-food-menu"       path="/parent-food-menu"         element={wrap(<FoodMenu />, "dashboard")} />,
@@ -59,10 +52,11 @@ export const parentRoutes = [
   <Route key="parent-nap"             path="/parent-nap"               element={wrap(<NapTracker />, "dashboard")} />,
   <Route key="parent-holidays"        path="/parent-holidays"          element={wrap(<Holidays />, "dashboard")} />,
   <Route key="parent-notifications"   path="/parent-notifications"     element={wrap(<Notifications />, "dashboard")} />,
-  <Route key="parent-care"           path="/parent-care"              element={wrap(<CareHygiene />, "dashboard")} />,
-  <Route key="parent-events"         path="/parent-events"            element={wrap(<ParentEvents />, "dashboard")} />,
-  <Route key="parent-ptm"           path="/parent-ptm"               element={wrap(<ParentPTM />, "dashboard")} />,
-  <Route key="parent-incidents"    path="/parent-incidents"          element={wrap(<ParentIncidents />, "dashboard")} />,
+  <Route key="parent-care"            path="/parent-care"              element={wrap(<CareHygiene />, "dashboard")} />,
+  <Route key="parent-events"          path="/parent-events"            element={wrap(<ParentEvents />, "dashboard")} />,
+  <Route key="parent-ptm"             path="/parent-ptm"               element={wrap(<ParentPTM />, "dashboard")} />,
+  <Route key="parent-incidents"       path="/parent-incidents"         element={wrap(<ParentIncidents />, "dashboard")} />,
+  <Route key="parent-pickup-approval" path="/parent-pickup-approval"   element={wrap(<PickupApproval />, "dashboard")} />,
 ];
 
 export default parentRoutes;

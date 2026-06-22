@@ -69,6 +69,8 @@ const FamilyProfile       = lazy(() => import("./pages/FamilyProfile"));
 
 const ChildJourney        = lazy(() => import("./pages/ChildJourney"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
+const NewArtwork          = lazy(() => import("./pages/NewArtwork"));
+const NewMilestone        = lazy(() => import("./pages/NewMilestone"));
 
 const Holidays            = lazy(() => import("./pages/Holidays"));
 const Notices             = lazy(() => import("./pages/Notices"));
@@ -238,6 +240,22 @@ function App() {
               element={
                 <ProtectedRoute routeKey="child-journey">
                   <NewObservation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/child-journey/artwork"
+              element={
+                <ProtectedRoute routeKey="child-journey">
+                  <NewArtwork />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/child-journey/milestone"
+              element={
+                <ProtectedRoute routeKey="child-journey">
+                  <NewMilestone />
                 </ProtectedRoute>
               }
             />
