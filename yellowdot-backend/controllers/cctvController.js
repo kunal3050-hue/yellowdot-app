@@ -330,11 +330,32 @@ async function liveStop(req, res) {
 // ── POST /internal/cctv/auth ───────────────────────────────────────
 // MediaMTX auth hook. Validates the stream token against the requested path.
 // Not behind staff auth (the media server calls it) — it validates the token.
+//
+// Action model:
+//   • publish / api / metrics / pprof / playback from LOCALHOST → allow.
+//     The internal FFmpeg copy-remux publishes to rtsp://localhost:8554/<path>;
+//     it has no CRM token and must not need one. Only the stream engine itself
+//     (same host) can publish, so localhost is the trust boundary.
+//   • read (a viewer requesting HLS/WebRTC) → REQUIRE a valid CRM stream token.
+//   • publish from any non-localhost IP → deny (no external publishers allowed).
+function isLocalhost(ip) {
+  return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+}
+
 async function streamAuthHook(req, res) {
   const nowMs = Date.now();
   try {
     const body = req.body || {};
-    // MediaMTX posts { path, query, ... }; token passed as ?token= in the query.
+    const action = (body.action || "read").toLowerCase();
+    const ip     = body.ip || "";
+
+    // Non-read actions (publish/api/metrics/…) are internal-only → localhost allow, else deny.
+    if (action !== "read") {
+      if (isLocalhost(ip)) return res.status(200).json({ ok: true });
+      return res.status(401).json({ error: "publish-not-allowed" });
+    }
+
+    // read → must carry a valid CRM stream token bound to this path.
     const path = body.path || "";
     const token = body.token || (body.query && /(?:^|&)token=([^&]+)/.exec(body.query)?.[1]) || "";
     const result = session.verifyToken(token, path, nowMs);
