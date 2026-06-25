@@ -85,18 +85,22 @@ async function authenticate(req, res, next) {
   const token = authHeader.slice(7);
 
   try {
+    // AUTH STEP 1 — verify Firebase ID token
     const decoded = await auth.verifyIdToken(token);
     const uid     = decoded.uid;
     const email   = (decoded.email || "").toLowerCase();
-
     console.log(`[AUTH-DEBUG] Token verified — uid=${uid} email=${decoded.email || "(none)"} provider=${decoded.firebase?.sign_in_provider || "?"}`);
 
-    // ── 1. Direct UID lookup in Firestore users collection ────────────────────
+    // AUTH STEP 2 — direct UID lookup in Firestore users collection
+    console.log(`[AUTH-DEBUG] AUTH STEP 2 — Firestore users/${uid} lookup`);
     const userDoc = await db.collection("users").doc(uid).get();
     console.log(`[AUTH-DEBUG] Firestore users/${uid} → exists=${userDoc.exists}`);
 
     if (userDoc.exists) {
+      // AUTH STEP 3 — build user from UID match
+      console.log(`[AUTH-DEBUG] AUTH STEP 3 — building user from UID doc`);
       req.user = await _buildUserFromDoc(uid, userDoc.data(), decoded);
+      console.log(`[AUTH-DEBUG] AUTH STEP 3 complete — role=${req.user.role} schoolId=${req.user.schoolId}`);
       return next();
     }
 
@@ -105,7 +109,8 @@ async function authenticate(req, res, next) {
     // Google → Firebase Email Enumeration Protection creates a new UID.
     // We find the profile by email and auto-link the new Google UID to it.
     if (email) {
-      console.log(`[AUTH-DEBUG] UID lookup miss — trying email fallback for ${email}`);
+      // AUTH STEP 3b — email fallback
+      console.log(`[AUTH-DEBUG] AUTH STEP 3b — UID miss, email fallback for ${email}`);
       const emailSnap = await db.collection("users")
         .where("email", "==", email)
         .limit(1)
@@ -150,7 +155,8 @@ async function authenticate(req, res, next) {
 
     // ── 2. Parent — email match in students collection ────────────────────────
     if (email) {
-      console.log(`[AUTH-DEBUG] Trying parent lookup for email=${email}`);
+      // AUTH STEP 4 — parent lookup
+      console.log(`[AUTH-DEBUG] AUTH STEP 4 — parent lookup for email=${email}`);
       let studentDoc = null;
 
       const fatherSnap = await db.collection("students")
@@ -226,7 +232,9 @@ async function authenticate(req, res, next) {
         code:  "TOKEN_EXPIRED",
       });
     }
-    console.error("[auth-middleware] Token verification failed:", err.message);
+    console.error("[auth-middleware] Authentication failed:", err.message);
+    console.error("[auth-middleware] Full error:", err);
+    console.error("[auth-middleware] Stack:", err.stack);
     return res.status(401).json({ error: "Invalid authentication token." });
   }
 }

@@ -46,10 +46,31 @@ if (!admin.apps.length) {
     admin.initializeApp({ projectId: process.env.GOOGLE_CLOUD_PROJECT || "yellowdot-app" });
     console.log("[firebase-admin] Initialized with GCP Application Default Credentials.");
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    // Local dev — path to service account key file
+    // File path — read and parse eagerly so any JSON error surfaces at startup,
+    // not lazily on the first Firestore/Auth API call.
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    let serviceAccount;
+    try {
+      const fs  = require("fs");
+      let raw   = fs.readFileSync(credPath, "utf8").trim();
+      // Guard against Railway-style escaped JSON written to disk ({\"type\":...})
+      if (raw.startsWith('"') || raw.startsWith("'")) {
+        raw = JSON.parse(raw);   // unwrap outer string literal
+      }
+      if (typeof raw === "string" && raw.includes('\\"')) {
+        raw = raw.replace(/\\"/g, '"');
+      }
+      serviceAccount = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (serviceAccount.type !== "service_account") {
+        throw new Error(`Expected type=service_account, got: ${serviceAccount.type}`);
+      }
+    } catch (e) {
+      console.error(`[firebase-admin] Failed to read/parse GOOGLE_APPLICATION_CREDENTIALS at ${credPath}:`, e.message);
+      process.exit(1);
+    }
     admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      projectId:  "yellowdot-app",
+      credential: admin.credential.cert(serviceAccount),
+      projectId:  serviceAccount.project_id || "yellowdot-app",
     });
     console.log("[firebase-admin] Initialized with GOOGLE_APPLICATION_CREDENTIALS file.");
   } else {
