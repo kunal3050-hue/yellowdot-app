@@ -64,6 +64,11 @@ if (!admin.apps.length) {
       if (serviceAccount.type !== "service_account") {
         throw new Error(`Expected type=service_account, got: ${serviceAccount.type}`);
       }
+      // Railway exports private keys with literal \n instead of real newlines.
+      // Firebase Admin / OpenSSL requires actual newline characters in PEM keys.
+      if (serviceAccount.private_key && serviceAccount.private_key.includes("\\n")) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+      }
     } catch (e) {
       console.error(`[firebase-admin] Failed to read/parse GOOGLE_APPLICATION_CREDENTIALS at ${credPath}:`, e.message);
       process.exit(1);
