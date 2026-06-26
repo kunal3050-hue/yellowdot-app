@@ -442,6 +442,32 @@ async function parentLiveToken(req, res) {
   }
 }
 
+// ── GET /api/cctv/parent/cameras ───────────────────────────────────
+// Returns cameras in the authenticated parent's child's classroom.
+// Safe fields only — no RTSP URLs, no credentials.
+async function parentCameras(req, res) {
+  try {
+    const user = req.user || {};
+    if (user.role !== "parent") return res.status(403).json({ success: false, error: "Parent endpoint only." });
+    const linkedId = user.student?.studentId;
+    if (!linkedId) return res.status(403).json({ success: false, error: "No student linked to this account.", reason: "not-linked" });
+
+    const child = await studentSvc.getOne(linkedId);
+    if (!child) return res.status(404).json({ success: false, error: "Linked student not found." });
+
+    const classroom = child.class || child.Class || "";
+    const all = await svc.getAll({ schoolId: child.schoolId, centerId: child.centerId || child.center || "" });
+    const cams = all
+      .filter(c => !c.deleted && (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes(classroom.toLowerCase()))
+      .map(c => ({ cameraId: c.cameraId, cameraName: c.cameraName, classroom: c.classroom, status: c.status }));
+
+    res.json({ success: true, classroom, cameras: cams });
+  } catch (e) {
+    logErr("GET /api/cctv/parent/cameras", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
 // ── GET/PUT /api/cctv/parent/settings (admin) ──────────────────────
 async function getParentSettings(req, res) {
   try { res.json({ success: true, settings: await parentSettings.getSettings() }); }
@@ -457,6 +483,7 @@ async function updateParentSettings(req, res) {
 module.exports = {
   getCameras,
   getCamera,
+  parentCameras,
   verifyCamera,
   liveToken,
   liveStop,

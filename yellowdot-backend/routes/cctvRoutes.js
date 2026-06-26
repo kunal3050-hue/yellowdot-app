@@ -23,6 +23,7 @@ const {
   liveStop,
   streamAuthHook,
   parentLiveToken,
+  parentCameras,
   getParentSettings,
   updateParentSettings,
 } = require("../controllers/cctvController");
@@ -37,6 +38,7 @@ router.post("/internal/cctv/auth", streamAuthHook);
 
 // ── Parent Live View — authenticated but NOT staff (parents are not staff). ──
 // Presence + school-hours + classroom scope enforced in the controller.
+router.get ("/api/cctv/parent/cameras",    authenticate, parentCameras);
 router.post("/api/cctv/parent/live-token", authenticate, parentLiveToken);
 
 // All remaining CCTV routes require an authenticated staff account.
