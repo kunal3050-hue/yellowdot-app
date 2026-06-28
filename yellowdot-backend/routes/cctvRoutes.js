@@ -26,6 +26,7 @@ const {
   parentCameras,
   getParentSettings,
   updateParentSettings,
+  getAuditLogs,
 } = require("../controllers/cctvController");
 
 // Admin-tier roles that hold CCTV_MANAGE in Phase 1.
@@ -46,6 +47,9 @@ router.post("/api/cctv/parent/live-token", authenticate, parentLiveToken);
 // paths (router mounted at the app root via app.use()). The parent live-token
 // route above is registered before this guard and is unaffected.
 router.use("/api/cctv", authenticate, staffOnly);
+
+// Audit logs — super admin only.
+router.get("/api/cctv/audit-logs", authorize("super_admin", "developer"), getAuditLogs);
 
 // Parent CCTV settings — admin manages (read + write).
 router.get("/api/cctv/parent/settings", getParentSettings);

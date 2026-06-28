@@ -78,17 +78,20 @@ async function audit(event, data, nowISO) {
   try {
     const id = `${event}-${data.sessionId || "na"}-${nowISO}`;
     await auditCol().doc(id.slice(0, 480)).set({
-      event,                                  // LIVE_VIEW_STARTED/STOPPED/DENIED, TOKEN_ISSUED/RENEWED
-      userId:    data.userId    || "",
-      role:      data.role      || "",
-      kind:      data.kind      || "staff",
-      cameraId:  data.cameraId  || "",
-      classroom: data.classroom || "",
-      centerId:  data.centerId  || "",
-      childId:   data.childId   || "",
-      sessionId: data.sessionId || "",
-      ip:        data.ip        || "",
-      ts:        nowISO,
+      event,
+      userId:     data.userId     || "",
+      userName:   data.userName   || "",
+      userEmail:  data.userEmail  || "",
+      role:       data.role       || "",
+      kind:       data.kind       || "staff",
+      cameraId:   data.cameraId   || "",
+      cameraName: data.cameraName || "",
+      classroom:  data.classroom  || "",
+      centerId:   data.centerId   || "",
+      childId:    data.childId    || "",
+      sessionId:  data.sessionId  || "",
+      ip:         data.ip         || "",
+      ts:         nowISO,
     });
   } catch (e) {
     console.error("[streamSession] audit write failed:", e.message);

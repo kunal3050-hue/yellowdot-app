@@ -12,6 +12,7 @@
  * returned to the client (masked). No streaming logic lives here.
  */
 
+const { db }    = require("../firebaseAdmin");
 const svc       = require("../services/cctvService");
 const testSvc   = require("../services/cameraTestService");
 const verifySvc = require("../services/cameraVerifyService");
@@ -272,7 +273,8 @@ async function liveToken(req, res) {
     );
     if (!decision.allowed) {
       await session.audit("LIVE_VIEW_DENIED", {
-        userId: user.userId, role: user.role, cameraId: cam.cameraId,
+        userId: user.userId, userName: user.name || "", userEmail: user.email || "",
+        role: user.role, cameraId: cam.cameraId, cameraName: cam.cameraName || "",
         classroom: cam.classroom, centerId: cam.centerId, ip: req.ip,
       }, nowISO);
       return res.status(403).json({ success: false, error: "Not authorized to view this camera.", reason: decision.reason });
@@ -290,7 +292,8 @@ async function liveToken(req, res) {
     }, nowMs);
 
     await session.audit("LIVE_VIEW_STARTED", {
-      userId: user.userId, role: user.role, kind: "staff", cameraId: cam.cameraId,
+      userId: user.userId, userName: user.name || "", userEmail: user.email || "",
+      role: user.role, kind: "staff", cameraId: cam.cameraId, cameraName: cam.cameraName || "",
       classroom: cam.classroom, centerId: cam.centerId, sessionId: t.sessionId, ip: req.ip,
     }, nowISO);
 
@@ -317,7 +320,8 @@ async function liveStop(req, res) {
   try {
     const user = req.user || {};
     await session.audit("LIVE_VIEW_STOPPED", {
-      userId: user.userId, role: user.role, cameraId: req.params.id,
+      userId: user.userId, userName: user.name || "", userEmail: user.email || "",
+      role: user.role, cameraId: req.params.id,
       sessionId: req.body?.sessionId || "", ip: req.ip,
     }, nowISO);
     res.json({ success: true, stopped: true });
@@ -375,7 +379,8 @@ async function parentLiveToken(req, res) {
   const nowISO = new Date(nowMs).toISOString();
   const user = req.user || {};
   const auditDeny = (reason, childId) => session.audit("LIVE_VIEW_DENIED", {
-    userId: user.userId, role: "parent", kind: "parent", cameraId: req.body?.cameraId || "",
+    userId: user.userId, userName: user.name || "", userEmail: user.email || "",
+    role: "parent", kind: "parent", cameraId: req.body?.cameraId || "",
     childId: childId || "", ip: req.ip,
   }, nowISO);
 
@@ -426,7 +431,8 @@ async function parentLiveToken(req, res) {
       mediaMtxPath: cam.mediaMtxPath, centerId: cam.centerId, classroom: cam.classroom, childId: linkedId,
     }, nowMs);
     await session.audit("LIVE_VIEW_STARTED", {
-      userId: user.userId, role: "parent", kind: "parent", cameraId: cam.cameraId,
+      userId: user.userId, userName: user.name || "", userEmail: user.email || "",
+      role: "parent", kind: "parent", cameraId: cam.cameraId, cameraName: cam.cameraName || "",
       classroom: cam.classroom, centerId: cam.centerId, childId: linkedId, sessionId: t.sessionId, ip: req.ip,
     }, nowISO);
 
@@ -480,6 +486,45 @@ async function updateParentSettings(req, res) {
   } catch (e) { logErr("PUT /api/cctv/parent/settings", e); res.status(500).json({ success: false, error: e.message }); }
 }
 
+// ── GET /api/cctv/audit-logs ───────────────────────────────────────
+// Super Admin audit trail: who watched which camera and when.
+// Supports optional query params: date (YYYY-MM-DD), role, event.
+async function getAuditLogs(req, res) {
+  try {
+    const { date, role, event: evtFilter } = req.query;
+
+    let q = db.collection("cctvAuditLogs").orderBy("ts", "desc");
+
+    if (date) {
+      q = q.where("ts", ">=", `${date}T00:00:00.000Z`)
+            .where("ts", "<=", `${date}T23:59:59.999Z`);
+    }
+
+    const snap = await q.limit(1000).get();
+    let logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (role)      logs = logs.filter(l => l.role  === role);
+    if (evtFilter) logs = logs.filter(l => l.event === evtFilter);
+
+    // Pair STARTED → STOPPED by sessionId to compute view duration
+    const stoppedAt = {};
+    logs.forEach(l => { if (l.event === "LIVE_VIEW_STOPPED" && l.sessionId) stoppedAt[l.sessionId] = l.ts; });
+
+    const enriched = logs.map(l => {
+      if (l.event === "LIVE_VIEW_STARTED" && l.sessionId && stoppedAt[l.sessionId]) {
+        const durationSec = Math.round((new Date(stoppedAt[l.sessionId]) - new Date(l.ts)) / 1000);
+        return { ...l, durationSec };
+      }
+      return l;
+    });
+
+    res.json({ success: true, logs: enriched.slice(0, 500), total: enriched.length });
+  } catch (e) {
+    logErr("GET /api/cctv/audit-logs", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}
+
 module.exports = {
   getCameras,
   getCamera,
@@ -491,6 +536,7 @@ module.exports = {
   parentLiveToken,
   getParentSettings,
   updateParentSettings,
+  getAuditLogs,
   addCamera,
   updateCamera,
   deleteCamera,
