@@ -38,6 +38,7 @@ function friendlyError(err) {
   if (r === "child-not-present" || r === "not-checked-in")        return "Your child is not checked in today.";
   if (r === "child-checked-out")                                  return "Your child has checked out for today.";
   if (r === "no-camera-in-classroom" || r === "no-camera")        return "No camera is set up for your child's classroom.";
+  if (r === "no-active-slot")                                      return "No session is scheduled for this camera right now.";
   if (r === "not-linked")                                         return "No student is linked to your account. Contact the school.";
   if (r === "child-missing")                                      return "Student record not found. Contact the school.";
   if (m.includes("ENGINE_NOT_PROVISIONED"))                       return "Live streaming is not enabled yet.";
@@ -304,6 +305,11 @@ export default function LiveView() {
           {(reason === "child-not-present" || reason === "child-checked-out") && (
             <p style={{ textAlign: "center", fontSize: typography.size.xs, color: colors.text.faint, margin: `${spacing.sm}px 0 0`, padding: `0 ${spacing.xl}px` }}>
               Your child's attendance is recorded by staff at check-in.
+            </p>
+          )}
+          {reason === "no-active-slot" && (
+            <p style={{ textAlign: "center", fontSize: typography.size.xs, color: colors.text.faint, margin: `${spacing.sm}px 0 0`, padding: `0 ${spacing.xl}px` }}>
+              The camera will connect automatically when the next session begins.
             </p>
           )}
         </div>

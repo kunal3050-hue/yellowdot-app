@@ -1,20 +1,22 @@
 /**
- * cctvService.js — Firestore-backed CCTV camera management (V2 Phase 1)
+ * cctvService.js — Firestore-backed CCTV camera management (V2)
  * ──────────────────────────────────────────────────────────────────────
  * Collection: cameras/{cameraId}
- * Fields: cameraId, cameraCode, cameraName, classroom, classrooms[],
- *         brand, streamUrl, username, password, channel, streamType,
- *         status, deleted, deletedAt, schoolId, centerId, center,
- *         createdAt, updatedAt, createdBy, updatedBy
  *
- * Phase 1 scope: metadata CRUD only. No streaming / FFmpeg / HLS.
+ * Classroom assignment model (timeline-based):
+ *   timeline[]  — ordered array of { id, classroom, days[], startTime, endTime }
+ *                 representing which classroom this camera serves at which times.
+ *   classrooms  — flat array of all classrooms the camera ever serves (derived
+ *                 from timeline on write; used for teacher scoping + queries).
+ *   classroom   — primary classroom string (first timeline entry's classroom).
+ *
+ * Backward compatibility: cameras without a timeline[] keep working via the
+ * static classrooms[] field; docToCamera emits both fields.
  *
  * Design notes:
  *   • Delete is SOFT (deleted=true + deletedAt); records are never erased.
  *   • cameraCode is unique within a center (enforced on create/update).
- *   • Classroom mapping stored as BOTH `classroom` (string, current single
- *     mapping) and `classrooms` (array) so future one→many mapping is a
- *     non-breaking change — no schema migration required later.
+ *   • viewingSchedule is deprecated — superseded by timeline[].
  */
 
 const { db } = require("../firebaseAdmin");
@@ -50,18 +52,38 @@ function encPassword(pw) {
 
 function nowISO() { return new Date().toISOString(); }
 
+// Derive the flat classrooms[] list and primary classroom string from a
+// timeline[]. Deduplicates, preserves insertion order.
+// Falls back to legacy classrooms[]/classroom when no timeline is present.
+function deriveFromTimeline(timeline, legacyClassrooms, legacyClassroom) {
+  if (Array.isArray(timeline) && timeline.length) {
+    const seen = new Set();
+    const list = [];
+    for (const e of timeline) {
+      const c = (e.classroom || "").trim();
+      if (c && !seen.has(c)) { seen.add(c); list.push(c); }
+    }
+    return { classrooms: list, classroom: list[0] || "" };
+  }
+  const classrooms = Array.isArray(legacyClassrooms) && legacyClassrooms.length
+    ? legacyClassrooms
+    : (legacyClassroom ? [legacyClassroom] : []);
+  return { classrooms, classroom: classrooms[0] || "" };
+}
+
 function docToCamera(snap) {
   const d = (snap.data && snap.data()) || {};
-  const classroom  = d.classroom || "";
-  const classrooms = Array.isArray(d.classrooms) && d.classrooms.length
-    ? d.classrooms
-    : (classroom ? [classroom] : []);
+  const timeline  = Array.isArray(d.timeline) ? d.timeline : [];
+  const { classrooms, classroom } = deriveFromTimeline(
+    timeline, d.classrooms, d.classroom
+  );
   const base = {
     cameraId:   d.cameraId   || snap.id,
     cameraCode: d.cameraCode || "",
     cameraName: d.cameraName || "",
-    classroom,                       // primary (single) mapping — Phase 1
-    classrooms,                      // forward-compatible multi-mapping
+    classroom,
+    classrooms,
+    timeline,
     brand:      d.brand      || "",
     ip:         d.ip         || "",
     port:       d.port       || "",
@@ -70,8 +92,6 @@ function docToCamera(snap) {
     password:   d.password   || "",
     channel:    d.channel    || "",
     streamType: d.streamType || "RTSP",
-    // Substream codec: assumed H.264 unless probed otherwise (used to decide
-    // remux vs transcode fallback). Empty => not yet probed (assume H264).
     substreamCodec: d.substreamCodec || "",
     status:     d.status     || "Active",
     deleted:    d.deleted    === true,
@@ -87,19 +107,16 @@ function docToCamera(snap) {
     camera_name: d.cameraName || "",
     stream_url:  d.streamUrl  || "",
     stream_type: d.streamType || "RTSP",
-    viewingSchedule: d.viewingSchedule || null,
   };
   // Derived, credential-free stream paths (main = verification, sub = live).
-  // Computed on read so they always reflect current ip/port/channel/brand.
   const urls = streamUrls(base);
-  base.mainStreamUrl = urls.mainStreamUrl;   // xx01 — verification/snapshots
-  base.liveStreamUrl = urls.liveStreamUrl;   // xx02 — live viewing (H.264)
-  base.mediaMtxPath  = mediaMtxPath(base);   // stable MediaMTX path name
+  base.mainStreamUrl = urls.mainStreamUrl;
+  base.liveStreamUrl = urls.liveStreamUrl;
+  base.mediaMtxPath  = mediaMtxPath(base);
   return base;
 }
 
 // ── Uniqueness: cameraCode must be unique within a center ──────────────
-// Returns the conflicting camera (non-deleted) if one exists, else null.
 async function findByCode(cameraCode, { schoolId, centerId, excludeId } = {}) {
   if (!cameraCode) return null;
   const code = String(cameraCode).trim().toLowerCase();
@@ -147,7 +164,6 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
   const resolvedCenter = centerId || data.centerId || data.center || "";
   const cameraCode     = String(data.cameraCode || data.camera_code || "").trim();
 
-  // Enforce per-center code uniqueness.
   if (cameraCode) {
     const clash = await findByCode(cameraCode, { schoolId, centerId: resolvedCenter });
     if (clash) {
@@ -157,18 +173,19 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     }
   }
 
-  const cameraId   = `CAM-${Date.now()}`;
-  const classroom  = data.classroom || "";
-  const classrooms = Array.isArray(data.classrooms) && data.classrooms.length
-    ? data.classrooms
-    : (classroom ? [classroom] : []);
+  const cameraId = `CAM-${Date.now()}`;
+  const timeline = Array.isArray(data.timeline) ? data.timeline : [];
+  const { classrooms, classroom } = deriveFromTimeline(
+    timeline, data.classrooms, data.classroom
+  );
 
   const doc = {
     cameraId,
     cameraCode,
-    cameraName: data.cameraName || data.camera_name || "",
+    cameraName:  data.cameraName || data.camera_name || "",
     classroom,
     classrooms,
+    timeline,
     brand:      data.brand      || "",
     ip:         data.ip         || "",
     port:       String(data.port || "554"),
@@ -187,7 +204,6 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     updatedAt:  nowISO(),
     createdBy:  actorUserId,
     updatedBy:  actorUserId,
-    viewingSchedule: data.viewingSchedule || null,
   };
   await col().doc(cameraId).set(doc);
   return docToCamera({ id: cameraId, data: () => doc });
@@ -199,7 +215,6 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
   if (!snap.exists) return null;
   const current = docToCamera(snap);
 
-  // Code uniqueness on change.
   if (data.cameraCode !== undefined) {
     const newCode = String(data.cameraCode).trim();
     if (newCode && newCode.toLowerCase() !== current.cameraCode.trim().toLowerCase()) {
@@ -230,8 +245,14 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     ...(data.status     !== undefined && { status:     data.status     }),
   };
 
-  // Keep classroom (single) and classrooms (array) in sync.
-  if (data.classrooms !== undefined && Array.isArray(data.classrooms)) {
+  // Timeline update: re-derive classrooms[] + classroom from the new entries.
+  if (Array.isArray(data.timeline)) {
+    const { classrooms, classroom } = deriveFromTimeline(data.timeline, [], "");
+    updates.timeline   = data.timeline;
+    updates.classrooms = classrooms;
+    updates.classroom  = classroom;
+  } else if (data.classrooms !== undefined && Array.isArray(data.classrooms)) {
+    // Legacy path (no timeline supplied — keep classrooms in sync).
     updates.classrooms = data.classrooms;
     updates.classroom  = data.classrooms[0] || "";
   } else if (data.classroom !== undefined) {
@@ -239,13 +260,11 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     updates.classrooms = data.classroom ? [data.classroom] : [];
   }
 
-  if (data.viewingSchedule !== undefined) updates.viewingSchedule = data.viewingSchedule;
-
   await ref.update(updates);
   return docToCamera(await ref.get());
 }
 
-// ── Soft delete (record is retained; flagged deleted) ──────────────────
+// ── Soft delete ────────────────────────────────────────────────────────
 async function remove(cameraId, { actorUserId = "system" } = {}) {
   const ref  = col().doc(cameraId);
   const snap = await ref.get();

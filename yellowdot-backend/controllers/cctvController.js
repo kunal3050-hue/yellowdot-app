@@ -22,7 +22,8 @@ const securitySvc   = require("../services/securityService");
 const studentSvc    = require("../services/studentService");
 const parentSettings = require("../services/cctvParentSettingsService");
 
-const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
+const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
+const { getActiveTimelineEntry } = resolver;
 
 function resolveCtx(req) {
   return {
@@ -102,9 +103,10 @@ async function addCamera(req, res) {
     const streamUrl  = pick(body, "streamUrl",  "stream_url")?.trim();
     const classrooms = Array.isArray(body.classrooms) ? body.classrooms : undefined;
 
+    const timeline = Array.isArray(body.timeline) ? body.timeline : [];
     if (!cameraName) return res.status(400).json({ success: false, message: "cameraName is required." });
-    if (!classroom && !(classrooms && classrooms.length))
-      return res.status(400).json({ success: false, message: "classroom is required." });
+    if (!timeline.length && !classroom && !(classrooms && classrooms.length))
+      return res.status(400).json({ success: false, message: "At least one classroom time slot (timeline) is required." });
     if (!streamUrl)  return res.status(400).json({ success: false, message: "streamUrl is required." });
 
     const camera = await svc.create(
@@ -113,6 +115,7 @@ async function addCamera(req, res) {
         cameraName,
         classroom,
         classrooms,
+        timeline:   Array.isArray(body.timeline) ? body.timeline : [],
         brand:      pick(body, "brand",      "brand")      || "Other",
         ip:         pick(body, "ip",         "ip")         || "",
         port:       String(pick(body, "port", "port")      || "554"),
@@ -122,7 +125,6 @@ async function addCamera(req, res) {
         channel:    String(pick(body, "channel", "channel") || "1"),
         streamType: pick(body, "streamType", "stream_type") || "RTSP",
         status:     pick(body, "status",     "status")     || "Active",
-        viewingSchedule: body.viewingSchedule || null,
       },
       { schoolId, centerId, actorUserId }
     );
@@ -161,8 +163,8 @@ async function updateCamera(req, res) {
     set("channel",     "channel");
     set("streamType",  "stream_type");
     set("status",      "status");
+    if (Array.isArray(body.timeline))   updates.timeline   = body.timeline;
     if (Array.isArray(body.classrooms)) updates.classrooms = body.classrooms;
-    if (body.viewingSchedule !== undefined) updates.viewingSchedule = body.viewingSchedule;
     // Only overwrite the password when a non-empty value is supplied.
     if (body.password && body.password.trim() && body.password !== "••••••••") {
       updates.password = body.password.trim();
@@ -419,41 +421,37 @@ async function parentLiveToken(req, res) {
     const childCtx = { studentId: linkedId, classroom: child.class || child.Class || "", centerId: child.centerId || child.center || "" };
     const presence = await securitySvc.getChildStatus(linkedId, { schoolId: child.schoolId, centerId: childCtx.centerId });
 
-    // Resolve target camera (explicit cameraId, else first camera in child's classroom)
+    // Resolve target camera.
+    // When a cameraId is supplied explicitly (parent picked from the list), use it.
+    // Otherwise find the camera whose timeline has an active slot for the child's
+    // classroom right now. Falls back to static classrooms[] for cameras without a
+    // timeline (backward-compatible with pre-timeline records).
+    const now = new Date(nowMs);
     let cam;
     if (req.body?.cameraId) {
       cam = await svc.getOne(req.body.cameraId);
     } else {
       const all = await svc.getAll({ schoolId: child.schoolId, centerId: childCtx.centerId });
-      cam = all.find(c => (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes((childCtx.classroom||"").toLowerCase()));
+      const childRoom = (childCtx.classroom || "").toLowerCase();
+      cam = all.find(c => {
+        if (c.deleted) return false;
+        if (Array.isArray(c.timeline) && c.timeline.length) {
+          const entry = getActiveTimelineEntry(c, now);
+          return entry && entry.classroom.toLowerCase() === childRoom;
+        }
+        return (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes(childRoom);
+      });
     }
     if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId); return res.status(404).json({ success: false, error: "No camera available for your child's classroom." }); }
 
-    const decision = resolver.canParentViewCamera(childCtx, presence, cam, { schoolHoursOpen: window.open });
+    const decision = resolver.canParentViewCamera(childCtx, presence, cam, { schoolHoursOpen: window.open, now });
     if (!decision.allowed) {
       await auditDeny(decision.reason, linkedId);
       const msg = decision.reason === "child-not-present" ? "Your child has not checked in yet."
                 : decision.reason === "child-checked-out" ? "Your child has checked out for today."
+                : decision.reason === "no-active-slot"    ? "No classroom session is scheduled for this camera right now."
                 : "Live view is not available for your child right now.";
       return res.status(403).json({ success: false, error: msg, reason: decision.reason });
-    }
-
-    // Per-camera viewing schedule (overrides global school-hours if tighter)
-    if (cam.viewingSchedule?.enabled) {
-      const sched = cam.viewingSchedule;
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
-      if (!Array.isArray(sched.activeDays) || !sched.activeDays.includes(dayOfWeek)) {
-        await auditDeny("outside-hours", linkedId);
-        return res.status(403).json({ success: false, error: "Live view is not available today.", reason: "outside-hours" });
-      }
-      const [sh, sm] = (sched.startTime || "00:00").split(":").map(Number);
-      const [eh, em] = (sched.endTime   || "23:59").split(":").map(Number);
-      const nowMins  = now.getHours() * 60 + now.getMinutes();
-      if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em) {
-        await auditDeny("outside-hours", linkedId);
-        return res.status(403).json({ success: false, error: "Live view is not available at this time.", reason: "outside-hours" });
-      }
     }
 
     const engine = process.env.CCTV_STREAM_ENGINE_URL;

@@ -34,6 +34,25 @@ function cameraClassrooms(camera) {
   return camera.classroom ? [camera.classroom] : [];
 }
 
+/**
+ * Returns the timeline entry that is active right now for this camera, or null.
+ * A camera without a timeline[] falls back to the static classrooms[] model.
+ * @param {{ timeline?: Array }} camera
+ * @param {Date} [now]
+ * @returns {{ id, classroom, days, startTime, endTime } | null}
+ */
+function getActiveTimelineEntry(camera, now = new Date()) {
+  if (!Array.isArray(camera.timeline) || !camera.timeline.length) return null;
+  const day  = now.getDay();                                  // 0=Sun … 6=Sat
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return camera.timeline.find(e => {
+    if (!Array.isArray(e.days) || !e.days.includes(day)) return false;
+    const [sh, sm] = (e.startTime || "00:00").split(":").map(Number);
+    const [eh, em] = (e.endTime   || "23:59").split(":").map(Number);
+    return mins >= sh * 60 + sm && mins < eh * 60 + em;
+  }) || null;
+}
+
 function sameCenter(user, camera) {
   // Bypass roles already handled by caller. Center match is exact; empty
   // camera center is treated as "unscoped" and only visible to bypass/center-wide
@@ -102,10 +121,25 @@ function canParentViewCamera(child, presence, camera, opts = {}) {
   if (norm(child.centerId) !== norm(camera.centerId)) {
     return { allowed: false, reason: "different-center" };
   }
-  const camRooms = cameraClassrooms(camera).map(norm);
-  if (!camRooms.includes(norm(child.classroom))) {
-    return { allowed: false, reason: "not-child-classroom" };
+
+  // Timeline-aware classroom check.
+  // Cameras with a timeline[] use time-based routing: only the currently-active
+  // entry's classroom is accessible. Cameras without a timeline fall back to the
+  // static classrooms[] model (backward-compatible with pre-timeline records).
+  if (Array.isArray(camera.timeline) && camera.timeline.length) {
+    const now   = opts.now instanceof Date ? opts.now : new Date();
+    const entry = getActiveTimelineEntry(camera, now);
+    if (!entry) return { allowed: false, reason: "no-active-slot" };
+    if (norm(entry.classroom) !== norm(child.classroom)) {
+      return { allowed: false, reason: "not-child-classroom" };
+    }
+  } else {
+    const camRooms = cameraClassrooms(camera).map(norm);
+    if (!camRooms.includes(norm(child.classroom))) {
+      return { allowed: false, reason: "not-child-classroom" };
+    }
   }
+
   return { allowed: true, reason: "present-and-classroom-match" };
 }
 
@@ -134,6 +168,7 @@ module.exports = {
   canParentViewCamera,
   filterViewableCameras,
   describeScope,
+  getActiveTimelineEntry,
   BYPASS_ROLES,
   CENTER_WIDE_ROLES,
   CLASSROOM_SCOPED,
