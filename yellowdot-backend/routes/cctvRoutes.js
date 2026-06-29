@@ -29,8 +29,10 @@ const {
   getAuditLogs,
 } = require("../controllers/cctvController");
 
-// Admin-tier roles that hold CCTV_MANAGE in Phase 1.
-const MANAGE_ROLES = ["admin", "center_admin", "center_owner", "super_admin", "developer"];
+// Full camera configuration (add / edit / delete) — Super Admin tier only.
+const CONFIGURE_ROLES = ["super_admin", "developer", "admin"];
+// Classroom assignment + stream verification — Center Head tier and above.
+const ASSIGN_ROLES    = ["super_admin", "developer", "admin", "center_admin", "center_owner"];
 
 // ── Media-server auth hook — NOT staff-gated (MediaMTX calls it). ──
 // Validates the stream token itself; must be registered before the
@@ -63,13 +65,12 @@ router.get("/api/cctv/cameras/:id", getCamera);
 router.post("/api/cctv/cameras/:id/live-token", liveToken);
 router.post("/api/cctv/cameras/:id/live-stop",  liveStop);
 
-// Manage (CCTV_MANAGE) — admin-tier only.
-router.post  ("/api/cctv/cameras",        authorize(...MANAGE_ROLES), addCamera);
-// Real camera verification (default Test Camera action): TCP + RTSP auth + channel + stream.
-router.post  ("/api/cctv/cameras/verify", authorize(...MANAGE_ROLES), verifyCamera);
-// TCP-only reachability (hidden developer diagnostic).
-router.post  ("/api/cctv/cameras/test",   authorize(...MANAGE_ROLES), testConnection);
-router.put   ("/api/cctv/cameras/:id",  authorize(...MANAGE_ROLES), updateCamera);
-router.delete("/api/cctv/cameras/:id",  authorize(...MANAGE_ROLES), deleteCamera);
+// Configure (add / edit / delete) — Super Admin tier only.
+router.post  ("/api/cctv/cameras",        authorize(...CONFIGURE_ROLES), addCamera);
+router.put   ("/api/cctv/cameras/:id",    authorize(...CONFIGURE_ROLES), updateCamera);
+router.delete("/api/cctv/cameras/:id",    authorize(...CONFIGURE_ROLES), deleteCamera);
+// Assign + verify — Center Head tier and above.
+router.post  ("/api/cctv/cameras/verify", authorize(...ASSIGN_ROLES), verifyCamera);
+router.post  ("/api/cctv/cameras/test",   authorize(...ASSIGN_ROLES), testConnection);
 
 module.exports = router;

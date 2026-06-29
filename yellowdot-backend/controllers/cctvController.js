@@ -47,14 +47,20 @@ function mask(cam) {
 // ── GET /api/cctv/cameras ──────────────────────────────────────────
 async function getCameras(req, res) {
   try {
-    const { schoolId, centerId } = resolveCtx(req);
-    const bypassCenter = ["developer", "super_admin", "admin"].includes(req.user?.role);
+    const user = req.user || {};
+    const { schoolId } = resolveCtx(req);
     const { classroom } = req.query;
 
+    // Bypass roles fetch across all centers; everyone else is scoped to their center.
+    const bypassCenter = resolver.BYPASS_ROLES.has(user.role);
     let cameras = await svc.getAll({
       schoolId,
-      centerId: bypassCenter ? undefined : centerId,
+      centerId: bypassCenter ? undefined : (user.centerId || ""),
     });
+
+    // Apply role-based visibility (center + classroom scoping via resolver).
+    cameras = resolver.filterViewableCameras(user, cameras);
+
     if (classroom && classroom !== "All") {
       cameras = cameras.filter(c => c.classroom === classroom);
     }
@@ -68,8 +74,11 @@ async function getCameras(req, res) {
 // ── GET /api/cctv/cameras/:id ──────────────────────────────────────
 async function getCamera(req, res) {
   try {
+    const user = req.user || {};
     const cam = await svc.getOne(req.params.id);
-    if (!cam) return res.status(404).json({ success: false, message: "Camera not found." });
+    if (!cam || cam.deleted) return res.status(404).json({ success: false, message: "Camera not found." });
+    const decision = resolver.canViewCamera(user, cam);
+    if (!decision.allowed) return res.status(403).json({ success: false, error: "Not authorised to view this camera.", reason: decision.reason });
     res.json(mask(cam));
   } catch (e) {
     logErr("GET /api/cctv/cameras/:id", e);

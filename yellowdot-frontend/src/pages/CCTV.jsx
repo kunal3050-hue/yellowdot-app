@@ -13,14 +13,15 @@
  * mapping — no duplicate classroom entity.
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Hls from "hls.js";
 import cctvService from "../services/cctvService";
+import { useAuth } from "../contexts/AuthContext";
 
 // Shared classroom options — mirrors CLASSES in Students.jsx (single source of truth list).
 const CLASSES = ["Daycare", "Playgroup", "Nursery", "LKG", "UKG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 const BRANDS  = ["Hikvision", "Dahua", "CP Plus", "TP-Link", "Other"];
-const TABS    = ["Camera Management", "Classroom Mapping", "Camera Verification", "Live View"];
+const TABS    = ["Camera Management", "Classroom Mapping", "Camera Verification", "Live View", "Parent Settings", "Audit Logs"];
 
 // ── RTSP URL templates per brand ────────────────────────────────────
 // Credentials are NOT embedded — username/password are stored separately
@@ -82,9 +83,28 @@ function useToast() {
   return { toast, show };
 }
 
+// Role sets (mirror backend)
+const CONFIGURE_ROLES = new Set(["super_admin", "developer", "admin"]);
+const ASSIGN_ROLES    = new Set(["super_admin", "developer", "admin", "center_admin", "center_owner"]);
+
 export default function CCTV() {
   const { toast, show } = useToast();
-  const [tab, setTab]         = useState(TABS[0]);
+  const { currentUser }  = useAuth();
+  const role             = currentUser?.role || "";
+
+  // Capabilities derived from role
+  const canConfigure = CONFIGURE_ROLES.has(role); // add / edit / delete cameras
+  const canAssign    = ASSIGN_ROLES.has(role);    // classroom mapping + verification
+  const isViewOnly   = !canAssign;                // teacher / staff: live view only
+
+  // Tabs visible to this role
+  const visibleTabs = useMemo(() => {
+    if (canConfigure) return TABS;
+    if (canAssign)    return TABS.filter(t => !["Parent Settings", "Audit Logs"].includes(t));
+    return ["Live View"]; // teacher / staff
+  }, [canConfigure, canAssign]);
+
+  const [tab, setTab]         = useState(() => visibleTabs[0]);
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,6 +122,55 @@ export default function CCTV() {
   const [verifyResult, setVerifyResult] = useState(null); // 4-check verify result
   const [verifyCamId, setVerifyCamId]   = useState(null);
   const [showDevDiag, setShowDevDiag]   = useState(false); // hidden TCP tool toggle
+
+  // parent settings state
+  const [psLoading, setPsLoading] = useState(false);
+  const [psSaving,  setPsSaving]  = useState(false);
+  const [ps, setPs] = useState({ enabled: "false", schoolOpen: "08:00", schoolClose: "18:00", enforceHours: "true", timezone: "Asia/Kolkata" });
+
+  const loadPs = useCallback(async () => {
+    setPsLoading(true);
+    try { const r = await cctvService.getParentSettings(); setPs(r.settings || r); }
+    catch {} finally { setPsLoading(false); }
+  }, []);
+
+  const savePs = async () => {
+    setPsSaving(true);
+    try { const r = await cctvService.saveParentSettings(ps); setPs(r.settings || r); show("success", "Parent settings saved."); }
+    catch (e) { show("error", e?.response?.data?.error || "Save failed."); }
+    finally { setPsSaving(false); }
+  };
+
+  // If role changes make the current tab invisible, fall back to first allowed tab.
+  useEffect(() => {
+    if (!visibleTabs.includes(tab)) setTab(visibleTabs[0]);
+  }, [visibleTabs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { if (tab === "Parent Settings") loadPs(); }, [tab, loadPs]);
+
+  // audit logs state
+  const today = new Date().toISOString().slice(0, 10);
+  const [auditLogs,    setAuditLogs]    = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditDate,    setAuditDate]    = useState(today);
+  const [auditRole,    setAuditRole]    = useState("");
+  const [auditEvent,   setAuditEvent]   = useState("");
+
+  const loadAuditLogs = useCallback(async (date, role, event) => {
+    setAuditLoading(true);
+    try {
+      const r = await cctvService.getAuditLogs({ date, role, event });
+      setAuditLogs(r.logs || []);
+    } catch (e) {
+      show("error", e?.response?.data?.error || "Failed to load audit logs.");
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [show]);
+
+  useEffect(() => {
+    if (tab === "Audit Logs") loadAuditLogs(auditDate, auditRole, auditEvent);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // live view state
   const [liveCam, setLiveCam]     = useState(null);  // camera being watched
@@ -315,7 +384,7 @@ export default function CCTV() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid #F1F1F1", margin: "16px 0 20px" }}>
-        {TABS.map(t => (
+        {visibleTabs.map(t => (
           <button key={t} onClick={() => setTab(t)}
             style={{
               border: "none", background: "none", cursor: "pointer",
@@ -336,14 +405,14 @@ export default function CCTV() {
             <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>
               {loading ? "Loading…" : `${cameras.length} camera${cameras.length === 1 ? "" : "s"}`}
             </span>
-            <button onClick={openAdd} className="btn btn-primary btn-sm">+ Add Camera</button>
+            {canConfigure && <button onClick={openAdd} className="btn btn-primary btn-sm">+ Add Camera</button>}
           </div>
 
           {!loading && cameras.length === 0 && (
             <div style={{ textAlign: "center", padding: "48px 16px", color: "#94A3B8", border: "1px dashed #E2E8F0", borderRadius: 14 }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
               <p style={{ fontWeight: 600, color: "#475569", margin: 0 }}>No cameras yet</p>
-              <p style={{ fontSize: 13, margin: "4px 0 0" }}>Click “Add Camera” to register your first camera.</p>
+              {canConfigure && <p style={{ fontSize: 13, margin: "4px 0 0" }}>Click "Add Camera" to register your first camera.</p>}
             </div>
           )}
 
@@ -367,10 +436,12 @@ export default function CCTV() {
                 </div>
                 <div style={{ fontSize: 11, color: "#CBD5E1", marginTop: 8, wordBreak: "break-all" }}>{cam.streamUrl}</div>
                 <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-                  <button onClick={() => openEdit(cam)} className="btn btn-ghost btn-sm">Edit</button>
-                  <button onClick={() => { setTab("Camera Verification"); runVerify(cam.cameraId); }}
-                    className="btn btn-ghost btn-sm">Test Camera</button>
-                  <button onClick={() => del(cam)} className="btn btn-ghost btn-sm" style={{ color: "#DC2626", marginLeft: "auto" }}>Delete</button>
+                  {canConfigure && <button onClick={() => openEdit(cam)} className="btn btn-ghost btn-sm">Edit</button>}
+                  {canAssign && (
+                    <button onClick={() => { setTab("Camera Verification"); runVerify(cam.cameraId); }}
+                      className="btn btn-ghost btn-sm">Test Camera</button>
+                  )}
+                  {canConfigure && <button onClick={() => del(cam)} className="btn btn-ghost btn-sm" style={{ color: "#DC2626", marginLeft: "auto" }}>Delete</button>}
                 </div>
               </div>
             ))}
@@ -408,9 +479,11 @@ export default function CCTV() {
                 {unmapped.map(cam => (
                   <div key={cam.cameraId} style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cam.cameraName}</div>
-                    <button onClick={() => openEdit(cam)} style={{ fontSize: 11, color: "#B45309", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}>
-                      Assign classroom →
-                    </button>
+                    {canAssign && (
+                      <button onClick={() => openEdit(cam)} style={{ fontSize: 11, color: "#B45309", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}>
+                        Assign classroom →
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -571,6 +644,206 @@ export default function CCTV() {
         </div>
       )}
 
+      {/* ── Parent Settings ───────────────────────────────────────────── */}
+      {tab === "Parent Settings" && (
+        <div style={{ maxWidth: 520 }}>
+          <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+            Control when parents can watch their child's classroom camera.
+            The master switch must be <strong>on</strong> for any parent to see live video.
+          </p>
+
+          {psLoading ? (
+            <div style={{ fontSize: 13, color: "#94A3B8" }}>Loading…</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+              {/* Master switch */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#fff", border: "1px solid #F1F1F1", borderRadius: 12 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Enable Parent Live View</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                    Parents can see their child's classroom camera during school hours.
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPs(p => ({ ...p, enabled: p.enabled === "true" ? "false" : "true" }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer", flexShrink: 0,
+                    background: ps.enabled === "true" ? "#F4C400" : "#E2E8F0",
+                    position: "relative", transition: "background 0.2s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3, left: ps.enabled === "true" ? 23 : 3,
+                    width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 0.2s",
+                  }} />
+                </button>
+              </div>
+
+              {/* School hours */}
+              <div style={{ padding: "14px 16px", background: "#fff", border: "1px solid #F1F1F1", borderRadius: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>School Hours Window</div>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, color: "#64748B" }}>
+                    <input type="checkbox"
+                      checked={ps.enforceHours === "true"}
+                      onChange={e => setPs(p => ({ ...p, enforceHours: e.target.checked ? "true" : "false" }))}
+                    />
+                    Enforce time window
+                  </label>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>Opens at</div>
+                    <input type="time" value={ps.schoolOpen}
+                      onChange={e => setPs(p => ({ ...p, schoolOpen: e.target.value }))}
+                      disabled={ps.enforceHours !== "true"}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, opacity: ps.enforceHours !== "true" ? 0.4 : 1 }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>Closes at</div>
+                    <input type="time" value={ps.schoolClose}
+                      onChange={e => setPs(p => ({ ...p, schoolClose: e.target.value }))}
+                      disabled={ps.enforceHours !== "true"}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, opacity: ps.enforceHours !== "true" ? 0.4 : 1 }}
+                    />
+                  </div>
+                </div>
+                {ps.enforceHours !== "true" && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: "#D97706" }}>
+                    ⚠ No time restriction — parents can view any time their child is checked in.
+                  </div>
+                )}
+              </div>
+
+              {/* Save */}
+              <button onClick={savePs} disabled={psSaving} className="btn btn-primary btn-sm" style={{ alignSelf: "flex-start", minWidth: 100 }}>
+                {psSaving ? "Saving…" : "Save Settings"}
+              </button>
+
+              {/* Current status summary */}
+              <div style={{ padding: "10px 14px", background: ps.enabled === "true" ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${ps.enabled === "true" ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 10, fontSize: 12, color: ps.enabled === "true" ? "#166534" : "#64748B" }}>
+                {ps.enabled === "true"
+                  ? `✓ Parent live view is ON — available ${ps.enforceHours === "true" ? `${ps.schoolOpen}–${ps.schoolClose} (${ps.timezone})` : "any time (no hour restriction)"}`
+                  : "Parent live view is OFF — parents will see an error when they open the Live tab."}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Audit Logs ───────────────────────────────────────────────── */}
+      {tab === "Audit Logs" && (
+        <div>
+          {/* Filters */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20, alignItems: "flex-end" }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>Date</div>
+              <input type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)}
+                style={{ padding: "7px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>Role</div>
+              <select value={auditRole} onChange={e => setAuditRole(e.target.value)}
+                style={{ padding: "7px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, background: "#fff" }}>
+                <option value="">All roles</option>
+                <option value="parent">Parent</option>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>Event</div>
+              <select value={auditEvent} onChange={e => setAuditEvent(e.target.value)}
+                style={{ padding: "7px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, background: "#fff" }}>
+                <option value="">All events</option>
+                <option value="LIVE_VIEW_STARTED">Started</option>
+                <option value="LIVE_VIEW_STOPPED">Stopped</option>
+                <option value="LIVE_VIEW_DENIED">Denied</option>
+              </select>
+            </div>
+            <button onClick={() => loadAuditLogs(auditDate, auditRole, auditEvent)}
+              disabled={auditLoading}
+              className="btn btn-primary btn-sm" style={{ alignSelf: "flex-end" }}>
+              {auditLoading ? "Loading…" : "Search"}
+            </button>
+          </div>
+
+          {/* Table */}
+          {auditLoading ? (
+            <div style={{ fontSize: 13, color: "#94A3B8", padding: "20px 0" }}>Loading…</div>
+          ) : auditLogs.length === 0 ? (
+            <div style={{ fontSize: 13, color: "#94A3B8", padding: "20px 0" }}>No audit records found for the selected filters.</div>
+          ) : (
+            <div style={{ overflowX: "auto", borderRadius: 12, border: "1px solid #E2E8F0" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                    {["Time", "User", "Role", "Camera", "Classroom", "Center", "Event", "Duration", "IP"].map(h => (
+                      <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#475569", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map((log, i) => (
+                    <tr key={log.id || i} style={{ borderBottom: "1px solid #F1F5F9", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                      <td style={{ padding: "9px 12px", whiteSpace: "nowrap", color: "#374151" }}>
+                        {log.ts ? new Date(log.ts).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
+                      </td>
+                      <td style={{ padding: "9px 12px", maxWidth: 160 }}>
+                        <div style={{ fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {log.userName || log.userId || "—"}
+                        </div>
+                        {log.userEmail && (
+                          <div style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.userEmail}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "9px 12px" }}>
+                        <span style={{
+                          display: "inline-block", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          background: log.role === "parent" ? "#EFF6FF" : log.role === "super_admin" ? "#FEF9C3" : "#F0FDF4",
+                          color:      log.role === "parent" ? "#1D4ED8" : log.role === "super_admin" ? "#854D0E"  : "#15803D",
+                        }}>{log.role || "—"}</span>
+                      </td>
+                      <td style={{ padding: "9px 12px", whiteSpace: "nowrap", color: "#374151" }}>
+                        <div>{log.cameraName || "—"}</div>
+                        {log.cameraId && log.cameraId !== log.cameraName && (
+                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{log.cameraId}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "9px 12px", color: "#374151" }}>{log.classroom || "—"}</td>
+                      <td style={{ padding: "9px 12px", color: "#374151" }}>{log.centerId || "—"}</td>
+                      <td style={{ padding: "9px 12px" }}>
+                        <span style={{
+                          display: "inline-block", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          background: log.event === "LIVE_VIEW_STARTED" ? "#F0FDF4" : log.event === "LIVE_VIEW_DENIED" ? "#FEF2F2" : "#F8FAFC",
+                          color:      log.event === "LIVE_VIEW_STARTED" ? "#15803D" : log.event === "LIVE_VIEW_DENIED" ? "#DC2626"  : "#64748B",
+                        }}>
+                          {log.event === "LIVE_VIEW_STARTED" ? "Started" : log.event === "LIVE_VIEW_STOPPED" ? "Stopped" : log.event === "LIVE_VIEW_DENIED" ? "Denied" : log.event}
+                        </span>
+                      </td>
+                      <td style={{ padding: "9px 12px", whiteSpace: "nowrap", color: "#374151" }}>
+                        {log.durationSec != null
+                          ? log.durationSec >= 60
+                            ? `${Math.floor(log.durationSec / 60)}m ${log.durationSec % 60}s`
+                            : `${log.durationSec}s`
+                          : "—"}
+                      </td>
+                      <td style={{ padding: "9px 12px", color: "#94A3B8", fontSize: 11, fontFamily: "monospace" }}>{log.ip || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ padding: "10px 14px", fontSize: 12, color: "#94A3B8", borderTop: "1px solid #F1F5F9" }}>
+                {auditLogs.length} record{auditLogs.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Add/Edit modal ────────────────────────────────────────────── */}
       {modalOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}
@@ -638,7 +911,7 @@ export default function CCTV() {
                         </div>
                       ) : (
                         <div style={{ fontSize: 12, color: "#B45309", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 9, padding: "9px 10px" }}>
-                          No auto-template for “{form.brand}”. Enable “Use Custom RTSP URL” to enter the URL manually.
+                          No auto-template for "{form.brand}". Enable "Use Custom RTSP URL" to enter the URL manually.
                         </div>
                       )}
                       <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 5 }}>
