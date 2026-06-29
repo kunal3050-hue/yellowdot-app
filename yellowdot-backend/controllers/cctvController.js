@@ -62,7 +62,11 @@ async function getCameras(req, res) {
     cameras = resolver.filterViewableCameras(user, cameras);
 
     if (classroom && classroom !== "All") {
-      cameras = cameras.filter(c => c.classroom === classroom);
+      cameras = cameras.filter(c =>
+        (c.classrooms || (c.classroom ? [c.classroom] : []))
+          .map(x => (x || "").toLowerCase())
+          .includes(classroom.toLowerCase())
+      );
     }
     res.json(cameras.map(mask));
   } catch (e) {
@@ -118,6 +122,7 @@ async function addCamera(req, res) {
         channel:    String(pick(body, "channel", "channel") || "1"),
         streamType: pick(body, "streamType", "stream_type") || "RTSP",
         status:     pick(body, "status",     "status")     || "Active",
+        viewingSchedule: body.viewingSchedule || null,
       },
       { schoolId, centerId, actorUserId }
     );
@@ -157,6 +162,7 @@ async function updateCamera(req, res) {
     set("streamType",  "stream_type");
     set("status",      "status");
     if (Array.isArray(body.classrooms)) updates.classrooms = body.classrooms;
+    if (body.viewingSchedule !== undefined) updates.viewingSchedule = body.viewingSchedule;
     // Only overwrite the password when a non-empty value is supplied.
     if (body.password && body.password.trim() && body.password !== "••••••••") {
       updates.password = body.password.trim();
@@ -430,6 +436,24 @@ async function parentLiveToken(req, res) {
                 : decision.reason === "child-checked-out" ? "Your child has checked out for today."
                 : "Live view is not available for your child right now.";
       return res.status(403).json({ success: false, error: msg, reason: decision.reason });
+    }
+
+    // Per-camera viewing schedule (overrides global school-hours if tighter)
+    if (cam.viewingSchedule?.enabled) {
+      const sched = cam.viewingSchedule;
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
+      if (!Array.isArray(sched.activeDays) || !sched.activeDays.includes(dayOfWeek)) {
+        await auditDeny("outside-hours", linkedId);
+        return res.status(403).json({ success: false, error: "Live view is not available today.", reason: "outside-hours" });
+      }
+      const [sh, sm] = (sched.startTime || "00:00").split(":").map(Number);
+      const [eh, em] = (sched.endTime   || "23:59").split(":").map(Number);
+      const nowMins  = now.getHours() * 60 + now.getMinutes();
+      if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em) {
+        await auditDeny("outside-hours", linkedId);
+        return res.status(403).json({ success: false, error: "Live view is not available at this time.", reason: "outside-hours" });
+      }
     }
 
     const engine = process.env.CCTV_STREAM_ENGINE_URL;

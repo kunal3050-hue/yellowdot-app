@@ -87,6 +87,7 @@ function docToCamera(snap) {
     camera_name: d.cameraName || "",
     stream_url:  d.streamUrl  || "",
     stream_type: d.streamType || "RTSP",
+    viewingSchedule: d.viewingSchedule || null,
   };
   // Derived, credential-free stream paths (main = verification, sub = live).
   // Computed on read so they always reflect current ip/port/channel/brand.
@@ -186,6 +187,7 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     updatedAt:  nowISO(),
     createdBy:  actorUserId,
     updatedBy:  actorUserId,
+    viewingSchedule: data.viewingSchedule || null,
   };
   await col().doc(cameraId).set(doc);
   return docToCamera({ id: cameraId, data: () => doc });
@@ -236,6 +238,8 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     updates.classroom  = data.classroom;
     updates.classrooms = data.classroom ? [data.classroom] : [];
   }
+
+  if (data.viewingSchedule !== undefined) updates.viewingSchedule = data.viewingSchedule;
 
   await ref.update(updates);
   return docToCamera(await ref.get());

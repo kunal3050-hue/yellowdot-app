@@ -67,10 +67,12 @@ function buildRtspPreview(form) {
 }
 
 const emptyForm = () => ({
-  cameraCode: "", cameraName: "", classroom: "", brand: "Hikvision",
+  cameraCode: "", cameraName: "", classrooms: [], brand: "Hikvision",
   ip: "", port: "554", username: "", password: "", hasStoredPassword: false, channel: "1",
   customRtsp: false, streamUrl: "",
   streamType: "RTSP", status: "Active",
+  scheduleEnabled: false, scheduleStart: "08:00", scheduleEnd: "17:00",
+  scheduleDays: [1, 2, 3, 4, 5],
 });
 
 // ── Tiny toast ──────────────────────────────────────────────────────
@@ -205,16 +207,22 @@ export default function CCTV() {
     // one, treat it as builder-mode; otherwise it's a custom URL.
     const generated = buildRtsp({ brand, ip, port, channel: cam.channel || "1" });
     const isCustom  = !generated || (cam.streamUrl && cam.streamUrl !== generated);
+    const sched = cam.viewingSchedule || {};
     setForm({
-      cameraCode: cam.cameraCode || "", cameraName: cam.cameraName, classroom: cam.classroom,
+      cameraCode: cam.cameraCode || "", cameraName: cam.cameraName,
+      classrooms: cam.classrooms || (cam.classroom ? [cam.classroom] : []),
       brand, ip, port,
       username: cam.username || "", password: "",
-      hasStoredPassword: !!cam.password,   // API returns masked "••••••••" when set
+      hasStoredPassword: !!cam.password,
       channel: cam.channel || "1",
       customRtsp: !!isCustom,
       streamUrl: cam.streamUrl || "",
       streamType: cam.streamType || "RTSP",
       status: cam.status || "Active",
+      scheduleEnabled: !!sched.enabled,
+      scheduleStart: sched.startTime || "08:00",
+      scheduleEnd: sched.endTime || "17:00",
+      scheduleDays: sched.activeDays || [1, 2, 3, 4, 5],
     });
     setModalOpen(true);
   };
@@ -223,8 +231,8 @@ export default function CCTV() {
   const resolvedUrl = (f) => (f.customRtsp ? f.streamUrl.trim() : buildRtsp(f));
 
   const save = async () => {
-    if (!form.cameraName.trim()) return show("error", "Camera name is required.");
-    if (!form.classroom)         return show("error", "Please map the camera to a classroom.");
+    if (!form.cameraName.trim())  return show("error", "Camera name is required.");
+    if (!form.classrooms.length)  return show("error", "Please assign at least one classroom.");
 
     const url = resolvedUrl(form);
     if (!url) {
@@ -234,11 +242,15 @@ export default function CCTV() {
     }
 
     const payload = {
-      cameraCode: form.cameraCode, cameraName: form.cameraName, classroom: form.classroom,
+      cameraCode: form.cameraCode, cameraName: form.cameraName,
+      classrooms: form.classrooms, classroom: form.classrooms[0] || "",
       brand: form.brand, ip: form.ip, port: form.port, channel: form.channel,
       username: form.username, password: form.password,
       streamType: form.streamType, status: form.status,
       streamUrl: url,
+      viewingSchedule: form.scheduleEnabled
+        ? { enabled: true, startTime: form.scheduleStart, endTime: form.scheduleEnd, activeDays: form.scheduleDays }
+        : { enabled: false },
     };
 
     setSaving(true);
@@ -362,12 +374,8 @@ export default function CCTV() {
     }
   };
 
-  // ── Derived: cameras grouped by classroom ──────────────────────────
-  const byClassroom = CLASSES.map(c => ({
-    classroom: c,
-    cams: cameras.filter(cam => cam.classroom === c),
-  })).filter(g => g.cams.length > 0);
-  const unmapped = cameras.filter(cam => !CLASSES.includes(cam.classroom));
+  // ── Derived: cameras with no classroom assignment ──────────────────
+  const unmapped = cameras.filter(cam => !(cam.classrooms || []).length && !cam.classroom);
 
   return (
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: "4px 0" }}>
@@ -425,7 +433,7 @@ export default function CCTV() {
                       {cam.cameraName}{cam.cameraCode ? <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8" }}> · {cam.cameraCode}</span> : null}
                     </div>
                     <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-                      {cam.classroom || "Unmapped"} · Cam {cam.channel} · {cam.brand}
+                      {(cam.classrooms || (cam.classroom ? [cam.classroom] : [])).filter(Boolean).join(", ") || "Unmapped"} · Cam {cam.channel} · {cam.brand}
                     </div>
                   </div>
                   <span style={{
@@ -451,42 +459,51 @@ export default function CCTV() {
 
       {/* ── Classroom Mapping ─────────────────────────────────────────── */}
       {tab === "Classroom Mapping" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {byClassroom.length === 0 && unmapped.length === 0 && (
+        <div>
+          {cameras.length === 0 && (
             <div style={{ color: "#94A3B8", fontSize: 13 }}>No cameras to map yet.</div>
           )}
-          {byClassroom.map(g => (
-            <div key={g.classroom}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748B", marginBottom: 8 }}>
-                {g.classroom} · {g.cams.length}
+          {cameras.length > 0 && (
+            <div style={{ background: "#fff", border: "1px solid #F1F1F1", borderRadius: 14, overflow: "hidden" }}>
+              {/* Header row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 2fr 1.4fr 70px 1fr", gap: 0, padding: "10px 16px", background: "#F8FAFC", borderBottom: "1px solid #F1F1F1", fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <span>Camera</span><span>Classrooms</span><span>Schedule</span><span>Status</span><span>Actions</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 8 }}>
-                {g.cams.map(cam => (
-                  <div key={cam.cameraId} style={{ background: "#fff", border: "1px solid #F1F1F1", borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cam.cameraName}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>Cam {cam.channel} · {cam.brand}</div>
+              {cameras.map((cam, i) => {
+                const cls = cam.classrooms || (cam.classroom ? [cam.classroom] : []);
+                const sched = cam.viewingSchedule;
+                const DAY = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+                const schedLabel = sched?.enabled
+                  ? `${sched.startTime}–${sched.endTime} · ${(sched.activeDays || []).map(d => DAY[d]).join(" ")}`
+                  : "—";
+                return (
+                  <div key={cam.cameraId} style={{
+                    display: "grid", gridTemplateColumns: "1.4fr 2fr 1.4fr 70px 1fr",
+                    gap: 0, padding: "12px 16px", alignItems: "center",
+                    borderBottom: i < cameras.length - 1 ? "1px solid #F8FAFC" : "none",
+                    background: unmapped.includes(cam) ? "#FFFBEB" : "transparent",
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cam.cameraName}</div>
+                      {cam.cameraCode && <div style={{ fontSize: 11, color: "#94A3B8" }}>{cam.cameraCode}</div>}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {cls.length > 0 ? cls.map(c => (
+                        <span key={c} style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "#EFF6FF", color: "#1D4ED8" }}>{c}</span>
+                      )) : (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706" }}>Unmapped</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{schedLabel}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, width: "fit-content", background: cam.status === "Active" ? "#F0FDF4" : "#F1F5F9", color: cam.status === "Active" ? "#16A34A" : "#64748B" }}>{cam.status}</span>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {canAssign && <button onClick={() => openEdit(cam)} className="btn btn-ghost btn-sm">Edit</button>}
+                      {canAssign && <button onClick={() => { setTab("Camera Verification"); runVerify(cam.cameraId); }} className="btn btn-ghost btn-sm">Verify</button>}
+                      {canConfigure && <button onClick={() => del(cam)} className="btn btn-ghost btn-sm" style={{ color: "#DC2626" }}>Delete</button>}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          {unmapped.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#D97706", marginBottom: 8 }}>
-                Unmapped · {unmapped.length}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 8 }}>
-                {unmapped.map(cam => (
-                  <div key={cam.cameraId} style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cam.cameraName}</div>
-                    {canAssign && (
-                      <button onClick={() => openEdit(cam)} style={{ fontSize: 11, color: "#B45309", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}>
-                        Assign classroom →
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -861,19 +878,27 @@ export default function CCTV() {
                   <Inp value={form.cameraCode} onChange={v => setForm({ ...form, cameraCode: v })} placeholder="CAM-01 (unique per center)" />
                 </Fld>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Fld label="Classroom *">
-                  <select value={form.classroom} onChange={e => setForm({ ...form, classroom: e.target.value })} style={selStyle}>
-                    <option value="">Select…</option>
-                    {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </Fld>
-                <Fld label="Brand">
-                  <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} style={selStyle}>
-                    {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </Fld>
-              </div>
+              <Fld label="Classrooms *">
+                <div style={{ border: "1px solid #E2E8F0", borderRadius: 9, padding: "10px 12px", display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
+                  {CLASSES.map(c => (
+                    <label key={c} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12 }}>
+                      <input type="checkbox"
+                        checked={form.classrooms.includes(c)}
+                        onChange={e => setForm(f => ({
+                          ...f,
+                          classrooms: e.target.checked ? [...f.classrooms, c] : f.classrooms.filter(x => x !== c),
+                        }))}
+                      />
+                      {c}
+                    </label>
+                  ))}
+                </div>
+              </Fld>
+              <Fld label="Brand">
+                <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} style={selStyle}>
+                  {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </Fld>
               {/* ── Connection ─────────────────────────────────────────── */}
               <div style={{ borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -938,6 +963,48 @@ export default function CCTV() {
                     <option>Active</option><option>Inactive</option>
                   </select>
                 </Fld>
+              </div>
+
+              {/* ── Viewing Schedule ────────────────────────────────────── */}
+              <div style={{ borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: form.scheduleEnabled ? 12 : 0 }}>
+                  <input type="checkbox" checked={form.scheduleEnabled}
+                    onChange={e => setForm(f => ({ ...f, scheduleEnabled: e.target.checked }))} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#0F172A" }}>Custom viewing schedule</span>
+                  <span style={{ fontSize: 11, color: "#94A3B8" }}>(overrides global school-hours for this camera)</span>
+                </label>
+                {form.scheduleEnabled && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <Fld label="Opens">
+                        <input type="time" value={form.scheduleStart}
+                          onChange={e => setForm(f => ({ ...f, scheduleStart: e.target.value }))}
+                          style={{ width: "100%", padding: "9px 10px", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 13, boxSizing: "border-box" }} />
+                      </Fld>
+                      <Fld label="Closes">
+                        <input type="time" value={form.scheduleEnd}
+                          onChange={e => setForm(f => ({ ...f, scheduleEnd: e.target.value }))}
+                          style={{ width: "100%", padding: "9px 10px", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 13, boxSizing: "border-box" }} />
+                      </Fld>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px" }}>
+                      {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                        <label key={d} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12 }}>
+                          <input type="checkbox"
+                            checked={form.scheduleDays.includes(i)}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              scheduleDays: e.target.checked
+                                ? [...f.scheduleDays, i].sort((a, b) => a - b)
+                                : f.scheduleDays.filter(x => x !== i),
+                            }))}
+                          />
+                          {d}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
