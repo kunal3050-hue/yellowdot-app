@@ -64,6 +64,7 @@ export const ROUTES = {
   ACADEMICS_STUDENT_ALLOCATION:  "academics-student-allocation",
   FAMILIES:                      "families",
   CHILD_JOURNEY:                 "child-journey",
+  TENANT_MANAGEMENT:             "tenant-management",
 };
 
 // ── Permission map: role → array of allowed routeKeys ─────────────────────────
@@ -150,8 +151,8 @@ export const ROLE_PERMISSIONS = {
 
 // ── Home route after login ─────────────────────────────────────────────────────
 export const ROLE_HOME = {
-  developer:    "/",
-  super_admin:  "/",
+  developer:    "/super-admin/tenants",
+  super_admin:  "/super-admin/tenants",
   admin:        "/",
   center_admin: "/",
   center_owner: "/",

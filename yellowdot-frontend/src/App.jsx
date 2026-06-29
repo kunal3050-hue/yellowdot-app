@@ -64,8 +64,6 @@ const AcademicsTeacherAllocation  = lazy(() => import("./pages/academics/Academi
 const AcademicsClassroomAllocation= lazy(() => import("./pages/academics/AcademicsClassroomAllocation"));
 const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/AcademicsStudentAllocation"));
 
-const Families            = lazy(() => import("./pages/Families"));
-const FamilyProfile       = lazy(() => import("./pages/FamilyProfile"));
 
 const ChildJourney        = lazy(() => import("./pages/ChildJourney"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
@@ -78,6 +76,14 @@ const Announcements       = lazy(() => import("./pages/Announcements"));
 const Events              = lazy(() => import("./pages/Events"));
 const PTM                 = lazy(() => import("./pages/PTM"));
 const Incidents           = lazy(() => import("./pages/Incidents"));
+
+// ── Super Admin pages ───────────────────────────────────────────────────────
+const TenantList          = lazy(() => import("./pages/superadmin/TenantList"));
+const TenantCreate        = lazy(() => import("./pages/superadmin/TenantCreate"));
+const TenantDetail        = lazy(() => import("./pages/superadmin/TenantDetail"));
+const PlatformAnalytics   = lazy(() => import("./pages/superadmin/PlatformAnalytics"));
+const AuditLogs           = lazy(() => import("./pages/superadmin/AuditLogs"));
+const ImpersonateLogin    = lazy(() => import("./pages/superadmin/ImpersonateLogin"));
 
 function App() {
   return (
@@ -208,23 +214,6 @@ function App() {
               }
             />
 
-            {/* ── Families ─────────────────────────────────────────────────── */}
-            <Route
-              path="/families"
-              element={
-                <ProtectedRoute routeKey="families">
-                  <Families />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/family/:familyId"
-              element={
-                <ProtectedRoute routeKey="families">
-                  <FamilyProfile />
-                </ProtectedRoute>
-              }
-            />
 
             {/* ── Child Journey ────────────────────────────────────────────── */}
             <Route
@@ -561,6 +550,51 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* ── Super Admin ───────────────────────────────────────────────── */}
+            <Route
+              path="/super-admin/tenants"
+              element={
+                <ProtectedRoute routeKey="tenant-management">
+                  <MainLayout><TenantList /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/tenants/new"
+              element={
+                <ProtectedRoute routeKey="tenant-management">
+                  <MainLayout><TenantCreate /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/tenants/:tenantId"
+              element={
+                <ProtectedRoute routeKey="tenant-management">
+                  <MainLayout><TenantDetail /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/analytics"
+              element={
+                <ProtectedRoute routeKey="tenant-management">
+                  <MainLayout><PlatformAnalytics /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/audit"
+              element={
+                <ProtectedRoute routeKey="tenant-management">
+                  <MainLayout><AuditLogs /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Public impersonation landing — exchanges custom token */}
+            <Route path="/impersonate" element={<ImpersonateLogin />} />
 
           </Routes>
         </Suspense>

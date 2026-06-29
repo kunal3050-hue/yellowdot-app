@@ -61,6 +61,10 @@ service cloud.firestore {
 
     // ── Role predicates ─────────────────────────────────────────────────
 
+    function isSuperAdmin() {
+      return myRole() in ['developer', 'super_admin'];
+    }
+
     function isAdmin() {
       return myRole() in ['developer', 'super_admin', 'admin'];
     }
@@ -110,6 +114,23 @@ service cloud.firestore {
 
     function myLinkedStudentIds() {
       return isParentAccount() ? myParent().studentIds : [];
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // TENANTS — platform-level school registry
+    // Only super_admin / developer may read or write.
+    // All writes go through the backend (Admin SDK) but these rules
+    // prevent direct client-side access.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /tenants/{tenantId} {
+      allow read:  if isSignedIn() && isSuperAdmin();
+      allow write: if isSignedIn() && isSuperAdmin();
+    }
+
+    match /tenantAuditLogs/{logId} {
+      allow read:  if isSignedIn() && isSuperAdmin();
+      allow write: if false; // backend-only writes
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -513,6 +534,74 @@ service cloud.firestore {
 
       // Only the backend (Admin SDK) creates or deletes notifications.
       allow create, delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // FAMILIES  (Sibling & Family Management)
+    // Staff read/write; parents have no direct client access (backend only).
+    // ════════════════════════════════════════════════════════════════════
+
+    match /families/{familyId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      // ── Notes subcollection ──────────────────────────────────────
+      match /notes/{noteId} {
+        allow read:   if isSignedIn() && isStaff();
+        allow create: if isSignedIn() && isTeacherOrAbove() && isActive();
+        allow delete: if isSignedIn() && isCenterAdmin() && isActive();
+        allow update: if false;
+      }
+
+      // ── Documents subcollection ──────────────────────────────────
+      match /documents/{docId} {
+        allow read:          if isSignedIn() && isStaff();
+        allow create, delete:if isSignedIn() && isCenterAdmin() && isActive();
+        allow update:        if false;
+      }
+
+      // ── Timeline subcollection (backend-only writes) ─────────────
+      match /timeline/{eventId} {
+        allow read:  if isSignedIn() && isStaff();
+        allow write: if false;
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // RELEASE MODULES  (Staged Release Dashboard — module status registry)
+    // Written exclusively by the backend (Admin SDK).
+    // Only developer / super_admin may read from the client.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /releaseModules/{docId} {
+      allow read: if isSignedIn() && isAdmin() &&
+        sameSchool(resource.data.schoolId);
+
+      // All mutations go through the backend (Admin SDK); block direct client writes.
+      allow write: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // RELEASE AUDITS  (Immutable event log for every promote / rollback)
+    // Written exclusively by the backend (Admin SDK).
+    // Developer / super_admin may read; no client writes ever.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /releaseAudits/{auditId} {
+      allow read: if isSignedIn() && isAdmin() &&
+        sameSchool(resource.data.schoolId);
+
+      // Audit log is immutable from the client — backend-only writes.
+      allow write: if false;
     }
 
     // ════════════════════════════════════════════════════════════════════

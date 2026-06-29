@@ -82,6 +82,8 @@ const careRoutes             = require("./routes/careRoutes");
 const academicsRoutes        = require("./routes/academicsRoutes");
 const familyRoutes           = require("./routes/familyRoutes");
 const journeyRoutes          = require("./routes/journeyRoutes");
+const releaseRoutes          = require("./routes/releaseRoutes");
+const tenantRoutes           = require("./routes/tenantRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -95,8 +97,20 @@ const notif             = require("./services/notificationService");
 
 // ── Auth middleware ────────────────────────────────────────────────
 const { authenticate, authorize, blockUnknown, staffOnly } = require("./middleware/authMiddleware");
+const { enforceTenant } = require("./middleware/tenantMiddleware");
 
 // ── Mount route modules ────────────────────────────────────────────
+// Tenant management (super_admin only — no tenant enforcement needed here)
+app.use(tenantRoutes);
+
+// Tenant status gate — runs on all /api/* requests that carry a resolved user.
+// Auth routes skip this automatically because req.user is not set at that point.
+// super_admin / developer bypass enforcement inside enforceTenant.
+app.use("/api", (req, res, next) => {
+  if (!req.user) return next(); // not yet authenticated — individual routes handle auth
+  return enforceTenant(req, res, next);
+});
+
 app.use(authRoutes);           // /api/auth/me, /api/auth/logout, etc.  (has own auth)
 app.use(userRoutes);           // /api/users  (full auth + RBAC inside)
 app.use(napRoutes);
@@ -118,6 +132,7 @@ app.use(ptmRoutes);            // /api/ptm/*       (PTM — staff CRUD + slot ma
 app.use(incidentRoutes);       // /api/incidents/* (Incident Reports — staff CRUD)
 app.use(familyRoutes);         // /api/families/*  (Family & Sibling Management)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
+app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
 app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
 
 // ============================================================

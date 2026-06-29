@@ -90,14 +90,7 @@ export const SIDEBAR_GROUPS = [
         icon:       "Users",
         matchPaths: ["/add-student", "/edit-student", "/student-profile"],
       },
-      {
-        id:         "families",
-        label:      "Families",
-        path:       "/families",
-        routeKey:   ROUTES.FAMILIES,
-        icon:       "Heart",
-        matchPaths: ["/family/"],
-      },
+
       {
         id:         "staff",
         label:      "Staff",
@@ -358,6 +351,40 @@ export const SIDEBAR_GROUPS = [
         routeKey:   ROUTES.SETTINGS,
         icon:       "Settings",
         matchPaths: ["/settings/"],
+      },
+    ],
+  },
+
+  // ── Super Admin ────────────────────────────────────────────────────────────
+  // Only rendered when role === super_admin or developer.
+  {
+    id:          "super_admin",
+    label:       "Super Admin",
+    collapsible: true,
+    defaultOpen: true,
+    superAdminOnly: true,  // handled in Sidebar.jsx same as devOnly
+    items: [
+      {
+        id:       "tenant_management",
+        label:    "Preschools",
+        path:     "/super-admin/tenants",
+        routeKey: ROUTES.TENANT_MANAGEMENT,
+        icon:     "Building2",
+        matchPaths: ["/super-admin/tenants/"],
+      },
+      {
+        id:       "tenant_analytics",
+        label:    "Platform Analytics",
+        path:     "/super-admin/analytics",
+        routeKey: ROUTES.TENANT_MANAGEMENT,
+        icon:     "BarChart2",
+      },
+      {
+        id:       "tenant_audit",
+        label:    "Audit Logs",
+        path:     "/super-admin/audit",
+        routeKey: ROUTES.TENANT_MANAGEMENT,
+        icon:     "ScrollText",
       },
     ],
   },
