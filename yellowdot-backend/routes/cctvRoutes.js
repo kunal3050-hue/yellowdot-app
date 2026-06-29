@@ -55,7 +55,7 @@ router.get("/api/cctv/audit-logs", authorize("super_admin", "developer"), getAud
 
 // Parent CCTV settings — admin manages (read + write).
 router.get("/api/cctv/parent/settings", getParentSettings);
-router.put("/api/cctv/parent/settings", authorize(...MANAGE_ROLES), updateParentSettings);
+router.put("/api/cctv/parent/settings", authorize(...CONFIGURE_ROLES), updateParentSettings);
 
 // Read (CCTV_VIEW) — admin-scoped inside the controller.
 router.get("/api/cctv/cameras",     getCameras);
