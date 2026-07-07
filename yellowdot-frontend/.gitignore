@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Generated at build time by scripts/genBuildInfo.cjs — regenerated per build,
+# not meant to be committed (mirrors yellowdot-backend/.gitignore's handling
+# of its own build-info.json).
+public/build-info.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

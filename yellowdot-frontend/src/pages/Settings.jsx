@@ -1228,13 +1228,22 @@ function GateConfigSection() {
 // ══════════════════════════════════════════════════════════════════
 
 function ReleaseSection() {
-  const [buildInfo, setBuildInfo] = useState(null);
+  const [backendBuildInfo, setBackendBuildInfo] = useState(null);
+  const [frontendBuildInfo, setFrontendBuildInfo] = useState(null);
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/version`)
       .then((r) => r.json())
-      .then(setBuildInfo)
-      .catch(() => setBuildInfo({ error: true }));
+      .then(setBackendBuildInfo)
+      .catch(() => setBackendBuildInfo({ error: true }));
+
+    // Generated at build time by scripts/genBuildInfo.cjs, served as a
+    // static file at the frontend's own origin (dist root) — reports this
+    // build's own commit/branch, not the backend's.
+    fetch("/build-info.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setFrontendBuildInfo)
+      .catch(() => setFrontendBuildInfo({ error: true }));
   }, []);
 
   // Use explicit scope groups so the display is correct regardless of env
@@ -1272,23 +1281,29 @@ function ReleaseSection() {
           {[
             { label: "App Name",    value: APP_NAME },
             { label: "Environment", value: currentEnvMeta.label },
-            { label: "Frontend Version", value: `v${APP_VERSION}` },
-            buildInfo && !buildInfo.error && { label: "Backend Version", value: `v${buildInfo.version}` },
-            buildInfo && !buildInfo.error && { label: "Commit",          value: buildInfo.commitShort || "—" },
-            buildInfo && !buildInfo.error && { label: "Branch",          value: buildInfo.branch || "—" },
-            buildInfo && !buildInfo.error && { label: "Built At",        value: buildInfo.buildTimestamp && buildInfo.buildTimestamp !== "unknown" ? new Date(buildInfo.buildTimestamp).toLocaleDateString() : "—" },
-            buildInfo && !buildInfo.error && { label: "Server Uptime",   value: buildInfo.uptime || "—" },
+            { label: "Frontend Version",   value: `v${APP_VERSION}` },
+            frontendBuildInfo && !frontendBuildInfo.error && { label: "Frontend Commit",  value: frontendBuildInfo.commitShort || "—" },
+            frontendBuildInfo && !frontendBuildInfo.error && { label: "Frontend Branch",  value: frontendBuildInfo.branch || "—" },
+            frontendBuildInfo && !frontendBuildInfo.error && { label: "Frontend Built At", value: frontendBuildInfo.builtAt ? new Date(frontendBuildInfo.builtAt).toLocaleString() : "—" },
+            backendBuildInfo && !backendBuildInfo.error && { label: "Backend Version", value: `v${backendBuildInfo.version}` },
+            backendBuildInfo && !backendBuildInfo.error && { label: "Backend Commit",  value: backendBuildInfo.commitShort || "—" },
+            backendBuildInfo && !backendBuildInfo.error && { label: "Backend Branch",  value: backendBuildInfo.branch || "—" },
+            backendBuildInfo && !backendBuildInfo.error && { label: "Backend Built At", value: backendBuildInfo.buildTimestamp && backendBuildInfo.buildTimestamp !== "unknown" ? new Date(backendBuildInfo.buildTimestamp).toLocaleString() : "—" },
+            backendBuildInfo && !backendBuildInfo.error && { label: "Server Uptime",   value: backendBuildInfo.uptime || "—" },
           ].filter(Boolean).map(({ label, value }) => (
             <div key={label} style={{ background: "var(--yd-surface)", borderRadius: 8, padding: "8px 12px" }}>
               <div style={{ fontSize: 10, color: "var(--yd-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>{label}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--yd-text)", fontFamily: "monospace" }}>{value}</div>
             </div>
           ))}
-          {buildInfo === null && (
-            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Fetching build info…</div>
+          {frontendBuildInfo?.error && (
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Frontend build-info.json not found — this build predates the traceability change, or wasn't built via npm run build:production/staging.</div>
           )}
-          {buildInfo?.error && (
-            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Backend unreachable — build info unavailable.</div>
+          {backendBuildInfo === null && (
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Fetching backend build info…</div>
+          )}
+          {backendBuildInfo?.error && (
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", gridColumn: "1 / -1" }}>Backend unreachable — backend build info unavailable.</div>
           )}
         </div>
       </Card>

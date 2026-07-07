@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:staging": "vite build --mode staging",
-    "build:production": "vite build --mode production",
+    "build": "node scripts/genBuildInfo.cjs && vite build",
+    "build:info": "node scripts/genBuildInfo.cjs",
+    "build:staging": "node scripts/genBuildInfo.cjs staging && vite build --mode staging",
+    "build:production": "node scripts/genBuildInfo.cjs production && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview"
   },
