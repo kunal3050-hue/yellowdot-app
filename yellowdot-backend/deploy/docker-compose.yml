@@ -17,8 +17,13 @@ services:
     volumes:
       - /opt/yd/firebase-sa.json:/secrets/firebase-sa.json:ro
 
+    # Matches the actual running config verified on the VPS 2026-07-07:
+    # container listens on 8080 (PORT=8080 in /opt/yd/backend.env), Caddy
+    # reverse-proxies api.kueboxs.com -> 127.0.0.1:4000. Bound to loopback
+    # only — previously bound to 0.0.0.0, which made the backend directly
+    # reachable over plain HTTP on :4000, bypassing Caddy/TLS entirely.
     ports:
-      - "127.0.0.1:5000:5000"
+      - "127.0.0.1:4000:8080"
 
     logging:
       driver: json-file
@@ -27,7 +32,7 @@ services:
         max-file: "3"
 
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/version"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/version"]
       interval: 30s
       timeout: 5s
       retries: 3
