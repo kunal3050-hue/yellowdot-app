@@ -201,7 +201,7 @@ function SchoolSection({ data, onSave, saving }) {
       <Card title="Identity" icon="Building">
         <div className="yd-stg-grid">
           <Field label="School Name" span2>
-            <input className="yd-input" value={d.name} onChange={set("name")} placeholder="Yellow Dot Preschool" />
+            <input className="yd-input" value={d.name} onChange={set("name")} placeholder="e.g. Sunshine Preschool" />
           </Field>
           <Field label="Tagline / Motto">
             <input className="yd-input" value={d.tagline} onChange={set("tagline")} placeholder="Where Little Minds Grow" />
@@ -253,8 +253,8 @@ function SchoolSection({ data, onSave, saving }) {
           </div>
         ) : (
           <div className="yd-stg-logo-preview">
-            <div className="yd-stg-logo-placeholder">Y</div>
-            <span className="yd-stg-logo-label">No logo URL set — default Yellow Dot mark will be used.</span>
+            <div className="yd-stg-logo-placeholder">{(d.name || "S").charAt(0)}</div>
+            <span className="yd-stg-logo-label">No logo uploaded — a generic placeholder mark will be used.</span>
           </div>
         )}
       </Card>
@@ -859,7 +859,7 @@ function PermissionsSection({ isBypass }) {
 // ══════════════════════════════════════════════════════════════════
 
 const ACCENT_COLORS = [
-  { hex: "#F4C400", label: "Yellow Dot (default)" },
+  { hex: "#F4C400", label: "Default Yellow" },
   { hex: "#F97316", label: "Warm Orange" },
   { hex: "#22C55E", label: "Success Green" },
   { hex: "#3B82F6", label: "Blue" },
@@ -923,7 +923,7 @@ function BrandingSection({ data, onSave, saving }) {
       <Card title="Report Text" icon="Settings">
         <div className="yd-stg-grid yd-stg-grid-1">
           <Field label="Report Header" hint="Appears at the top of PDF reports and invoices">
-            <input className="yd-input" value={d.reportHeader} onChange={set("reportHeader")} placeholder="Yellow Dot Preschool" />
+            <input className="yd-input" value={d.reportHeader} onChange={set("reportHeader")} placeholder="e.g. Sunshine Preschool" />
           </Field>
           <Field label="School Motto" hint="Displayed below header on formal documents">
             <input className="yd-input" value={d.motto} onChange={set("motto")} placeholder="Where Little Minds Grow" />
@@ -1149,7 +1149,7 @@ function PaymentSection({ data, onSave, saving }) {
             <input className="yd-input" value={d.bankName} onChange={set("bankName")} placeholder="HDFC Bank" />
           </Field>
           <Field label="Account Holder Name">
-            <input className="yd-input" value={d.accountName} onChange={set("accountName")} placeholder="Yellow Dot Education Pvt Ltd" />
+            <input className="yd-input" value={d.accountName} onChange={set("accountName")} placeholder="e.g. Sunshine Preschool Pvt Ltd" />
           </Field>
           <Field label="Account Number" hint="Will appear on invoices with a copy button">
             <input className="yd-input" value={d.accountNumber} onChange={set("accountNumber")} placeholder="0001234567890" />
@@ -1313,12 +1313,12 @@ function ReleaseSection() {
         <div style={{ marginBottom: 8, fontSize: 12, color: "var(--yd-text-muted)" }}>
           Flags control which modules ship in each environment. Flip a flag in
           <code style={{ margin: "0 4px", fontSize: 11, background: "var(--yd-surface)", padding: "1px 5px", borderRadius: 4 }}>src/config/featureFlags.js</code>
-          to promote a module from Yellow Dot → KUE Boxs Care.
+          to promote a module from Yellow Dot (Development) → KUE BOXS Care (Production).
         </div>
 
         {[
-          { group: "Live in production (KUE Boxs Care)", items: enabledInAll, color: "#059669", bg: "#ECFDF5" },
-          { group: "Yellow Dot only — pending promotion", items: stagingOnly,  color: "#D97706", bg: "#FFFBEB" },
+          { group: "KUE BOXS Care (Production)", items: enabledInAll, color: "#059669", bg: "#ECFDF5" },
+          { group: "Yellow Dot (Development) — pending promotion", items: stagingOnly,  color: "#D97706", bg: "#FFFBEB" },
           { group: "Coming soon — not yet built",          items: disabled,     color: "#9CA3AF", bg: "var(--yd-surface)" },
         ].map(({ group, items, color, bg }) => items.length > 0 && (
           <div key={group} style={{ marginBottom: 14 }}>

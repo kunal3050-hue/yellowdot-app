@@ -22,6 +22,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { PLATFORM_NAME } from "../config/environment";
 import { api } from "../services/authService";
 import familyService from "../services/familyService";
 
@@ -403,10 +404,10 @@ export default function NewAdmission() {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base font-black"
                    style={{ background: "var(--yd-yellow)", color: "#1a1a00" }}>
-                YD
+                {PLATFORM_NAME.charAt(0)}
               </div>
               <div>
-                <p className="text-xs font-bold" style={{ color: "var(--yd-text-muted)" }}>Yellow Dot CRM</p>
+                <p className="text-xs font-bold" style={{ color: "var(--yd-text-muted)" }}>{PLATFORM_NAME}</p>
                 <p className="text-sm font-black" style={{ color: "var(--yd-text)" }}>New Admission</p>
               </div>
             </div>

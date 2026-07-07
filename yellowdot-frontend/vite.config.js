@@ -30,9 +30,10 @@ export default defineConfig({
       ],
 
       // ── Web App Manifest ──────────────────────────────────────────────────
+      // Fixed platform brand — same in every environment, not tenant-specific.
       manifest: {
-        name: 'Yellow Dot CRM',
-        short_name: 'Yellow Dot',
+        name: 'KUE BOXS Care',
+        short_name: 'KUE BOXS Care',
         description: 'Childcare Management Platform — Attendance, Meals, Fees & More',
         version: '1.2.0',
         theme_color: '#F4C400',

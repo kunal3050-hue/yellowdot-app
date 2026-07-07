@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { PLATFORM_NAME } from "../config/environment";
 
 const LOGO_SRC = "/icons/pwa-512x512.png";
 
@@ -55,7 +56,7 @@ export default function SplashScreen({ authLoading }) {
 
   return (
     <div
-      aria-label="Loading Yellow Dot"
+      aria-label={`Loading ${PLATFORM_NAME}`}
       role="status"
       style={{
         position:       "fixed",
@@ -77,7 +78,7 @@ export default function SplashScreen({ authLoading }) {
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
       <img
         src={LOGO_SRC}
-        alt="Yellow Dot logo"
+        alt={`${PLATFORM_NAME} logo`}
         draggable={false}
         style={{
           /* 25vw on a 360 dp phone ≈ 90 px; clamp keeps it in 88–130 px range */
@@ -111,7 +112,7 @@ export default function SplashScreen({ authLoading }) {
             lineHeight:    1.15,
           }}
         >
-          Yellow Dot
+          {PLATFORM_NAME}
         </span>
 
         <span

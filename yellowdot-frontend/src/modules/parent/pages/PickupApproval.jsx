@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../../../services/authService";
 import { colors, spacing, radius, shadows, typography } from "../theme";
+import { PLATFORM_NAME } from "../../../config/environment";
 
 // ── WebAuthn — platform authenticator challenge ────────────────────
 //
@@ -41,7 +42,7 @@ async function triggerDeviceAuth(requestId) {
       publicKey: {
         challenge,
         rp: {
-          name: "Yellow Dot Preschool",
+          name: PLATFORM_NAME,
           id:   window.location.hostname,
         },
         user: {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { PLATFORM_NAME } from "../../config/environment";
 
 const MOCK_CENTER_META = {
   "center-1": { students: 48, logo: "🏫", lastActive: "Today" },
@@ -43,7 +44,7 @@ export default function SelectCenter() {
                 <circle cx="14" cy="14" r="6" fill="var(--yd-yellow)" />
               </svg>
             </div>
-            <span style={styles.logoText}>Yellow Dot</span>
+            <span style={styles.logoText}>{PLATFORM_NAME}</span>
           </div>
           <div style={styles.headerText}>
             <h1 style={styles.title}>Choose your center</h1>

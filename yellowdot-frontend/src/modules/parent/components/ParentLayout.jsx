@@ -24,6 +24,7 @@ import { colors, spacing, radius, shadows, typography, layout } from "../theme";
 import { useUnreadCount } from "../hooks/useNotifications";
 import usePushNotifications from "../hooks/usePushNotifications";
 import { ActiveChildProvider, useActiveChild } from "../contexts/ActiveChildContext";
+import { PLATFORM_NAME } from "../../../config/environment";
 
 // ── Design tokens — sourced from the centralized Parent Module theme ──────────
 // No hardcoded colours: everything maps to theme variables so the app reads as
@@ -191,9 +192,9 @@ function ParentLayoutInner({ children }) {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: typography.weight.extra, fontSize: typography.size.sm, color: colors.text.onYellow,
             boxShadow: shadows.primary,
-          }}>Y</div>
+          }}>{PLATFORM_NAME.charAt(0)}</div>
           <span style={{ fontWeight: typography.weight.bold, fontSize: typography.size.sm, color: T.text, letterSpacing: typography.tracking.tight }}>
-            Yellow Dot
+            {PLATFORM_NAME}
           </span>
         </div>
 

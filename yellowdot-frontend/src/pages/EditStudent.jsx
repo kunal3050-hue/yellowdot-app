@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../services/authService";
+import { PLATFORM_NAME } from "../config/environment";
 
 function EditStudent() {
   const navigate = useNavigate();
@@ -199,7 +200,7 @@ function EditStudent() {
 
         <div>
           <h1 className="text-6xl font-black text-yellow-500 leading-none tracking-tight">
-            Yellow Dot
+            {PLATFORM_NAME}
           </h1>
 
           <div className="mt-20 space-y-4">
@@ -230,7 +231,7 @@ function EditStudent() {
 
         <div className="bg-yellow-50 rounded-3xl p-6">
           <p className="text-sm text-gray-500">
-            Yellow Dot CRM
+            {PLATFORM_NAME}
           </p>
 
           <h3 className="text-2xl font-black text-[#0F172A] mt-2">
@@ -249,7 +250,7 @@ function EditStudent() {
 
           <div>
             <p className="text-gray-400 font-medium">
-              Yellow Dot CRM
+              {PLATFORM_NAME}
             </p>
 
             <h1 className="text-5xl font-black text-[#0F172A] mt-2">

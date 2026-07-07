@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { api } from "../services/authService";
+import settingsService from "../services/settingsService";
 
 function GenerateInvoice() {
 
@@ -12,6 +13,7 @@ function GenerateInvoice() {
 
   const [students, setStudents] = useState([]);
   const [invoiceHistory, setInvoiceHistory] = useState([]);
+  const [schoolName, setSchoolName] = useState("");
 
   const [studentName, setStudentName] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -57,6 +59,10 @@ function GenerateInvoice() {
     fetchStudents();
 
     fetchInvoices();
+
+    settingsService.getAll().then(s => {
+      setSchoolName(s?.branding?.reportHeader || s?.school?.name || "");
+    }).catch(() => {});
 
   }, []);
 
@@ -212,7 +218,7 @@ function GenerateInvoice() {
 
     doc.setFontSize(22);
 
-    doc.text("Yellow Dot Preschool & Daycare", 20, 20);
+    doc.text(schoolName, 20, 20);
 
     doc.setFontSize(14);
 
@@ -364,7 +370,7 @@ const saveInvoice = async () => {
                           opacity:0.8;
                           font-size:14px;
                         ">
-                          Successfully added to Yellow Dot CRM
+                          Successfully added to ${schoolName}
                         </div>
                       </div>
 
@@ -477,7 +483,7 @@ const saveInvoice = async () => {
     }
 
     const message = `
-🐣 Yellow Dot Preschool & Daycare
+🐣 ${schoolName}
 
 Hello Parent,
 
@@ -502,7 +508,7 @@ ${durationFrom} to ${durationTo}
 ₹${totalAmount}
 
 Thank you,
-Yellow Dot Preschool & Daycare
+${schoolName}
 `;
 
     const whatsappURL =
@@ -529,7 +535,7 @@ Yellow Dot Preschool & Daycare
           <div>
 
             <p className="text-gray-400 mb-2">
-              Yellow Dot CRM
+              {schoolName}
             </p>
 
             <h1 className="text-6xl font-black text-[#08153D]">

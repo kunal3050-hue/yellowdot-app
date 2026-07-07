@@ -519,7 +519,7 @@ function ActionMenu({
   );
 }
 
-function printInvoice(inv, payments = []) {
+function printInvoice(inv, payments = [], schoolSettings = {}) {
   const w = window.open("", "_blank");
   const paid = payments.filter(p => p.invoiceNumber === inv.invoiceNumber);
   const INR_P = n => `₹${(Number(n) || 0).toLocaleString("en-IN")}`;
@@ -541,7 +541,7 @@ function printInvoice(inv, payments = []) {
     @media print{button{display:none}}
   </style></head><body>
   <div class="header">
-    <div><div class="logo">Yellow Dot</div><div style="font-size:11px;color:#666;margin-top:4px">Premium Preschool CRM</div></div>
+    <div><div class="logo">${schoolSettings.schoolName || "School"}</div><div style="font-size:11px;color:#666;margin-top:4px">Premium Preschool CRM</div></div>
     <div style="text-align:right">
       <div class="inv-title">${inv.invoiceNumber}</div>
       <div style="font-size:11px;color:#666;margin-top:4px">Invoice Date: ${inv.invoiceDate}</div>
@@ -589,7 +589,7 @@ function whatsappShare(inv, schoolSettings = {}) {
     : "";
 
   const lines = [
-    `*Yellow Dot Preschool – Fee Invoice*`,
+    `*${schoolSettings.schoolName || "School"} – Fee Invoice*`,
     ``,
     `Dear Parent,`,
     `Invoice *${inv.invoiceNumber}* is ready for *${inv.studentName}*.`,

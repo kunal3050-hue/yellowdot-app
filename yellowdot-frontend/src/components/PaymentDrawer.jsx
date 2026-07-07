@@ -140,7 +140,7 @@ export default function PaymentDrawer({ open, invoice, payments = [], onClose, o
         const br  = s?.branding || {};
         const pay = s?.payment  || {};
         setSchool({
-          schoolName:      br.reportHeader  || sc.name        || "Yellow Dot Preschool",
+          schoolName:      br.reportHeader  || sc.name        || "",
           upiId:           pay.upiId         || "",
           bankName:        pay.bankName       || "",
           accountName:     pay.accountName    || "",

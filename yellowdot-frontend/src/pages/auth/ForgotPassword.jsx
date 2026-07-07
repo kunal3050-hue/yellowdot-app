@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { PLATFORM_NAME } from "../../config/environment";
 
 export default function ForgotPassword() {
   const [email,     setEmail]     = useState("");
@@ -27,7 +28,7 @@ export default function ForgotPassword() {
               <circle cx="14" cy="14" r="6" fill="#F4C400" />
             </svg>
           </div>
-          <span style={styles.logoText}>Yellow Dot</span>
+          <span style={styles.logoText}>{PLATFORM_NAME}</span>
         </div>
 
         {!submitted ? (
@@ -56,7 +57,7 @@ export default function ForgotPassword() {
                   <input
                     style={styles.input}
                     type="email"
-                    placeholder="admin@yellowdot.in"
+                    placeholder="admin@kueboxscare.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     autoFocus

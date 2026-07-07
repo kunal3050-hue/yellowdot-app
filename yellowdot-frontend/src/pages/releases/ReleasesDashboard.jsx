@@ -279,7 +279,7 @@ function PromoteModal({ mod, onClose, onConfirm, loading }) {
             </h3>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--yd-text-muted)' }}>
-            You are promoting <strong>{mod.name}</strong> from Yellow Dot staging to KUE Boxs Care production.
+            You are promoting <strong>{mod.name}</strong> from Yellow Dot (Development) to KUE BOXS Care (Production).
           </p>
         </div>
 
@@ -544,7 +544,7 @@ function PipelineHeader() {
         Production
       </span>
       <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
-        Yellow Dot → KUE Boxs Care
+        Yellow Dot (Development) → KUE BOXS Care (Production)
       </span>
     </div>
   );
@@ -693,7 +693,7 @@ export default function ReleasesDashboard() {
             defaultOpen={false}
           />
           <StageSection
-            title="Testing — Yellow Dot Staging"
+            title="Testing — Yellow Dot (Development)"
             status="testing"
             modules={byStatus.testing}
             onPromote={setPromoteTarget}

@@ -1,5 +1,5 @@
 /**
- * InvoiceView.jsx — Yellow Dot Premium Invoice
+ * InvoiceView.jsx — KUE BOXS Care Premium Invoice
  * ─────────────────────────────────────────────────────────────────
  * Route : /invoice-view/:invoiceNumber  (standalone, no MainLayout)
  *
@@ -13,7 +13,7 @@
  *                           WhatsApp share, copy links. Rendered below the
  *                           document in the browser. Never appears in PDF.
  *
- * Color rule: Yellow Dot brand only — gold, charcoal, warm ivory, cream.
+ * Color rule: KUE BOXS Care brand only — gold, charcoal, warm ivory, cream.
  *             No blue, green, purple, orange.  errRed for form validation only.
  */
 
@@ -99,23 +99,23 @@ function getLogoSrc(school) {
   return "";
 }
 
-/* ── Default school ─────────────────────────────────────────────── */
+/* ── Default school ── (blank contact/payment fields load from real settings) */
 const DEFAULT_SCHOOL = {
-  schoolName:      "Yellow Dot Preschool",
-  branchName:      "Seawoods Branch",
-  address:         "Sector 50, Seawoods, Navi Mumbai — 400 706",
-  phone:           "+91 98765 43210",
-  email:           "hello@yellowdot.app",
+  schoolName:      "",
+  branchName:      "",
+  address:         "",
+  phone:           "",
+  email:           "",
   gstNumber:       "",
-  website:         "www.yellowdot.app",
+  website:         "",
   logoUrl:         "",
   faviconUrl:      "/favicon.ico",
-  upiId:           "yellowdot@upi",
-  bankName:        "HDFC Bank",
-  accountName:     "Yellow Dot Education Pvt Ltd",
-  accountNumber:   "XXXX XXXX 1234",
-  ifscCode:        "HDFC0001234",
-  branch:          "Seawoods, Navi Mumbai",
+  upiId:           "",
+  bankName:        "",
+  accountName:     "",
+  accountNumber:   "",
+  ifscCode:        "",
+  branch:          "",
   cashInstructions:"Pay at the school front desk during office hours.",
   officeHours:     "Mon – Sat: 8:00 AM – 6:00 PM",
 };

@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { PLATFORM_NAME } from "../config/environment";
 
 const STORAGE_KEY  = "yd_pwa_dismissed_at";
 const DISMISS_DAYS = 30; // re-show after 30 days
@@ -107,7 +108,7 @@ export default function InstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Install Yellow Dot app"
+      aria-label={`Install ${PLATFORM_NAME} app`}
       className="yd-install-prompt"
     >
       {/* App icon + copy */}
@@ -120,7 +121,7 @@ export default function InstallPrompt() {
           </svg>
         </div>
         <div className="yd-ip-text">
-          <p className="yd-ip-title">Yellow Dot</p>
+          <p className="yd-ip-title">{PLATFORM_NAME}</p>
           {isIos ? (
             <p className="yd-ip-sub">
               Tap&nbsp;

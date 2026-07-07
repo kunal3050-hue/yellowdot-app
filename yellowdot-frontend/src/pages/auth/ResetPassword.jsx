@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { PLATFORM_NAME } from "../../config/environment";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -44,7 +45,7 @@ export default function ResetPassword() {
               <circle cx="14" cy="14" r="6" fill="#F4C400" />
             </svg>
           </div>
-          <span style={styles.logoText}>Yellow Dot</span>
+          <span style={styles.logoText}>{PLATFORM_NAME}</span>
         </div>
 
         {success ? (

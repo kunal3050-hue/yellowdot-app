@@ -16,6 +16,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { PLATFORM_NAME } from "../config/environment";
+import settingsService from "../services/settingsService";
 import {
   ROLE_LABELS, ROLE_HIERARCHY,
   isBypassRole,
@@ -588,6 +590,23 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const [devPanelOpen,     setDevPanelOpen]     = useState(false);
   const [devSectionOpen,   setDevSectionOpen]   = useState(true); // developer nav group open state
 
+  // Current tenant (school) info for the header's tenant-info row — separate
+  // from PLATFORM_NAME, which stays fixed. Best-effort only: `branch` comes
+  // from the raw center id on the user record (no backend endpoint resolves
+  // a real per-branch display name to staff yet), so it's shown titleized.
+  const [tenant, setTenant] = useState({ name: "", logoUrl: "" });
+  useEffect(() => {
+    settingsService.getAll().then(s => {
+      setTenant({
+        name:    s?.branding?.reportHeader || s?.school?.name || "",
+        logoUrl: s?.branding?.logoUrl || s?.school?.logoUrl || "",
+      });
+    }).catch(() => {});
+  }, []);
+  const branchLabel = user?.center
+    ? String(user.center).replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    : "";
+
   // Effective role for filtering (dev role override or real role)
   const effectiveRole  = devRole || role;
   const isBypass       = isBypassRole(effectiveRole);
@@ -669,7 +688,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
           }}>
             <img
               src="/icons/logo-original.png"
-              alt="Yellow Dot"
+              alt={PLATFORM_NAME}
               style={{ width: 26, height: 26, objectFit: "contain", display: "block" }}
             />
           </div>
@@ -680,7 +699,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
               fontSize: 14.5, fontWeight: 700, color: "#1C1917",
               lineHeight: 1.15, letterSpacing: "-0.025em",
             }}>
-              Yellow Dot
+              {PLATFORM_NAME}
             </div>
             <div style={{
               fontSize: 10, color: "#A8906A", marginTop: 2,
@@ -696,6 +715,56 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
             </button>
           )}
         </div>
+
+        {/* ── Current tenant (school) ──────────────────────────────────────
+            Reserved area for the logged-in tenant's own identity — separate
+            from the platform brand above. Never replaces the platform logo;
+            hides itself if no tenant name/branch is resolvable yet. */}
+        {(tenant.name || branchLabel) && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 9,
+            padding: "10px 18px",
+            borderBottom: "1px solid #F5F0E8",
+            flexShrink: 0, overflow: "hidden", whiteSpace: "nowrap",
+          }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+              background: "#F3F0EA", border: "1px solid #E7E1D5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              overflow: "hidden",
+            }}>
+              {tenant.logoUrl ? (
+                <img
+                  src={tenant.logoUrl}
+                  alt={tenant.name || "School logo"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#8A7F6B" }}>
+                  {(tenant.name || branchLabel || "S").charAt(0)}
+                </span>
+              )}
+            </div>
+            <div style={{ minWidth: 0, overflow: "hidden" }}>
+              {tenant.name && (
+                <div style={{
+                  fontSize: 11.5, fontWeight: 600, color: "#57503F",
+                  lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {tenant.name}
+                </div>
+              )}
+              {branchLabel && (
+                <div style={{
+                  fontSize: 9.5, color: "#A8906A", marginTop: 1,
+                  fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {branchLabel}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Dev role override banner ─────────────────────────────────── */}
         {devRole && (

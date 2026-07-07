@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import { api } from "../services/authService";
+import { PLATFORM_NAME } from "../config/environment";
 
 function AddStudent() {
   const [showSuccess, setShowSuccess] = useState(false);
@@ -102,7 +103,7 @@ function AddStudent() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <p className="text-gray-400 text-sm font-medium mb-1">
-              Yellow Dot CRM
+              {PLATFORM_NAME}
             </p>
 
             <h1 className="text-5xl font-black text-gray-900 tracking-tight">
@@ -148,7 +149,7 @@ function AddStudent() {
                   </div>
 
                   <div className="bg-white/20 px-4 py-2 rounded-2xl text-white text-sm">
-                    Yellow Dot
+                    {PLATFORM_NAME}
                   </div>
                 </div>
               </div>

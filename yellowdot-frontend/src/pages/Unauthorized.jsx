@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { PLATFORM_NAME } from "../config/environment";
 
 const ROLE_LABELS = {
   super_admin:  "Super Admin",
@@ -53,7 +54,7 @@ export default function Unauthorized() {
           Please contact your school administrator to request access.
         </p>
 
-        {/* Yellow Dot branding strip */}
+        {/* KUE BOXS Care branding strip */}
         <div style={{
           background: "linear-gradient(135deg, #FFF8D0, #FFF3B0)",
           border: "1px solid #F4C40044",
@@ -66,9 +67,9 @@ export default function Unauthorized() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 16, color: "#1E1E1E",
             flexShrink: 0,
-          }}>Y</div>
+          }}>{PLATFORM_NAME.charAt(0)}</div>
           <div style={{ textAlign: "left" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#1E1E1E" }}>Yellow Dot</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#1E1E1E" }}>{PLATFORM_NAME}</div>
             <div style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>
               Role-based access control is active
             </div>

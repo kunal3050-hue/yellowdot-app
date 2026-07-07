@@ -69,7 +69,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function (payload) {
   console.log("[firebase-messaging-sw] Background message:", payload);
 
-  const title    = payload.notification?.title || "Yellow Dot";
+  const title    = payload.notification?.title || "KUE BOXS Care";
   const body     = payload.notification?.body  || "";
   const deepLink = payload.data?.deepLink      || "/parent-notifications";
 

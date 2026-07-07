@@ -3,12 +3,14 @@ import { useParams } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { api } from "../services/authService";
+import settingsService from "../services/settingsService";
 
 function InvoiceView() {
 
   const { invoiceNumber } = useParams();
 
   const [invoice, setInvoice] = useState(null);
+  const [schoolName, setSchoolName] = useState("");
 
   const invoiceRef = useRef();
 
@@ -19,6 +21,10 @@ function InvoiceView() {
   useEffect(() => {
 
     fetchInvoice();
+
+    settingsService.getAll().then(s => {
+      setSchoolName(s?.branding?.reportHeader || s?.school?.name || "");
+    }).catch(() => {});
 
   }, []);
 
@@ -206,7 +212,7 @@ function InvoiceView() {
             <div>
 
               <h1 className="text-6xl font-black text-yd-navy">
-                Yellow Dot
+                {schoolName}
               </h1>
 
               <p className="text-gray-500 text-2xl mt-4">
@@ -338,7 +344,7 @@ function InvoiceView() {
           <div className="mt-24 border-t pt-10">
 
             <p className="text-center text-gray-400 text-lg">
-              Thank you for choosing Yellow Dot Preschool & Daycare
+              Thank you for choosing {schoolName}
             </p>
 
           </div>

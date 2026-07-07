@@ -1,5 +1,5 @@
 /**
- * generate-icons.mjs — Yellow Dot PWA icon generator
+ * generate-icons.mjs — KUE BOXS Care PWA icon generator
  *
  * Strategy:
  *   1. trim() removes the transparent border from the original 1024×1024 logo
@@ -24,6 +24,10 @@ const __dir   = dirname(fileURLToPath(import.meta.url));
 const root    = join(__dir, '..');
 const outDir  = join(root, 'public', 'icons');
 const srcLogo = join(outDir, 'logo-original.png');
+
+// Fixed platform brand baked into generated splash screens — same in every
+// environment, not tenant-specific.
+const APP_NAME = 'KUE BOXS Care';
 
 await mkdir(outDir, { recursive: true });
 await mkdir(join(outDir, 'splash'), { recursive: true });
@@ -149,7 +153,7 @@ for (const [w, h] of SPLASHES) {
   const logoLeft = Math.round((w - logoSize) / 2);
   const logoTop  = Math.round(h / 2 - logoSize / 2 - h * 0.06);
 
-  // SVG wordmark — "Yellow Dot" bold + "Preschool Daycare" light
+  // SVG wordmark — brand name bold + "Preschool Daycare" light
   // Positioned just below the logo with generous gap
   const wordmarkTop  = logoTop + logoSize + Math.round(h * 0.028);
   const titleSize    = Math.round(Math.min(w, h) * 0.042);  // ~54px on iPhone
@@ -158,12 +162,12 @@ for (const [w, h] of SPLASHES) {
 
   const wordmarkSvg = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
-    // "Yellow Dot" — bold, near-black
+    // Brand name — bold, near-black. Change APP_NAME below to switch environments.
     `<text x="${w / 2}" y="${wordmarkTop + titleSize}" ` +
     `text-anchor="middle" ` +
     `font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" ` +
     `font-size="${titleSize}" font-weight="700" fill="#111111" ` +
-    `letter-spacing="-0.02em">Yellow Dot</text>` +
+    `letter-spacing="-0.02em">${APP_NAME}</text>` +
     // "Preschool Daycare" — regular, gray
     `<text x="${w / 2}" y="${wordmarkTop + titleSize + lineGap}" ` +
     `text-anchor="middle" ` +

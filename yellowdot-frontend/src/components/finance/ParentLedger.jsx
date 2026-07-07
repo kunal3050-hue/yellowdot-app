@@ -164,7 +164,7 @@ function exportCSV(entries, studentName) {
   URL.revokeObjectURL(url);
 }
 
-function printStatement(entries, summary, studentName, filterDesc) {
+function printStatement(entries, summary, studentName, filterDesc, schoolName = "") {
   const p = n => `₹${Number(n||0).toLocaleString("en-IN")}`;
   const rows = entries.map((e,i) => `
     <tr style="background:${i%2===0?"#fff":"#fafaf8"}">
@@ -196,7 +196,7 @@ function printStatement(entries, summary, studentName, filterDesc) {
     @media print{button{display:none!important}}
   </style></head><body>
   <div class="hdr">
-    <div><div class="logo">Yellow Dot</div><div style="font-size:10px;color:#888;margin-top:2px">Premium Preschool CRM</div></div>
+    <div><div class="logo">${schoolName || "School"}</div><div style="font-size:10px;color:#888;margin-top:2px">Premium Preschool CRM</div></div>
     <div style="text-align:right">
       <div class="title">Parent Ledger Statement</div>
       <div style="font-size:11px;color:#555;margin-top:3px">${studentName||"Student"}</div>

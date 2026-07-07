@@ -989,11 +989,11 @@ function TopBar({ receipt, onBack, onPrint, onDownload, exporting }) {
   );
 }
 
-/* ── Default school fallback ── */
+/* ── Default school fallback ── (blank contact fields load from real settings) */
 const DEFAULT_SCHOOL = {
-  schoolName:"Yellow Dot Preschool", branchName:"Seawoods Branch",
-  address:"Sector 50, Seawoods, Navi Mumbai — 400 706",
-  phone:"+91 98765 43210", email:"hello@yellowdot.app",
+  schoolName:"", branchName:"",
+  address:"",
+  phone:"", email:"",
   logoUrl:"", faviconUrl:"/favicon.ico", gstNumber:"",
 };
 

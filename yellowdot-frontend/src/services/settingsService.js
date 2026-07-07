@@ -28,7 +28,7 @@ async function req(path, options = {}) {
 /* ── Defaults — used when backend not yet wired ─────────────────── */
 export const DEFAULT_SETTINGS = {
   school: {
-    name:              "Yellow Dot Preschool",
+    name:              "",
     tagline:           "Where Little Minds Grow",
     address:           "",
     phone:             "",
@@ -74,7 +74,7 @@ export const DEFAULT_SETTINGS = {
     logoUrl:      "",
     faviconUrl:   "",
     accentColor:  "#F4C400",
-    reportHeader: "Yellow Dot Preschool",
+    reportHeader: "",
     reportFooter: "Thank you for trusting us with your child's education.",
     motto:        "Where Little Minds Grow",
   },

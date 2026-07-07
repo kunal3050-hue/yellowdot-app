@@ -50,7 +50,7 @@ async function run() {
   async function waitForAppReady(pg) {
     try {
       await pg.waitForFunction(
-        () => !document.querySelector('[aria-label="Loading Yellow Dot"]'),
+        () => !document.querySelector('[aria-label="Loading KUE BOXS Care"]'),
         { timeout: 6000 }
       );
     } catch {

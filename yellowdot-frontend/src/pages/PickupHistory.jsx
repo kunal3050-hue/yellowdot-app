@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import pickupHistoryService from "../services/pickupHistoryService";
+import { PLATFORM_NAME } from "../config/environment";
 
 // -- SVG Icons (no emoji - encoding-safe) ----------------------------------
 const Svg = ({ d, size = 16, ...p }) => (
@@ -125,10 +126,10 @@ function PickupSidebar({ active }) {
         <Link to="/">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
-              <span className="text-white font-black text-sm">Y</span>
+              <span className="text-white font-black text-sm">{PLATFORM_NAME.charAt(0)}</span>
             </div>
             <div>
-              <div className="text-sm font-black text-gray-900 leading-none">Yellow Dot</div>
+              <div className="text-sm font-black text-gray-900 leading-none">{PLATFORM_NAME}</div>
               <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
             </div>
           </div>
@@ -292,10 +293,10 @@ export default function PickupHistory() {
           <Link to="/">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
-                <span className="text-white font-black text-sm">Y</span>
+                <span className="text-white font-black text-sm">{PLATFORM_NAME.charAt(0)}</span>
               </div>
               <div>
-                <div className="text-sm font-black text-gray-900 leading-none">Yellow Dot</div>
+                <div className="text-sm font-black text-gray-900 leading-none">{PLATFORM_NAME}</div>
                 <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
               </div>
             </div>

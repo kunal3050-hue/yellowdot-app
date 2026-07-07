@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import parentService from "../services/parentService";
 import { colors, spacing, radius, shadows, typography } from "../theme";
+import { PLATFORM_NAME } from "../../../config/environment";
 
 function fmtDate(iso) {
   if (!iso) return "—";
@@ -83,7 +84,7 @@ export default function ChildProfile() {
                   {child.studentName}
                 </h1>
                 <p style={{ ...typography.caption, color: colors.text.muted, margin: `${spacing.xs}px 0 0` }}>
-                  {child.class || "—"} · Yellow Dot
+                  {child.class || "—"} · {PLATFORM_NAME}
                 </p>
               </div>
               <StatusPill status={child.status} />

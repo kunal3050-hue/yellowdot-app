@@ -27,6 +27,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link }                    from "react-router-dom";
+import { PLATFORM_NAME }                from "../config/environment";
 import { Html5Qrcode }             from "html5-qrcode";
 import * as faceapi                from "@vladmandic/face-api";
 import parentAttendanceService     from "../services/parentAttendanceService";
@@ -164,7 +165,7 @@ function Step1GateScan({ onScan, toast }) {
   const handleScanned = useCallback(async (text) => {
     const gate = parseGateQR(text);
     if (!gate) {
-      toast.error("Not a valid Yellow Dot gate QR. Try again.");
+      toast.error(`Not a valid ${PLATFORM_NAME} gate QR. Try again.`);
       return;
     }
     await stopScanner();
@@ -1087,8 +1088,8 @@ export default function ParentCheckIn() {
       {/* Top bar */}
       <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-5 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl font-black text-[var(--yd-yellow)]">YD</span>
-          <span className="text-xs text-gray-500 font-semibold hidden sm:block">Yellow Dot</span>
+          <span className="text-2xl font-black text-[var(--yd-yellow)]">{PLATFORM_NAME.charAt(0)}</span>
+          <span className="text-xs text-gray-500 font-semibold hidden sm:block">{PLATFORM_NAME}</span>
         </Link>
         <div className="text-center">
           <p className="text-white font-black text-sm">Parent Check-In</p>

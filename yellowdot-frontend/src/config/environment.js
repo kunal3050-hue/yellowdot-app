@@ -6,7 +6,18 @@
  *   .env             → development  (local dev / Yellow Dot local)
  *   .env.staging     → staging      (Yellow Dot cloud deploy — vite build --mode staging)
  *   .env.production  → production   (KUE Boxs Care deploy   — vite build)
+ *
+ * PLATFORM_NAME vs APP_NAME:
+ *   PLATFORM_NAME is the fixed, always-on product identity shown throughout
+ *   the app UI (sidebar, login, splash, browser title) — same in every
+ *   environment. It is NOT env-driven and must not be swapped per tenant.
+ *   APP_NAME stays env-driven (VITE_APP_NAME) and is used only for internal
+ *   deployment-tier labeling in the developer-only Release & Build /
+ *   Staged Releases dashboards ("Yellow Dot (Development)" vs
+ *   "KUE BOXS Care (Production)").
  */
+
+export const PLATFORM_NAME = 'KUE BOXS Care';
 
 export const APP_ENV     = import.meta.env.VITE_APP_ENV     || 'development';
 export const APP_NAME    = import.meta.env.VITE_APP_NAME    || 'Yellow Dot';

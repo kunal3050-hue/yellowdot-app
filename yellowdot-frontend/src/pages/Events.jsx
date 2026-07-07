@@ -88,7 +88,7 @@ function EventCard({ event, onEdit, onDelete, classMap }) {
         ? "bg-[#fffdf0] border-[#e8d89a]"
         : "bg-white border-[#F1F1F1] hover:border-[#e0d4a0] hover:bg-white"}
     `}>
-      {/* Date block — Yellow Dot brand gradient */}
+      {/* Date block — KUE BOXS Care brand gradient */}
       <div className="flex-shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] rounded-3xl"
         style={{
           background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)",

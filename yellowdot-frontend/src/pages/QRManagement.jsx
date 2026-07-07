@@ -295,7 +295,7 @@ export default function QRManagement({ embedded = false }) {
                     style={styles.nameInput}
                     value={centerName}
                     onChange={e => setCenterName(e.target.value)}
-                    placeholder="e.g. Yellow Dot Seawoods Main"
+                    placeholder="e.g. Seawoods Main Branch"
                     maxLength={60}
                   />
                   <p style={styles.fieldHint}>

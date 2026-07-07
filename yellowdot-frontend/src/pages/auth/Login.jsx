@@ -9,6 +9,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { PLATFORM_NAME } from "../../config/environment";
 
 // ── Route map ──────────────────────────────────────────────────────────────────
 function getHomeRoute(role) {
@@ -139,7 +140,7 @@ export default function Login() {
       {/*    drop-shadow: blur reduced 20 % vs previous (30 → 24 px, 0.18 → 0.14 opacity) */}
       <img
         src="/icons/pwa-512x512.png"
-        alt="Yellow Dot"
+        alt={PLATFORM_NAME}
         draggable={false}
         style={{
           width:     90,
@@ -170,7 +171,7 @@ export default function Login() {
             lineHeight:    1.0,
           }}
         >
-          Yellow Dot
+          {PLATFORM_NAME}
         </div>
         <div
           style={{
