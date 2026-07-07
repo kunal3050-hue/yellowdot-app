@@ -23,6 +23,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/authService";
+import familyService from "../services/familyService";
 
 // ── Constants ─────────────────────────────────────────────────────
 const CLASSES  = ["Daycare","Playgroup","Nursery","LKG","UKG","Class 1","Class 2","Class 3","Class 4","Class 5"];
@@ -56,6 +57,10 @@ const EMPTY_DRAFT = {
   // Step 6 – Documents
   birthCertUpload: "", addressProofUpload: "", vaccineCardUpload: "",
   previousSchoolUpload: "", otherDocUpload: "",
+
+  // Family (Phase 5)
+  familyMode: "none",       // "none" | "new" | "existing"
+  selectedFamilyId: "",     // set when familyMode === "existing"
 };
 
 const STEPS = [
@@ -279,7 +284,22 @@ export default function NewAdmission() {
         );
       }
 
-      // 4. Clear draft and navigate
+      // 4. Link to family (Phase 5)
+      if (studentId) {
+        if (draft.familyMode === "existing" && draft.selectedFamilyId) {
+          await familyService.linkStudent(draft.selectedFamilyId, studentId).catch(() => {});
+        } else if (draft.familyMode === "new") {
+          const { familyId } = await familyService.create({
+            fatherName:     draft.fatherName,
+            motherName:     draft.motherName,
+            primaryContact: draft.fatherWhatsapp || draft.motherWhatsapp,
+            email:          draft.fatherEmail    || draft.motherEmail,
+          }).catch(() => ({ familyId: null }));
+          if (familyId) await familyService.linkStudent(familyId, studentId).catch(() => {});
+        }
+      }
+
+      // 5. Clear draft and navigate
       localStorage.removeItem(DRAFT_KEY);
       navigate("/students", { state: { admissionSuccess: draft.studentName } });
     } catch (err) {
@@ -676,7 +696,7 @@ function StepParents({ draft, set, errors }) {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <Field label="Father's Full Name" error={errors.fatherName} className="sm:col-span-2">
+          <Field label="Guardian 1 Name" error={errors.fatherName} className="sm:col-span-2">
             <input className={inp(errors.fatherName)} placeholder="e.g. Rahul Sharma"
                    value={draft.fatherName} onChange={e => set("fatherName", e.target.value)} />
           </Field>
@@ -718,7 +738,7 @@ function StepParents({ draft, set, errors }) {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <Field label="Mother's Full Name" className="sm:col-span-2">
+          <Field label="Guardian 2 Name" className="sm:col-span-2">
             <input className={inp()} placeholder="e.g. Priya Sharma"
                    value={draft.motherName} onChange={e => set("motherName", e.target.value)} />
           </Field>
@@ -758,7 +778,131 @@ function StepParents({ draft, set, errors }) {
           </Field>
         </div>
       </Card>
+
+      {/* ── Family Section (Phase 5) ──────────────────────────────── */}
+      <FamilySection draft={draft} set={set} />
     </div>
+  );
+}
+
+// ── Family section for Step 2 ──────────────────────────────────────────────
+
+function FamilySection({ draft, set }) {
+  const [allFamilies,  setAllFamilies]  = useState([]);
+  const [famLoading,   setFamLoading]   = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState("");
+
+  async function loadFamilies() {
+    if (allFamilies.length) return;
+    setFamLoading(true);
+    try {
+      const { families } = await familyService.getAll();
+      setAllFamilies(families || []);
+    } catch { /* non-fatal */ }
+    finally { setFamLoading(false); }
+  }
+
+  function handleMode(mode) {
+    set("familyMode", mode);
+    set("selectedFamilyId", "");
+    if (mode === "existing") loadFamilies();
+  }
+
+  const filtered = allFamilies.filter(f => {
+    const q = searchQuery.toLowerCase();
+    return (
+      f.familyCode.toLowerCase().includes(q) ||
+      f.fatherName.toLowerCase().includes(q) ||
+      f.motherName.toLowerCase().includes(q) ||
+      f.primaryContact.includes(q)
+    );
+  });
+
+  const selectedFam = allFamilies.find(f => f.familyId === draft.selectedFamilyId);
+
+  return (
+    <Card>
+      <SectionTitle icon="👨‍👩‍👧‍👦" title="Family" optional />
+      <p className="text-sm text-gray-500 mb-4">
+        Link this student to a family unit to share parent details and manage siblings together.
+      </p>
+
+      <div className="flex gap-3 mb-4 flex-wrap">
+        {[
+          { val: "none",     label: "No Family Link" },
+          { val: "new",      label: "Create New Family" },
+          { val: "existing", label: "Link to Existing Family" },
+        ].map(opt => (
+          <button
+            key={opt.val}
+            type="button"
+            onClick={() => handleMode(opt.val)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+            style={{
+              background: draft.familyMode === opt.val ? "var(--yd-yellow-light)" : "transparent",
+              color:      draft.familyMode === opt.val ? "var(--yd-yellow-dark)"  : "var(--yd-text-muted)",
+              border:     draft.familyMode === opt.val ? "1px solid var(--yd-yellow)" : "1px solid var(--yd-border)",
+            }}
+          >{opt.label}</button>
+        ))}
+      </div>
+
+      {draft.familyMode === "new" && (
+        <div className="px-4 py-3 rounded-xl text-sm"
+             style={{ background: "var(--yd-yellow-light)", border: "1px solid var(--yd-yellow)", color: "var(--yd-yellow-dark)" }}>
+          ✓ A new family will be created using the father/mother details entered above, and linked to this student automatically on submission.
+        </div>
+      )}
+
+      {draft.familyMode === "existing" && (
+        <div>
+          {selectedFam ? (
+            <div className="flex items-center justify-between p-3 rounded-xl mb-3"
+                 style={{ background: "var(--yd-yellow-light)", border: "1px solid var(--yd-yellow)" }}>
+              <div>
+                <p className="text-sm font-bold" style={{ color: "var(--yd-yellow-dark)" }}>
+                  {selectedFam.fatherName || selectedFam.motherName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {selectedFam.familyCode} · {selectedFam.studentIds?.length || 0} child(ren) · Parent details will be auto-filled
+                </p>
+              </div>
+              <button type="button" onClick={() => set("selectedFamilyId", "")}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold">Change</button>
+            </div>
+          ) : (
+            <>
+              <input
+                autoFocus={draft.familyMode === "existing"}
+                placeholder="Search by family code, name, or contact…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-sm mb-3"
+                style={{ border: "1px solid var(--yd-border)", background: "var(--yd-bg-warm)", outline: "none" }}
+              />
+              {famLoading && <p className="text-sm text-gray-400">Loading families…</p>}
+              <div className="max-h-44 overflow-y-auto space-y-2">
+                {filtered.map(f => (
+                  <button
+                    key={f.familyId}
+                    type="button"
+                    onClick={() => set("selectedFamilyId", f.familyId)}
+                    className="w-full text-left p-3 rounded-xl transition-colors hover:bg-yellow-50"
+                    style={{ border: "1px solid var(--yd-border)", background: "var(--yd-bg-warm)" }}
+                  >
+                    <p className="text-sm font-semibold">{f.fatherName || f.motherName}</p>
+                    <p className="text-xs text-gray-400">{f.familyCode} · {f.studentIds?.length || 0} child(ren)</p>
+                  </button>
+                ))}
+                {!famLoading && searchQuery && filtered.length === 0 && (
+                  <p className="text-sm text-gray-400">No families found.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

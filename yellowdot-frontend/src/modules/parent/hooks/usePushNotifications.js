@@ -22,8 +22,9 @@
  */
 
 import { useEffect, useRef } from "react";
-import { getToken, onMessage } from "firebase/messaging";
-import { getMessagingInstance } from "../../../firebase/firebase";
+import { getToken, deleteToken, onMessage } from "firebase/messaging";
+import { getInstallations, deleteInstallations } from "firebase/installations";
+import app, { getMessagingInstance } from "../../../firebase/firebase";
 import { registerFcmToken } from "../services/notificationService";
 
 const VAPID_KEY = import.meta.env.VITE_FCM_VAPID_KEY;
@@ -58,9 +59,10 @@ export default function usePushNotifications({ onForegroundMessage } = {}) {
             "[usePushNotifications] FCM VAPID key not configured.\n" +
             "  → Set VITE_FCM_VAPID_KEY in .env and restart Vite."
           );
+          console.error("[FCM] ERROR — VAPID key missing or unset");
           return;
         }
-        console.info("[usePushNotifications] VAPID key present:", VAPID_KEY.slice(0, 8) + "...");
+        console.log("[FCM] VAPID key loaded — length:", VAPID_KEY.length, "preview:", VAPID_KEY.slice(0, 8) + "…");
 
         // 3. Request notification permission
         //    Calling requestPermission() when already granted/denied is a no-op.
@@ -86,19 +88,49 @@ export default function usePushNotifications({ onForegroundMessage } = {}) {
         let swRegistration;
         try {
           swRegistration = await navigator.serviceWorker.ready;
-          console.info("[usePushNotifications] Active SW:", swRegistration.active?.scriptURL);
+          console.log("[FCM] Service Worker registration —", swRegistration.active?.scriptURL, "scope:", swRegistration.scope);
         } catch (swErr) {
-          console.warn("[usePushNotifications] SW not ready:", swErr.message);
+          console.error("[FCM] ERROR — Service Worker not ready. code:", swErr?.code, "message:", swErr?.message);
           return;
         }
 
         console.info("[usePushNotifications] Calling getToken()...");
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration });
+        let token;
+        try {
+          token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration });
+        } catch (tokenErr) {
+          // Stale Firebase Installation auth tokens cached in IndexedDB can cause
+          // fcmregistrations.googleapis.com to return 401 UNAUTHENTICATED. The fix
+          // is to delete the cached FID + FCM token so the SDK fetches fresh
+          // credentials, then retry getToken() exactly once.
+          const isStaleAuth =
+            tokenErr?.code === "messaging/token-subscribe-failed" ||
+            /401|UNAUTHENTICATED|missing required authentication/i.test(tokenErr?.message || "");
+          if (isStaleAuth) {
+            console.warn("[FCM] getToken() 401 — clearing stale Firebase Installation cache and retrying once.");
+            try { await deleteToken(messaging); } catch (e) { console.warn("[FCM] deleteToken cleanup:", e?.message); }
+            try { await deleteInstallations(getInstallations(app)); } catch (e) { console.warn("[FCM] deleteInstallations cleanup:", e?.message); }
+            try {
+              token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration });
+              console.log("[FCM] Recovered after cache clear ✅");
+            } catch (retryErr) {
+              console.error("[FCM] ERROR — getToken() failed even after cache clear. Firebase error code:", retryErr?.code, "name:", retryErr?.name, "message:", retryErr?.message);
+              return;
+            }
+          } else {
+            console.error("[FCM] ERROR — getToken() failed. Firebase error code:", tokenErr?.code, "name:", tokenErr?.name, "message:", tokenErr?.message);
+            return;
+          }
+        }
         if (!token) {
-          console.warn("[usePushNotifications] getToken() returned empty — reload and try again.");
+          console.error("[FCM] ERROR — getToken() returned empty. Reload, check Site Settings → Notifications, and verify Cloud Messaging API is enabled in Firebase Console.");
           return;
         }
-        console.info("[usePushNotifications] FCM token obtained:", token.slice(0, 12) + "...");
+        // Stash the full token on window so it can be copied from DevTools:
+        //   copy(__yd_fcm_token)
+        try { window.__yd_fcm_token = token; } catch (_) {}
+        console.log("[FCM] FCM token —", token);
+        console.log("[FCM] (full token also available as window.__yd_fcm_token — run copy(__yd_fcm_token) to copy)");
 
         // 6. Register token with backend
         await registerFcmToken(token);
@@ -112,7 +144,8 @@ export default function usePushNotifications({ onForegroundMessage } = {}) {
 
       } catch (e) {
         // Never let push setup crash the app
-        console.warn("[usePushNotifications] Setup error:", e.message, e);
+        console.error("[FCM] ERROR — Uncaught. Firebase error code:", e?.code, "name:", e?.name, "message:", e?.message);
+        console.warn("[usePushNotifications] Setup error:", e?.message, e);
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -113,9 +113,10 @@ export const PERMISSION_CATEGORIES = [
     label: "Administration",
     icon:  "🛡️",
     modules: [
-      { id: "staff",             label: "Staff",                actions: ["view", "create", "edit", "delete"] },
-      { id: "roles_permissions", label: "Roles & Permissions",  actions: ["view", "manage"] },
-      { id: "settings",          label: "Settings",             actions: ["view", "edit"] },
+      { id: "staff",             label: "Staff (Login Users)",   actions: ["view", "create", "edit", "delete"] },
+      { id: "staff_management",  label: "Staff Management (HR)", actions: ["view", "create", "edit", "delete"] },
+      { id: "roles_permissions", label: "Roles & Permissions",   actions: ["view", "manage"] },
+      { id: "settings",          label: "Settings",              actions: ["view", "edit"] },
     ],
   },
   {
@@ -187,6 +188,7 @@ const MODULE_ROUTE_MAP = {
   observations:      ["child-journey"],
   journey_media:     ["child-journey"],
   artwork:           ["child-journey"],
+  staff_management:  ["staff-dashboard", "staff-management", "departments", "designations"],
 };
 
 /** Derive sidebar route keys from a granular permission matrix. */

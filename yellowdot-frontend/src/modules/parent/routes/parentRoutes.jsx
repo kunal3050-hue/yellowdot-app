@@ -28,6 +28,7 @@ const ParentEvents   = lazy(() => import("../pages/Events"));
 const ParentPTM      = lazy(() => import("../pages/PTM"));
 const ParentIncidents  = lazy(() => import("../pages/Incidents"));
 const PickupApproval   = lazy(() => import("../pages/PickupApproval"));
+const LiveView         = lazy(() => import("../pages/LiveView"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
 function wrap(node, routeKey) {
@@ -57,6 +58,7 @@ export const parentRoutes = [
   <Route key="parent-ptm"             path="/parent-ptm"               element={wrap(<ParentPTM />, "dashboard")} />,
   <Route key="parent-incidents"       path="/parent-incidents"         element={wrap(<ParentIncidents />, "dashboard")} />,
   <Route key="parent-pickup-approval" path="/parent-pickup-approval"   element={wrap(<PickupApproval />, "dashboard")} />,
+  <Route key="parent-live"            path="/parent-live"              element={wrap(<LiveView />,       "dashboard")} />,
 ];
 
 export default parentRoutes;

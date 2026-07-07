@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { APP_NAME } from "../../config/environment";
 
 const SPRING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
@@ -238,7 +239,7 @@ export default function ProfileIncomplete() {
           </button>
 
           <div className="yd-pi-footer">
-            Yellow Dot · yellowdot-app.web.app
+            {APP_NAME}
           </div>
         </div>
       </div>

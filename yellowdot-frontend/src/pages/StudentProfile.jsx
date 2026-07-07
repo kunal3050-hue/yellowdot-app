@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { api } from "../services/authService";
 import ParentLedger from "../components/finance/ParentLedger";
+import familyService from "../services/familyService";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -597,6 +598,219 @@ function MigrationBanner({ result, onDismiss }) {
   );
 }
 
+// ── Family Information Card (Phase 4) ──────────────────────────────────────
+
+function FamilyCard({ studentId }) {
+  const navigate = useNavigate();
+  const [family,    setFamily]    = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [action,    setAction]    = useState(null);     // null | "create" | "link"
+  const [allFams,   setAllFams]   = useState([]);
+  const [query,     setQuery]     = useState("");
+  const [linkBusy,  setLinkBusy]  = useState(false);
+  const [unlinkBusy,setUnlinkBusy]= useState(false);
+  const [saveBusy,  setSaveBusy]  = useState(false);
+  const [error,     setError]     = useState("");
+
+  const [newFam, setNewFam] = useState({
+    fatherName: "", motherName: "", primaryContact: "",
+    alternateContact: "", email: "", address: "",
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { family: fam } = await familyService.getFamilyForStudent(studentId);
+      setFamily(fam || null);
+    } catch { setFamily(null); }
+    finally { setLoading(false); }
+  }, [studentId]);
+
+  useEffect(() => { if (studentId) load(); }, [studentId, load]);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!newFam.fatherName && !newFam.motherName) {
+      setError("At least one parent name is required."); return;
+    }
+    setSaveBusy(true); setError("");
+    try {
+      const { familyId } = await familyService.create(newFam);
+      await familyService.linkStudent(familyId, studentId);
+      setAction(null);
+      load();
+    } catch (err) { setError(err?.response?.data?.error || "Failed to create family."); }
+    finally { setSaveBusy(false); }
+  }
+
+  async function handleLink(familyId) {
+    setLinkBusy(familyId); setError("");
+    try {
+      await familyService.linkStudent(familyId, studentId);
+      setAction(null);
+      load();
+    } catch (err) { setError(err?.response?.data?.error || "Failed to link."); }
+    finally { setLinkBusy(null); }
+  }
+
+  async function handleUnlink() {
+    if (!family) return;
+    setUnlinkBusy(true); setError("");
+    try {
+      await familyService.unlinkStudent(family.familyId, studentId);
+      load();
+    } catch (err) { setError(err?.response?.data?.error || "Failed to unlink."); }
+    finally { setUnlinkBusy(false); }
+  }
+
+  async function openLink() {
+    setAction("link"); setQuery(""); setError("");
+    try {
+      const { families } = await familyService.getAll();
+      setAllFams(families || []);
+    } catch { setAllFams([]); }
+  }
+
+  const filtered = allFams.filter(f => {
+    const q = query.toLowerCase();
+    return (
+      f.familyCode.toLowerCase().includes(q) ||
+      f.fatherName.toLowerCase().includes(q) ||
+      f.motherName.toLowerCase().includes(q) ||
+      f.primaryContact.includes(q)
+    );
+  });
+
+  const inputCls = "w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-[#FDFAF5] focus:outline-none focus:border-yellow-400";
+
+  return (
+    <div className="bg-white rounded-[35px] p-8 shadow-sm mt-8">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-yellow-50 flex items-center justify-center text-xl">👨‍👩‍👧‍👦</div>
+          <h2 className="text-xl font-black text-[#0F172A]">Family</h2>
+        </div>
+
+
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : family ? (
+        <div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Family Code</p>
+              <p className="text-sm font-bold text-[#0F172A] font-mono">{family.familyCode}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Siblings</p>
+              <p className="text-sm font-bold text-[#0F172A]">{(family.studentIds?.length || 1) - 1} sibling(s)</p>
+            </div>
+            {family.fatherName && (
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Guardian 1</p>
+                <p className="text-sm font-bold text-[#0F172A]">{family.fatherName}</p>
+              </div>
+            )}
+            {family.motherName && (
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Guardian 2</p>
+                <p className="text-sm font-bold text-[#0F172A]">{family.motherName}</p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleUnlink}
+            disabled={unlinkBusy}
+            className="text-xs text-red-500 hover:text-red-700 font-semibold disabled:opacity-50"
+          >{unlinkBusy ? "Removing…" : "Remove from Family"}</button>
+        </div>
+      ) : (
+        <div>
+          {action === null && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-400 mb-2">This student is not linked to any family yet.</p>
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => { setAction("create"); setError(""); }}
+                  className="px-4 py-2 rounded-xl bg-yellow-400 text-amber-800 font-bold text-sm hover:bg-yellow-500 transition-colors"
+                >+ Create New Family</button>
+                <button
+                  onClick={openLink}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+                >Link to Existing Family</button>
+              </div>
+            </div>
+          )}
+
+          {action === "create" && (
+            <form onSubmit={handleCreate}>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">Guardian 1</label>
+                  <input className={inputCls} value={newFam.fatherName} onChange={e => setNewFam(f => ({ ...f, fatherName: e.target.value }))} placeholder="Guardian 1 name" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">Guardian 2</label>
+                  <input className={inputCls} value={newFam.motherName} onChange={e => setNewFam(f => ({ ...f, motherName: e.target.value }))} placeholder="Guardian 2 name" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">Primary Contact *</label>
+                  <input className={inputCls} value={newFam.primaryContact} onChange={e => setNewFam(f => ({ ...f, primaryContact: e.target.value }))} placeholder="+91 98765 43210" required />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">Email</label>
+                  <input className={inputCls} type="email" value={newFam.email} onChange={e => setNewFam(f => ({ ...f, email: e.target.value }))} placeholder="family@example.com" />
+                </div>
+              </div>
+              {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+              <div className="flex gap-2">
+                <button type="submit" disabled={saveBusy} className="px-4 py-2 rounded-xl bg-yellow-400 text-amber-800 font-bold text-sm disabled:opacity-50">
+                  {saveBusy ? "Creating…" : "Create & Link"}
+                </button>
+                <button type="button" onClick={() => setAction(null)} className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {action === "link" && (
+            <div>
+              <input
+                autoFocus
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search by family code, name, or contact…"
+                className={inputCls + " mb-3"}
+              />
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {filtered.length === 0 && <p className="text-sm text-gray-400">No families found.</p>}
+                {filtered.map(f => (
+                  <div key={f.familyId} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-[#FDFAF5]">
+                    <div>
+                      <p className="text-sm font-bold text-[#0F172A]">{f.fatherName || f.motherName}</p>
+                      <p className="text-xs text-gray-400">{f.familyCode} · {f.studentIds?.length || 0} child(ren)</p>
+                    </div>
+                    <button
+                      onClick={() => handleLink(f.familyId)}
+                      disabled={linkBusy === f.familyId}
+                      className="px-3 py-1.5 rounded-lg bg-yellow-400 text-amber-800 font-bold text-xs disabled:opacity-50"
+                    >{linkBusy === f.familyId ? "Linking…" : "Link"}</button>
+                  </div>
+                ))}
+              </div>
+              {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+              <button onClick={() => setAction(null)} className="mt-3 text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────
 
 function StudentProfile() {
@@ -977,6 +1191,8 @@ function StudentProfile() {
                 </div>
               </div>
             </div>
+            {/* Family Information Card */}
+            <FamilyCard studentId={student?.Student_ID || student?.studentId || ""} />
           </div>
         )}
 

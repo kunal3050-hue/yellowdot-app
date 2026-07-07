@@ -13,10 +13,11 @@
     .info { border-left: 4px solid #2196F3; }
     .warn { border-left: 4px solid #FF9800; }
     .label { font-weight: bold; display: block; margin-bottom: 4px; }
-    .val   { color: #aaa; word-break: break-all; }
-    button { margin-top: 16px; background: #F4C400; color: #111; border: none;
+    .val   { color: #aaa; word-break: break-all; white-space: pre-wrap; }
+    button { margin-top: 8px; background: #F4C400; color: #111; border: none;
              padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 8px;
              cursor: pointer; width: 100%; }
+    .secondary { background: #333; color: #eee; }
     #log { margin-top: 16px; }
   </style>
 </head>
@@ -24,9 +25,10 @@
   <h1>Yellow Dot — FCM Diagnostic</h1>
   <div class="step info">
     <span class="label">Instructions</span>
-    <span class="val">Tap "Run FCM Test" and wait. Each step appears below. No DevTools needed.</span>
+    <span class="val">Tap "Run FCM Test" and watch each step appear. Every async call has a 12-second timeout — if a step doesn't complete in that time, the failure is logged with the exact step name and what was awaited. Use "Unregister all SWs" first if you've previously tested and the SW seems stuck.</span>
   </div>
   <button onclick="runTest()">Run FCM Test</button>
+  <button class="secondary" onclick="clearAll()">Unregister all SWs + clear caches</button>
   <div id="log"></div>
 
   <!-- Firebase compat SDK (same version as service worker) -->
@@ -35,10 +37,10 @@
 
   <script>
     const VAPID_KEY   = "BKcn8jDsW3i5L0g7ODkjLgUkVnKokcIXwfDZ-e9kzttKOlsq5k-0IBAVOOR7MVVM3IILSnSTfhqUdDLaZFLN_Qc";
-    const API_BASE    = "https://backend-production-3608.up.railway.app";
+    const API_BASE    = "https://api.kueboxs.com";
+    // FCM doesn't use authDomain — OAuth authDomain lives in src/firebase/firebase.js.
     const FIREBASE_CONFIG = {
       apiKey:            "AIzaSyBwRMjTuDbOHMFdBtVV55kYoOcL-1L7tKM",
-      authDomain:        "yellowdot-app.firebaseapp.com",
       projectId:         "yellowdot-app",
       storageBucket:     "yellowdot-app.firebasestorage.app",
       messagingSenderId: "230256365087",
@@ -46,127 +48,292 @@
     };
 
     const log = document.getElementById("log");
+    const t0  = Date.now();
+    function ts() { return "+" + ((Date.now() - t0) / 1000).toFixed(2) + "s"; }
 
     function step(label, val, type = "info") {
       const el = document.createElement("div");
       el.className = `step ${type}`;
-      el.innerHTML = `<span class="label">${label}</span><span class="val">${val}</span>`;
+      el.innerHTML = `<span class="label">[${ts()}] ${escapeHtml(label)}</span><span class="val">${escapeHtml(String(val))}</span>`;
       log.appendChild(el);
       window.scrollTo(0, document.body.scrollHeight);
+    }
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+    }
+    // For the UI: short, single-line error. The stack still goes to console.
+    function describeErr(e) {
+      if (!e) return "(no error object)";
+      try { console.error("[fcm-test] error", e); } catch (_) {}
+      const parts = [];
+      if (e.code)    parts.push("code=" + e.code);
+      if (e.name)    parts.push(e.name);
+      if (e.message) parts.push(e.message);
+      return parts.length ? parts.join(" — ") : String(e);
+    }
+
+    // Race any promise against a timeout so a hang gets surfaced as a clear failure.
+    function withTimeout(p, ms, label) {
+      let to;
+      const timeout = new Promise((_, reject) => {
+        to = setTimeout(() => reject(new Error(`TIMEOUT after ${ms}ms while: ${label}`)), ms);
+      });
+      return Promise.race([p, timeout]).finally(() => clearTimeout(to));
+    }
+
+    // Watch a registration's state machine live; resolve when activated, reject on timeout.
+    function awaitActivation(reg, ms = 12000) {
+      return new Promise((resolve, reject) => {
+        const to = setTimeout(() => reject(new Error(
+          `TIMEOUT after ${ms}ms waiting for SW to activate. ` +
+          `installing=${reg.installing?.state} waiting=${reg.waiting?.state} active=${reg.active?.state}`
+        )), ms);
+
+        if (reg.active && reg.active.state === "activated") {
+          clearTimeout(to); return resolve(reg.active);
+        }
+        const watch = (worker, name) => {
+          if (!worker) return;
+          step("SW worker state", `${name} → ${worker.state}`, "info");
+          worker.addEventListener("statechange", () => {
+            step("SW state change", `${name} → ${worker.state}`, "info");
+            if (worker.state === "activated") { clearTimeout(to); resolve(worker); }
+            if (worker.state === "redundant") { clearTimeout(to); reject(new Error(`SW ${name} became redundant — install/activate failed`)); }
+          });
+        };
+        watch(reg.installing, "installing");
+        watch(reg.waiting,    "waiting");
+        watch(reg.active,     "active");
+        reg.addEventListener("updatefound", () => {
+          step("SW updatefound", "new worker installing", "info");
+          watch(reg.installing, "installing(updatefound)");
+        });
+      });
+    }
+
+    // Global error trap — anything that escapes the try/catch still gets logged.
+    window.addEventListener("error",            e => step("window.error",            describeErr(e.error || e),  "fail"));
+    window.addEventListener("unhandledrejection", e => step("unhandledrejection",    describeErr(e.reason),      "fail"));
+
+    async function clearAll() {
+      log.innerHTML = "";
+      step("Cleanup started", new Date().toISOString(), "info");
+
+      // ── 1. Service Worker registrations ────────────────────────────────
+      // Guard navigator.serviceWorker — undefined in insecure contexts and
+      // many in-app browser webviews. Each step is independently try/catch'd
+      // so one failure never blocks the next.
+      if (!("serviceWorker" in navigator) || !navigator.serviceWorker) {
+        step("Service Worker API", "not available — skipping SW cleanup", "warn");
+      } else {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          step("Found registrations", String(regs.length), "info");
+          for (const r of regs) {
+            try {
+              const ok = await r.unregister();
+              step("Unregister " + (r.active?.scriptURL || r.scope), ok ? "OK" : "failed", ok ? "ok" : "warn");
+            } catch (eUnreg) {
+              step("Unregister failed for " + r.scope, describeErr(eUnreg), "warn");
+            }
+          }
+        } catch (eList) {
+          step("Could not list SW registrations", describeErr(eList), "warn");
+        }
+      }
+
+      // ── 2. Cache storage ───────────────────────────────────────────────
+      if (typeof caches === "undefined" || !caches) {
+        step("Cache Storage API", "not available — skipping cache cleanup", "warn");
+      } else {
+        try {
+          const keys = await caches.keys();
+          step("Cache buckets", keys.join(", ") || "(none)", "info");
+          for (const k of keys) {
+            try {
+              await caches.delete(k);
+              step("Deleted cache", k, "ok");
+            } catch (eDel) {
+              step("Could not delete cache " + k, describeErr(eDel), "warn");
+            }
+          }
+        } catch (eKeys) {
+          step("Could not list caches", describeErr(eKeys), "warn");
+        }
+      }
+
+      step("Cleanup done", "Reload this page, then tap 'Run FCM Test'.", "ok");
     }
 
     async function runTest() {
       log.innerHTML = "";
       step("Started", new Date().toISOString(), "info");
+      try {
+        await runTestInner();
+      } catch (e) {
+        // Anything that bubbles up here gets logged with full detail.
+        step("UNCAUGHT", describeErr(e), "fail");
+      }
+    }
 
-      // 1. Feature detection
-      if (!("Notification" in window)) { step("Notification API", "NOT SUPPORTED", "fail"); return; }
+    async function runTestInner() {
+      // ── 0. Environment context ────────────────────────────────────────────
+      step("Page URL",       location.href,            location.protocol === "https:" || location.hostname === "localhost" ? "ok" : "fail");
+      step("Origin scheme",  location.protocol,        location.protocol === "https:" || location.hostname === "localhost" ? "ok" : "fail");
+      step("Secure context", String(window.isSecureContext), window.isSecureContext ? "ok" : "fail");
+      step("User Agent",     navigator.userAgent, "info");
+      step("Project ID",     FIREBASE_CONFIG.projectId, "info");
+      step("Sender ID",      FIREBASE_CONFIG.messagingSenderId, "info");
+      step("VAPID key",      VAPID_KEY ? `${VAPID_KEY.length} chars (${VAPID_KEY.slice(0,8)}…${VAPID_KEY.slice(-4)})` : "MISSING", VAPID_KEY ? "ok" : "fail");
+      step("firebase global",  typeof firebase,           typeof firebase === "object" ? "ok" : "fail");
+      step("firebase.messaging", typeof firebase?.messaging, typeof firebase?.messaging === "function" ? "ok" : "fail");
+
+      if (!VAPID_KEY)         { step("STOP", "VAPID key missing — cannot continue.", "fail"); return; }
+      if (typeof firebase === "undefined") { step("STOP", "firebase global missing — compat SDK script tag failed to load.", "fail"); return; }
+
+      // ── 1. Feature detection ──────────────────────────────────────────────
+      if (!("Notification" in window))    { step("Notification API", "NOT SUPPORTED", "fail"); return; }
       step("Notification API", "supported", "ok");
 
-      if (!("serviceWorker" in navigator)) { step("Service Worker", "NOT SUPPORTED", "fail"); return; }
-      step("Service Worker", "supported", "ok");
-
-      if (!("PushManager" in window)) { step("Push Manager", "NOT SUPPORTED", "fail"); return; }
-      step("Push Manager", "supported", "ok");
-
-      // 2. Current permission state
-      step("Notification.permission", Notification.permission, Notification.permission === "granted" ? "ok" : "fail");
-      if (Notification.permission === "denied") {
-        step("ACTION NEEDED", "Go to Chrome → Site settings → Notifications → Allow, then reload.", "warn");
+      if (!("serviceWorker" in navigator)) {
+        step("Service Worker", "NOT SUPPORTED", "fail");
+        const ua = navigator.userAgent;
+        const inAppHints = [
+          { rx: /Instagram/i,        name: "Instagram in-app browser" },
+          { rx: /FBAN|FBAV|FB_IAB/i, name: "Facebook in-app browser" },
+          { rx: /Messenger/i,        name: "Messenger in-app browser" },
+          { rx: /WhatsApp/i,         name: "WhatsApp in-app browser" },
+          { rx: /LinkedInApp/i,      name: "LinkedIn in-app browser" },
+          { rx: /Line\//i,           name: "Line in-app browser" },
+          { rx: /TikTok/i,           name: "TikTok in-app browser" },
+        ];
+        const inApp = inAppHints.find(h => h.rx.test(ua));
+        if (inApp)                                  { step("LIKELY CAUSE", inApp.name + " — Service Workers are disabled in this webview.", "warn"); step("FIX", "Tap the ⋯ menu → 'Open in Chrome' (Android) or 'Open in Safari' (iOS), then reload.", "warn"); }
+        else if (!window.isSecureContext)            { step("LIKELY CAUSE", "Not a secure context.", "warn"); step("FIX", "Open https://app.kueboxs.com/fcm-test.html — not file:// and not plain HTTP.", "warn"); }
+        else                                         { step("LIKELY CAUSE", "Browser disables Service Workers (private window or restricted webview).", "warn"); step("FIX", "Open this page in a normal Chrome/Safari/Firefox window.", "warn"); }
         return;
       }
+      step("Service Worker API", "supported", "ok");
 
-      // 3. Request permission if not yet granted
+      if (!("PushManager" in window))     { step("Push Manager", "NOT SUPPORTED", "fail"); return; }
+      step("Push Manager", "supported", "ok");
+
+      // ── 2. Permission ─────────────────────────────────────────────────────
+      step("Notification.permission", Notification.permission, Notification.permission === "granted" ? "ok" : "warn");
+      if (Notification.permission === "denied") { step("ACTION NEEDED", "Site Settings → Notifications → Allow, then reload.", "warn"); return; }
       if (Notification.permission !== "granted") {
         step("Requesting permission…", "dialog should appear", "info");
-        const perm = await Notification.requestPermission();
+        const perm = await withTimeout(Notification.requestPermission(), 30000, "Notification.requestPermission");
         step("Permission result", perm, perm === "granted" ? "ok" : "fail");
         if (perm !== "granted") return;
       }
 
-      // 4. Show all registered service workers
-      const regs = await navigator.serviceWorker.getRegistrations();
-      step("Registered SWs", regs.length === 0 ? "none" : regs.map(r => r.scope + " → " + r.active?.scriptURL).join(" | "), "info");
+      // ── 3. Existing registrations ─────────────────────────────────────────
+      const before = await withTimeout(navigator.serviceWorker.getRegistrations(), 5000, "getRegistrations (before)");
+      step("Existing SWs (before register)", before.length === 0 ? "none" : before.map(r => `${r.scope} active=${r.active?.scriptURL || "—"} waiting=${r.waiting?.scriptURL || "—"} installing=${r.installing?.scriptURL || "—"}`).join("\n"), "info");
 
-      // 5. Explicitly register firebase-messaging-sw.js
-      step("Registering firebase-messaging-sw.js…", "…", "info");
+      // ── 4. Register SW with timeout ───────────────────────────────────────
+      step("Calling navigator.serviceWorker.register(/firebase-messaging-sw.js)…", "…", "info");
       let swReg;
       try {
-        swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
-        await navigator.serviceWorker.ready;
-        step("SW Registration", "OK — scope: " + swReg.scope + " state: " + (swReg.active?.state || swReg.installing?.state || swReg.waiting?.state), "ok");
+        swReg = await withTimeout(navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" }), 12000, "serviceWorker.register");
+        step("register() returned", `scope=${swReg.scope} installing=${swReg.installing?.state} waiting=${swReg.waiting?.state} active=${swReg.active?.state}`, "ok");
+      } catch (e) { step("register() FAILED", describeErr(e), "fail"); return; }
+
+      // ── 5. Wait for activation, watching state transitions ────────────────
+      step("Waiting for SW to reach 'activated'…", "(12s timeout — state transitions will log live)", "info");
+      try {
+        const activeWorker = await awaitActivation(swReg, 12000);
+        step("SW activated ✅", "scriptURL=" + activeWorker.scriptURL, "ok");
       } catch (e) {
-        step("SW Registration FAILED", e.message, "fail");
+        step("SW activation FAILED ❌", describeErr(e), "fail");
+        step("HINT", "Tap 'Unregister all SWs + clear caches' and reload — a previous SW may be stuck.", "warn");
         return;
       }
 
-      // 6. Init Firebase app (avoid duplicate app error)
+      // ── 6. Firebase app init ──────────────────────────────────────────────
+      step("Before firebase.initializeApp/firebase.app()", "—", "info");
       let app;
       try {
-        app = firebase.app();
-        step("Firebase app", "already initialized", "ok");
-      } catch (_) {
-        app = firebase.initializeApp(FIREBASE_CONFIG);
-        step("Firebase app", "initialized", "ok");
+        try {
+          app = firebase.app();
+          step("firebase.app()", "already initialized — name=" + app.name, "ok");
+        } catch (notInitYet) {
+          app = firebase.initializeApp(FIREBASE_CONFIG);
+          step("firebase.initializeApp() returned", "name=" + app.name, "ok");
+        }
+        step("app.options.projectId", app.options?.projectId || "(missing)", app.options?.projectId ? "ok" : "fail");
+      } catch (e) { step("Firebase app init FAILED", describeErr(e), "fail"); return; }
+
+      // ── 7. getMessaging ───────────────────────────────────────────────────
+      step("Before firebase.messaging(app)", "—", "info");
+      let messaging;
+      try {
+        messaging = firebase.messaging(app);
+        step("firebase.messaging(app) returned", typeof messaging, "ok");
+      } catch (e) {
+        step("firebase.messaging(app) THREW ❌", describeErr(e), "fail");
+        step("HINT", "Common causes: Cloud Messaging API not enabled for the project, or this browser is not supported by firebase-messaging.", "warn");
+        return;
       }
 
-      const messaging = firebase.messaging(app);
-
-      // 7. getToken with explicit SW registration
-      step("Calling getToken()…", "contacting Firebase…", "info");
+      // ── 8. getToken ───────────────────────────────────────────────────────
+      step("Before messaging.getToken()", "vapidKey=" + VAPID_KEY.slice(0,8) + "… serviceWorkerRegistration set=" + !!swReg, "info");
       let token;
       try {
-        token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-        if (!token) { step("getToken()", "returned empty string", "fail"); return; }
+        token = await withTimeout(
+          messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg }),
+          15000,
+          "messaging.getToken"
+        );
+        if (!token) { step("getToken() returned empty", "Reload and try again — also check Site Settings → Notifications.", "fail"); return; }
         step("FCM Token obtained ✅", token.slice(0, 20) + "..." + token.slice(-8), "ok");
         step("Token length", token.length + " chars", "info");
       } catch (e) {
-        step("getToken() FAILED ❌", e.code + " — " + e.message, "fail");
+        step("getToken() FAILED ❌", describeErr(e), "fail");
+        if (e?.code === "messaging/token-subscribe-failed") step("HINT", "Cloud Messaging API may be disabled. Open Firebase Console → Project Settings → Cloud Messaging and ensure it's enabled.", "warn");
+        if (e?.code === "messaging/permission-blocked")     step("HINT", "Notification permission was revoked at OS level. Check phone Settings → Apps → Chrome → Notifications.", "warn");
+        if (e?.code === "messaging/unsupported-browser")    step("HINT", "Browser is not supported. Use Chrome/Edge on desktop, or Chrome on Android.", "warn");
         return;
       }
 
-      // 8. Check if user is logged in (Firebase auth)
-      step("Checking auth…", "looking for Firebase user…", "info");
+      // ── 9. Auth (optional — token is already obtained) ────────────────────
+      step("Before auth check", "—", "info");
       let idToken = null;
       try {
-        const { getAuth } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js");
+        const { getAuth } = await withTimeout(
+          import("https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"),
+          10000,
+          "import firebase-auth (gstatic)"
+        );
         const auth = getAuth(app);
-        await new Promise(resolve => {
+        await withTimeout(new Promise(resolve => {
           const unsubscribe = auth.onAuthStateChanged(user => {
             unsubscribe();
-            if (user) {
-              step("Firebase Auth", "logged in as " + user.email, "ok");
-              user.getIdToken().then(t => { idToken = t; resolve(); });
-            } else {
-              step("Firebase Auth", "NOT logged in — token will not be stored in Firestore", "warn");
-              resolve();
-            }
+            if (user) { step("Firebase Auth", "logged in as " + user.email, "ok"); user.getIdToken().then(t => { idToken = t; resolve(); }); }
+            else      { step("Firebase Auth", "NOT logged in — token will not be stored in Firestore", "warn"); resolve(); }
           });
-        });
-      } catch (e) {
-        step("Auth check failed", e.message, "warn");
-      }
+        }), 8000, "auth.onAuthStateChanged");
+      } catch (e) { step("Auth check failed", describeErr(e), "warn"); }
 
-      // 9. POST token to backend
+      // ── 10. POST token to backend ─────────────────────────────────────────
       if (idToken) {
-        step("POSTing token to Railway…", API_BASE + "/api/parent/notifications/fcm-token", "info");
+        step("POSTing token to backend…", API_BASE + "/api/parent/notifications/fcm-token", "info");
         try {
-          const resp = await fetch(API_BASE + "/api/parent/notifications/fcm-token", {
+          const resp = await withTimeout(fetch(API_BASE + "/api/parent/notifications/fcm-token", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken },
             body: JSON.stringify({ token }),
-          });
+          }), 15000, "fetch fcm-token");
           const body = await resp.json();
           step("Backend response", "HTTP " + resp.status + " — " + JSON.stringify(body), resp.ok ? "ok" : "fail");
           if (resp.ok) step("RESULT", "Token stored in Firestore ✅ — Run the E2E test now.", "ok");
-        } catch (e) {
-          step("Backend POST FAILED", e.message, "fail");
-        }
+        } catch (e) { step("Backend POST FAILED", describeErr(e), "fail"); }
       } else {
         step("Skipped backend POST", "Not logged in. Log into the parent app first, then reopen this page.", "warn");
       }
 
-      step("Done", new Date().toISOString(), "info");
+      step("Done", new Date().toISOString(), "ok");
     }
   </script>
 </body>

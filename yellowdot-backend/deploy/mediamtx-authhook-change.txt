@@ -1,0 +1,25 @@
+# mediamtx.yml change — REVIEW ONLY
+#
+# ONE LINE to change in /opt/mediamtx/mediamtx.yml on the VPS.
+# This is the only change to the MediaMTX deployment.
+#
+# Find this line (current value — points to Railway):
+#   authHTTPAddress: https://backend-production-3608.up.railway.app/internal/cctv/auth
+#
+# Replace with (points to new VPS backend):
+#   authHTTPAddress: https://api.kueboxs.com/internal/cctv/auth
+#
+# After the edit, restart MediaMTX:
+#   docker restart yd-mediamtx
+#
+# Verify the hook works (should 401 on read without token):
+#   curl -s -X POST https://api.kueboxs.com/internal/cctv/auth \
+#     -H "Content-Type: application/json" \
+#     -d '{"action":"read","path":"test","ip":"1.2.3.4","token":"bad"}' | cat
+#   # Expected: {"error":"invalid-token"} HTTP 401
+#
+# And that localhost publish is still allowed (from inside VPS):
+#   curl -s -X POST http://127.0.0.1:5000/internal/cctv/auth \
+#     -H "Content-Type: application/json" \
+#     -d '{"action":"publish","path":"camXYZ","ip":"127.0.0.1"}' | cat
+#   # Expected: {"ok":true} HTTP 200

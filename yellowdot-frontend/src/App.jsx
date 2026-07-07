@@ -77,6 +77,43 @@ const Events              = lazy(() => import("./pages/Events"));
 const PTM                 = lazy(() => import("./pages/PTM"));
 const Incidents           = lazy(() => import("./pages/Incidents"));
 
+// ── Staff Management pages ──────────────────────────────────────────────────
+const StaffDashboard      = lazy(() => import("./pages/staff/StaffDashboard"));
+const StaffDirectory      = lazy(() => import("./pages/staff/StaffDirectory"));
+const StaffProfilePage    = lazy(() => import("./pages/staff/StaffProfile"));
+const StaffDepartments    = lazy(() => import("./pages/staff/StaffDepartments"));
+const StaffDesignations   = lazy(() => import("./pages/staff/StaffDesignations"));
+// Phase 2 — Attendance
+const AttendanceDashboard = lazy(() => import("./pages/staff/attendance/AttendanceDashboard"));
+const AttendanceToday     = lazy(() => import("./pages/staff/attendance/AttendanceToday"));
+const AttendanceCalendar  = lazy(() => import("./pages/staff/attendance/AttendanceCalendar"));
+const AttendanceHistory   = lazy(() => import("./pages/staff/attendance/AttendanceHistory"));
+const AttendanceReports   = lazy(() => import("./pages/staff/attendance/AttendanceReports"));
+const StaffShifts         = lazy(() => import("./pages/staff/attendance/StaffShifts"));
+// Phase 3 — Leave
+const LeaveDashboard      = lazy(() => import("./pages/staff/leave/LeaveDashboard"));
+const LeaveTypes          = lazy(() => import("./pages/staff/leave/LeaveTypes"));
+const LeaveApply          = lazy(() => import("./pages/staff/leave/LeaveApply"));
+const LeaveApprovals      = lazy(() => import("./pages/staff/leave/LeaveApprovals"));
+const LeaveCalendarPage   = lazy(() => import("./pages/staff/leave/LeaveCalendar"));
+const LeaveReports        = lazy(() => import("./pages/staff/leave/LeaveReports"));
+// Phase 4 — Payroll
+const PayrollDashboard    = lazy(() => import("./pages/staff/payroll/PayrollDashboard"));
+const SalaryComponents    = lazy(() => import("./pages/staff/payroll/SalaryComponents"));
+const SalaryStructures    = lazy(() => import("./pages/staff/payroll/SalaryStructures"));
+const StaffSalaryPage     = lazy(() => import("./pages/staff/payroll/StaffSalary"));
+const PayrollRun          = lazy(() => import("./pages/staff/payroll/PayrollRun"));
+const PayrollHistory      = lazy(() => import("./pages/staff/payroll/PayrollHistory"));
+const BankReport          = lazy(() => import("./pages/staff/payroll/BankReport"));
+// Phase 5 — Performance
+const PerformanceDashboard= lazy(() => import("./pages/staff/performance/PerformanceDashboard"));
+const PerformanceKpis     = lazy(() => import("./pages/staff/performance/PerformanceKpis"));
+const PerformanceReviews  = lazy(() => import("./pages/staff/performance/PerformanceReviews"));
+const PerformanceGoals    = lazy(() => import("./pages/staff/performance/PerformanceGoals"));
+const ParentFeedback      = lazy(() => import("./pages/staff/performance/ParentFeedback"));
+const AwardsPromotions    = lazy(() => import("./pages/staff/performance/AwardsPromotions"));
+const PerformanceTimelinePage = lazy(() => import("./pages/staff/performance/PerformanceTimeline"));
+
 // ── Super Admin pages ───────────────────────────────────────────────────────
 const TenantList          = lazy(() => import("./pages/superadmin/TenantList"));
 const TenantCreate        = lazy(() => import("./pages/superadmin/TenantCreate"));
@@ -550,6 +587,90 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* ── Staff Management ─────────────────────────────────────────── */}
+            <Route
+              path="/staff/dashboard"
+              element={
+                <ProtectedRoute routeKey="staff-dashboard">
+                  <MainLayout><StaffDashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/employees"
+              element={
+                <ProtectedRoute routeKey="staff-management">
+                  <MainLayout><StaffDirectory /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/employees/new"
+              element={
+                <ProtectedRoute routeKey="staff-management">
+                  <MainLayout><StaffProfilePage /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/employees/:staffId"
+              element={
+                <ProtectedRoute routeKey="staff-management">
+                  <MainLayout><StaffProfilePage /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/departments"
+              element={
+                <ProtectedRoute routeKey="departments">
+                  <MainLayout><StaffDepartments /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/designations"
+              element={
+                <ProtectedRoute routeKey="designations">
+                  <MainLayout><StaffDesignations /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Staff Attendance (Phase 2) ─────────────────────────────── */}
+            <Route path="/staff/attendance"          element={<ProtectedRoute routeKey="staff-attendance"><MainLayout><AttendanceDashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/attendance/today"    element={<ProtectedRoute routeKey="staff-attendance"><MainLayout><AttendanceToday /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/attendance/calendar" element={<ProtectedRoute routeKey="staff-attendance"><MainLayout><AttendanceCalendar /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/attendance/history"  element={<ProtectedRoute routeKey="staff-attendance"><MainLayout><AttendanceHistory /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/attendance/reports"  element={<ProtectedRoute routeKey="staff-attendance"><MainLayout><AttendanceReports /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/shifts"              element={<ProtectedRoute routeKey="staff-shifts"><MainLayout><StaffShifts /></MainLayout></ProtectedRoute>} />
+
+            {/* ── Leave Management (Phase 3) ───────────────────────────── */}
+            <Route path="/staff/leave"             element={<ProtectedRoute routeKey="staff-leave"><MainLayout><LeaveDashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/leave/types"       element={<ProtectedRoute routeKey="staff-leave-types"><MainLayout><LeaveTypes /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/leave/apply"       element={<ProtectedRoute routeKey="staff-leave"><MainLayout><LeaveApply /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/leave/approvals"   element={<ProtectedRoute routeKey="staff-leave"><MainLayout><LeaveApprovals /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/leave/calendar"    element={<ProtectedRoute routeKey="staff-leave"><MainLayout><LeaveCalendarPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/leave/reports"     element={<ProtectedRoute routeKey="staff-leave"><MainLayout><LeaveReports /></MainLayout></ProtectedRoute>} />
+
+            {/* ── Payroll (Phase 4) ─────────────────────────────────────── */}
+            <Route path="/staff/payroll"            element={<ProtectedRoute routeKey="staff-payroll"><MainLayout><PayrollDashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/components" element={<ProtectedRoute routeKey="staff-payroll-process"><MainLayout><SalaryComponents /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/structures" element={<ProtectedRoute routeKey="staff-payroll-process"><MainLayout><SalaryStructures /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/staff"      element={<ProtectedRoute routeKey="staff-payroll-process"><MainLayout><StaffSalaryPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/run"        element={<ProtectedRoute routeKey="staff-payroll-process"><MainLayout><PayrollRun /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/history"    element={<ProtectedRoute routeKey="staff-payroll"><MainLayout><PayrollHistory /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/payroll/bank"       element={<ProtectedRoute routeKey="staff-payroll"><MainLayout><BankReport /></MainLayout></ProtectedRoute>} />
+
+            {/* ── Performance Management (Phase 5) ─────────────────────── */}
+            <Route path="/staff/performance"          element={<ProtectedRoute routeKey="staff-performance"><MainLayout><PerformanceDashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/kpis"     element={<ProtectedRoute routeKey="staff-performance-manage"><MainLayout><PerformanceKpis /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/reviews"  element={<ProtectedRoute routeKey="staff-performance"><MainLayout><PerformanceReviews /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/goals"    element={<ProtectedRoute routeKey="staff-performance"><MainLayout><PerformanceGoals /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/feedback" element={<ProtectedRoute routeKey="staff-performance"><MainLayout><ParentFeedback /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/awards"   element={<ProtectedRoute routeKey="staff-performance"><MainLayout><AwardsPromotions /></MainLayout></ProtectedRoute>} />
+            <Route path="/staff/performance/timeline" element={<ProtectedRoute routeKey="staff-performance"><MainLayout><PerformanceTimelinePage /></MainLayout></ProtectedRoute>} />
 
             {/* ── Super Admin ───────────────────────────────────────────────── */}
             <Route

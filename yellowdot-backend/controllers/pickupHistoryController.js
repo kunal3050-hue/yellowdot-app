@@ -10,7 +10,7 @@ const svc = require("../services/pickupHistoryService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
-const VALID_STATUSES = ["Authorized", "Emergency_Authorized", "Unauthorized"];
+const VALID_STATUSES = ["Authorized", "Emergency_Authorized", "Unauthorized", "Parent_Approved"];
 
 function resolveCtx(req) {
   return {

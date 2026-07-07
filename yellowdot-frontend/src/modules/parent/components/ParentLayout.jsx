@@ -39,8 +39,8 @@ const T = {
   radius:  radius.card,
 };
 
-// ── Bottom tab definitions (V1) ───────────────────────────────────────────────
-// 3 primary tabs. Daily Care is the central, emphasized hub (raised button).
+// ── Bottom tab definitions ────────────────────────────────────────────────────
+// Daily Care is the central, emphasized hub (raised button).
 const TABS = [
   { path: "/parent-home",       label: "Home",       icon: HomeIcon                  },
   { path: "/parent-daily-care", label: "Daily Care", icon: null,        center: true },
@@ -374,6 +374,14 @@ function ProfileIcon({ active }) {
     <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+function CameraIcon({ active }) {
+  return (
+    <svg viewBox="0 0 24 24" {...SZ} strokeWidth={active ? "2.2" : "1.8"}>
+      <path d="M23 7l-7 5 7 5V7z" />
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
     </svg>
   );
 }

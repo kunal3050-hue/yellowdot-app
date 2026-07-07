@@ -140,6 +140,7 @@ export default function LiveDashboard() {
   const [payments,  setPayments]  = useState(null);   // /api/payments
   const [food,      setFood]      = useState(null);   // /api/food-consumption
   const [pickupReq, setPickupReq] = useState(null);   // /api/pickup-requests?status=pending
+  const [families,  setFamilies]  = useState(null);   // /api/families/count
 
   const [loading,   setLoading]   = useState(true);
   const [errors,    setErrors]    = useState([]);
@@ -154,7 +155,7 @@ export default function LiveDashboard() {
 
     const [
       stuRes, sumRes, insRes, usrRes,
-      invRes, payRes, foodRes, pReqRes,
+      invRes, payRes, foodRes, pReqRes, famRes,
     ] = await Promise.allSettled([
       get("/students"),
       get(`/api/attendance/summary?date=${d}`),
@@ -164,6 +165,7 @@ export default function LiveDashboard() {
       get(`/api/payments`),
       get(`/api/food-consumption?date=${d}`),
       get(`/api/pickup-requests?status=pending`),
+      get("/api/families/count"),
     ]);
 
     if (!mountedRef.current) return;
@@ -210,6 +212,12 @@ export default function LiveDashboard() {
     if (pReqRes.status === "fulfilled" && pReqRes.value?.success) {
       setPickupReq(pReqRes.value.count ?? (pReqRes.value.requests || []).length);
     } else errs.push("Pickup");
+
+    // Total families
+    if (famRes.status === "fulfilled" && famRes.value?.success) {
+      setFamilies(famRes.value.total ?? null);
+    }
+    // Families widget failure is non-critical — no error banner entry
 
     setErrors(errs);
     setLastAt(new Date());
@@ -408,6 +416,13 @@ export default function LiveDashboard() {
             sub="rooms with students"
             loading={loading}
             accent="#8B5CF6"
+          />
+          <Stat
+            label="Total Families"
+            value={families}
+            sub="family units registered"
+            loading={loading}
+            accent="#F59E0B"
           />
         </Section>
 

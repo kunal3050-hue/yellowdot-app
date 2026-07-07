@@ -84,6 +84,13 @@ const familyRoutes           = require("./routes/familyRoutes");
 const journeyRoutes          = require("./routes/journeyRoutes");
 const releaseRoutes          = require("./routes/releaseRoutes");
 const tenantRoutes           = require("./routes/tenantRoutes");
+const staffRoutes            = require("./routes/staffRoutes");
+const departmentRoutes       = require("./routes/departmentRoutes");
+const designationRoutes      = require("./routes/designationRoutes");
+const staffAttendanceRoutes  = require("./routes/staffAttendanceRoutes");
+const leaveRoutes            = require("./routes/leaveRoutes");
+const payrollRoutes          = require("./routes/payrollRoutes");
+const performanceRoutes      = require("./routes/performanceRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -131,6 +138,13 @@ app.use(eventRoutes);          // /api/events/*  (Events — staff CRUD)
 app.use(ptmRoutes);            // /api/ptm/*       (PTM — staff CRUD + slot management)
 app.use(incidentRoutes);       // /api/incidents/* (Incident Reports — staff CRUD)
 app.use(familyRoutes);         // /api/families/*  (Family & Sibling Management)
+app.use(staffRoutes);          // /api/staff/*       (Staff Management — Phase 1)
+app.use(departmentRoutes);     // /api/departments/* (Staff Management — Departments)
+app.use(designationRoutes);    // /api/designations/*(Staff Management — Designations)
+app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* (Phase 2)
+app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
+app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
+app.use(performanceRoutes);    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
 app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)

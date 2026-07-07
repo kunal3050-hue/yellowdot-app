@@ -21,11 +21,32 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "headers": [
       {
-        "source": "/api/**",
-        "function": "api"
+        "source": "/**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
+        ]
       },
+      {
+        "source": "/firebase-messaging-sw.js",
+        "headers": [
+          { "key": "Cache-Control",           "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Service-Worker-Allowed",  "value": "/" },
+          { "key": "Content-Type",            "value": "application/javascript; charset=utf-8" }
+        ]
+      },
+      {
+        "source": "/fcm-test.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      }
+    ],
+    "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"

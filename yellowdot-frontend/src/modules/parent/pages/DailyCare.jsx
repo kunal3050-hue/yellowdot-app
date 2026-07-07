@@ -19,9 +19,10 @@ import { colors, spacing, radius, shadows, typography } from "../theme";
 
 const MODULES = [
   // Active
-  { emoji: "📅", label: "Attendance",      to: "/parent-attendance", active: true },
-  { emoji: "📸", label: "Memories",        to: "/parent-memories",   active: true },
-  { emoji: "💳", label: "Fees",            to: "/parent-fees",       active: true },
+  { emoji: "📹", label: "Live Camera",     to: "/parent-live",        active: true, live: true },
+  { emoji: "📅", label: "Attendance",      to: "/parent-attendance",  active: true },
+  { emoji: "📸", label: "Memories",        to: "/parent-memories",    active: true },
+  { emoji: "💳", label: "Fees",            to: "/parent-fees",        active: true },
   { emoji: "🍽️", label: "Food Menu",       to: "/parent-food-menu",   active: true },
   { emoji: "🍎", label: "Consumption Log", to: "/parent-consumption", active: true },
   { emoji: "😴", label: "Nap Tracker",     to: "/parent-nap",         active: true },
@@ -107,7 +108,7 @@ function ChildSelector({ children, activeId, onSelect }) {
 
 // ── Module card ─────────────────────────────────────────────────────
 function ModuleCard({ module, onOpen }) {
-  const { emoji, label, active } = module;
+  const { emoji, label, active, live } = module;
   return (
     <button
       onClick={onOpen}
@@ -141,10 +142,17 @@ function ModuleCard({ module, onOpen }) {
       </span>
 
       {active ? (
+        live ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: radius.pill, background: "#FEE2E2", border: "1px solid #FCA5A5" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444", flexShrink: 0 }} />
+            <span style={{ fontSize: 10, fontWeight: typography.weight.bold, color: "#B91C1C", letterSpacing: "0.06em" }}>LIVE</span>
+          </span>
+        ) : (
         <span style={{ ...typography.meta, color: colors.yellow700, fontWeight: typography.weight.bold, display: "inline-flex", alignItems: "center", gap: 4 }}>
           Open
           <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={colors.yellow700} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
         </span>
+        )
       ) : (
         <span style={{
           ...typography.meta, fontWeight: typography.weight.bold,

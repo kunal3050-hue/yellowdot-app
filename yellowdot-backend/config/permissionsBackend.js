@@ -24,6 +24,11 @@ const ROLE_PERMISSIONS = {
     "academics-student-allocation",
     "families",
     "child-journey",
+    "staff-dashboard", "staff-management", "departments", "designations",
+    "staff-attendance", "staff-attendance-manage", "staff-shifts",
+    "staff-leave", "staff-leave-approve", "staff-leave-types",
+    "staff-payroll", "staff-payroll-process",
+    "staff-performance", "staff-performance-manage",
   ],
 
   center_owner: [
@@ -37,6 +42,11 @@ const ROLE_PERMISSIONS = {
     "academics-student-allocation",
     "families",
     "child-journey",
+    "staff-dashboard", "staff-management", "departments", "designations",
+    "staff-attendance", "staff-attendance-manage", "staff-shifts",
+    "staff-leave", "staff-leave-approve", "staff-leave-types",
+    "staff-payroll", "staff-payroll-process",
+    "staff-performance", "staff-performance-manage",
   ],
 
   center_admin: [
@@ -50,6 +60,11 @@ const ROLE_PERMISSIONS = {
     "academics-student-allocation",
     "families",
     "child-journey",
+    "staff-dashboard", "staff-management", "departments", "designations",
+    "staff-attendance", "staff-attendance-manage", "staff-shifts",
+    "staff-leave", "staff-leave-approve", "staff-leave-types",
+    "staff-payroll", "staff-payroll-process",
+    "staff-performance", "staff-performance-manage",
   ],
 
   teacher: [
@@ -60,6 +75,7 @@ const ROLE_PERMISSIONS = {
     "academics-classes", "academics-batches",
     "academics-student-allocation",
     "child-journey",
+    "staff-attendance", "staff-leave", "staff-payroll", "staff-performance",
   ],
 
   accountant: [

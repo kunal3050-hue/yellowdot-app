@@ -605,6 +605,210 @@ service cloud.firestore {
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // STAFF  (HR records — Phase 1 Staff Management)
+    // Tenant-isolated by schoolId. Staff may read their own record only;
+    // managers may read/write everything inside their school.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /staff/{staffId} {
+      // Self-read is allowed even for non-managers (so teachers can see
+      // their own profile in the future "My Profile" screen).
+      allow read: if isSignedIn() && (
+        (isStaff()      && sameSchool(resource.data.schoolId)) ||
+        (resource.data.linkedUserId == request.auth.uid)
+      );
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        // schoolId, tenantId, employeeCode and staffId are immutable
+        request.resource.data.schoolId     == resource.data.schoolId &&
+        request.resource.data.tenantId     == resource.data.tenantId &&
+        request.resource.data.employeeCode == resource.data.employeeCode &&
+        request.resource.data.staffId      == resource.data.staffId;
+
+      // Hard deletes are blocked from clients. Use the soft-delete endpoint
+      // (PUT/DELETE through the backend) which flips status to "inactive".
+      allow delete: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // DEPARTMENTS  (Staff Management — master list)
+    // ════════════════════════════════════════════════════════════════════
+
+    match /departments/{deptId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        request.resource.data.schoolId == resource.data.schoolId;
+
+      // System departments cannot be deleted from the client. The backend
+      // controller enforces this rule for non-system docs too.
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        resource.data.isSystem != true;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // DESIGNATIONS  (Staff Management — master list)
+    // ════════════════════════════════════════════════════════════════════
+
+    match /designations/{designationId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isCenterAdmin() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        request.resource.data.schoolId == resource.data.schoolId;
+
+      allow delete: if isSignedIn() && isAdmin() && isActive() &&
+        sameSchool(resource.data.schoolId) &&
+        resource.data.isSystem != true;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // EMPLOYEE TIMELINE  (Staff Management — append-only event log)
+    // Only the backend (Admin SDK) writes these. Staff may read events
+    // within their school; everyone else is denied.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /employeeTimeline/{eventId} {
+      allow read: if isSignedIn() && isStaff() &&
+        sameSchool(resource.data.schoolId);
+
+      // All writes are server-side via the Admin SDK.
+      allow write: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PHASE 2 — STAFF ATTENDANCE
+    // ════════════════════════════════════════════════════════════════════
+
+    match /staffShifts/{shiftId} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /staffAttendance/{id} {
+      allow read: if isSignedIn() && (
+        (isStaff() && sameSchool(resource.data.schoolId)) ||
+        // Staff can read their own attendance via the linked staff doc — backend enforces in practice
+        (resource.data.staffId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && isReceptionOrAbove() && isActive() && writingSameSchool();
+      allow update: if isSignedIn() && isReceptionOrAbove() && isActive() && sameSchool(resource.data.schoolId);
+      allow delete: if false; // soft-delete via backend
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PHASE 3 — LEAVE MANAGEMENT
+    // ════════════════════════════════════════════════════════════════════
+
+    match /leaveTypes/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /leaveBalances/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if false; // backend-only (Admin SDK)
+    }
+
+    match /leaveRequests/{id} {
+      allow read: if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow create: if isSignedIn() && isStaff() && isActive() && writingSameSchool();
+      allow update: if isSignedIn() && isCenterAdmin() && isActive() && sameSchool(resource.data.schoolId);
+      allow delete: if false; // soft-delete via backend
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PHASE 4 — PAYROLL
+    // ════════════════════════════════════════════════════════════════════
+
+    match /salaryComponents/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isFinance() && isActive() && writingSameSchool();
+    }
+
+    match /salaryStructures/{id} {
+      allow read:  if isSignedIn() && isFinance() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isFinance() && isActive() && writingSameSchool();
+    }
+
+    match /staffSalary/{staffId} {
+      // Salary is sensitive — only finance + admins may read.
+      allow read:  if isSignedIn() && isFinance() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isFinance() && isActive() && writingSameSchool();
+    }
+
+    match /payrollRuns/{id} {
+      allow read:  if isSignedIn() && isFinance() && sameSchool(resource.data.schoolId);
+      allow write: if false; // backend-only
+    }
+
+    match /payslips/{id} {
+      allow read: if isSignedIn() && (
+        (isFinance() && sameSchool(resource.data.schoolId)) ||
+        // Employee may read their own payslip if linked
+        (resource.data.staffId == request.auth.uid)
+      );
+      allow write: if false; // backend-only
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // PHASE 5 — PERFORMANCE MANAGEMENT
+    // ════════════════════════════════════════════════════════════════════
+
+    match /performanceKpis/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /performanceReviews/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /performanceGoals/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /parentFeedback/{id} {
+      allow read: if isSignedIn() && (
+        (isStaff() && sameSchool(resource.data.schoolId)) ||
+        (isParentAccount() && resource.data.parentId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && isActive() && writingSameSchool();
+      allow update, delete: if isSignedIn() && isCenterAdmin() && isActive() && sameSchool(resource.data.schoolId);
+    }
+
+    match /staffPromotions/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /staffAwards/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if isSignedIn() && isCenterAdmin() && isActive() && writingSameSchool();
+    }
+
+    match /performanceTimeline/{id} {
+      allow read:  if isSignedIn() && isStaff() && sameSchool(resource.data.schoolId);
+      allow write: if false; // backend-only
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // DENY EVERYTHING ELSE
     // Any collection not explicitly listed above is fully locked down.
     // ════════════════════════════════════════════════════════════════════

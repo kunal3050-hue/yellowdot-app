@@ -22,6 +22,7 @@ import {
 import { APP_ENV, APP_NAME, APP_VERSION, currentEnvMeta } from "../config/environment";
 import { FLAGS, FLAG_GROUPS } from "../config/featureFlags";
 import { RELEASE_NOTES, CHANGE_TYPE_META } from "../config/releaseNotes";
+import ReleasesDashboard from "./releases/ReleasesDashboard";
 
 // ══════════════════════════════════════════════════════════════════
 // ICONS  (Lucide-style SVG, 16×16)
@@ -58,6 +59,7 @@ const Icons = {
   AlertTriangle: () => svg(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
   QrCode:        () => svg(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14.01" y2="14"/><line x1="18" y1="14" x2="18.01" y2="14"/><line x1="14" y1="18" x2="14" y2="21"/><line x1="21" y1="18" x2="21" y2="21"/></>),
   GitBranch:     () => svg(<><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M18 9a9 9 0 01-9 9"/></>),
+  Rocket:        () => svg(<><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2l5.5-5.5-8-3L4.5 16.5z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></>),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -76,6 +78,7 @@ const SECTIONS = [
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
   { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
   { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",      desc: "QR codes for gate entry and check-in" },
+  { id: "releases",     label: "Staged Releases",    icon: "Rocket",      desc: "Module pipeline: Development → Testing → Production", developerOnly: true },
   { id: "release",      label: "Release & Build",    icon: "GitBranch",   desc: "Environment, version, feature flags", developerOnly: true },
 ];
 
@@ -1447,6 +1450,7 @@ export default function Settings() {
       case "parent":        return <ParentSection      {...props} />;
       case "payment":       return <PaymentSection     {...props} />;
       case "gate_config":   return <GateConfigSection />;
+      case "releases":      return <ReleasesDashboard />;
       case "release":       return <ReleaseSection />;
       default:              return null;
     }

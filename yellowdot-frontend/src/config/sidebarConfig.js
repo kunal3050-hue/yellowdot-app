@@ -92,8 +92,8 @@ export const SIDEBAR_GROUPS = [
       },
 
       {
-        id:         "staff",
-        label:      "Staff",
+        id:         "login_users",
+        label:      "Login Users",
         path:       "/user-management",
         routeKey:   ROUTES.USER_MANAGEMENT,
         icon:       "Briefcase",
@@ -106,6 +106,148 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.ROLES_PERMISSIONS,
         icon:     "Shield",
       },
+    ],
+  },
+
+  // ── Staff Management (Phase 1) ────────────────────────────────────────────
+  {
+    id:          "staff_management",
+    label:       "Staff Management",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "staff_dashboard",
+        label:    "Dashboard",
+        path:     "/staff/dashboard",
+        routeKey: ROUTES.STAFF_DASHBOARD,
+        icon:     "Home",
+      },
+      {
+        id:         "staff_employees",
+        label:      "Employees",
+        path:       "/staff/employees",
+        routeKey:   ROUTES.STAFF_MANAGEMENT,
+        icon:       "UserCheck",
+        matchPaths: ["/staff/employees/"],
+      },
+      {
+        id:       "staff_departments",
+        label:    "Departments",
+        path:     "/staff/departments",
+        routeKey: ROUTES.DEPARTMENTS,
+        icon:     "Building2",
+      },
+      {
+        id:       "staff_designations",
+        label:    "Designations",
+        path:     "/staff/designations",
+        routeKey: ROUTES.DESIGNATIONS,
+        icon:     "BookOpen",
+      },
+    ],
+  },
+
+  // ── Staff Attendance (Phase 2) ────────────────────────────────────────────
+  {
+    id:          "staff_attendance",
+    label:       "Staff Attendance",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:       "attendance_dashboard",
+        label:    "Dashboard",
+        path:     "/staff/attendance",
+        routeKey: ROUTES.STAFF_ATTENDANCE,
+        icon:     "CheckSquare",
+        exact:    true,
+      },
+      {
+        id:       "attendance_today",
+        label:    "Today",
+        path:     "/staff/attendance/today",
+        routeKey: ROUTES.STAFF_ATTENDANCE,
+        icon:     "UserCheck",
+      },
+      {
+        id:       "attendance_calendar",
+        label:    "Calendar",
+        path:     "/staff/attendance/calendar",
+        routeKey: ROUTES.STAFF_ATTENDANCE,
+        icon:     "CalendarDays",
+      },
+      {
+        id:       "attendance_history",
+        label:    "History",
+        path:     "/staff/attendance/history",
+        routeKey: ROUTES.STAFF_ATTENDANCE,
+        icon:     "History",
+      },
+      {
+        id:       "attendance_reports",
+        label:    "Reports",
+        path:     "/staff/attendance/reports",
+        routeKey: ROUTES.STAFF_ATTENDANCE,
+        icon:     "BarChart2",
+      },
+      {
+        id:       "staff_shifts",
+        label:    "Shifts",
+        path:     "/staff/shifts",
+        routeKey: ROUTES.STAFF_SHIFTS,
+        icon:     "Moon",
+      },
+    ],
+  },
+
+  // ── Leave Management (Phase 3) ─────────────────────────────────────
+  {
+    id:          "staff_leave",
+    label:       "Leave Management",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "leave_dashboard", label: "Dashboard",    path: "/staff/leave",            routeKey: ROUTES.STAFF_LEAVE,        icon: "Heart", exact: true },
+      { id: "leave_apply",     label: "Apply Leave",  path: "/staff/leave/apply",      routeKey: ROUTES.STAFF_LEAVE,        icon: "CheckSquare" },
+      { id: "leave_approvals", label: "Approvals",    path: "/staff/leave/approvals",  routeKey: ROUTES.STAFF_LEAVE,        icon: "UserCheck" },
+      { id: "leave_calendar",  label: "Calendar",     path: "/staff/leave/calendar",   routeKey: ROUTES.STAFF_LEAVE,        icon: "CalendarDays" },
+      { id: "leave_reports",   label: "Reports",      path: "/staff/leave/reports",    routeKey: ROUTES.STAFF_LEAVE,        icon: "BarChart2" },
+      { id: "leave_types",     label: "Leave Types",  path: "/staff/leave/types",      routeKey: ROUTES.STAFF_LEAVE_TYPES,  icon: "BookOpen" },
+    ],
+  },
+
+  // ── Payroll (Phase 4) ──────────────────────────────────────────────
+  {
+    id:          "staff_payroll",
+    label:       "Payroll",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "payroll_dashboard",  label: "Dashboard",     path: "/staff/payroll",            routeKey: ROUTES.STAFF_PAYROLL,         icon: "CreditCard", exact: true },
+      { id: "payroll_run",        label: "Run Payroll",   path: "/staff/payroll/run",        routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "FileText" },
+      { id: "payroll_staff",      label: "Staff Salaries",path: "/staff/payroll/staff",      routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "Users" },
+      { id: "payroll_structures", label: "Structures",    path: "/staff/payroll/structures", routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "Layers" },
+      { id: "payroll_components", label: "Components",    path: "/staff/payroll/components", routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "Grid" },
+      { id: "payroll_history",    label: "History",       path: "/staff/payroll/history",    routeKey: ROUTES.STAFF_PAYROLL,         icon: "History" },
+      { id: "payroll_bank",       label: "Bank Report",   path: "/staff/payroll/bank",       routeKey: ROUTES.STAFF_PAYROLL,         icon: "BarChart2" },
+    ],
+  },
+
+  // ── Performance Management (Phase 5) ───────────────────────────────
+  {
+    id:          "staff_performance",
+    label:       "Performance",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "perf_dashboard", label: "Dashboard",       path: "/staff/performance",           routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "BarChart2", exact: true },
+      { id: "perf_reviews",   label: "Reviews",         path: "/staff/performance/reviews",   routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "FileText" },
+      { id: "perf_goals",     label: "Goals",           path: "/staff/performance/goals",     routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "CheckSquare" },
+      { id: "perf_feedback",  label: "Parent Feedback", path: "/staff/performance/feedback",  routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "Megaphone" },
+      { id: "perf_awards",    label: "Awards & Promotions", path: "/staff/performance/awards",routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "Heart" },
+      { id: "perf_timeline",  label: "Timeline & AI",   path: "/staff/performance/timeline",  routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "History" },
+      { id: "perf_kpis",      label: "KPIs",            path: "/staff/performance/kpis",      routeKey: ROUTES.STAFF_PERFORMANCE_MANAGE, icon: "Grid" },
     ],
   },
 

@@ -8,7 +8,8 @@
  * QR format:  YD-{BRANCH}-GATE-{N}   e.g. YD-SEAWOODS-GATE-1
  */
 
-const svc = require("../services/parentAttendanceService");
+const svc   = require("../services/parentAttendanceService");
+const notif = require("../services/notificationService");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -143,6 +144,28 @@ async function createParentAttendance(req, res) {
       `[parent-att] ${action}  student=${studentName}(${studentId})` +
       `  parent=${parentName}  gate=${gate}  gps=${gps}`
     );
+
+    // Fire parent notification — fire-and-forget, never blocks the 200 response
+    const istTime = new Date().toLocaleTimeString("en-IN", {
+      hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata",
+    });
+    if (action === "Check_In") {
+      notif.notifyAsync(() => notif.fireForStudent(studentId, schoolId, {
+        type:     notif.TYPES.CHILD_CHECKED_IN,
+        title:    `${studentName} arrived at school`,
+        message:  `${studentName} checked in at ${istTime}.`,
+        deepLink: "/parent-attendance",
+        childId:  studentId,
+      }));
+    } else if (action === "Check_Out") {
+      notif.notifyAsync(() => notif.fireForStudent(studentId, schoolId, {
+        type:     notif.TYPES.CHILD_CHECKED_OUT,
+        title:    `${studentName} left school`,
+        message:  `${studentName} checked out at ${istTime}. Collected by ${parentName}.`,
+        deepLink: "/parent-attendance",
+        childId:  studentId,
+      }));
+    }
 
     res.json({
       success: true,

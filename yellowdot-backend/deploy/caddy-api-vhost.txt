@@ -1,0 +1,17 @@
+# Caddyfile addition — REVIEW ONLY
+#
+# APPEND this block to the EXISTING /opt/caddy/Caddyfile on the VPS.
+# Do NOT replace the existing stream.kueboxs.com block.
+# Caddy will issue a new Let's Encrypt cert for api.kueboxs.com automatically.
+#
+# Pre-req: DNS A record for api.kueboxs.com → 66.116.245.149 must exist
+#          and have propagated before adding this block.
+#
+# After appending:
+#   docker exec yd-caddy caddy reload --config /etc/caddy/Caddyfile
+# Verify:
+#   curl https://api.kueboxs.com/api/version
+
+api.kueboxs.com {
+    reverse_proxy 127.0.0.1:5000
+}

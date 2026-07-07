@@ -52,9 +52,11 @@ workbox.routing.registerRoute(
 importScripts("https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js");
 
+// FCM only needs apiKey/projectId/messagingSenderId/appId — authDomain is
+// intentionally omitted here so this static SW file isn't tied to a specific
+// public host. OAuth authDomain lives in src/firebase/firebase.js (env-driven).
 firebase.initializeApp({
   apiKey:            "AIzaSyBwRMjTuDbOHMFdBtVV55kYoOcL-1L7tKM",
-  authDomain:        "yellowdot-app.firebaseapp.com",
   projectId:         "yellowdot-app",
   storageBucket:     "yellowdot-app.firebasestorage.app",
   messagingSenderId: "230256365087",

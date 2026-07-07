@@ -81,7 +81,7 @@ async function createPickupRequest(req, res) {
         type:     notif.TYPES.PICKUP_REQUEST,
         title:    `Unknown person at the gate for ${studentName}`,
         message:  `${personName || "Someone"} (${relation || "unknown relation"}) is requesting to pick up ${studentName}. Staff member: ${staffName || "Staff"}.`,
-        deepLink: "/parent-notifications",
+        deepLink: "/parent-pickup-approval",
         childId:  studentId,
       })
     );
@@ -135,10 +135,21 @@ async function approvePickupRequest(req, res) {
       return res.status(409).json({ success: false, error: `Request is already ${existing.status}.` });
     }
 
+    const {
+      approvedByParent,
+      approvedAt,
+      authMethod,
+      deviceAuthenticated,
+    } = req.body || {};
+
     const updated = await svc.updatePickupRequest(id, {
-      status:     "approved",
-      approvedBy: actorUserId,
-      resolvedAt: new Date().toISOString(),
+      status:              "approved",
+      approvedBy:          actorUserId,
+      resolvedAt:          new Date().toISOString(),
+      approvedByParent:    approvedByParent === true,
+      approvedAt:          approvedAt || new Date().toISOString(),
+      authMethod:          authMethod || "unknown",
+      deviceAuthenticated: deviceAuthenticated === true,
     });
 
     res.json({

@@ -60,6 +60,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements","cctv",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
+    "families",
   ],
   teacher: [
     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
@@ -105,6 +106,10 @@ const MODULE_ROUTE_MAP = {
   communications:    ["holidays","notices","announcements"],
   academics:         ["academics-classes","academics-batches",
                       "academics-teacher-allocation","academics-classroom-allocation"],
+  family_management: ["families"],
+  // Staff Management module — view grants dashboard + directory + dept/desig.
+  // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
+  staff_management:  ["staff-dashboard","staff-management","departments","designations"],
 };
 
 // ── Derive route keys from granular permission matrix ─────────────────────────

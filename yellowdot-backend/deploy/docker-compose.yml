@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  yd-backend:
+    image: yd-backend:${BACKEND_TAG:-latest}
+    build:
+      context: /opt/yd/repo/yellowdot-backend
+      dockerfile: Dockerfile
+    container_name: yd-backend
+    restart: unless-stopped
+
+    env_file: /opt/yd/backend.env
+
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-sa.json
+
+    volumes:
+      - /opt/yd/firebase-sa.json:/secrets/firebase-sa.json:ro
+
+    ports:
+      - "127.0.0.1:5000:5000"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
