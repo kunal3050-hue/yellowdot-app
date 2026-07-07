@@ -25,7 +25,7 @@ const studentSvc = require("../services/studentService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
 
-router.use(authenticate);
+router.use("/api/incidents", authenticate);
 
 // ── Helpers ────────────────────────────────────────────────────────
 
