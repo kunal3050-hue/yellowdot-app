@@ -158,14 +158,7 @@ function logRouteError(route, err) {
   console.error(`[${route}] Error (code ${code}): ${err.message}`);
 }
 
-// Resolve school + center context from authenticated request
-function resolveContext(req) {
-  return {
-    schoolId:    req.user?.schoolId || process.env.SCHOOL_ID || "yd-main",
-    centerId:    req.query?.centerId || req.user?.centerId   || "",
-    actorUserId: req.user?.userId   || "system",
-  };
-}
+const { resolveContext, scopeFinanceQuery, checkInvoiceOwnership } = require("./middleware/requestScope");
 
 // ============================================================
 // HEALTH CHECK  (public)
@@ -324,12 +317,14 @@ app.delete("/delete-student/:id", authenticate, authorize("admin","super_admin",
 app.get("/api/invoices", authenticate, async (req, res) => {
   try {
     const { schoolId, centerId } = resolveContext(req);
-    const { studentId, status }  = req.query;
+    const { status }  = req.query;
+    const scope = scopeFinanceQuery(req, req.query.studentId);
+    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
     const bypassAll = ["developer","super_admin","admin","accountant"].includes(req.user.role);
     const invoices  = await invoiceSvc.getAllInvoices({
       schoolId,
       centerId: bypassAll ? (centerId || undefined) : centerId,
-      studentId,
+      studentId: scope.studentId,
       status,
     });
     res.json({ success: true, invoices });
@@ -392,7 +387,9 @@ app.post("/save-invoice", authenticate, authorize("admin","center_admin","accoun
 app.get("/invoices", authenticate, async (req, res) => {
   try {
     const { schoolId } = resolveContext(req);
-    const invoices = await invoiceSvc.getAllInvoices({ schoolId });
+    const scope = scopeFinanceQuery(req, req.query.studentId);
+    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
+    const invoices = await invoiceSvc.getAllInvoices({ schoolId, studentId: scope.studentId });
     res.json(invoices);
   } catch (err) {
     logRouteError("GET /invoices", err);
@@ -405,6 +402,8 @@ app.get("/invoice/:invoiceNumber", authenticate, async (req, res) => {
     const { schoolId } = resolveContext(req);
     const invoice = await invoiceSvc.getInvoice(req.params.invoiceNumber, { schoolId });
     if (!invoice) return res.status(404).json({ success: false, message: "Invoice not found" });
+    const denied = checkInvoiceOwnership(req, invoice);
+    if (denied) return res.status(denied.status).json(denied.body);
     res.json({ success: true, ...invoice });
   } catch (err) {
     logRouteError("GET /invoice/:invoiceNumber", err);
@@ -435,7 +434,9 @@ app.post("/record-payment", authenticate, authorize("admin","center_admin","acco
 app.get("/payments", authenticate, async (req, res) => {
   try {
     const { schoolId } = resolveContext(req);
-    const payments = await invoiceSvc.getAllPayments(null, { schoolId });
+    const scope = scopeFinanceQuery(req, req.query.studentId);
+    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
+    const payments = await invoiceSvc.getAllPayments(null, { schoolId, studentId: scope.studentId });
     res.json(payments);
   } catch (err) {
     logRouteError("GET /payments", err);
@@ -450,8 +451,10 @@ app.get("/payments", authenticate, async (req, res) => {
 app.get("/api/payments", authenticate, async (req, res) => {
   try {
     const { schoolId, centerId }          = resolveContext(req);
-    const { invoiceNumber, studentId }    = req.query;
-    const payments = await invoiceSvc.getAllPayments(invoiceNumber || null, { schoolId, centerId, studentId });
+    const { invoiceNumber }    = req.query;
+    const scope = scopeFinanceQuery(req, req.query.studentId);
+    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
+    const payments = await invoiceSvc.getAllPayments(invoiceNumber || null, { schoolId, centerId, studentId: scope.studentId });
     res.json({ success: true, payments });
   } catch (e) {
     logRouteError("GET /api/payments", e);
@@ -483,7 +486,7 @@ app.post("/api/payments", authenticate, authorize("admin","center_admin","accoun
 // FEE TEMPLATES — REST API  (/api/fee-templates)
 // ============================================================
 
-app.get("/api/fee-templates", authenticate, async (req, res) => {
+app.get("/api/fee-templates", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId, centerId } = resolveContext(req);
     const templates = await invoiceSvc.getAllTemplates({ schoolId, centerId });
