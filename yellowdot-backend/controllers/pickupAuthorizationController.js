@@ -9,6 +9,7 @@
  */
 
 const svc = require("../services/pickupAuthorizationService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -132,9 +133,12 @@ async function updatePickupPerson(req, res) {
 
     const { pickupName, relation, mobile, photoUrl, idProof, emergency, status, notes } = req.body || {};
 
-    // Fetch existing to get studentId/name for audit log
+    // Fetch existing to get studentId/name for audit log, and to verify
+    // this entry belongs to the caller's own school before allowing any edit.
     const existing = await svc.getOne(id);
-    if (!existing) return res.status(404).json({ success: false, error: "Pickup person not found." });
+    if (!checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Pickup person not found." });
+    }
 
     const updates = {};
     if (pickupName !== undefined) updates.pickupName = pickupName;
@@ -176,6 +180,11 @@ async function deletePickupPerson(req, res) {
     const { schoolId, centerId, actorUserId } = resolveCtx(req);
     const { id } = req.params;
     if (!id) return res.status(400).json({ success: false, error: "Entry ID required." });
+
+    const existing = await svc.getOne(id);
+    if (!checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Pickup person not found." });
+    }
 
     const result = await svc.remove(id, { actorUserId, schoolId, centerId });
 

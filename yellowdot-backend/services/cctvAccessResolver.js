@@ -60,6 +60,10 @@ function sameCenter(user, camera) {
   return norm(user.centerId) === norm(camera.centerId);
 }
 
+function sameSchool(user, camera) {
+  return norm(user.schoolId) === norm(camera.schoolId);
+}
+
 /**
  * Can this user view/stream this specific camera?
  * @param {{role, centerId, classrooms?:string[]}} user
@@ -69,6 +73,16 @@ function sameCenter(user, camera) {
 function canViewCamera(user, camera) {
   if (!user || !camera) return { allowed: false, reason: "missing-user-or-camera", scope: "none" };
   if (camera.deleted)   return { allowed: false, reason: "camera-deleted", scope: "none" };
+
+  // Tenant check first, for every role including bypass roles. "developer"/
+  // "super_admin" here are school-scoped staff roles (they bypass the
+  // CENTER-level restriction below, not the school boundary) -- distinct
+  // from the platform-level Super Admin, which is a separate mechanism
+  // entirely. "All centers" in this module's scope model has always meant
+  // "all centers within the caller's own school."
+  if (!sameSchool(user, camera)) {
+    return { allowed: false, reason: "different-school", scope: "none" };
+  }
 
   const role = norm(user.role);
 
@@ -105,7 +119,7 @@ function canViewCamera(user, camera) {
  * the child is present. Presence + child are resolved by the caller (controller)
  * and passed in — this function stays pure (no DB).
  *
- * @param {{ studentId, classroom, centerId }} child   the parent's linked child
+ * @param {{ studentId, classroom, centerId, schoolId }} child   the parent's linked child
  * @param {{ status }} presence                          getChildStatus() result
  * @param {{ centerId, classroom?, classrooms?, deleted? }} camera
  * @param {{ schoolHoursOpen?:boolean }} [opts]          optional school-hours gate
@@ -117,6 +131,9 @@ function canParentViewCamera(child, presence, camera, opts = {}) {
   if (opts.schoolHoursOpen === false) return { allowed: false, reason: "outside-school-hours" };
   if (!presence || presence.status !== "PRESENT") {
     return { allowed: false, reason: presence && presence.status === "CHECKED_OUT" ? "child-checked-out" : "child-not-present" };
+  }
+  if (norm(child.schoolId) !== norm(camera.schoolId)) {
+    return { allowed: false, reason: "different-school" };
   }
   if (norm(child.centerId) !== norm(camera.centerId)) {
     return { allowed: false, reason: "different-center" };

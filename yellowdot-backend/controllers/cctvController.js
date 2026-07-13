@@ -21,6 +21,7 @@ const session   = require("../services/streamSessionService");
 const securitySvc   = require("../services/securityService");
 const studentSvc    = require("../services/studentService");
 const parentSettings = require("../services/cctvParentSettingsService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
 const { getActiveTimelineEntry } = resolver;
@@ -146,6 +147,11 @@ async function updateCamera(req, res) {
     const { id } = req.params;
     if (!id) return res.status(400).json({ success: false, message: "Camera ID required." });
 
+    const existing = await svc.getOne(id);
+    if (!checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, message: "Camera not found." });
+    }
+
     const body = req.body || {};
     const updates = {};
     const set = (camel, snake) => {
@@ -188,6 +194,12 @@ async function deleteCamera(req, res) {
     const { actorUserId } = resolveCtx(req);
     const { id } = req.params;
     if (!id) return res.status(400).json({ success: false, message: "Camera ID required." });
+
+    const existing = await svc.getOne(id);
+    if (!checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, message: "Camera not found." });
+    }
+
     const deleted = await svc.remove(id, { actorUserId });   // soft delete
     if (!deleted) return res.status(404).json({ success: false, message: "Camera not found." });
     res.json({ success: true, message: "Camera deleted." });
@@ -212,7 +224,9 @@ async function testConnection(req, res) {
     // If a cameraId is given and no explicit ip, pull structured fields from the record.
     if (!ip && body.cameraId) {
       const cam = await svc.getOne(body.cameraId);
-      if (!cam) return res.status(404).json({ success: false, message: "Camera not found." });
+      if (!checkTenantAccess(req, cam).allowed) {
+        return res.status(404).json({ success: false, message: "Camera not found." });
+      }
       ip   = (cam.ip   || "").trim();
       port = (cam.port || "").trim() || port;
       if (!streamUrl) streamUrl = cam.streamUrl || "";
@@ -254,6 +268,13 @@ async function verifyCamera(req, res) {
     const body = req.body || {};
     let cam;
     if (body.cameraId) {
+      // Tenant-check with the unmasked getOne() first -- only fetch the
+      // decrypted secret (getOneWithSecret) once we know the caller's own
+      // school actually owns this camera.
+      const existing = await svc.getOne(body.cameraId);
+      if (!checkTenantAccess(req, existing).allowed) {
+        return res.status(404).json({ success: false, message: "Camera not found." });
+      }
       cam = await svc.getOneWithSecret(body.cameraId); // decrypted password, server-side only
       if (!cam) return res.status(404).json({ success: false, message: "Camera not found." });
     } else {
@@ -285,7 +306,7 @@ async function liveToken(req, res) {
     if (!cam || cam.deleted) return res.status(404).json({ success: false, message: "Camera not found." });
 
     const decision = resolver.canViewCamera(
-      { role: user.role, centerId: user.centerId, classrooms: user.classrooms || [] },
+      { role: user.role, schoolId: user.schoolId, centerId: user.centerId, classrooms: user.classrooms || [] },
       cam
     );
     if (!decision.allowed) {
@@ -418,7 +439,7 @@ async function parentLiveToken(req, res) {
     // Resolve child + presence
     const child = await studentSvc.getOne(linkedId);
     if (!child) { await auditDeny("child-missing", linkedId); return res.status(404).json({ success: false, error: "Linked student not found." }); }
-    const childCtx = { studentId: linkedId, classroom: child.class || child.Class || "", centerId: child.centerId || child.center || "" };
+    const childCtx = { studentId: linkedId, classroom: child.class || child.Class || "", centerId: child.centerId || child.center || "", schoolId: child.schoolId };
     const presence = await securitySvc.getChildStatus(linkedId, { schoolId: child.schoolId, centerId: childCtx.centerId });
 
     // Resolve target camera.
