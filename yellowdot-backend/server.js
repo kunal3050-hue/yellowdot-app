@@ -159,6 +159,7 @@ function logRouteError(route, err) {
 }
 
 const { resolveContext, scopeFinanceQuery, checkInvoiceOwnership } = require("./middleware/requestScope");
+const { checkMedicalAccess, checkNotesAccess } = require("./middleware/studentRecordAccess");
 
 // ============================================================
 // HEALTH CHECK  (public)
@@ -537,7 +538,12 @@ app.delete("/api/fee-templates/:templateId", authenticate, authorize("admin","ce
 
 app.get("/api/student-medical/:studentId", authenticate, async (req, res) => {
   try {
-    const entry = await studentMedicalSvc.get(req.params.studentId);
+    const { studentId } = req.params;
+    const student = await studentSvc.getOne(studentId);
+    const denied = checkMedicalAccess(req, student);
+    if (denied) return res.status(denied.status).json(denied.body);
+
+    const entry = await studentMedicalSvc.get(studentId);
     res.json({ success: true, entry: entry || null });
   } catch (e) {
     console.error("[GET /api/student-medical]", e.message);
@@ -548,6 +554,10 @@ app.get("/api/student-medical/:studentId", authenticate, async (req, res) => {
 app.put("/api/student-medical/:studentId", authenticate, authorize("admin","center_admin","teacher","super_admin","developer"), async (req, res) => {
   try {
     const { studentId } = req.params;
+    const student = await studentSvc.getOne(studentId);
+    const denied = checkMedicalAccess(req, student);
+    if (denied) return res.status(denied.status).json(denied.body);
+
     const {
       bloodGroup, allergies, medications,
       doctorName, doctorPhone, emergencyNotes, notes,
@@ -571,7 +581,12 @@ app.put("/api/student-medical/:studentId", authenticate, authorize("admin","cent
 
 app.get("/api/student-notes/:studentId", authenticate, async (req, res) => {
   try {
-    const notes = await studentNotesSvc.getNotes(req.params.studentId);
+    const { studentId } = req.params;
+    const student = await studentSvc.getOne(studentId);
+    const denied = checkNotesAccess(req, student);
+    if (denied) return res.status(denied.status).json(denied.body);
+
+    const notes = await studentNotesSvc.getNotes(studentId);
     res.json({ success: true, notes });
   } catch (e) {
     console.error("[GET /api/student-notes]", e.message);
@@ -581,11 +596,16 @@ app.get("/api/student-notes/:studentId", authenticate, async (req, res) => {
 
 app.post("/api/student-notes/:studentId", authenticate, authorize("admin","center_admin","teacher","super_admin","developer"), async (req, res) => {
   try {
+    const { studentId } = req.params;
+    const student = await studentSvc.getOne(studentId);
+    const denied = checkNotesAccess(req, student);
+    if (denied) return res.status(denied.status).json(denied.body);
+
     const { note } = req.body || {};
     if (!note?.trim()) return res.status(400).json({ success: false, error: "Note text required." });
     const createdBy = req.user?.name || req.user?.email || "Staff";
     const { actorUserId } = resolveContext(req);
-    const entry = await studentNotesSvc.addNote(req.params.studentId, note, actorUserId || createdBy);
+    const entry = await studentNotesSvc.addNote(studentId, note, actorUserId || createdBy);
     res.json({ success: true, note: entry });
   } catch (e) {
     console.error("[POST /api/student-notes]", e.message);
@@ -596,6 +616,10 @@ app.post("/api/student-notes/:studentId", authenticate, authorize("admin","cente
 app.delete("/api/student-notes/:studentId/:noteId", authenticate, authorize("admin","center_admin","teacher","super_admin","developer"), async (req, res) => {
   try {
     const { studentId, noteId } = req.params;
+    const student = await studentSvc.getOne(studentId);
+    const denied = checkNotesAccess(req, student);
+    if (denied) return res.status(denied.status).json(denied.body);
+
     const deleted = await studentNotesSvc.deleteNote(studentId, noteId);
     if (!deleted) return res.status(404).json({ success: false, error: "Note not found." });
     res.json({ success: true });
