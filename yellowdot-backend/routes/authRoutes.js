@@ -15,6 +15,7 @@ const { db, auth } = require("../firebaseAdmin");
 const { authenticate } = require("../middleware/authMiddleware");
 const { ROLE_HOME, ROLE_PERMISSIONS, isBypassRole } = require("../config/permissionsBackend");
 const roleSvc = require("../services/roleService");
+const { buildSyncUserResponse } = require("../services/authSyncService");
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 // Verifies the Firebase ID token and returns the user's profile + permissions.
@@ -144,33 +145,17 @@ router.post("/api/auth/select-center", authenticate, async (req, res) => {
 });
 
 // ── POST /api/auth/sync-user ──────────────────────────────────────────────────
-// Called after first Google/Email sign-up to create the Firestore user doc.
-// Safe to call repeatedly (upsert).
+// Reflects the server-resolved identity (req.user, built entirely by
+// authMiddleware from Firestore/token data) back to the client after sign-in.
+// Never reads role/permissions/schoolId/tenantId/center from the request body
+// -- buildSyncUserResponse only accepts req.user, so those fields cannot
+// influence the response even if a caller supplies them. Staff accounts are
+// provisioned only through the admin-gated POST /api/users; parent identity
+// is resolved automatically from the students collection by authMiddleware.
+// This endpoint creates nothing and cannot elevate privilege.
 router.post("/api/auth/sync-user", authenticate, async (req, res) => {
   try {
-    const { userId, email, name, photoUrl } = req.user;
-    const { role, center } = req.body;
-
-    const userRef = db.collection("users").doc(userId);
-    const snap    = await userRef.get();
-
-    if (!snap.exists) {
-      // New user — create doc with provided or default role
-      await userRef.set({
-        userId,
-        email:     email   || "",
-        name:      name    || "",
-        photoUrl:  photoUrl || "",
-        role:      role    || "teacher",
-        center:    center  || "",
-        centers:   center  ? [center] : [],
-        status:    "active",
-        createdAt: new Date().toISOString(),
-      });
-    }
-
-    const updated = await userRef.get();
-    return res.json({ success: true, user: updated.data() });
+    return res.json(buildSyncUserResponse(req.user));
   } catch (err) {
     console.error("[AUTH /sync-user]", err);
     return res.status(500).json({ error: "Failed to sync user." });
