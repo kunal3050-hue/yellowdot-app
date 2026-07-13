@@ -41,9 +41,25 @@ function pick(body, camel, snake) {
   return v !== undefined ? v : undefined;
 }
 
-// Strip the password before sending a camera to the client.
+// Strip the password before sending a camera to the client. Also scrubs any
+// credentials embedded in streamUrl / mainStreamUrl / liveStreamUrl (e.g.
+// "rtsp://user:pass@host") -- cctvService now parses these out of streamUrl
+// at write time, but this is a defense-in-depth net for any record that
+// predates that fix, or a legacy (no-IP) camera whose derived stream URLs
+// can otherwise inherit whatever was stored in streamUrl verbatim.
+function scrubUrlCreds(url) {
+  return typeof url === "string"
+    ? url.replace(/^(\w+:\/\/)([^:/@\s]+):([^@\s]+)@/, "$1$2:••••••••@")
+    : url;
+}
 function mask(cam) {
-  return { ...cam, password: cam.password ? "••••••••" : "" };
+  return {
+    ...cam,
+    password:      cam.password ? "••••••••" : "",
+    streamUrl:     scrubUrlCreds(cam.streamUrl),
+    mainStreamUrl: scrubUrlCreds(cam.mainStreamUrl),
+    liveStreamUrl: scrubUrlCreds(cam.liveStreamUrl),
+  };
 }
 
 // ── GET /api/cctv/cameras ──────────────────────────────────────────

@@ -52,6 +52,20 @@ function encPassword(pw) {
 
 function nowISO() { return new Date().toISOString(); }
 
+// Detects and strips embedded "user:pass@" credentials from a custom RTSP/
+// stream URL (e.g. "rtsp://admin:secret@192.168.1.5:554/stream1"), so
+// credentials are never stored (or displayed) as part of streamUrl -- they
+// always live in the dedicated username/password fields instead, which are
+// the only fields mask()/encryption already know how to protect.
+// Never throws on a malformed or plain URL.
+function extractUrlCredentials(streamUrl) {
+  const url = String(streamUrl || "");
+  const m = url.match(/^(\w+:\/\/)([^:/@\s]+):([^@\s]+)@(.+)$/);
+  if (!m) return { cleanUrl: url, username: "", password: "" };
+  const [, scheme, user, pass, rest] = m;
+  return { cleanUrl: `${scheme}${rest}`, username: user, password: pass };
+}
+
 // Derive the flat classrooms[] list and primary classroom string from a
 // timeline[]. Deduplicates, preserves insertion order.
 // Falls back to legacy classrooms[]/classroom when no timeline is present.
@@ -179,6 +193,11 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     timeline, data.classrooms, data.classroom
   );
 
+  // Never let a custom RTSP URL carry plaintext credentials at rest --
+  // extract them into username/password if present. Explicit username/
+  // password fields, when supplied, win over anything embedded in the URL.
+  const parsedUrl = extractUrlCredentials(data.streamUrl || data.stream_url || "");
+
   const doc = {
     cameraId,
     cameraCode,
@@ -189,9 +208,9 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     brand:      data.brand      || "",
     ip:         data.ip         || "",
     port:       String(data.port || "554"),
-    streamUrl:  data.streamUrl  || data.stream_url  || "",
-    username:   data.username   || "",
-    password:   encPassword(data.password || ""),
+    streamUrl:  parsedUrl.cleanUrl,
+    username:   data.username   || parsedUrl.username || "",
+    password:   encPassword(data.password || parsedUrl.password || ""),
     channel:    String(data.channel || "1"),
     streamType: data.streamType || data.stream_type || "RTSP",
     status:     data.status     || "Active",
@@ -229,6 +248,14 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     }
   }
 
+  // Never let a custom RTSP URL carry plaintext credentials at rest --
+  // extract them into username/password if present. Explicit username/
+  // password fields in this same update call win over anything embedded
+  // in the URL.
+  const parsedUrl = data.streamUrl !== undefined
+    ? extractUrlCredentials(data.streamUrl)
+    : null;
+
   const updates = {
     updatedAt: nowISO(),
     updatedBy,
@@ -237,9 +264,11 @@ async function update(cameraId, data, { updatedBy = "system" } = {}) {
     ...(data.brand      !== undefined && { brand:      data.brand      }),
     ...(data.ip         !== undefined && { ip:         data.ip         }),
     ...(data.port       !== undefined && { port:       String(data.port) }),
-    ...(data.streamUrl  !== undefined && { streamUrl:  data.streamUrl  }),
-    ...(data.username   !== undefined && { username:   data.username   }),
-    ...(data.password   !== undefined && { password:   encPassword(data.password) }),
+    ...(parsedUrl && { streamUrl: parsedUrl.cleanUrl }),
+    ...(data.username !== undefined ? { username: data.username }
+        : parsedUrl && parsedUrl.username ? { username: parsedUrl.username } : {}),
+    ...(data.password !== undefined ? { password: encPassword(data.password) }
+        : parsedUrl && parsedUrl.password ? { password: encPassword(parsedUrl.password) } : {}),
     ...(data.channel    !== undefined && { channel:    String(data.channel) }),
     ...(data.streamType !== undefined && { streamType: data.streamType }),
     ...(data.status     !== undefined && { status:     data.status     }),
@@ -279,4 +308,4 @@ async function remove(cameraId, { actorUserId = "system" } = {}) {
   return true;
 }
 
-module.exports = { getAll, getOne, getOneWithSecret, create, update, remove, findByCode };
+module.exports = { getAll, getOne, getOneWithSecret, create, update, remove, findByCode, extractUrlCredentials };

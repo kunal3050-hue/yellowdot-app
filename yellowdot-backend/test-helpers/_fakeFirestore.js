@@ -2,7 +2,7 @@
  * _fakeFirestore.js — tiny in-memory Firestore stand-in for unit tests.
  *
  * Supports exactly what the parent services use:
- *   db.collection(name).doc(id).get()/.set(data,{merge})
+ *   db.collection(name).doc(id).get()/.set(data,{merge})/.update(data)
  *   db.collection(name).where(field,'==',val).get()  (single equality filter)
  *
  * Inject it before requiring a service:
@@ -26,6 +26,10 @@ function makeFakeFirestore() {
             async set(data, opts) {
               if (!store[name] || Array.isArray(store[name])) store[name] = store[name] || {};
               store[name][id] = opts && opts.merge ? { ...(store[name][id] || {}), ...data } : { ...data };
+            },
+            async update(data) {
+              if (!store[name] || Array.isArray(store[name])) store[name] = store[name] || {};
+              store[name][id] = { ...(store[name][id] || {}), ...data };
             },
           };
         },
