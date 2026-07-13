@@ -97,6 +97,23 @@
         { "fieldPath": "sourceModule",  "order": "ASCENDING" },
         { "fieldPath": "date",          "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "ptms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",     "order": "ASCENDING" },
+        { "fieldPath": "meetingDate",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ptmSlots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ptmId",      "order": "ASCENDING" },
+        { "fieldPath": "teacherId",  "order": "ASCENDING" },
+        { "fieldPath": "startTime",  "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
