@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Yellow Dot — Firebase Storage Security Rules
+// Mirrors the role model in firestore.rules via cross-service lookups
+// (firestore.get) since Storage has no Firestore user-doc access of its own.
+//
+// Known limitation: incidents/ and journey/ paths do not carry a schoolId
+// segment (see storageService.js), so per-tenant isolation cannot be
+// enforced by path for those uploads yet — only staff-photos/{schoolId}/...
+// is fully tenant-scoped. Restructuring those paths is a separate milestone.
+// ═══════════════════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myUserDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaff() {
+      return isSignedIn() &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        myUserDoc().role in
+          ['developer', 'super_admin', 'admin', 'center_admin', 'teacher', 'accountant', 'reception'];
+    }
+
+    function mySchoolId() {
+      return myUserDoc().schoolId;
+    }
+
+    function isImageUpload() {
+      return request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    function isMediaUpload() {
+      return request.resource.size < 50 * 1024 * 1024 &&
+        (request.resource.contentType.matches('image/.*') ||
+         request.resource.contentType.matches('video/.*'));
+    }
+
+    // ── Staff profile photos — fully tenant-scoped ──────────────────────
+    match /staff-photos/{schoolId}/{staffId}/{fileName} {
+      allow read:  if isStaff() && mySchoolId() == schoolId;
+      allow write: if isStaff() && mySchoolId() == schoolId && isImageUpload();
+    }
+
+    // ── Incident photos — staff-only writes (no schoolId path segment) ──
+    match /incidents/{fileName} {
+      allow read:  if isSignedIn();
+      allow write: if isStaff() && isImageUpload();
+    }
+
+    // ── Child Journey artwork/media — staff-only writes ─────────────────
+    match /journey/artwork/{fileName} {
+      allow read:  if isSignedIn();
+      allow write: if isStaff() && isImageUpload();
+    }
+
+    match /journey/media/{fileName} {
+      allow read:  if isSignedIn();
+      allow write: if isStaff() && isMediaUpload();
+    }
+
+    // ── Deny everything else by default ─────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
