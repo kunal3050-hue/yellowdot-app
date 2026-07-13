@@ -24,6 +24,21 @@ function resolveCtx(req) {
 
 function logErr(route, e) { console.error(`[${route}]`, e.message); }
 
+// Shared ownership/tenant check for approve + reject.
+// Returns an error {status, body} to send, or null if the caller may proceed.
+function checkPickupAccess(req, existing, schoolId) {
+  if (existing.schoolId !== schoolId) {
+    return { status: 404, body: { success: false, error: "Pickup request not found." } };
+  }
+  if (req.user?.role === "parent") {
+    const linkedId = req.user.student?.studentId;
+    if (!linkedId || existing.studentId !== linkedId) {
+      return { status: 403, body: { success: false, error: "You can only act on pickup requests for your own child." } };
+    }
+  }
+  return null;
+}
+
 // ── GET /api/child-status/:studentId ──────────────────────────────
 // Parents get their own child; staff/admin can query any studentId.
 
@@ -125,12 +140,16 @@ async function getPickupRequests(req, res) {
 
 async function approvePickupRequest(req, res) {
   try {
-    const { actorUserId } = resolveCtx(req);
+    const { schoolId, actorUserId } = resolveCtx(req);
     const { id } = req.params;
     if (!id) return res.status(400).json({ success: false, error: "Request ID required." });
 
     const existing = await svc.getPickupRequest(id);
     if (!existing) return res.status(404).json({ success: false, error: "Pickup request not found." });
+
+    const denied = checkPickupAccess(req, existing, schoolId);
+    if (denied) return res.status(denied.status).json(denied.body);
+
     if (existing.status !== "pending") {
       return res.status(409).json({ success: false, error: `Request is already ${existing.status}.` });
     }
@@ -167,13 +186,17 @@ async function approvePickupRequest(req, res) {
 
 async function rejectPickupRequest(req, res) {
   try {
-    const { actorUserId } = resolveCtx(req);
+    const { schoolId, actorUserId } = resolveCtx(req);
     const { id } = req.params;
     const { reason } = req.body || {};
     if (!id) return res.status(400).json({ success: false, error: "Request ID required." });
 
     const existing = await svc.getPickupRequest(id);
     if (!existing) return res.status(404).json({ success: false, error: "Pickup request not found." });
+
+    const denied = checkPickupAccess(req, existing, schoolId);
+    if (denied) return res.status(denied.status).json(denied.body);
+
     if (existing.status !== "pending") {
       return res.status(409).json({ success: false, error: `Request is already ${existing.status}.` });
     }
