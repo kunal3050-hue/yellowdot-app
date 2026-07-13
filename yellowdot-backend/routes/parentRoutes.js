@@ -531,9 +531,8 @@ router.delete("/api/parent/ptm/bookings/:bookingId", loadParent, async (req, res
 router.get("/api/parent/incidents", loadParent, async (req, res) => {
   try {
     const parent    = req.parent;
-    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
     const data = await parentIncidentSvc.getIncidentsForParent({
-      schoolId:   SCHOOL_ID,
+      schoolId:   parent.schoolId,
       studentIds: parent.studentIds || [],
     });
     res.json(data);
@@ -551,17 +550,18 @@ router.post("/api/parent/incidents/:id/acknowledge", loadParent, async (req, res
     const incident  = await incidentSvc.getIncident(req.params.id);
     if (!incident) return res.status(404).json({ error: "Incident not found" });
 
-    // Ensure this incident belongs to one of the parent's children
-    if (!(parent.studentIds || []).includes(incident.studentId)) {
+    // Tenant check first (defense-in-depth alongside the ownership check
+    // below), then confirm this incident belongs to one of the parent's
+    // own children.
+    if (incident.schoolId !== parent.schoolId || !(parent.studentIds || []).includes(incident.studentId)) {
       return res.status(403).json({ error: "Not authorised to acknowledge this incident." });
     }
 
     const { acknowledgementNotes = "" } = req.body;
     const ack = await incidentSvc.acknowledge(req.params.id, { parentId: parent.parentId, acknowledgementNotes });
 
-    const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
     notif.notifyAsync(() =>
-      notif.fireForStudent(incident.studentId, SCHOOL_ID, {
+      notif.fireForStudent(incident.studentId, parent.schoolId, {
         type:     notif.TYPES.INCIDENT_ACKNOWLEDGED,
         title:    "Incident Acknowledged",
         message:  `Parent has acknowledged the incident report: ${incident.incidentType}.`,

@@ -19,20 +19,23 @@ const express  = require("express");
 const router   = express.Router();
 const incSvc   = require("../services/incidentService");
 const userSvc  = require("../services/userService");
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, blockUnknown, staffOnly } = require("../middleware/authMiddleware");
 const notif    = require("../services/notificationService");
 const studentSvc = require("../services/studentService");
+const { checkIncidentAccess } = require("../middleware/incidentAccess");
 
-const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
-
-router.use("/api/incidents", authenticate);
+// Staff-only end to end: blockUnknown + staffOnly reject "unknown" and
+// "parent" roles at the door. Parents get incident data exclusively through
+// the dedicated, already ownership-scoped /api/parent/incidents* routes in
+// parentRoutes.js -- never through these staff-side routes.
+router.use("/api/incidents", authenticate, blockUnknown, staffOnly);
 
 // ── Helpers ────────────────────────────────────────────────────────
 
-async function notifyParentForStudent(studentId, type, { title, message, deepLink }) {
+async function notifyParentForStudent(studentId, schoolId, type, { title, message, deepLink }) {
   try {
     notif.notifyAsync(() =>
-      notif.fireForStudent(studentId, SCHOOL_ID, { type, title, message, deepLink })
+      notif.fireForStudent(studentId, schoolId, { type, title, message, deepLink })
     );
   } catch { /* non-critical */ }
 }
@@ -41,7 +44,7 @@ async function notifyParentForStudent(studentId, type, { title, message, deepLin
 
 router.get("/api/incidents/dashboard", async (req, res) => {
   try {
-    const stats = await incSvc.getDashboardStats({ schoolId: SCHOOL_ID });
+    const stats = await incSvc.getDashboardStats({ schoolId: req.user.schoolId });
     res.json({ stats });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -52,7 +55,7 @@ router.get("/api/incidents/dashboard", async (req, res) => {
 
 router.get("/api/incidents/staff", async (req, res) => {
   try {
-    const users = await userSvc.listUsers({ schoolId: SCHOOL_ID, status: "active" });
+    const users = await userSvc.listUsers({ schoolId: req.user.schoolId, status: "active" });
     const staff = users.filter(u => u.role !== "parent");
     res.json({ staff });
   } catch (e) {
@@ -65,7 +68,7 @@ router.get("/api/incidents/staff", async (req, res) => {
 router.get("/api/incidents", async (req, res) => {
   try {
     const { studentId, classId, severity, status, dateFrom, dateTo } = req.query;
-    const incidents = await incSvc.getIncidents({ schoolId: SCHOOL_ID, studentId, classId, severity, status, dateFrom, dateTo });
+    const incidents = await incSvc.getIncidents({ schoolId: req.user.schoolId, studentId, classId, severity, status, dateFrom, dateTo });
 
     // Attach acknowledgement info
     const enriched = await Promise.all(incidents.map(async inc => {
@@ -88,13 +91,12 @@ router.post("/api/incidents", async (req, res) => {
       return res.status(400).json({ error: "studentId, incidentType, incidentDate, location, description, actionTaken are required" });
     }
 
-    const incident = await incSvc.createIncident(req.body, { schoolId: SCHOOL_ID, actorUserId: req.user?.uid });
+    const incident = await incSvc.createIncident(req.body, { schoolId: req.user.schoolId, actorUserId: req.user?.userId });
 
     if (incident.notifyParent) {
-      const priorityMap = { low: "low", medium: "medium", high: "high", critical: "high" };
-      const isCritical  = incident.severity === "critical";
+      const isCritical = incident.severity === "critical";
 
-      notifyParentForStudent(studentId, isCritical ? notif.TYPES.CRITICAL_INCIDENT : notif.TYPES.INCIDENT_REPORTED, {
+      notifyParentForStudent(studentId, req.user.schoolId, isCritical ? notif.TYPES.CRITICAL_INCIDENT : notif.TYPES.INCIDENT_REPORTED, {
         title:    isCritical ? `⚠️ Critical Incident: ${incident.incidentType}` : `Incident Report: ${incident.incidentType}`,
         message:  `An incident involving your child was reported on ${incident.incidentDate}. Please check the Parent App for details.`,
         deepLink: "/parent-incidents",
@@ -112,7 +114,8 @@ router.post("/api/incidents", async (req, res) => {
 router.get("/api/incidents/:id", async (req, res) => {
   try {
     const incident = await incSvc.getIncident(req.params.id);
-    if (!incident) return res.status(404).json({ error: "Incident not found" });
+    if (!checkIncidentAccess(req, incident).allowed) return res.status(404).json({ error: "Incident not found" });
+
     const ack = await incSvc.getAcknowledgement(req.params.id);
     res.json({ incident: { ...incident, acknowledged: !!ack, acknowledgedAt: ack?.acknowledgedAt || null } });
   } catch (e) {
@@ -124,11 +127,14 @@ router.get("/api/incidents/:id", async (req, res) => {
 
 router.put("/api/incidents/:id", async (req, res) => {
   try {
-    const incident = await incSvc.updateIncident(req.params.id, req.body, { actorUserId: req.user?.uid });
+    const existing = await incSvc.getIncident(req.params.id);
+    if (!checkIncidentAccess(req, existing).allowed) return res.status(404).json({ error: "Incident not found" });
+
+    const incident = await incSvc.updateIncident(req.params.id, req.body, { actorUserId: req.user?.userId });
     if (!incident) return res.status(404).json({ error: "Incident not found" });
 
     if (incident.notifyParent) {
-      notifyParentForStudent(incident.studentId, notif.TYPES.INCIDENT_UPDATED, {
+      notifyParentForStudent(incident.studentId, req.user.schoolId, notif.TYPES.INCIDENT_UPDATED, {
         title:    `Incident Update: ${incident.incidentType}`,
         message:  "The incident report for your child has been updated. Please check the Parent App.",
         deepLink: "/parent-incidents",
@@ -145,6 +151,9 @@ router.put("/api/incidents/:id", async (req, res) => {
 
 router.delete("/api/incidents/:id", async (req, res) => {
   try {
+    const existing = await incSvc.getIncident(req.params.id);
+    if (!checkIncidentAccess(req, existing).allowed) return res.status(404).json({ error: "Incident not found" });
+
     await incSvc.deleteIncident(req.params.id);
     res.json({ success: true });
   } catch (e) {
@@ -156,8 +165,11 @@ router.delete("/api/incidents/:id", async (req, res) => {
 
 router.patch("/api/incidents/:id/status", async (req, res) => {
   try {
+    const existing = await incSvc.getIncident(req.params.id);
+    if (!checkIncidentAccess(req, existing).allowed) return res.status(404).json({ error: "Incident not found" });
+
     const { status } = req.body;
-    await incSvc.updateStatus(req.params.id, status, { actorUserId: req.user?.uid });
+    await incSvc.updateStatus(req.params.id, status, { actorUserId: req.user?.userId });
     res.json({ success: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -168,6 +180,9 @@ router.patch("/api/incidents/:id/status", async (req, res) => {
 
 router.get("/api/incidents/:id/audit", async (req, res) => {
   try {
+    const existing = await incSvc.getIncident(req.params.id);
+    if (!checkIncidentAccess(req, existing).allowed) return res.status(404).json({ error: "Incident not found" });
+
     const logs = await incSvc.getAuditLog(req.params.id);
     res.json({ logs });
   } catch (e) {
@@ -179,6 +194,9 @@ router.get("/api/incidents/:id/audit", async (req, res) => {
 
 router.get("/api/incidents/:id/acknowledgement", async (req, res) => {
   try {
+    const existing = await incSvc.getIncident(req.params.id);
+    if (!checkIncidentAccess(req, existing).allowed) return res.status(404).json({ error: "Incident not found" });
+
     const ack = await incSvc.getAcknowledgement(req.params.id);
     res.json({ acknowledgement: ack });
   } catch (e) {
