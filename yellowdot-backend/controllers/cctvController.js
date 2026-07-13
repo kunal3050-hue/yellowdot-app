@@ -59,6 +59,7 @@ function mask(cam) {
     streamUrl:     scrubUrlCreds(cam.streamUrl),
     mainStreamUrl: scrubUrlCreds(cam.mainStreamUrl),
     liveStreamUrl: scrubUrlCreds(cam.liveStreamUrl),
+    stream_url:    scrubUrlCreds(cam.stream_url), // snake_case alias -- docToCamera emits both
   };
 }
 

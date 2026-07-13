@@ -118,6 +118,29 @@ test("mask (via getCamera): scrubs password and embedded streamUrl credentials i
   resolver.canViewCamera = origCanView;
 });
 
+test("mask (via getCamera): the snake_case stream_url alias is scrubbed too (regression -- docToCamera emits both)", async () => {
+  const cctvSvc = require("../services/cctvService");
+  const resolver = require("../services/cctvAccessResolver");
+  const origGetOne = cctvSvc.getOne;
+  const origCanView = resolver.canViewCamera;
+  cctvSvc.getOne = async () => ({
+    cameraId: "CAM-Z", schoolId: "school-A", centerId: "", deleted: false,
+    password: "realsecret", streamUrl: "rtsp://admin:realsecret@10.9.9.9:554/ch1",
+    stream_url: "rtsp://admin:realsecret@10.9.9.9:554/ch1", // snake_case alias, same raw value
+  });
+  resolver.canViewCamera = () => ({ allowed: true, reason: "bypass-role" });
+
+  const cctvController = require("../controllers/cctvController");
+  const req = { params: { id: "CAM-Z" }, user: { role: "developer", schoolId: "school-A" } };
+  const res = mockRes();
+  await cctvController.getCamera(req, res);
+
+  assert.ok(!JSON.stringify(res.body).includes("realsecret"), "real password must not leak via the stream_url alias either");
+
+  cctvSvc.getOne = origGetOne;
+  resolver.canViewCamera = origCanView;
+});
+
 test("mask (via getCameras list): scrubs every camera in the list response", async () => {
   const cctvSvc = require("../services/cctvService");
   const resolver = require("../services/cctvAccessResolver");
