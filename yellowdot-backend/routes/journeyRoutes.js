@@ -3,11 +3,11 @@
  *
  * Staff endpoints (require auth + staff role):
  *   POST   /api/journey              — create entry (any kind)
- *   GET    /api/journey              — list entries (staff view)
+ *   GET    /api/journey              — list entries (staff view, unfiltered)
  *   PUT    /api/journey/:id          — edit text fields
  *   DELETE /api/journey/:id          — delete entry
  *
- * Parent endpoints (require auth):
+ * Parent endpoints (require auth + linked child, own child only):
  *   GET    /api/parent/journey       — child's journey (visibility-filtered)
  */
 
@@ -16,7 +16,7 @@ const router     = express.Router();
 const journeySvc    = require("../services/journeyService");
 const milestoneSvc  = require("../services/milestoneService");
 const notif         = require("../services/notificationService");
-const { authenticate, blockUnknown } = require("../middleware/authMiddleware");
+const { authenticate, blockUnknown, staffOnly, requireOwnChild } = require("../middleware/authMiddleware");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
 
@@ -26,7 +26,7 @@ function resolveCtx(req) {
   return {
     schoolId:    req.user?.schoolId || SCHOOL_ID,
     centerId:    req.user?.centerId || "",
-    actorUserId: req.user?.uid      || "system",
+    actorUserId: req.user?.userId   || "system",
   };
 }
 
@@ -89,8 +89,8 @@ function buildNotification(entry) {
   }
 }
 
-// ── POST /api/journey — create entry ─────────────────────────────────────────
-router.post("/api/journey", authenticate, blockUnknown, async (req, res) => {
+// ── POST /api/journey — create entry (staff only) ────────────────────────────
+router.post("/api/journey", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId, centerId, actorUserId } = resolveCtx(req);
     const entry = await journeySvc.createEntry(req.body, { schoolId, centerId, actorUserId });
@@ -109,8 +109,8 @@ router.post("/api/journey", authenticate, blockUnknown, async (req, res) => {
   }
 });
 
-// ── GET /api/journey — list entries (staff) ───────────────────────────────────
-router.get("/api/journey", authenticate, blockUnknown, async (req, res) => {
+// ── GET /api/journey — list entries, unfiltered staff view (staff only) ──────
+router.get("/api/journey", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId } = resolveCtx(req);
     const { studentId, classId, kind, academicYear, limit } = req.query;
@@ -125,8 +125,8 @@ router.get("/api/journey", authenticate, blockUnknown, async (req, res) => {
   }
 });
 
-// ── PUT /api/journey/:id — update text fields ─────────────────────────────────
-router.put("/api/journey/:id", authenticate, blockUnknown, async (req, res) => {
+// ── PUT /api/journey/:id — update text fields (staff only) ───────────────────
+router.put("/api/journey/:id", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId, actorUserId } = resolveCtx(req);
     const entry = await journeySvc.updateEntry(req.params.id, req.body, { schoolId, actorUserId });
@@ -137,8 +137,8 @@ router.put("/api/journey/:id", authenticate, blockUnknown, async (req, res) => {
   }
 });
 
-// ── DELETE /api/journey/:id ───────────────────────────────────────────────────
-router.delete("/api/journey/:id", authenticate, blockUnknown, async (req, res) => {
+// ── DELETE /api/journey/:id (staff only) ──────────────────────────────────────
+router.delete("/api/journey/:id", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId } = resolveCtx(req);
     await journeySvc.deleteEntry(req.params.id, { schoolId });
@@ -149,8 +149,8 @@ router.delete("/api/journey/:id", authenticate, blockUnknown, async (req, res) =
   }
 });
 
-// ── POST /api/milestones — teacher creates a milestone ────────────────────────
-router.post("/api/milestones", authenticate, blockUnknown, async (req, res) => {
+// ── POST /api/milestones — teacher creates a milestone (staff only) ──────────
+router.post("/api/milestones", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId, actorUserId } = resolveCtx(req);
     const entry = await milestoneSvc.createTeacherMilestone(req.body, { schoolId, actorUserId });
@@ -161,8 +161,8 @@ router.post("/api/milestones", authenticate, blockUnknown, async (req, res) => {
   }
 });
 
-// ── POST /api/milestones/check — trigger auto-milestone check for a student ──
-router.post("/api/milestones/check", authenticate, blockUnknown, async (req, res) => {
+// ── POST /api/milestones/check — trigger auto-milestone check (staff only) ───
+router.post("/api/milestones/check", authenticate, blockUnknown, staffOnly, async (req, res) => {
   try {
     const { schoolId } = resolveCtx(req);
     const { studentId, date } = req.body;
@@ -174,22 +174,24 @@ router.post("/api/milestones/check", authenticate, blockUnknown, async (req, res
   }
 });
 
-// ── GET /api/milestones/presets — list teacher-created milestone presets ──────
+// ── GET /api/milestones/presets — static preset labels, no per-child data ────
 router.get("/api/milestones/presets", authenticate, (req, res) => {
   res.json({ presets: milestoneSvc.TEACHER_MILESTONES });
 });
 
-// ── GET /api/parent/journey — child's unified journey (parent view) ───────────
-router.get("/api/parent/journey", authenticate, async (req, res) => {
+// ── GET /api/parent/journey — child's unified journey (parent, own child only) ─
+// requireOwnChild rejects staff (403) and parents with no linked child (403),
+// and sets req.ownChildId to the server-resolved linked studentId. The route
+// deliberately ignores req.query.childId for the actual query -- a client-
+// supplied childId can no longer influence which child's data is returned.
+router.get("/api/parent/journey", authenticate, blockUnknown, requireOwnChild, async (req, res) => {
   try {
     const { schoolId } = resolveCtx(req);
-    const { childId, kind, academicYear, limit } = req.query;
-
-    if (!childId) return res.status(400).json({ error: "childId is required." });
+    const { kind, academicYear, limit } = req.query;
 
     const kinds = kind ? kind.split(",").map(k => k.trim()).filter(Boolean) : [];
     const entries = await journeySvc.getForStudent({
-      schoolId, studentId: childId, kinds,
+      schoolId, studentId: req.ownChildId, kinds,
       academicYear, limit: Number(limit) || 100,
     });
 
