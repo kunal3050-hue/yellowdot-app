@@ -160,6 +160,7 @@ function logRouteError(route, err) {
 
 const { resolveContext, scopeFinanceQuery, checkInvoiceOwnership } = require("./middleware/requestScope");
 const { checkMedicalAccess, checkNotesAccess } = require("./middleware/studentRecordAccess");
+const { checkStudentAccess } = require("./middleware/studentAccess");
 
 // ============================================================
 // HEALTH CHECK  (public)
@@ -205,15 +206,21 @@ app.get("/students", authenticate, blockUnknown, async (req, res) => {
 
 app.get("/students/:id", authenticate, blockUnknown, async (req, res) => {
   try {
-    // Parents may only fetch their own linked child
-    if (req.user.role === "parent") {
-      const linkedId = req.user.student?.studentId;
-      if (!linkedId || req.params.id !== linkedId) {
-        return res.status(403).json({ error: "You can only access your own child's records." });
-      }
-    }
     const student = await studentSvc.getOne(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
+
+    const verdict = checkStudentAccess(req, student);
+    if (!verdict.allowed) {
+      if (verdict.reason === "wrong_child") {
+        return res.status(403).json({ error: "You can only access your own child's records." });
+      }
+      if (verdict.reason === "forbidden") {
+        return res.status(403).json({ error: "You do not have access to this resource." });
+      }
+      // "not_found" -- covers cross-tenant staff/parent access, hidden as 404
+      return res.status(404).json({ message: "Student not found" });
+    }
+
     res.json(student);
   } catch (err) {
     logRouteError("GET /students/:id", err);
@@ -289,6 +296,15 @@ app.post("/add-student", authenticate, authorize("admin","center_admin","recepti
 
 app.put("/update-student/:id", authenticate, authorize("admin","center_admin","teacher","reception","super_admin","developer"), async (req, res) => {
   try {
+    const student = await studentSvc.getOne(req.params.id);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+    // Role is already staff-gated by authorize() above, so the only
+    // possible denial here is a cross-tenant mismatch -- report "not found"
+    // rather than confirming another school's student exists.
+    if (!checkStudentAccess(req, student).allowed) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
     const { actorUserId } = resolveContext(req);
     const result = await studentSvc.update(req.params.id, req.body || {}, { actorUserId });
     if (!result) return res.status(404).json({ success: false, message: "Student not found" });
@@ -301,6 +317,12 @@ app.put("/update-student/:id", authenticate, authorize("admin","center_admin","t
 
 app.delete("/delete-student/:id", authenticate, authorize("admin","super_admin","developer"), async (req, res) => {
   try {
+    const student = await studentSvc.getOne(req.params.id);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+    if (!checkStudentAccess(req, student).allowed) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
     const { actorUserId } = resolveContext(req);
     const deleted = await studentSvc.remove(req.params.id, { actorUserId });
     if (!deleted) return res.status(404).json({ success: false, message: "Student not found" });
