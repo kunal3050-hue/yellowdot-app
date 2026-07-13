@@ -1,7 +1,9 @@
 /**
  * ptmRoutes.js — Staff PTM management endpoints
  * ───────────────────────────────────────────────
- * All routes require a valid Firebase token (verifyToken middleware).
+ * All routes require a valid Firebase token, a registered staff role
+ * (blockUnknown + staffOnly), and same-school tenant membership for any
+ * by-ID operation.
  *
  * PTMs:
  *   GET    /api/ptm                            — list all PTMs (with stats)
@@ -30,24 +32,28 @@ const express    = require("express");
 const router     = express.Router();
 const ptmSvc     = require("../services/ptmService");
 const userSvc    = require("../services/userService");
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, blockUnknown, staffOnly } = require("../middleware/authMiddleware");
 const notif      = require("../services/notificationService");
 const studentSvc = require("../services/studentService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
-const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+// Staff-only end to end: blockUnknown + staffOnly reject "unknown" and
+// "parent" roles. Parents interact with PTMs exclusively through the
+// dedicated /api/parent/ptm* routes (unaffected by this milestone).
+router.use("/api/ptm", authenticate, blockUnknown, staffOnly);
 
 // ── Helper: notify affected students ──────────────────────────────
 
-async function notifyAffectedStudents(ptm, type, { title, message, deepLink } = {}) {
+async function notifyAffectedStudents(ptm, schoolId, type, { title, message, deepLink } = {}) {
   try {
-    const allStudents = await studentSvc.listStudents({ schoolId: SCHOOL_ID });
+    const allStudents = await studentSvc.listStudents({ schoolId });
     const targets = ptm.appliesTo === "all"
       ? allStudents
       : allStudents.filter(s => (ptm.classIds || []).includes(s.classId));
 
     for (const student of targets) {
       notif.notifyAsync(() =>
-        notif.fireForStudent(student.studentId, SCHOOL_ID, { type, title, message, deepLink })
+        notif.fireForStudent(student.studentId, schoolId, { type, title, message, deepLink })
       );
     }
   } catch { /* non-critical */ }
@@ -55,9 +61,9 @@ async function notifyAffectedStudents(ptm, type, { title, message, deepLink } = 
 
 // ── PTMs ───────────────────────────────────────────────────────────
 
-router.get("/api/ptm", authenticate, async (req, res) => {
+router.get("/api/ptm", async (req, res) => {
   try {
-    const ptms = await ptmSvc.getPtms({ schoolId: SCHOOL_ID });
+    const ptms = await ptmSvc.getPtms({ schoolId: req.user.schoolId });
     // Attach stats to each PTM
     const enriched = await Promise.all(
       ptms.map(async p => ({ ...p, stats: await ptmSvc.getPtmStats(p.id) }))
@@ -68,16 +74,16 @@ router.get("/api/ptm", authenticate, async (req, res) => {
   }
 });
 
-router.post("/api/ptm", authenticate, async (req, res) => {
+router.post("/api/ptm", async (req, res) => {
   try {
     const { title, description, meetingDate, startTime, endTime, venue, appliesTo, classIds, teacherIds } = req.body;
     if (!title || !meetingDate || !startTime || !endTime) {
       return res.status(400).json({ error: "title, meetingDate, startTime, endTime are required" });
     }
-    const ptm = await ptmSvc.createPtm(req.body, { schoolId: SCHOOL_ID, actorUserId: req.user?.uid });
+    const ptm = await ptmSvc.createPtm(req.body, { schoolId: req.user.schoolId, actorUserId: req.user?.userId });
 
     // Push notification to affected parents
-    notifyAffectedStudents(ptm, notif.TYPES.PTM_CREATED, {
+    notifyAffectedStudents(ptm, req.user.schoolId, notif.TYPES.PTM_CREATED, {
       title:   `New PTM: ${ptm.title}`,
       message: `A Parent-Teacher Meeting has been scheduled for ${ptm.meetingDate}. Book your slot now.`,
       deepLink: "/parent-ptm",
@@ -89,9 +95,12 @@ router.post("/api/ptm", authenticate, async (req, res) => {
   }
 });
 
-router.put("/api/ptm/:id", authenticate, async (req, res) => {
+router.put("/api/ptm/:id", async (req, res) => {
   try {
-    const ptm = await ptmSvc.updatePtm(req.params.id, req.body, { actorUserId: req.user?.uid });
+    const existing = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, existing).allowed) return res.status(404).json({ error: "PTM not found" });
+
+    const ptm = await ptmSvc.updatePtm(req.params.id, req.body, { actorUserId: req.user?.userId });
     if (!ptm) return res.status(404).json({ error: "PTM not found" });
     res.json({ ptm });
   } catch (e) {
@@ -99,8 +108,11 @@ router.put("/api/ptm/:id", authenticate, async (req, res) => {
   }
 });
 
-router.delete("/api/ptm/:id", authenticate, async (req, res) => {
+router.delete("/api/ptm/:id", async (req, res) => {
   try {
+    const existing = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, existing).allowed) return res.status(404).json({ error: "PTM not found" });
+
     await ptmSvc.deletePtm(req.params.id);
     res.json({ success: true });
   } catch (e) {
@@ -110,8 +122,11 @@ router.delete("/api/ptm/:id", authenticate, async (req, res) => {
 
 // ── Slots ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/slots", authenticate, async (req, res) => {
+router.get("/api/ptm/:id/slots", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const slots = await ptmSvc.getSlotsForPtm(req.params.id);
     res.json({ slots });
   } catch (e) {
@@ -119,8 +134,11 @@ router.get("/api/ptm/:id/slots", authenticate, async (req, res) => {
   }
 });
 
-router.post("/api/ptm/:id/slots/generate", authenticate, async (req, res) => {
+router.post("/api/ptm/:id/slots/generate", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const { teacherId, teacherName, startTime, endTime, durationMinutes } = req.body;
     if (!teacherId || !startTime || !endTime || !durationMinutes) {
       return res.status(400).json({ error: "teacherId, startTime, endTime, durationMinutes are required" });
@@ -142,8 +160,11 @@ router.post("/api/ptm/:id/slots/generate", authenticate, async (req, res) => {
   }
 });
 
-router.delete("/api/ptm/:id/slots/:slotId", authenticate, async (req, res) => {
+router.delete("/api/ptm/:id/slots/:slotId", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     await ptmSvc.deleteSlot(req.params.slotId);
     res.json({ success: true });
   } catch (e) {
@@ -154,8 +175,11 @@ router.delete("/api/ptm/:id/slots/:slotId", authenticate, async (req, res) => {
 
 // ── Bookings ───────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/bookings", authenticate, async (req, res) => {
+router.get("/api/ptm/:id/bookings", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const bookings = await ptmSvc.getBookingsForPtm(req.params.id);
     res.json({ bookings });
   } catch (e) {
@@ -163,8 +187,15 @@ router.get("/api/ptm/:id/bookings", authenticate, async (req, res) => {
   }
 });
 
-router.patch("/api/ptm/bookings/:bookingId/status", authenticate, async (req, res) => {
+router.patch("/api/ptm/bookings/:bookingId/status", async (req, res) => {
   try {
+    // This route has no :id (ptmId) segment -- resolve tenant via the
+    // booking's own ptmId, then that PTM's schoolId.
+    const booking = await ptmSvc.getBooking(req.params.bookingId);
+    if (!booking) return res.status(404).json({ error: "Booking not found" });
+    const ptm = await ptmSvc.getPtm(booking.ptmId);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "Booking not found" });
+
     const { status } = req.body;
     await ptmSvc.updateBookingStatus(req.params.bookingId, status);
     res.json({ success: true });
@@ -175,8 +206,11 @@ router.patch("/api/ptm/bookings/:bookingId/status", authenticate, async (req, re
 
 // ── Notes ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
+router.get("/api/ptm/:id/notes/:studentId", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const notes = await ptmSvc.getNotes(req.params.id, req.params.studentId);
     res.json({ notes });
   } catch (e) {
@@ -184,13 +218,16 @@ router.get("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
   }
 });
 
-router.put("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
+router.put("/api/ptm/:id/notes/:studentId", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const { summary, strengths, improvements, actionItems, sharedWithParent } = req.body;
     const notes = await ptmSvc.upsertNotes({
       ptmId:            req.params.id,
       studentId:        req.params.studentId,
-      teacherId:        req.user?.uid || "",
+      teacherId:        req.user?.userId || "",
       summary,
       strengths,
       improvements,
@@ -205,8 +242,11 @@ router.put("/api/ptm/:id/notes/:studentId", authenticate, async (req, res) => {
 
 // ── Stats ──────────────────────────────────────────────────────────
 
-router.get("/api/ptm/:id/stats", authenticate, async (req, res) => {
+router.get("/api/ptm/:id/stats", async (req, res) => {
   try {
+    const ptm = await ptmSvc.getPtm(req.params.id);
+    if (!checkTenantAccess(req, ptm).allowed) return res.status(404).json({ error: "PTM not found" });
+
     const stats = await ptmSvc.getPtmStats(req.params.id);
     res.json({ stats });
   } catch (e) {
@@ -216,9 +256,9 @@ router.get("/api/ptm/:id/stats", authenticate, async (req, res) => {
 
 // ── Teachers list (for PTM teacher selector) ───────────────────────
 
-router.get("/api/ptm/teachers", authenticate, async (req, res) => {
+router.get("/api/ptm/teachers", async (req, res) => {
   try {
-    const users = await userSvc.listUsers({ schoolId: SCHOOL_ID, role: "teacher", status: "active" });
+    const users = await userSvc.listUsers({ schoolId: req.user.schoolId, role: "teacher", status: "active" });
     res.json({ teachers: users });
   } catch (e) {
     res.status(500).json({ error: e.message });

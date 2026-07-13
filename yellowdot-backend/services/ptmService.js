@@ -253,6 +253,12 @@ async function cancelBooking(bookingId, { parentId } = {}) {
   await batch.commit();
 }
 
+async function getBooking(bookingId) {
+  const doc = await bookingCol().doc(bookingId).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() };
+}
+
 async function updateBookingStatus(bookingId, status) {
   const validStatuses = ["confirmed","attended","missed","cancelled"];
   if (!validStatuses.includes(status)) throw new Error("Invalid status");
@@ -314,7 +320,7 @@ async function getPtmStats(ptmId) {
 module.exports = {
   getPtms, getPtm, createPtm, updatePtm, deletePtm,
   getSlotsForPtm, getSlotsForPtmAndTeacher, generateSlots, deleteSlot,
-  getBookingsForPtm, getBookingForStudent, bookSlot, rescheduleBooking, cancelBooking, updateBookingStatus,
+  getBookingsForPtm, getBookingForStudent, getBooking, bookSlot, rescheduleBooking, cancelBooking, updateBookingStatus,
   getNotes, upsertNotes, getSharedNotesForStudent,
   getPtmStats,
 };

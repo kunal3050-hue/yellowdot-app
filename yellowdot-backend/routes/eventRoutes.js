@@ -11,18 +11,22 @@
 const express = require("express");
 const router  = express.Router();
 
-const { authenticate, blockUnknown } = require("../middleware/authMiddleware");
+const { authenticate, blockUnknown, staffOnly } = require("../middleware/authMiddleware");
 const eventSvc  = require("../services/eventService");
 const notif     = require("../services/notificationService");
 const studentSvc = require("../services/studentService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
-const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
+// Staff-only end to end: blockUnknown + staffOnly reject "unknown" and
+// "parent" roles. Parents interact with events exclusively through the
+// dedicated /api/parent/events* routes (unaffected by this milestone).
+router.use("/api/events", authenticate, blockUnknown, staffOnly);
 
 // ── List ──────────────────────────────────────────────────────────────────────
 
-router.get("/api/events", authenticate, blockUnknown, async (req, res) => {
+router.get("/api/events", async (req, res) => {
   try {
-    const events = await eventSvc.getEvents({ schoolId: SCHOOL_ID });
+    const events = await eventSvc.getEvents({ schoolId: req.user.schoolId });
     // Enrich with attending RSVP count
     const enriched = await Promise.all(
       events.map(async ev => ({
@@ -38,14 +42,14 @@ router.get("/api/events", authenticate, blockUnknown, async (req, res) => {
 
 // ── Create ────────────────────────────────────────────────────────────────────
 
-router.post("/api/events", authenticate, blockUnknown, async (req, res) => {
+router.post("/api/events", async (req, res) => {
   try {
-    const actorUserId = req.user?.uid || "system";
-    const event = await eventSvc.createEvent(req.body, { schoolId: SCHOOL_ID, actorUserId });
+    const actorUserId = req.user?.userId || "system";
+    const event = await eventSvc.createEvent(req.body, { schoolId: req.user.schoolId, actorUserId });
 
     // Push notification to affected parents if enabled
     if (event.pushToParentApp) {
-      _notifyAffectedStudents(event, {
+      _notifyAffectedStudents(event, req.user.schoolId, {
         type:     notif.TYPES.EVENT_CREATED,
         title:    `New Event: ${event.title}`,
         message:  `${event.title} on ${event.eventDate}${event.venue ? ` at ${event.venue}` : ""}.`,
@@ -61,14 +65,17 @@ router.post("/api/events", authenticate, blockUnknown, async (req, res) => {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
-router.put("/api/events/:id", authenticate, blockUnknown, async (req, res) => {
+router.put("/api/events/:id", async (req, res) => {
   try {
-    const actorUserId = req.user?.uid || "system";
+    const existing = await eventSvc.getEvent(req.params.id);
+    if (!checkTenantAccess(req, existing).allowed) return res.status(404).json({ error: "Event not found." });
+
+    const actorUserId = req.user?.userId || "system";
     const event = await eventSvc.updateEvent(req.params.id, req.body, { actorUserId });
     if (!event) return res.status(404).json({ error: "Event not found." });
 
     if (event.pushToParentApp) {
-      _notifyAffectedStudents(event, {
+      _notifyAffectedStudents(event, req.user.schoolId, {
         type:     notif.TYPES.EVENT_UPDATED,
         title:    `Event Updated: ${event.title}`,
         message:  `Details for ${event.title} have been updated.`,
@@ -84,8 +91,11 @@ router.put("/api/events/:id", authenticate, blockUnknown, async (req, res) => {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
-router.delete("/api/events/:id", authenticate, blockUnknown, async (req, res) => {
+router.delete("/api/events/:id", async (req, res) => {
   try {
+    const existing = await eventSvc.getEvent(req.params.id);
+    if (!checkTenantAccess(req, existing).allowed) return res.status(404).json({ error: "Event not found." });
+
     const deleted = await eventSvc.deleteEvent(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Event not found." });
     res.json({ success: true });
@@ -96,8 +106,11 @@ router.delete("/api/events/:id", authenticate, blockUnknown, async (req, res) =>
 
 // ── RSVPs (staff read) ────────────────────────────────────────────────────────
 
-router.get("/api/events/:id/rsvps", authenticate, blockUnknown, async (req, res) => {
+router.get("/api/events/:id/rsvps", async (req, res) => {
   try {
+    const existing = await eventSvc.getEvent(req.params.id);
+    if (!checkTenantAccess(req, existing).allowed) return res.status(404).json({ error: "Event not found." });
+
     const rsvps = await eventSvc.getRsvpsForEvent(req.params.id);
     res.json({ rsvps });
   } catch (e) {
@@ -107,12 +120,12 @@ router.get("/api/events/:id/rsvps", authenticate, blockUnknown, async (req, res)
 
 // ── Internal: fire push for all students in affected classes ──────────────────
 
-function _notifyAffectedStudents(event, payload) {
+function _notifyAffectedStudents(event, schoolId, payload) {
   notif.notifyAsync(async () => {
     try {
       const snap = await require("../firebaseAdmin").db
         .collection("students")
-        .where("schoolId", "==", SCHOOL_ID)
+        .where("schoolId", "==", schoolId)
         .get();
 
       for (const doc of snap.docs) {
@@ -125,7 +138,7 @@ function _notifyAffectedStudents(event, payload) {
           if (!classIds.includes(student.classId)) continue;
         }
 
-        await notif.fireForStudent(student.studentId, SCHOOL_ID, {
+        await notif.fireForStudent(student.studentId, schoolId, {
           ...payload,
           childId: student.studentId,
         });
