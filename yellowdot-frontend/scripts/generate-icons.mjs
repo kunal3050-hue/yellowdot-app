@@ -1,16 +1,19 @@
 /**
  * generate-icons.mjs — KUE BOXS Care PWA icon generator
  *
+ * Master source: public/icons/source/kueboxs-mascot-master.png
+ * (official mascot artwork — never redrawn, only resized/trimmed here)
+ *
  * Strategy:
- *   1. trim() removes the transparent border from the original 1024×1024 logo
- *      (sun occupies ~81 % of original; trimming recovers that space)
- *   2. Regular icons — trimmed sun scaled to 90 % of canvas side
- *      → sun visually fills ~90 % of the square / stays inside the
+ *   1. trim() removes the flat white margin around the mascot so every
+ *      derived icon uses the same tight bounding box
+ *   2. Regular icons — trimmed mascot scaled to 90 % of canvas side
+ *      → mascot visually fills ~90 % of the square / stays inside the
  *        inscribed circle on circular launchers (radius 230 px vs 256 px)
- *   3. Maskable (Android adaptive) — trimmed sun at 62 % of canvas
+ *   3. Maskable (Android adaptive) — trimmed mascot at 62 % of canvas
  *      → safely inside the 72 % guaranteed-visible safe zone (368 px)
- *   4. Splash screens — trimmed sun at 32 % of shorter screen dimension,
- *      centred slightly above mid-screen on a full yellow background
+ *   4. Splash screens — trimmed mascot at 25 % of shorter screen dimension,
+ *      centred slightly above mid-screen on a full white background
  *
  * Run: node scripts/generate-icons.mjs
  */
@@ -23,7 +26,7 @@ import { dirname, join } from 'path';
 const __dir   = dirname(fileURLToPath(import.meta.url));
 const root    = join(__dir, '..');
 const outDir  = join(root, 'public', 'icons');
-const srcLogo = join(outDir, 'logo-original.png');
+const srcLogo = join(outDir, 'source', 'kueboxs-mascot-master.png');
 
 // Fixed platform brand baked into generated splash screens — same in every
 // environment, not tenant-specific.
@@ -34,10 +37,18 @@ await mkdir(join(outDir, 'splash'), { recursive: true });
 
 const WHITE  = { r: 255, g: 255, b: 255, alpha: 1 };
 
+// Downsized copy of the master (same artwork, no crop) for the sidebar's small
+// brand mark — avoids shipping the full-resolution master for a 26px icon.
+await sharp(srcLogo)
+  .resize(256, 256, { fit: 'contain', background: WHITE })
+  .png({ compressionLevel: 9 })
+  .toFile(join(outDir, 'logo-original.png'));
+
 // ── Pre-trim the logo once so every icon uses the same tight source ────────────
+const srcMeta = await sharp(srcLogo).metadata();
 const trimmedBuf = await sharp(srcLogo).trim().png().toBuffer();
 const trimmedMeta = await sharp(trimmedBuf).metadata();
-console.log(`Logo trimmed: ${trimmedMeta.width}×${trimmedMeta.height} px (was 1024×1024)`);
+console.log(`Logo trimmed: ${trimmedMeta.width}×${trimmedMeta.height} px (was ${srcMeta.width}×${srcMeta.height})`);
 
 // ── Rounded-corner SVG mask ────────────────────────────────────────────────────
 function maskSvg(size, radius) {
