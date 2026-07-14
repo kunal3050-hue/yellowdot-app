@@ -16,6 +16,7 @@ const svc        = require("../services/attendanceService");
 const studentSvc = require("../services/studentService");
 const QRCode     = require("qrcode");
 const notif      = require("../services/notificationService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -111,6 +112,10 @@ async function markAttendance(req, res) {
 // ════════════════════════════════════════════════════════════════════
 async function checkOut(req, res) {
   try {
+    const existing = await svc.getEntry(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Entry not found." });
+    }
     const entry = await svc.checkOut(req.params.id);
     if (!entry) return res.status(404).json({ success: false, error: "Entry not found." });
 
@@ -288,7 +293,9 @@ async function generateStudentQR(req, res) {
   try {
     const { studentId } = req.params;
     const student = await studentSvc.getOne(studentId);
-    if (!student) return res.status(404).json({ success: false, error: "Student not found." });
+    if (!student || !checkTenantAccess(req, student).allowed) {
+      return res.status(404).json({ success: false, error: "Student not found." });
+    }
 
     const payload    = makeQRPayload(studentId);
     const qrDataUrl  = await QRCode.toDataURL(payload, {

@@ -375,6 +375,11 @@ async function markStatus({ staffId, date, status, notes = "", actorUserId = "sy
   });
 }
 
+async function getOne(attendanceId) {
+  const snap = await col().doc(attendanceId).get();
+  return snap.exists ? docToAttendance(snap) : null;
+}
+
 async function update(attendanceId, data, { actorUserId = "system" } = {}) {
   const ref  = col().doc(attendanceId);
   const snap = await ref.get();
@@ -462,6 +467,7 @@ module.exports = {
   STATUSES: [...STATUSES],
   SOURCES:  [...SOURCES],
   getAll,
+  getOne,
   getForStaffMonth,
   todaySnapshot,
   dashboard,

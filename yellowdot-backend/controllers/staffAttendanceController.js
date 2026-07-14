@@ -5,6 +5,7 @@
 const svc       = require("../services/staffAttendanceService");
 const shiftSvc  = require("../services/staffShiftService");
 const staffSvc  = require("../services/staffService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 function _ctx(req) {
   return {
@@ -55,6 +56,10 @@ async function staffMonth(req, res) {
   try {
     const { schoolId } = _ctx(req);
     const { staffId } = req.params;
+    const staff = await staffSvc.getOne(staffId);
+    if (!staff || !checkTenantAccess(req, staff).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const year  = Number(req.query.year)  || new Date().getFullYear();
     const month = Number(req.query.month) || (new Date().getMonth() + 1);
     const rows = await svc.getForStaffMonth({ schoolId, staffId, year, month });
@@ -134,6 +139,10 @@ async function qrCheckIn(req, res) {
 
 async function updateRecord(req, res) {
   try {
+    const existing = await svc.getOne(req.params.attendanceId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Attendance record not found." });
+    }
     const { actorUserId } = _ctx(req);
     const row = await svc.update(req.params.attendanceId, req.body, { actorUserId });
     if (!row) return res.status(404).json({ success: false, error: "Attendance record not found." });
@@ -143,6 +152,10 @@ async function updateRecord(req, res) {
 
 async function removeRecord(req, res) {
   try {
+    const existing = await svc.getOne(req.params.attendanceId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Attendance record not found." });
+    }
     const { actorUserId } = _ctx(req);
     const ok = await svc.remove(req.params.attendanceId, { actorUserId });
     if (!ok) return res.status(404).json({ success: false, error: "Attendance record not found." });
@@ -188,6 +201,10 @@ async function createShift(req, res) {
 
 async function updateShift(req, res) {
   try {
+    const existing = await shiftSvc.getOne(req.params.shiftId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Shift not found." });
+    }
     const { actorUserId } = _ctx(req);
     const shift = await shiftSvc.update(req.params.shiftId, req.body, { actorUserId });
     if (!shift) return res.status(404).json({ success: false, error: "Shift not found." });
@@ -197,6 +214,10 @@ async function updateShift(req, res) {
 
 async function removeShift(req, res) {
   try {
+    const existing = await shiftSvc.getOne(req.params.shiftId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Shift not found." });
+    }
     const ok = await shiftSvc.remove(req.params.shiftId);
     if (!ok) return res.status(404).json({ success: false, error: "Shift not found." });
     res.json({ success: true });

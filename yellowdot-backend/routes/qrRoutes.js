@@ -20,6 +20,9 @@ const qrSvc    = require("../services/qrService");
 router.get("/api/qr/center/:centerId", authenticate, staffOnly, async (req, res) => {
   try {
     const { centerId } = req.params;
+    if (!(await qrSvc.centerBelongsToSchool(centerId, req.user?.schoolId))) {
+      return res.status(404).json({ hasQR: false, centerId, message: "Center not found." });
+    }
     const config = await qrSvc.getCenterQR(centerId);
 
     if (!config) {
@@ -57,6 +60,11 @@ router.post(
   async (req, res) => {
     const { centerId } = req.params;
     const { centerName } = req.body || {};
+
+    if (!(await qrSvc.centerBelongsToSchool(centerId, req.user?.schoolId))) {
+      return res.status(404).json({ success: false, error: "Center not found." });
+    }
+
     const authHeader = req.headers?.authorization || "";
     const hasBearer = authHeader.startsWith("Bearer ");
 

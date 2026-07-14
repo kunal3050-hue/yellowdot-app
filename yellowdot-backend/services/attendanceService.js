@@ -186,6 +186,14 @@ async function markAttendance({
 }
 
 /**
+ * Fetch a single attendance entry by ID (no side effects).
+ */
+async function getEntry(entryId) {
+  const snap = await col().doc(entryId).get();
+  return snap.exists ? docToRecord(snap) : null;
+}
+
+/**
  * Record check-out for an attendance entry.
  */
 async function checkOut(entryId) {
@@ -230,6 +238,7 @@ module.exports = {
   getAttendanceSummary,
   getStudentsInside,
   getAttendanceHistory,
+  getEntry,
   markAttendance,
   checkOut,
   processQRScan,

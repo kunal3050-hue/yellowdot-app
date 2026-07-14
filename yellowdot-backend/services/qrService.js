@@ -182,6 +182,23 @@ async function getCenterQR(centerId) {
   return snap.exists ? snap.data() : null;
 }
 
+/**
+ * qrConfigs/{centerId} carries no schoolId of its own — centers aren't a
+ * first-class, schoolId-owned collection anywhere in this codebase. To keep
+ * a caller from reading/regenerating another school's center QR by guessing
+ * a centerId, confirm at least one of THIS school's own user accounts is
+ * actually assigned to that center before allowing access.
+ */
+async function centerBelongsToSchool(centerId, schoolId) {
+  if (!centerId || !schoolId) return false;
+  const snap = await db.collection("users")
+    .where("schoolId", "==", schoolId)
+    .where("centerId", "==", centerId)
+    .limit(1)
+    .get();
+  return !snap.empty;
+}
+
 // ── Validation ───────────────────────────────────────────────────────────────
 
 /**
@@ -262,6 +279,7 @@ function _friendlyName(centerId) {
 module.exports = {
   generateCenterQR,
   getCenterQR,
+  centerBelongsToSchool,
   validateQRPayload,
   buildCenterPayload,
   QR_VERSION,
