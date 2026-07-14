@@ -2,7 +2,7 @@
 ## Version 2.0 — Master Planning Document
 
 > **Single source of truth for project status, architecture, and long-term product strategy.**
-> Last updated: 2026-06-30 · Version: 2.0
+> Last updated: 2026-07-14 · Version: 2.0 (Security & Tenant Isolation section added; HR module status corrected — see that section for detail)
 > Update this file after every major feature addition, removal, architectural decision, or module promotion.
 
 ---
@@ -20,8 +20,9 @@
 9. [Recent Decisions Log](#recent-decisions-log)
 10. [Current Build Roadmap](#current-build-roadmap)
 11. [Future Product Roadmap](#future-product-roadmap)
-12. [CTO Summary Report](#cto-summary-report)
-13. [Vision 2027](#vision-2027)
+12. [Security & Tenant Isolation](#security--tenant-isolation)
+13. [CTO Summary Report](#cto-summary-report)
+14. [Vision 2027](#vision-2027)
 
 ---
 
@@ -114,6 +115,11 @@ The long-term vision is a complete, AI-enhanced preschool operating system: ever
 | Super Admin — Platform Analytics | Platform | ✅ | |
 | Super Admin — Audit Logs | Platform | ✅ | |
 | Super Admin — Impersonation | Platform | ✅ | Firebase custom token |
+| Staff Attendance (HR) | HR | ✅ | `staffAttendanceRoutes.js` — not previously reflected in this doc |
+| Leave Management (HR) | HR | ✅ | `leaveRoutes.js`; tenant-isolation hardened Milestone 12 (2026-07-14) |
+| Payroll (HR) | HR | ✅ | `payrollRoutes.js`; tenant-isolation hardened Milestone 12 (2026-07-14) |
+| Performance Management (HR) | HR | ✅ | `performanceRoutes.js`; tenant-isolation hardened Milestone 12 (2026-07-14) |
+| Departments & Designations (HR) | HR | ✅ | `departmentRoutes.js`/`designationRoutes.js`; hardened Milestone 12 (2026-07-14) |
 | Staged Releases Dashboard | Dev/Ops | ✅ | Module promotion + rollback governance |
 | Feature Flags System | Dev/Ops | ✅ | Per-environment flag control |
 | Two-Environment Strategy | Dev/Ops | ✅ | Yellow Dot ↔ KUE Boxs Care |
@@ -149,9 +155,6 @@ The long-term vision is a complete, AI-enhanced preschool operating system: ever
 | Parent Module — Events Calendar (Phase 7) | Parent App | |
 | Online Payments / Payment Gateway | Finance | Razorpay/Stripe |
 | Invoice PDF (parent-facing) | Finance | jsPDF available, not wired |
-| Staff Attendance | HR | Not started |
-| Leave Management (Staff) | HR | Not started |
-| Payroll | HR | Not started |
 | Visitor Management (beyond parent gate) | Operations | Not started |
 | Transport Management | Operations | Not started |
 | Inventory & Asset Management | Operations | Not started |
@@ -774,8 +777,8 @@ Staged Releases Dashboard (/releases):
 | Child Journey — Artwork upload | ✅ Staging | Firebase Storage |
 | Child Journey — Milestones (auto + teacher) | ✅ Staging | Auto: First Day/30d/100d/Birthday |
 | Child Journey — Annual Memory Book PDF | 🟡 In Progress | Phase 4 — not started yet |
-| Staff Attendance | 🔴 Planned | New module |
-| Leave Management (Staff) | 🔴 Planned | New module |
+| Staff Attendance | ✅ Completed | Backend live; not previously reflected in this doc |
+| Leave Management (Staff) | ✅ Completed | Backend live; tenant-isolation hardened Milestone 12 |
 
 ### Finance
 
@@ -789,7 +792,7 @@ Staged Releases Dashboard (/releases):
 | Invoice PDF for parents | 🔴 Planned | |
 | Online payment gateway | 🔴 Planned | Razorpay/Stripe |
 | Revenue forecasting | 🔴 Planned | Analytics feature |
-| Payroll (staff) | 🔴 Planned | New module |
+| Payroll (staff) | ✅ Completed | Backend live; tenant-isolation hardened Milestone 12 |
 
 ### Parent Module
 
@@ -869,6 +872,8 @@ Staged Releases Dashboard (/releases):
 | 2026-06-29 | **Multi-tenant SaaS layer shipped** | `tenants` collection. `tenantId = schoolId` — no data migration needed. 4 subscription tiers. Trial enforcement. Impersonation flow. |
 | 2026-06-29 | **Staged Releases governance dashboard shipped** | Module promotion + rollback with audit trail. `releaseModules` + `releaseAudits` collections. |
 | 2026-06-29 | **Two-environment strategy formalized** | Yellow Dot = staging. KUE Boxs Care = production. Feature flags control promotion. |
+| 2026-07-13 → 2026-07-14 | **Production Hardening security program (Milestones 2–12) closed all 8 Critical findings + H1** | Systematic tenant-isolation IDOR fixes across student, finance, incident, events/PTM, journey, pickup/CCTV, and — as of Milestone 12 — payroll/leave/performance/family/department/designation/roles/users. See `SECURITY_ARCHITECTURE.md` (canonical reference) and its new **Tenant Security Baseline** section for the 5 non-negotiable rules every future module must meet. |
+| 2026-07-14 | **Role-assignment capping added (`ASSIGNABLE_ROLES`)** | Milestone 12 discovered a cross-tenant privilege-escalation path (any admin could grant `super_admin`/`developer` to any user, any school) alongside the original tenant-isolation gap. Fixed by capping role writes below the bypass tier in `userService.js`, regardless of caller's own role or tenant. |
 
 ---
 
@@ -1682,6 +1687,44 @@ Key KPIs: Today's attendance %, monthly fee collection vs. target, occupancy rat
 | Priority | Medium |
 | Dependencies | Child Journey, Staff Attendance, Parent-Teacher Chat |
 | Estimated Phase | V6 |
+
+---
+
+## Security & Tenant Isolation
+
+**Canonical reference: `SECURITY_ARCHITECTURE.md`** (repo root). This section is a status pointer only — do not duplicate authorization logic detail here; update the canonical doc instead and link it.
+
+### Tenant Security Baseline (non-negotiable, applies to every module)
+
+1. Every API must validate `schoolId` ownership.
+2. Never trust IDs from the client.
+3. Every CRUD endpoint must perform authorization before data access.
+4. Protected roles (`developer` and `super_admin`) must never be assignable through normal APIs.
+5. All future modules must follow this pattern.
+
+### Milestone status (Production Hardening program)
+
+| Milestone | Scope | Status |
+|---|---|---|
+| M2 | Pickup-authorization IDOR | ✅ Closed |
+| M3 | Billing/invoice data leak | ✅ Closed |
+| M4 | `sync-user` role self-assignment (C1) | ✅ Closed |
+| M5 | Student medical/notes access control | ✅ Closed |
+| M6 | Student CRUD tenant isolation | ✅ Closed |
+| M7 | Incident reports authorization | ✅ Closed |
+| M8 | Events & PTM tenant isolation | ✅ Closed |
+| M9 | Journey module ownership | ✅ Closed |
+| M10 | Pickup/CCTV config tenant isolation | ✅ Closed |
+| M11 | CCTV credential protection | ✅ Closed |
+| M12 | HR/finance/admin tenant isolation (H1) + role-escalation cap | ✅ Closed (2026-07-14) |
+
+All 8 original Critical findings (C1–C8) and the H1 High finding are closed. Remaining backlog (Medium/Low findings, and modules not yet audited against the Tenant Security Baseline) is tracked in the Security Audit Report produced alongside this doc-sync pass — see `docs/production-ops/` for the dated report.
+
+### Known accepted security debt
+
+- **Shared system-role documents** (`roles/admin`, `roles/teacher`, etc.) use a fixed slug ID, not a per-school one — every tenant shares the same doc, and the owning tenant's permission-matrix edits apply platform-wide via an intentional cache bypass. Milestone 12 closed the cross-tenant *mutation* surface but not the underlying data-model sharing. Needs a dedicated migration to per-tenant role documents.
+- **Student IDs are globally sequential**, not namespaced per school (accepted since Milestone 6 — tenant checks make ID-guessing irrelevant to authorization, but a full renamespace would require migrating every collection that stores a bare `studentId` foreign key).
+- **CCTV credential encryption key must be included in every deploy's `docker run -e` flags** — it isn't in the VPS's `--env-file`, so a deploy that forgets the flag silently reverts to unencrypted storage.
 
 ---
 

@@ -1,8 +1,20 @@
 # Security Architecture — KUE BOXS Care
 
-**Status: canonical.** This document is the source of truth for authentication, authorization, tenant isolation, and ownership verification across the entire backend. It was written after Milestones 2–11 of the Production Hardening program closed all 8 Critical findings (C1–C8) from the 2026-07-13 security audit, each fix following the same pattern independently before this document unified them.
+**Status: canonical.** This document is the source of truth for authentication, authorization, tenant isolation, and ownership verification across the entire backend. It was written after Milestones 2–11 of the Production Hardening program closed all 8 Critical findings (C1–C8) from the 2026-07-13 security audit, each fix following the same pattern independently before this document unified them. Milestone 12 (2026-07-14) extended the same pattern to the HR/finance/admin surface (payroll, leave, performance, family, department, designation, roles, users) and added the role-assignment guard described in the baseline below.
 
 **All future modules must conform to the patterns below by reusing the existing middleware/helpers named here — not by inventing new authorization logic.** If a new requirement genuinely doesn't fit an existing pattern, extend this document in the same commit that introduces the new pattern, so it never drifts out of date.
+
+---
+
+## Tenant Security Baseline
+
+This is the non-negotiable minimum every API in this codebase must meet — staff-facing, parent-facing, or platform-facing. Everything else in this document is detail and precedent in service of these five rules:
+
+1. **Every API must validate `schoolId` ownership.** A by-ID read, update, or delete must confirm the record's `schoolId` matches the caller's `req.user.schoolId` before returning data or applying a mutation. A list/query endpoint must filter by `schoolId` directly in the Firestore query. There is no endpoint exempt from this — "internal," "admin-only," and "bypass-role" surfaces are not exceptions (§3, §6).
+2. **Never trust IDs from the client.** A document ID, `schoolId`, `role`, or `centerId` supplied in `req.params`/`req.query`/`req.body` is a lookup key at most — never a source of truth for authorization. The server always re-derives identity and tenant from `req.user` (§1, §3) and re-fetches the record to check its actual ownership before trusting anything about it.
+3. **Every CRUD endpoint must perform authorization before data access.** Role gate first (`staffOnly`/`authorize`/`authorizeRoute`/parent-ownership), then tenant check, then the operation itself. Never fetch-then-decide-whether-to-hide after the fact, and never let a mutation run before both checks pass.
+4. **Protected roles (`developer` and `super_admin`) must never be assignable through normal APIs.** No user-management endpoint may accept a client-supplied `role` value that resolves to a bypass role — cap the assignable set explicitly (see `userService.js`'s `ASSIGNABLE_ROLES`/`_resolveAssignableRole()`, Milestone 12) rather than trusting a role enum that happens to include them. This applies regardless of the caller's own role — even a legitimate same-tenant admin must not be able to mint a bypass-role account through the ordinary API.
+5. **All future modules must follow this pattern.** Reuse `checkTenantAccess`, the role-gating middleware, and `ASSIGNABLE_ROLES`-style caps rather than inventing new authorization logic per module. See "How to secure a new module" below for the concrete checklist, and the Reusable Helpers Reference for what already exists.
 
 ---
 
@@ -116,6 +128,10 @@ Staff roles (`teacher, accountant, reception, center_admin, admin, super_admin, 
 1. **School-level admin/bypass roles** (`admin`, `center_admin`, `super_admin`, `developer` as a **staff role** stored on a `users/{uid}` doc with a specific `schoolId`). These see everything **within their own school**, bypassing center-level restrictions for `developer`/`super_admin` specifically. This is what §2/§3/§6 describe.
 2. **Platform Super Admin** (a separate mechanism: the `tenants` collection, `tenantMiddleware.js`, and the impersonation flow described in the Multi-Tenant SaaS Layer). This is the only legitimate way to act across every tenant on the platform. It is not a role value on a regular `users/{uid}` doc, and no regular authorization check in this document should ever grant cross-tenant access as a side effect of a "bypass" role — if that ever happens, it's a bug (see the CCTV resolver fix in §3).
 
+**Role assignment is capped, not just role-checked.** `userService.js` exports `ASSIGNABLE_ROLES` (the full role enum minus `BYPASS_ROLES`) and routes every `role` field write — on both create and update — through `_resolveAssignableRole()`. A request that supplies `role: "developer"` or `role: "super_admin"` is silently downgraded (create) or ignored (update, existing role kept) rather than honored, regardless of the caller's own role or tenant (Milestone 12 / baseline rule 4 above). Any future endpoint that writes a `role` field — staff invites, bulk import, self-service profile edits, anything — must funnel through this same cap rather than re-validating the role enum inline.
+
+**Role *documents* (not just role assignment) have a known sharing gap.** `roles/{admin|teacher|...}` system-role docs use a fixed slug ID, not a per-school one, and `seedDefaultRoles()` only writes `if (!snap.exists)` — so every school shares the literal same Firestore document for each system role, and whichever school seeds first "owns" the `schoolId` stamped on it. Milestone 12 closed the *mutation* surface (a non-owning tenant can no longer read or write a system role via `roleRoutes.js`, including its permission matrix), but the *owning* tenant's edits still apply platform-wide via the permission-resolution cache's intentional `isSystem` bypass (`roleService.js`'s `_fetchAndCache`) — that bypass exists for legitimate login/permission-check performance, not as an authorization decision, but it does mean this collection is not yet fully tenant-isolated at the data-model level. Treat this as accepted architectural debt (parallel to the student-ID debt in §3) until a dedicated migration gives every school its own per-tenant role documents.
+
 ---
 
 ## 8. CCTV security model
@@ -155,6 +171,7 @@ Staff roles (`teacher, accountant, reception, center_admin, admin, super_admin, 
 5. **List endpoints**: filter the Firestore query by `schoolId` directly; this alone is tenant-safe as long as `schoolId` came from step 3.
 6. **Write automated tests** covering: same-tenant staff access (allowed), cross-tenant staff access (blocked, `404`), parent-own-record (allowed, where applicable), parent-other-record (blocked, `403`), unauthenticated (`401`), and — for any by-ID mutation — an end-to-end test proving the underlying service function is **never called** for a blocked cross-tenant target (mock the service, assert the mock wasn't invoked).
 7. **Verify live in production** with temporary Firebase accounts across at least two tenants before considering the module done, then delete all test data and independently re-verify the deletion.
+8. **If the module writes a `role` (or any privilege-bearing) field**, cap it against `userService.js`'s `ASSIGNABLE_ROLES` (or an equivalent explicit allow-list) rather than accepting any value in the role enum — see baseline rule 4 above.
 
 ---
 
@@ -170,5 +187,6 @@ Staff roles (`teacher, accountant, reception, center_admin, admin, super_admin, 
 | `middleware/incidentAccess.js` | `checkIncidentAccess(req, incident)` | Incident reports tenant check |
 | `services/cctvAccessResolver.js` | `canViewCamera, canParentViewCamera, filterViewableCameras` | CCTV visibility (staff + parent) |
 | `config/permissionsBackend.js` | `isBypassRole, BYPASS_ROLES, ROLE_PERMISSIONS, ROLE_HOME` | Role classification |
+| `services/userService.js` | `ASSIGNABLE_ROLES, _resolveAssignableRole(requestedRole, fallback)` | Capping role-field writes below bypass-role tier |
 
-*Document owner: update this file in the same commit whenever a new authorization pattern is introduced, or an existing one changes. Last updated 2026-07-13 (Milestones 2–11).*
+*Document owner: update this file in the same commit whenever a new authorization pattern is introduced, or an existing one changes. Last updated 2026-07-14 (Milestones 2–12).*
