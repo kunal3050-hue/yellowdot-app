@@ -7,7 +7,38 @@ Format is loosely [Keep a Changelog](https://keepachangelog.com/); dates are `YY
 ## [Unreleased]
 
 ### Security
-- Documentation sync pass following Milestone 12: added the **Tenant Security Baseline** to `SECURITY_ARCHITECTURE.md`, corrected stale HR-module status in `docs/cto-context.md`, added a security-status pointer to `docs/production-ops/09_CTO_CONTEXT_V3.md`, and produced a full tenant-safety audit of the 16 backend route modules not yet covered by Milestones 2–12 (see `docs/production-ops/` for the dated Security Audit Report). No business logic changed in this pass.
+- Security Hardening Phase Completion Report produced after M16: all 10 Critical findings and all 5 tenant-isolation-shaped High findings across the whole program (M2–M16) are now closed. 9 infrastructure/hardening-shaped Highs from the original 2026-07-13 audit remain open and out of this program's scope. See `docs/production-ops/31_SECURITY_HARDENING_PHASE_COMPLETION_REPORT.md`, `29_SECURITY_COVERAGE_MATRIX.md`, `30_PRODUCTION_READINESS_REPORT_V2.md`.
+
+## [M16] — 2026-07-14
+
+### Security
+- **Fixed**: `communicationRoutes.js` — holidays/notices/announcements update/delete had no `schoolId` check (any staff with write/delete permission could edit or delete another school's public content). Added `getHoliday`/`getNotice`/`getAnnouncement` getters and wired `checkTenantAccess` into all six mutation routes.
+- **Fixed**: `updateHoliday`/`updateNotice`/`updateAnnouncement` spread the raw request body directly into the Firestore update, including any client-supplied `schoolId` — a legitimate same-school writer could reassign a record into a different tenant's namespace. Added `_stripImmutable()` to drop `schoolId`/`id` from every update body.
+- Commit: `b5220ef`. Full report: `docs/production-ops/28_MILESTONE_16_COMMUNICATION_MODULE_HARDENING.md`.
+
+## [M15] — 2026-07-14
+
+### Security
+- **Fixed**: `attendanceRoutes.js`'s `checkOut()` (falsifiable check-out time for a foreign school's student) and `generateStudentQR()` (valid check-in QR generated for any studentId, no tenant check).
+- **Fixed**: `staffAttendanceRoutes.js` — `staffMonth`, attendance record update/remove, and shift update/remove all lacked tenant checks.
+- **Fixed**: `qrRoutes.js` — center-QR read/regenerate had no tenant check; `qrConfigs` carries no `schoolId` of its own, so added a bespoke `qrService.centerBelongsToSchool()` check instead of the generic helper.
+- Commit: `88ba04e`. Full report: `docs/production-ops/27_MILESTONE_15_ATTENDANCE_PLATFORM_HARDENING.md`.
+
+## [M14] — 2026-07-14
+
+### Security
+- **Fixed**: `ptmService.rescheduleBooking()`/`cancelBooking()` accepted a `parentId` argument and never checked it — any authenticated parent, any school, could reschedule or cancel any other parent's PTM booking by ID. Lowest attacker-privilege-bar finding across the whole program (parent role, not staff/admin).
+- **Fixed**: `POST /api/parent/ptm/:id/book` now tenant-checks the target PTM; `GET /api/parent/ptm` no longer trusts a client-supplied `studentId` and uses the parent's real `schoolId` instead of a hardcoded fallback.
+- **Fixed (follow-up, same day)**: `req.parent.parentId` doesn't exist — the parent-profile object only carries `.uid`. Every PTM call site had silently been passing `undefined` as the ownership key, defeating the fix above until caught by this milestone's own live verification. Switched to `parent.uid` everywhere.
+- **Fixed**: missing `ptmBookings` (ptmId+studentId+status) composite index, found blocking `GET /api/parent/ptm` for every parent in production — pre-existing, unrelated to the ownership fix, same class of gap as the M8 PTM index issue.
+- Commits: `e626c83`, `ab0f588`, `7821dd0`. Full report: `docs/production-ops/26_MILESTONE_14_PTM_BOOKING_OWNERSHIP.md`.
+
+## [M13] — 2026-07-14
+
+### Security
+- **Fixed**: `staffRoutes.js` — every by-ID endpoint (`GET/PUT/DELETE/:staffId`, `restore`, `invite`, `link-user`, `unlink-user`, `disable-user`) lacked a tenant check, exposing cross-tenant staff PII and allowing role escalation via the mutable `role` field and Auth-account lockout via `disable-user`.
+- **Fixed**: `staffController.invite()`'s `_ensureAuthUser()` writes a real `users/{uid}` Firestore document directly — a second, parallel account-creation path entirely separate from `userService.js`, which used `staff.role` with no validation at all. Now routes through `userService`'s `_resolveAssignableRole()`, closing the same class of bypass-role escalation M12 closed for `userRoutes.js`.
+- Commit: `f75a26c`. Full report: `docs/production-ops/25_MILESTONE_13_STAFF_MANAGEMENT_TENANT_ISOLATION.md`.
 
 ## [M12] — 2026-07-14
 
