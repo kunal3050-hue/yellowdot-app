@@ -15,6 +15,14 @@ const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 function nowISO() { return new Date().toISOString(); }
 function uid(prefix) { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
 
+// schoolId/id must never be settable from an update body — never trust a
+// client-supplied schoolId (Tenant Security Baseline rule 2), and never let a
+// write silently move a record into a different tenant's namespace.
+function _stripImmutable(data) {
+  const { schoolId, id, ...rest } = data || {};
+  return rest;
+}
+
 // ── HOLIDAYS ──────────────────────────────────────────────────────────────────
 
 const hCol = () => db.collection("holidays");
@@ -49,11 +57,16 @@ async function createHoliday(data, { schoolId = SCHOOL_ID, actorUserId = "system
   return doc;
 }
 
+async function getHoliday(id) {
+  const snap = await hCol().doc(id).get();
+  return snap.exists ? snap.data() : null;
+}
+
 async function updateHoliday(id, data, { actorUserId = "system" } = {}) {
   const ref  = hCol().doc(id);
   const snap = await ref.get();
   if (!snap.exists) return null;
-  const update = { ...data, updatedAt: nowISO(), updatedBy: actorUserId };
+  const update = { ..._stripImmutable(data), updatedAt: nowISO(), updatedBy: actorUserId };
   await ref.update(update);
   return { ...snap.data(), ...update };
 }
@@ -101,11 +114,16 @@ async function createNotice(data, { schoolId = SCHOOL_ID, actorUserId = "system"
   return doc;
 }
 
+async function getNotice(id) {
+  const snap = await nCol().doc(id).get();
+  return snap.exists ? snap.data() : null;
+}
+
 async function updateNotice(id, data, { actorUserId = "system" } = {}) {
   const ref  = nCol().doc(id);
   const snap = await ref.get();
   if (!snap.exists) return null;
-  const update = { ...data, updatedAt: nowISO(), updatedBy: actorUserId };
+  const update = { ..._stripImmutable(data), updatedAt: nowISO(), updatedBy: actorUserId };
   await ref.update(update);
   return { ...snap.data(), ...update };
 }
@@ -152,11 +170,16 @@ async function createAnnouncement(data, { schoolId = SCHOOL_ID, actorUserId = "s
   return doc;
 }
 
+async function getAnnouncement(id) {
+  const snap = await aCol().doc(id).get();
+  return snap.exists ? snap.data() : null;
+}
+
 async function updateAnnouncement(id, data, { actorUserId = "system" } = {}) {
   const ref  = aCol().doc(id);
   const snap = await ref.get();
   if (!snap.exists) return null;
-  const update = { ...data, updatedAt: nowISO(), updatedBy: actorUserId };
+  const update = { ..._stripImmutable(data), updatedAt: nowISO(), updatedBy: actorUserId };
   await ref.update(update);
   return { ...snap.data(), ...update };
 }
@@ -170,7 +193,7 @@ async function deleteAnnouncement(id) {
 }
 
 module.exports = {
-  getHolidays, createHoliday, updateHoliday, deleteHoliday,
-  getNotices,  createNotice,  updateNotice,  deleteNotice,
-  getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
+  getHolidays, getHoliday, createHoliday, updateHoliday, deleteHoliday,
+  getNotices,  getNotice,  createNotice,  updateNotice,  deleteNotice,
+  getAnnouncements, getAnnouncement, createAnnouncement, updateAnnouncement, deleteAnnouncement,
 };

@@ -8,6 +8,7 @@ const router   = express.Router();
 const { authenticate, authorize, blockUnknown } = require("../middleware/authMiddleware");
 const svc      = require("../services/communicationService");
 const notif    = require("../services/notificationService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -61,6 +62,10 @@ router.post("/api/holidays", authenticate, authorize(...CAN_WRITE), async (req, 
 
 router.put("/api/holidays/:id", authenticate, authorize(...CAN_WRITE), async (req, res) => {
   try {
+    const existing = await svc.getHoliday(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const { actorUserId } = ctx(req);
     const holiday = await svc.updateHoliday(req.params.id, req.body || {}, { actorUserId });
     if (!holiday) return res.status(404).json({ success: false, error: "Not found." });
@@ -70,6 +75,10 @@ router.put("/api/holidays/:id", authenticate, authorize(...CAN_WRITE), async (re
 
 router.delete("/api/holidays/:id", authenticate, authorize(...CAN_DELETE), async (req, res) => {
   try {
+    const existing = await svc.getHoliday(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const ok = await svc.deleteHoliday(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Not found." });
     res.json({ success: true });
@@ -102,6 +111,10 @@ router.post("/api/notices", authenticate, authorize(...CAN_WRITE), async (req, r
 
 router.put("/api/notices/:id", authenticate, authorize(...CAN_WRITE), async (req, res) => {
   try {
+    const existing = await svc.getNotice(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const { actorUserId } = ctx(req);
     const notice = await svc.updateNotice(req.params.id, req.body || {}, { actorUserId });
     if (!notice) return res.status(404).json({ success: false, error: "Not found." });
@@ -111,6 +124,10 @@ router.put("/api/notices/:id", authenticate, authorize(...CAN_WRITE), async (req
 
 router.delete("/api/notices/:id", authenticate, authorize(...CAN_DELETE), async (req, res) => {
   try {
+    const existing = await svc.getNotice(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const ok = await svc.deleteNotice(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Not found." });
     res.json({ success: true });
@@ -146,6 +163,10 @@ router.post("/api/announcements", authenticate, authorize(...CAN_WRITE), async (
 
 router.put("/api/announcements/:id", authenticate, authorize(...CAN_WRITE), async (req, res) => {
   try {
+    const existing = await svc.getAnnouncement(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const { actorUserId } = ctx(req);
     const announcement = await svc.updateAnnouncement(req.params.id, req.body || {}, { actorUserId });
     if (!announcement) return res.status(404).json({ success: false, error: "Not found." });
@@ -155,6 +176,10 @@ router.put("/api/announcements/:id", authenticate, authorize(...CAN_WRITE), asyn
 
 router.delete("/api/announcements/:id", authenticate, authorize(...CAN_DELETE), async (req, res) => {
   try {
+    const existing = await svc.getAnnouncement(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Not found." });
+    }
     const ok = await svc.deleteAnnouncement(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Not found." });
     res.json({ success: true });
