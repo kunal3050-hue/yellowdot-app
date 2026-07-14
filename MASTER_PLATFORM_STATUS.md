@@ -137,6 +137,8 @@ Full roadmap (Admissions CRM, Online Payments, AI features, Parent-Teacher Chat,
 
 **Do not begin any new product feature work until the items in §11 Next Phase (WebAuthn, password-reset logging) are resolved.**
 
+**UI/UX Design System initiative (2026-07-14):** a separate, visual-only workstream has started — `KUE_BOXS_DESIGN_SYSTEM.md` (repo root) is now canonical for typography, color, elevation, and every component category. An audit found the token system and component library already largely meet the "premium SaaS, not ERP" bar; the real work is consolidating a stale conflicting color source (`design-system/theme.js`, still driving every `StatusBadge`) and three competing sidebar CSS definitions in `layout.css`, then a module-by-module adoption pass fixing ~2,500 raw hex literals and ~760 raw Tailwind-gray classes across `src/pages` that bypass the tokens. **No backend logic or API contracts are touched by this workstream** — see `KUE_BOXS_DESIGN_SYSTEM.md` §19-20 for the consolidation list and required per-module process (before/after, screenshots, a11y review, performance impact, regression verification).
+
 ---
 
 ## 10. Current Scores
