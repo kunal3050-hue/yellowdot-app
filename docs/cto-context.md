@@ -1,7 +1,7 @@
 # Yellow Dot CRM — CTO Context Document
 ## Version 2.0 — Master Planning Document
 
-> **Single source of truth for project status, architecture, and long-term product strategy.**
+> **Source of truth for detailed product status, architecture, and long-term product strategy.** For a top-level, always-current status dashboard (architecture, security, infrastructure, production, modules, testing, scores, roadmap, technical debt), see `MASTER_PLATFORM_STATUS.md` at the repo root — that file is now the single source of truth this one feeds into for module/roadmap detail.
 > Last updated: 2026-07-14 · Version: 2.0 (Security & Tenant Isolation section added and updated through Milestone 16; HR module status corrected — see that section for detail)
 > Update this file after every major feature addition, removal, architectural decision, or module promotion.
 

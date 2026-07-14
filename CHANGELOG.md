@@ -4,6 +4,8 @@ All notable changes to the KUE BOXS Care / Yellow Dot backend and platform are r
 
 Format is loosely [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+**For current overall platform status, see `MASTER_PLATFORM_STATUS.md` at the repo root.** This file is the chronological record; that one is the point-in-time dashboard — keep both current when closing a milestone.
+
 ## [Unreleased]
 
 ### Security
