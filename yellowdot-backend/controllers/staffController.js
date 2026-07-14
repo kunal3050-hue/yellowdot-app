@@ -13,6 +13,8 @@
 const staffSvc    = require("../services/staffService");
 const timelineSvc = require("../services/employeeTimelineService");
 const { auth, db } = require("../firebaseAdmin");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
+const { _resolveAssignableRole } = require("../services/userService");
 
 function _ctx(req) {
   return {
@@ -106,7 +108,9 @@ async function getSelf(req, res) {
 async function getOne(req, res) {
   try {
     const staff = await staffSvc.getOne(req.params.staffId);
-    if (!staff) return res.status(404).json({ success: false, error: "Staff member not found." });
+    if (!staff || !checkTenantAccess(req, staff).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
 
     // Teachers may only view their own profile via this route.
     const isSelf      = staff.linkedUserId && staff.linkedUserId === req.user.userId;
@@ -123,8 +127,12 @@ async function getOne(req, res) {
 
 async function getTimeline(req, res) {
   try {
+    const staff = await staffSvc.getOne(req.params.staffId);
+    if (!staff || !checkTenantAccess(req, staff).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const limit = Math.min(Number(req.query.limit) || 50, 200);
-    const events = await timelineSvc.getForStaff(req.params.staffId, { limit });
+    const events = await timelineSvc.getForStaff(staff.staffId, { limit });
     res.json({ success: true, events });
   } catch (err) {
     _err(res, "GET /api/staff/:staffId/timeline", err);
@@ -147,6 +155,10 @@ async function create(req, res) {
 
 async function update(req, res) {
   try {
+    const existing = await staffSvc.getOne(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const { actorUserId } = _ctx(req);
     const result = await staffSvc.update(req.params.staffId, req.body, { actorUserId });
     if (!result) return res.status(404).json({ success: false, error: "Staff member not found." });
@@ -158,6 +170,10 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
+    const existing = await staffSvc.getOne(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const { actorUserId } = _ctx(req);
     const ok = await staffSvc.remove(req.params.staffId, { actorUserId });
     if (!ok) return res.status(404).json({ success: false, error: "Staff member not found." });
@@ -228,14 +244,16 @@ async function invite(req, res) {
   try {
     const { schoolId, centerId, actorUserId } = _ctx(req);
     const staff = await staffSvc.getOne(req.params.staffId);
-    if (!staff) return res.status(404).json({ success: false, error: "Staff member not found." });
+    if (!staff || !checkTenantAccess(req, staff).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     if (!staff.email) return res.status(400).json({ success: false, error: "Set the employee's email before sending an invite." });
 
     const userRecord = await _ensureAuthUser({
       email:       staff.email,
       displayName: staff.displayName,
       schoolId,
-      role:        staff.role || "teacher",
+      role:        _resolveAssignableRole(staff.role),
       centerId:    staff.centerId || centerId,
       actorUserId,
     });
@@ -266,6 +284,10 @@ async function invite(req, res) {
 
 async function linkUser(req, res) {
   try {
+    const existing = await staffSvc.getOne(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const { actorUserId } = _ctx(req);
     const { uid } = req.body || {};
     if (!uid) return res.status(400).json({ success: false, error: "uid is required." });
@@ -289,6 +311,10 @@ async function linkUser(req, res) {
 
 async function unlinkUser(req, res) {
   try {
+    const existing = await staffSvc.getOne(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const { actorUserId } = _ctx(req);
     const updated = await staffSvc.setLoginLink(req.params.staffId, {
       linkedUserId: "",
@@ -307,7 +333,9 @@ async function setUserDisabled(req, res) {
     const { actorUserId } = _ctx(req);
     const { disabled } = req.body || {};
     const staff = await staffSvc.getOne(req.params.staffId);
-    if (!staff) return res.status(404).json({ success: false, error: "Staff member not found." });
+    if (!staff || !checkTenantAccess(req, staff).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     if (!staff.linkedUserId) return res.status(400).json({ success: false, error: "Employee has no linked login account." });
 
     await auth.updateUser(staff.linkedUserId, { disabled: Boolean(disabled) });
@@ -324,6 +352,10 @@ async function setUserDisabled(req, res) {
 
 async function restoreStaff(req, res) {
   try {
+    const existing = await staffSvc.getOne(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff member not found." });
+    }
     const { actorUserId } = _ctx(req);
     const ok = await staffSvc.restore(req.params.staffId, { actorUserId });
     if (!ok) return res.status(404).json({ success: false, error: "Staff member not found." });

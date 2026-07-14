@@ -28,6 +28,7 @@
 
 const { db }      = require("../firebaseAdmin");
 const timelineSvc = require("./employeeTimelineService");
+const { _resolveAssignableRole } = require("./userService");
 
 const SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
 const col        = () => db.collection("staff");
@@ -417,7 +418,7 @@ async function create(data, { schoolId = SCHOOL_ID, tenantId, actorUserId = "sys
     designationId:      _norm(data.designationId)     || "",
     designationName:    _norm(data.designationName)   || "",
     category,
-    role:               _norm(data.role)              || "",
+    role:               _resolveAssignableRole(_norm(data.role), ""),
     reportingManagerId: _norm(data.reportingManagerId)|| "",
     reportingManager:   _norm(data.reportingManager)  || "",
     assignedClassrooms: classrooms,
@@ -512,6 +513,11 @@ async function update(staffId, data, { actorUserId = "system" } = {}) {
   for (const k of SCALAR_FIELDS) {
     if (data[k] !== undefined && !IMMUTABLE_FIELDS.has(k)) updates[k] = _norm(data[k]);
   }
+
+  // Never let this field resolve to a bypass role (developer/super_admin) —
+  // it's later read by staffController's invite() flow to set a real
+  // users/{uid} Firestore role, so it must go through the same cap.
+  if (updates.role !== undefined) updates.role = _resolveAssignableRole(updates.role, "");
 
   if (data.email !== undefined) updates.email = (_norm(data.email) || "").toLowerCase();
   if (data.active !== undefined) updates.active = Boolean(data.active);
