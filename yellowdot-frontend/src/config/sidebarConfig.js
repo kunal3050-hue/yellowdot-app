@@ -437,10 +437,14 @@ export const SIDEBAR_GROUPS = [
   },
 
   // ── Safety & Compliance ────────────────────────────────────────────────────
+  // Permanently expanded — child-safety-critical (Incident Reports, Gate
+  // Register). A collapsed state here silently hides both items with zero
+  // code/RBAC/deploy signal; see the Gate Register visibility investigation
+  // (2026-07-14) for the incident this prevents.
   {
     id:          "presence_safety",
     label:       "Safety & Compliance",
-    collapsible: true,
+    collapsible: false,
     defaultOpen: true,
     items: [
       {
