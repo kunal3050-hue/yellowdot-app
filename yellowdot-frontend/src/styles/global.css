@@ -111,23 +111,13 @@ img {
 }
 
 /* ── Layout Primitives ───────────────────────────────────────────────── */
-
-/* Full-height page shell (sidebar + content) */
-.yd-page {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--yd-bg);
-}
-
-/* Content area — right of sidebar */
-.yd-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
+/* .yd-page / .yd-content / .yd-scroll-area are defined once, in layout.css's
+   "NEW LAYOUT SHELL" section (the version with responsive breakpoints that
+   MainLayout.jsx actually renders against) — removed the duplicate that used
+   to live here. Likewise .yd-sidebar / .yd-nav-item / .yd-divider were dead
+   code (no component referenced .yd-nav-item or .yd-divider at all; the live
+   sidebar uses .yd-sidebar + .yd-sl-* from layout.css's PREMIUM SIDEBAR
+   section) — removed 2026-07-14, see KUE_BOXS_DESIGN_SYSTEM.md #19. */
 
 /* Sticky compact page header bar */
 .yd-page-header {
@@ -152,59 +142,6 @@ img {
   font-size: var(--yd-font-size-xs);
   color: var(--yd-text-muted);
   margin-top: 2px;
-}
-
-/* Scrollable main content zone */
-.yd-scroll-area {
-  flex: 1;
-  overflow: auto;
-  padding: var(--yd-space-4);
-}
-
-/* ── Sidebar ─────────────────────────────────────────────────────────── */
-
-.yd-sidebar {
-  width: var(--yd-sidebar-width);
-  flex-shrink: 0;
-  background: var(--yd-sidebar-bg);
-  border-right: 1px solid var(--yd-border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 1px 0 8px rgba(244,196,0,0.06);
-}
-
-.yd-nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--yd-space-2);
-  padding: 9px var(--yd-space-3);
-  border-radius: var(--yd-radius-sm);
-  font-size: var(--yd-font-size-sm);
-  font-weight: var(--yd-weight-medium);
-  color: var(--yd-text-soft);
-  transition: var(--yd-transition);
-  text-decoration: none;
-  position: relative;
-  cursor: pointer;
-}
-.yd-nav-item:hover {
-  background: var(--yd-sidebar-hover);
-  color: var(--yd-charcoal);
-}
-.yd-nav-item.active {
-  background: var(--yd-yellow-light);
-  color: var(--yd-charcoal);
-  font-weight: var(--yd-weight-bold);
-  box-shadow: inset 3px 0 0 var(--yd-yellow), 0 2px 8px var(--yd-yellow-glow);
-}
-
-/* ── Divider ─────────────────────────────────────────────────────────── */
-
-.yd-divider {
-  height: 1px;
-  background: var(--yd-border-light);
-  margin: var(--yd-space-3) 0;
 }
 
 /* ── Truncate ────────────────────────────────────────────────────────── */

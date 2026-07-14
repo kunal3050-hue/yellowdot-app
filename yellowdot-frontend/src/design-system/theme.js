@@ -1,14 +1,20 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- * YELLOW DOT CRM — CENTRALIZED THEME CONFIGURATION
+ * DEPRECATED — do not add new imports of this file or its `statusConfig`.
  * ═══════════════════════════════════════════════════════════════════
  *
- * Single source of truth for all design values, used by:
- *   • CSS custom properties in tokens.css (visual layer)
- *   • React components that need JS-level values (inline styles, canvas, charts)
- *   • Any future theme switcher (dark mode, white-label)
+ * `colors`/`statusConfig` below is a STALE palette (warm cream/olive-gold)
+ * that no longer matches `src/styles/tokens.css` (the current "Pure White
+ * SaaS" cool-neutral palette, source of truth as of 2026-07-14). Every
+ * status pill in the app used to render from `statusConfig` here, which
+ * silently drifted out of sync with every card/table/button around it —
+ * see KUE_BOXS_DESIGN_SYSTEM.md #19. `StatusBadge.jsx` no longer imports
+ * this file; it defines its own tokens.css-driven color mapping instead.
  *
- * Import: import { theme } from "@/design-system/theme"
+ * Only remaining consumer: `components/ui/index.js` re-exports
+ * `theme/statusConfig/colors/shadows` from here for backward compatibility.
+ * Do not build new UI against this file — use `src/styles/tokens.css`
+ * (CSS custom properties) directly instead.
  * ═══════════════════════════════════════════════════════════════════
  */
 

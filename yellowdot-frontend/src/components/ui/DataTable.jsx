@@ -123,6 +123,14 @@ export default function DataTable({
                 <tr
                   key={row.id ?? row._id ?? ri}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  role={onRowClick ? "button" : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={onRowClick ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  } : undefined}
                   className="yd-tr"
                   style={{
                     cursor:     onRowClick ? "pointer" : undefined,

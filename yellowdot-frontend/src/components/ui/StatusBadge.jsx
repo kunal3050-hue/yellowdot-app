@@ -2,7 +2,10 @@
  * StatusBadge — semantic status pill
  *
  * Covers: invoice statuses, student statuses, attendance, user roles.
- * Reads from theme.statusConfig for consistent color mapping.
+ * Colors are CSS custom properties from tokens.css (via a semantic-group
+ * mapping below), never a separate hardcoded palette — this is the single
+ * source every status pill in the app renders from, so it always matches
+ * the tokens.css palette (light and dark) it's placed next to.
  *
  * @prop {string}  status    "Paid" | "Pending" | "Active" | "Present" | "admin" | …
  * @prop {boolean} dot       show leading dot (default: true)
@@ -11,13 +14,50 @@
  * @prop {string}  className
  */
 
-import { statusConfig } from "../../design-system/theme";
-
 const SIZE = {
   xs: { fontSize: 9,  padding: "1px 6px",  dotSize: 4 },
   sm: { fontSize: 10, padding: "2px 8px",  dotSize: 5 },
   md: { fontSize: 11, padding: "4px 12px", dotSize: 6 },
 };
+
+// Each status maps to one of the semantic token groups defined in
+// tokens.css (--yd-success/-soft/-border, --yd-warning/…, --yd-danger/…,
+// --yd-info/…, --yd-neutral/…) plus the brand yellow for the two roles
+// that represent "elevated platform access" rather than a health state.
+const GROUP = {
+  success: { text: "var(--yd-success)", bg: "var(--yd-success-soft)", border: "var(--yd-success-border)" },
+  warning: { text: "var(--yd-warning)", bg: "var(--yd-warning-soft)", border: "var(--yd-warning-border)" },
+  danger:  { text: "var(--yd-danger)",  bg: "var(--yd-danger-soft)",  border: "var(--yd-danger-border)" },
+  info:    { text: "var(--yd-info)",    bg: "var(--yd-info-soft)",    border: "var(--yd-info-border)" },
+  neutral: { text: "var(--yd-neutral)", bg: "var(--yd-neutral-soft)", border: "var(--yd-neutral-border)" },
+  yellow:  { text: "var(--yd-yellow-dark)", bg: "var(--yd-yellow-light, #FFF9E0)", border: "var(--yd-yellow-dark)" },
+};
+
+const STATUS_LABEL_GROUP = {
+  // Student / general
+  Active: "success", Inactive: "neutral", Alumni: "warning",
+  // Invoice / payment
+  Paid: "success", Pending: "warning", Partial: "warning", Overdue: "danger", Cancelled: "neutral",
+  // Attendance
+  Present: "success", Absent: "danger", Late: "warning", Holiday: "info",
+  // User roles
+  developer: "yellow", super_admin: "danger", admin: "info", center_admin: "info",
+  teacher: "success", accountant: "warning", reception: "neutral", parent: "yellow",
+};
+
+// Role keys need a friendlier display label than the raw snake_case value —
+// everything else's label is identical to its key.
+const FRIENDLY_LABEL = {
+  developer: "Developer", super_admin: "Super Admin", admin: "Admin",
+  center_admin: "Ctr Admin", teacher: "Teacher", accountant: "Accountant",
+  reception: "Reception", parent: "Parent",
+};
+
+function _statusConfig(status) {
+  const group = GROUP[STATUS_LABEL_GROUP[status]] ?? GROUP.neutral;
+  const label = FRIENDLY_LABEL[status] ?? (status || "—");
+  return { label, text: group.text, bg: group.bg, border: group.border, dot: group.text };
+}
 
 export default function StatusBadge({
   status,
@@ -27,13 +67,7 @@ export default function StatusBadge({
   className = "",
   style = {},
 }) {
-  const cfg = statusConfig[status] ?? {
-    label:  status || "—",
-    text:   "#6B7280",
-    bg:     "#F3F4F6",
-    border: "#E5E7EB",
-    dot:    "#9CA3AF",
-  };
+  const cfg = _statusConfig(status);
 
   const s = SIZE[size] ?? SIZE.sm;
 

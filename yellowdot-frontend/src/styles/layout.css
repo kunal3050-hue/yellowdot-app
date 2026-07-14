@@ -3,340 +3,10 @@
    Shell, Sidebar, Topbar, Command Palette
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Shell ──────────────────────────────────────────────────────────── */
-
-.yd-layout {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--yd-bg);
-}
-
-.yd-layout-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.yd-layout-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 32px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--yd-border) transparent;
-}
-
-@media (max-width: 768px) {
-  .yd-layout-content {
-    padding: 20px 16px;
-  }
-}
-
-/* ── Sidebar ──────────────────────────────────────────────────────── */
-
-.yd-sl {
-  width: 220px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--yd-sidebar-bg);
-  border-right: 1px solid rgba(236, 231, 216, 0.28);
-  box-shadow: 2px 0 18px rgba(31, 26, 23, 0.04), 1px 0 0 rgba(255, 255, 255, 0.60) inset;
-  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  position: relative;
-  z-index: 20;
-}
-
-.yd-sl--collapsed {
-  width: 64px;
-}
-
-@media (max-width: 768px) {
-  .yd-sl {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 220px !important;
-    transform: translateX(-100%);
-    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 50;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
-  }
-
-  .yd-sl--mobile-open {
-    transform: translateX(0);
-  }
-}
-
-/* Mobile backdrop */
-.yd-sl-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 40;
-  animation: yd-fade-in 200ms ease;
-}
-
-/* Logo */
-.yd-sl-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 16px;
-  height: 60px;
-  border-bottom: 1px solid rgba(236, 231, 216, 0.22);
-  flex-shrink: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.yd-sl-logo-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--yd-yellow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 14px;
-  color: var(--yd-black);
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px var(--yd-yellow-shadow);
-  letter-spacing: -0.5px;
-}
-
-.yd-sl-logo-text {
-  overflow: hidden;
-  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 140px;
-}
-
-.yd-sl--collapsed .yd-sl-logo-text {
-  opacity: 0;
-  max-width: 0;
-}
-
-.yd-sl-logo-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--yd-charcoal);
-  line-height: 1;
-  letter-spacing: -0.3px;
-}
-
-.yd-sl-logo-sub {
-  font-size: 9.5px;
-  color: var(--yd-text-soft);
-  margin-top: 2px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-}
-
-/* Nav */
-.yd-sl-nav {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--yd-border) transparent;
-}
-
-.yd-sl-group {
-  margin-bottom: 4px;
-}
-
-.yd-sl-group-label {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: var(--yd-text-muted);
-  padding: 12px 20px 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  transition: opacity 180ms;
-  opacity: 0.65;
-}
-
-.yd-sl--collapsed .yd-sl-group-label {
-  opacity: 0;
-}
-
-.yd-sl-items {
-  padding: 0 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.yd-sl-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 9px;
-  height: 38px;
-  border-radius: 10px;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--yd-text-soft);
-  font-size: 13px;
-  font-weight: 450;
-  white-space: nowrap;
-  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.yd-sl-item:hover {
-  background: rgba(244, 196, 0, 0.08);
-  color: var(--yd-text-warm);
-}
-
-.yd-sl-item.active {
-  background: linear-gradient(135deg, rgba(255, 248, 200, 0.90) 0%, rgba(255, 244, 191, 0.80) 100%);
-  color: var(--yd-charcoal);
-  font-weight: 550;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.80) inset,
-    0 2px 8px rgba(224, 177, 0, 0.12),
-    0 1px 3px rgba(31, 26, 23, 0.06);
-}
-
-.yd-sl-item.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 7px;
-  bottom: 7px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #f4c430 0%, #d9ae00 100%);
-  box-shadow: 0 0 8px rgba(244, 196, 0, 0.50), 0 0 3px rgba(244, 196, 0, 0.30);
-}
-
-.yd-sl-item-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--yd-text-muted);
-  transition: color 180ms ease, background 180ms ease;
-  opacity: 0.70;
-}
-
-.yd-sl-item:hover .yd-sl-item-icon {
-  color: var(--yd-text-warm);
-  opacity: 0.90;
-}
-
-.yd-sl-item.active .yd-sl-item-icon {
-  background: rgba(244, 196, 0, 0.18);
-  color: var(--yd-yellow-dark);
-  opacity: 1;
-}
-
-.yd-sl-item-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 120px;
-}
-
-.yd-sl--collapsed .yd-sl-item-label {
-  opacity: 0;
-  max-width: 0;
-}
-
-/* Footer */
-.yd-sl-footer {
-  flex-shrink: 0;
-  border-top: 1px solid rgba(236, 231, 216, 0.18);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.yd-sl-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 140ms;
-  overflow: hidden;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.yd-sl-profile:hover {
-  background: var(--yd-sidebar-hover);
-}
-
-.yd-sl-profile-info {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  transition: opacity 180ms, max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 120px;
-}
-
-.yd-sl--collapsed .yd-sl-profile-info {
-  opacity: 0;
-  max-width: 0;
-}
-
-.yd-sl-profile-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--yd-charcoal);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.yd-sl-profile-role {
-  font-size: 10px;
-  color: var(--yd-text-soft);
-  margin-top: 1px;
-}
-
-.yd-sl-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 30px;
-  border-radius: 7px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--yd-text-muted);
-  transition: background 140ms, color 140ms;
-  font-family: var(--yd-font);
-}
-
-.yd-sl-collapse-btn:hover {
-  background: var(--yd-sidebar-hover);
-  color: var(--yd-charcoal);
-}
-
-@media (max-width: 768px) {
-  .yd-sl-collapse-btn {
-    display: none;
-  }
-}
-
+/* Dead "Shell/Sidebar" block (old .yd-layout* / .yd-sl container version) removed
+   2026-07-14 -- confirmed unreferenced by any component (Sidebar.jsx uses .yd-sidebar
+   + .yd-sl-item/.yd-sl-nav/etc, defined below in the PREMIUM SIDEBAR section, which
+   was the only version actually rendering). See KUE_BOXS_DESIGN_SYSTEM.md #19. */
 /* ── Topbar ─────────────────────────────────────────────────────────── */
 
 .yd-tb {
@@ -849,8 +519,8 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #FAFAF8;
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--yd-sidebar-bg);
+  border-right: 1px solid var(--yd-border);
   overflow: hidden;
   position: relative;
   z-index: var(--yd-z-sticky);
@@ -889,10 +559,10 @@
 
 .yd-sl-mobile-close {
   margin-left: auto;
-  background: rgba(255, 255, 255, 0.60);
-  border: 1px solid rgba(236, 231, 216, 0.80);
+  background: var(--yd-bg-sunken);
+  border: 1px solid var(--yd-border);
   cursor: pointer;
-  color: #9e8e75;
+  color: var(--yd-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -904,8 +574,8 @@
 }
 
 .yd-sl-mobile-close:hover {
-  background: rgba(255, 255, 255, 0.96);
-  color: #1f1f1f;
+  background: var(--yd-white);
+  color: var(--yd-charcoal);
 }
 
 /* ── Dev role banner ─────────────────────────────────────────────── */
@@ -915,10 +585,10 @@
   align-items: center;
   gap: 8px;
   padding: 6px 16px;
-  background: rgba(251, 191, 36, 0.10);
-  border-bottom: 1px solid rgba(234, 179, 8, 0.18);
+  background: var(--yd-warning-soft);
+  border-bottom: 1px solid var(--yd-warning-border);
   font-size: 11px;
-  color: #92400e;
+  color: var(--yd-warning);
   font-weight: 600;
   flex-shrink: 0;
   position: relative;
@@ -930,7 +600,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #b45309;
+  color: var(--yd-warning);
   display: flex;
   align-items: center;
   padding: 2px;
@@ -953,13 +623,13 @@
   position: relative;
   z-index: 1;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,0.08) transparent;
+  scrollbar-color: var(--yd-border) transparent;
 }
 
 .yd-sl-nav::-webkit-scrollbar          { width: 2px; }
 .yd-sl-nav::-webkit-scrollbar-track    { background: transparent; }
 .yd-sl-nav::-webkit-scrollbar-thumb    {
-  background: rgba(0,0,0,0.10);
+  background: var(--yd-border);
   border-radius: 99px;
 }
 
@@ -992,7 +662,7 @@
 }
 
 .yd-sl-group-header--toggle:hover {
-  background: rgba(245, 197, 24, 0.06);
+  background: var(--yd-yellow-glow);
 }
 
 /* ── Section label ───────────────────────────────────────────────── */
@@ -1002,7 +672,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.10em;
-  color: #C4B5A5;
+  color: var(--yd-text-muted);
   opacity: 1;
   padding: 10px 18px 3px;
   white-space: nowrap;
@@ -1016,7 +686,7 @@
 .yd-sl-group-chevron {
   display: flex;
   align-items: center;
-  color: #D4C9BE;
+  color: var(--yd-text-muted);
   margin-left: auto;
   opacity: 1;
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1047,7 +717,7 @@
   border-radius: 9px;
   cursor: pointer;
   text-decoration: none;
-  color: #6B6057;
+  color: var(--yd-text-soft);
   font-size: 13px;
   font-weight: 450;
   white-space: nowrap;
@@ -1060,14 +730,17 @@
 }
 
 .yd-sl-item:hover {
-  background: rgba(245, 197, 24, 0.07);
-  color: #44322A;
+  /* half-strength yellow tint — tokens.css only defines the 0.14 (glow) and
+     0.30 (shadow) alphas, neither matches this lighter hover weight, so this
+     stays a literal using --yd-yellow's exact RGB channels (244,196,0). */
+  background: rgba(244, 196, 0, 0.07);
+  color: var(--yd-charcoal);
 }
 
 /* Refined brand active state — soft yellow fill, no border, no heavy shadow */
 .yd-sl-item.active {
-  background: rgba(245, 197, 24, 0.14);
-  color: #3D2A1E;
+  background: var(--yd-yellow-glow);
+  color: var(--yd-charcoal);
   font-weight: 550;
   letter-spacing: -0.012em;
 }
@@ -1087,17 +760,17 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #B8A99A;
+  color: var(--yd-text-muted);
   opacity: 1;
   transition: color 180ms ease;
 }
 
 .yd-sl-item:hover .yd-sl-item-icon {
-  color: #A07855;
+  color: var(--yd-text-soft);
 }
 
 .yd-sl-item.active .yd-sl-item-icon {
-  color: #92600A;
+  color: var(--yd-yellow-dark);
 }
 
 /* ── Item label ──────────────────────────────────────────────────── */
@@ -1137,42 +810,42 @@
 }
 
 .yd-sl-badge--count {
-  background: rgba(251, 191, 36, 0.18);
-  color: #92400e;
-  border: 1px solid rgba(234, 179, 8, 0.22);
+  background: var(--yd-warning-soft);
+  color: var(--yd-warning);
+  border: 1px solid var(--yd-warning-border);
   min-width: 18px;
   justify-content: center;
 }
 
 .yd-sl-badge--live {
-  background: #EF4444;
-  color: #FFFFFF;
+  background: var(--yd-danger);
+  color: var(--yd-white);
   animation: yd-pulse 2s ease-in-out infinite;
 }
 
 .yd-sl-badge--new {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
+  background: var(--yd-success-soft);
+  color: var(--yd-success);
+  border: 1px solid var(--yd-success-border);
 }
 
 .yd-sl-badge--soon {
-  background: rgba(251, 191, 36, 0.14);
-  color: #92400e;
-  border: 1px solid rgba(234, 179, 8, 0.18);
+  background: var(--yd-warning-soft);
+  color: var(--yd-warning);
+  border: 1px solid var(--yd-warning-border);
 }
 
 /* ── Developer group ─────────────────────────────────────────────── */
 
 .yd-sl-group--dev {
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--yd-border);
   margin-top: 6px;
   padding-top: 4px;
 }
 
 .yd-sl-group--dev .yd-sl-group-label,
 .yd-sl-group-label--dev {
-  color: #d97706;
+  color: var(--yd-warning);
   opacity: 0.80;
 }
 
@@ -1190,7 +863,7 @@ button.yd-sl-item {
 
 .yd-sl-footer-section {
   flex-shrink: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--yd-border);
   position: relative;
   z-index: 1;
 }
@@ -1208,14 +881,14 @@ button.yd-sl-item {
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #d97706;
+  color: var(--yd-warning);
   font-family: var(--yd-font);
   transition: background 160ms;
   text-align: left;
 }
 
-.yd-sl-dev-toggle:hover  { background: rgba(251, 191, 36, 0.08); }
-.yd-sl-dev-toggle.active { background: rgba(251, 191, 36, 0.12); }
+.yd-sl-dev-toggle:hover  { background: var(--yd-warning-soft); }
+.yd-sl-dev-toggle.active { background: var(--yd-warning-soft); }
 
 /* ── Dev panel (role switcher) ───────────────────────────────────── */
 
@@ -1228,7 +901,7 @@ button.yd-sl-item {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.11em;
-  color: #94A3B8;
+  color: var(--yd-text-muted);
   margin-bottom: 6px;
   padding: 0 4px;
 }
@@ -1249,20 +922,20 @@ button.yd-sl-item {
   font-size: 11px;
   font-weight: 500;
   font-family: var(--yd-font);
-  color: #64748B;
+  color: var(--yd-text-soft);
   text-align: left;
   transition: background 100ms, color 100ms, border-color 100ms;
 }
 
 .yd-sl-dev-role-btn:hover {
-  background: #F4F4F5;
-  color: #0F172A;
+  background: var(--yd-bg-sunken);
+  color: var(--yd-charcoal);
 }
 
 .yd-sl-dev-role-btn.active {
-  background: #0F172A;
+  background: var(--yd-charcoal);
   border-color: transparent;
-  color: #FFFFFF;
+  color: var(--yd-white);
   font-weight: 600;
 }
 
@@ -1270,13 +943,13 @@ button.yd-sl-item {
   width: 100%;
   padding: 5px 8px;
   border-radius: 8px;
-  border: 1px dashed #E4E4E7;
+  border: 1px dashed var(--yd-border);
   background: transparent;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
   font-family: var(--yd-font);
-  color: #94A3B8;
+  color: var(--yd-text-muted);
   text-align: center;
   transition: background 100ms, color 100ms, border-color 100ms;
 }
@@ -1292,7 +965,7 @@ button.yd-sl-item {
 .yd-sl-footer {
   flex-shrink: 0;
   padding: 8px 10px 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--yd-border);
   position: relative;
   z-index: 1;
 }
@@ -1310,8 +983,8 @@ button.yd-sl-item {
 }
 
 .yd-sl-user-row:hover {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.04);
+  background: var(--yd-sidebar-hover);
+  border-color: var(--yd-border);
 }
 
 .yd-sl-user-info {
@@ -1322,7 +995,7 @@ button.yd-sl-item {
 .yd-sl-user-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: #2C1810;
+  color: var(--yd-charcoal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1332,7 +1005,7 @@ button.yd-sl-item {
 
 .yd-sl-user-role {
   font-size: 10px;
-  color: #B8A89A;
+  color: var(--yd-text-muted);
   margin-top: 1px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1349,7 +1022,7 @@ button.yd-sl-item {
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  color: #B8A99A;
+  color: var(--yd-text-muted);
   flex-shrink: 0;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -1361,7 +1034,7 @@ button.yd-sl-item {
 }
 
 .yd-sl-logout-btn--settings:hover {
-  background: #F8F8F8;
-  color: #0F172A;
-  border-color: #D4D4D8;
+  background: var(--yd-bg-sunken);
+  color: var(--yd-charcoal);
+  border-color: var(--yd-border);
 }
