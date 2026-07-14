@@ -6,6 +6,7 @@
 const svc       = require("../services/payrollService");
 const staffSvc  = require("../services/staffService");
 const PDFDocument = require("pdfkit");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 function _ctx(req) {
   return {
@@ -43,6 +44,10 @@ async function createComponent(req, res) {
 }
 async function updateComponent(req, res) {
   try {
+    const existing = await svc.getComponent(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Component not found." });
+    }
     const { actorUserId } = _ctx(req);
     const c = await svc.updateComponent(req.params.id, req.body, { actorUserId });
     if (!c) return res.status(404).json({ success: false, error: "Component not found." });
@@ -51,6 +56,10 @@ async function updateComponent(req, res) {
 }
 async function removeComponent(req, res) {
   try {
+    const existing = await svc.getComponent(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Component not found." });
+    }
     const ok = await svc.removeComponent(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Component not found." });
     res.json({ success: true });
@@ -75,6 +84,10 @@ async function createStructure(req, res) {
 }
 async function updateStructure(req, res) {
   try {
+    const existing = await svc.getStructure(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Structure not found." });
+    }
     const { actorUserId } = _ctx(req);
     const s = await svc.updateStructure(req.params.id, req.body, { actorUserId });
     if (!s) return res.status(404).json({ success: false, error: "Structure not found." });
@@ -83,6 +96,10 @@ async function updateStructure(req, res) {
 }
 async function removeStructure(req, res) {
   try {
+    const existing = await svc.getStructure(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Structure not found." });
+    }
     const ok = await svc.removeStructure(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Structure not found." });
     res.json({ success: true });
@@ -101,12 +118,17 @@ async function listStaffSalary(req, res) {
 async function getStaffSalary(req, res) {
   try {
     const s = await svc.getStaffSalary(req.params.staffId);
+    if (s && !checkTenantAccess(req, s).allowed) return res.json({ success: true, staffSalary: null });
     if (!s) return res.json({ success: true, staffSalary: null });
     res.json({ success: true, staffSalary: s });
   } catch (err) { _err(res, "GET /api/staff-salary/:staffId", err); }
 }
 async function upsertStaffSalary(req, res) {
   try {
+    const existing = await svc.getStaffSalary(req.params.staffId);
+    if (existing && !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff salary not found." });
+    }
     const { schoolId, tenantId, actorUserId } = _ctx(req);
     const s = await svc.upsertStaffSalary(req.params.staffId, req.body, { schoolId, tenantId, actorUserId });
     res.json({ success: true, staffSalary: s });
@@ -114,6 +136,10 @@ async function upsertStaffSalary(req, res) {
 }
 async function removeStaffSalary(req, res) {
   try {
+    const existing = await svc.getStaffSalary(req.params.staffId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Staff salary not found." });
+    }
     const { actorUserId } = _ctx(req);
     const ok = await svc.removeStaffSalary(req.params.staffId, { actorUserId });
     if (!ok) return res.status(404).json({ success: false, error: "Staff salary not found." });
@@ -133,7 +159,7 @@ async function listRuns(req, res) {
 async function getRun(req, res) {
   try {
     const r = await svc.getRun(req.params.id);
-    if (!r) return res.status(404).json({ success: false, error: "Run not found." });
+    if (!r || !checkTenantAccess(req, r).allowed) return res.status(404).json({ success: false, error: "Run not found." });
     res.json({ success: true, run: r });
   } catch (err) { _err(res, "GET /api/payroll-runs/:id", err); }
 }
@@ -147,6 +173,10 @@ async function processRun(req, res) {
 }
 async function lockRun(req, res) {
   try {
+    const existing = await svc.getRun(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Run not found." });
+    }
     const { actorUserId } = _ctx(req);
     const r = await svc.lockRun(req.params.id, { actorUserId });
     if (!r) return res.status(404).json({ success: false, error: "Run not found." });
@@ -155,6 +185,10 @@ async function lockRun(req, res) {
 }
 async function reopenRun(req, res) {
   try {
+    const existing = await svc.getRun(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Run not found." });
+    }
     const { actorUserId } = _ctx(req);
     const r = await svc.reopenRun(req.params.id, { actorUserId });
     if (!r) return res.status(404).json({ success: false, error: "Run not found." });
@@ -175,7 +209,7 @@ async function listPayslips(req, res) {
 async function getPayslip(req, res) {
   try {
     const p = await svc.getPayslip(req.params.id);
-    if (!p) return res.status(404).json({ success: false, error: "Payslip not found." });
+    if (!p || !checkTenantAccess(req, p).allowed) return res.status(404).json({ success: false, error: "Payslip not found." });
     res.json({ success: true, payslip: p });
   } catch (err) { _err(res, "GET /api/payslips/:id", err); }
 }
@@ -192,7 +226,7 @@ async function myPayslips(req, res) {
 async function payslipPdf(req, res) {
   try {
     const p = await svc.getPayslip(req.params.id);
-    if (!p) return res.status(404).json({ success: false, error: "Payslip not found." });
+    if (!p || !checkTenantAccess(req, p).allowed) return res.status(404).json({ success: false, error: "Payslip not found." });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="payslip-${p.employeeCode}-${p.year}-${String(p.month).padStart(2, "0")}.pdf"`);

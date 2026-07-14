@@ -19,6 +19,7 @@ const router   = express.Router();
 const svc      = require("../services/userService");
 const { auth } = require("../firebaseAdmin");
 const { authenticate, authorize, staffOnly } = require("../middleware/authMiddleware");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 /**
  * Generate a random temporary password that satisfies Firebase's
@@ -81,7 +82,7 @@ router.get("/api/users", authorize(...ADMIN_ROLES), async (req, res) => {
 router.get("/api/users/:userId", authorize(...ADMIN_ROLES), async (req, res) => {
   try {
     const user = await svc.getOne(req.params.userId);
-    if (!user) return res.status(404).json({ success: false, error: "User not found." });
+    if (!user || !checkTenantAccess(req, user).allowed) return res.status(404).json({ success: false, error: "User not found." });
     res.json({ success: true, user });
   } catch (err) {
     console.error("[GET /api/users/:userId]", err.message);
@@ -207,6 +208,8 @@ router.post("/api/users", authorize(...MANAGE_ROLES), async (req, res) => {
 
 router.put("/api/users/:userId", authorize(...ADMIN_ROLES), async (req, res) => {
   try {
+    const existing = await svc.getOne(req.params.userId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "User not found." });
     const body    = req.body || {};
     // Normalise mobile → phone before passing to service
     if (body.mobile !== undefined && body.phone === undefined) {
@@ -228,6 +231,8 @@ router.delete("/api/users/:userId", authorize(...MANAGE_ROLES), async (req, res)
     if (req.params.userId === req.user.userId) {
       return res.status(400).json({ success: false, error: "You cannot deactivate your own account." });
     }
+    const existing = await svc.getOne(req.params.userId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "User not found." });
     const user = await svc.deactivate(req.params.userId, req.user.userId);
     if (!user) return res.status(404).json({ success: false, error: "User not found." });
     res.json({ success: true, message: "User deactivated.", user });
@@ -241,6 +246,8 @@ router.delete("/api/users/:userId", authorize(...MANAGE_ROLES), async (req, res)
 
 router.post("/api/users/:userId/reactivate", authorize(...MANAGE_ROLES), async (req, res) => {
   try {
+    const existing = await svc.getOne(req.params.userId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "User not found." });
     const user = await svc.update(req.params.userId, { status: "active" }, req.user.userId);
     if (!user) return res.status(404).json({ success: false, error: "User not found." });
     res.json({ success: true, message: "User reactivated.", user });
@@ -260,7 +267,7 @@ router.post("/api/users/:userId/reactivate", authorize(...MANAGE_ROLES), async (
 router.post("/api/users/:userId/reset-password", authorize(...ADMIN_ROLES), async (req, res) => {
   try {
     const user = await svc.getOne(req.params.userId);
-    if (!user) return res.status(404).json({ success: false, error: "User not found." });
+    if (!user || !checkTenantAccess(req, user).allowed) return res.status(404).json({ success: false, error: "User not found." });
 
     const email = user.email;
     if (!email) return res.status(400).json({ success: false, error: "User has no email address on record." });

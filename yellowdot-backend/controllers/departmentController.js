@@ -4,6 +4,7 @@
  */
 
 const svc = require("../services/departmentService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 function _ctx(req) {
   return {
@@ -35,7 +36,7 @@ async function list(req, res) {
 async function getOne(req, res) {
   try {
     const dept = await svc.getOne(req.params.deptId);
-    if (!dept) return res.status(404).json({ success: false, error: "Department not found." });
+    if (!dept || !checkTenantAccess(req, dept).allowed) return res.status(404).json({ success: false, error: "Department not found." });
     res.json({ success: true, department: dept });
   } catch (err) { _err(res, "GET /api/departments/:deptId", err); }
 }
@@ -50,6 +51,8 @@ async function create(req, res) {
 
 async function update(req, res) {
   try {
+    const existing = await svc.getOne(req.params.deptId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Department not found." });
     const { actorUserId } = _ctx(req);
     const dept = await svc.update(req.params.deptId, req.body, { actorUserId });
     if (!dept) return res.status(404).json({ success: false, error: "Department not found." });
@@ -59,6 +62,8 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
+    const existing = await svc.getOne(req.params.deptId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Department not found." });
     const ok = await svc.remove(req.params.deptId);
     if (!ok) return res.status(404).json({ success: false, error: "Department not found." });
     res.json({ success: true, message: "Department deleted." });

@@ -4,6 +4,7 @@
 
 const svc       = require("../services/leaveService");
 const staffSvc  = require("../services/staffService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 function _ctx(req) {
   return {
@@ -44,6 +45,10 @@ async function createType(req, res) {
 
 async function updateType(req, res) {
   try {
+    const existing = await svc.getType(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave type not found." });
+    }
     const { actorUserId } = _ctx(req);
     const t = await svc.updateType(req.params.id, req.body, { actorUserId });
     if (!t) return res.status(404).json({ success: false, error: "Leave type not found." });
@@ -53,6 +58,10 @@ async function updateType(req, res) {
 
 async function removeType(req, res) {
   try {
+    const existing = await svc.getType(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave type not found." });
+    }
     const ok = await svc.removeType(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: "Leave type not found." });
     res.json({ success: true });
@@ -97,7 +106,7 @@ async function listRequests(req, res) {
 async function getRequest(req, res) {
   try {
     const r = await svc.getRequest(req.params.id);
-    if (!r) return res.status(404).json({ success: false, error: "Leave request not found." });
+    if (!r || !checkTenantAccess(req, r).allowed) return res.status(404).json({ success: false, error: "Leave request not found." });
     res.json({ success: true, request: r });
   } catch (err) { _err(res, "GET /api/leave-requests/:id", err); }
 }
@@ -119,6 +128,10 @@ async function createRequest(req, res) {
 
 async function approveRequest(req, res) {
   try {
+    const existing = await svc.getRequest(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave request not found." });
+    }
     const ctx = _ctx(req);
     const r = await svc.decideRequest(req.params.id, {
       decision: "approved",
@@ -133,6 +146,10 @@ async function approveRequest(req, res) {
 
 async function rejectRequest(req, res) {
   try {
+    const existing = await svc.getRequest(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave request not found." });
+    }
     const ctx = _ctx(req);
     const r = await svc.decideRequest(req.params.id, {
       decision: "rejected",
@@ -147,6 +164,10 @@ async function rejectRequest(req, res) {
 
 async function cancelRequest(req, res) {
   try {
+    const existing = await svc.getRequest(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave request not found." });
+    }
     const ctx = _ctx(req);
     const r = await svc.cancelRequest(req.params.id, { actorUserId: ctx.actorUserId });
     if (!r) return res.status(404).json({ success: false, error: "Leave request not found." });
@@ -156,6 +177,10 @@ async function cancelRequest(req, res) {
 
 async function removeRequest(req, res) {
   try {
+    const existing = await svc.getRequest(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) {
+      return res.status(404).json({ success: false, error: "Leave request not found." });
+    }
     const ctx = _ctx(req);
     const ok = await svc.removeRequest(req.params.id, { actorUserId: ctx.actorUserId });
     if (!ok) return res.status(404).json({ success: false, error: "Leave request not found." });

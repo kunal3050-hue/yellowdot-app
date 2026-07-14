@@ -3,6 +3,7 @@
  */
 
 const svc = require("../services/performanceService");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 function _ctx(req) {
   return {
@@ -33,11 +34,19 @@ async function createKpi(req, res) {
   catch (err) { _err(res, "POST /api/performance-kpis", err); }
 }
 async function updateKpi(req, res) {
-  try { const { actorUserId } = _ctx(req); const k = await svc.updateKpi(req.params.id, req.body, { actorUserId }); if (!k) return res.status(404).json({ success: false, error: "KPI not found." }); res.json({ success: true, kpi: k }); }
+  try {
+    const existing = await svc.getKpi(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "KPI not found." });
+    const { actorUserId } = _ctx(req); const k = await svc.updateKpi(req.params.id, req.body, { actorUserId }); if (!k) return res.status(404).json({ success: false, error: "KPI not found." }); res.json({ success: true, kpi: k });
+  }
   catch (err) { _err(res, "PUT /api/performance-kpis/:id", err); }
 }
 async function removeKpi(req, res) {
-  try { const ok = await svc.removeKpi(req.params.id); if (!ok) return res.status(404).json({ success: false, error: "KPI not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getKpi(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "KPI not found." });
+    const ok = await svc.removeKpi(req.params.id); if (!ok) return res.status(404).json({ success: false, error: "KPI not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/performance-kpis/:id", err); }
 }
 
@@ -47,15 +56,25 @@ async function listReviews(req, res) {
   catch (err) { _err(res, "GET /api/performance-reviews", err); }
 }
 async function getReview(req, res) {
-  try { const r = await svc.getReview(req.params.id); if (!r) return res.status(404).json({ success: false, error: "Review not found." }); res.json({ success: true, review: r }); }
+  try { const r = await svc.getReview(req.params.id); if (!r || !checkTenantAccess(req, r).allowed) return res.status(404).json({ success: false, error: "Review not found." }); res.json({ success: true, review: r }); }
   catch (err) { _err(res, "GET /api/performance-reviews/:id", err); }
 }
 async function upsertReview(req, res) {
-  try { const ctx = _ctx(req); const r = await svc.upsertReview(req.body, ctx); res.json({ success: true, review: r }); }
+  try {
+    if (req.body?.reviewId) {
+      const existing = await svc.getReview(req.body.reviewId);
+      if (existing && !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Review not found." });
+    }
+    const ctx = _ctx(req); const r = await svc.upsertReview(req.body, ctx); res.json({ success: true, review: r });
+  }
   catch (err) { _err(res, "POST /api/performance-reviews", err); }
 }
 async function removeReview(req, res) {
-  try { const { actorUserId } = _ctx(req); const ok = await svc.removeReview(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Review not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getReview(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Review not found." });
+    const { actorUserId } = _ctx(req); const ok = await svc.removeReview(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Review not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/performance-reviews/:id", err); }
 }
 
@@ -65,11 +84,21 @@ async function listGoals(req, res) {
   catch (err) { _err(res, "GET /api/performance-goals", err); }
 }
 async function upsertGoal(req, res) {
-  try { const ctx = _ctx(req); const g = await svc.upsertGoal(req.body, ctx); res.json({ success: true, goal: g }); }
+  try {
+    if (req.body?.goalId) {
+      const existing = await svc.getGoal(req.body.goalId);
+      if (existing && !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Goal not found." });
+    }
+    const ctx = _ctx(req); const g = await svc.upsertGoal(req.body, ctx); res.json({ success: true, goal: g });
+  }
   catch (err) { _err(res, "POST /api/performance-goals", err); }
 }
 async function removeGoal(req, res) {
-  try { const { actorUserId } = _ctx(req); const ok = await svc.removeGoal(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Goal not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getGoal(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Goal not found." });
+    const { actorUserId } = _ctx(req); const ok = await svc.removeGoal(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Goal not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/performance-goals/:id", err); }
 }
 
@@ -83,7 +112,11 @@ async function createFeedback(req, res) {
   catch (err) { _err(res, "POST /api/parent-feedback", err); }
 }
 async function removeFeedback(req, res) {
-  try { const { actorUserId } = _ctx(req); const ok = await svc.removeFeedback(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Feedback not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getFeedback(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Feedback not found." });
+    const { actorUserId } = _ctx(req); const ok = await svc.removeFeedback(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Feedback not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/parent-feedback/:id", err); }
 }
 async function feedbackSummary(req, res) {
@@ -101,7 +134,11 @@ async function createPromotion(req, res) {
   catch (err) { _err(res, "POST /api/staff-promotions", err); }
 }
 async function removePromotion(req, res) {
-  try { const { actorUserId } = _ctx(req); const ok = await svc.removePromotion(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Promotion not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getPromotion(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Promotion not found." });
+    const { actorUserId } = _ctx(req); const ok = await svc.removePromotion(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Promotion not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/staff-promotions/:id", err); }
 }
 
@@ -114,7 +151,11 @@ async function createAward(req, res) {
   catch (err) { _err(res, "POST /api/staff-awards", err); }
 }
 async function removeAward(req, res) {
-  try { const { actorUserId } = _ctx(req); const ok = await svc.removeAward(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Award not found." }); res.json({ success: true }); }
+  try {
+    const existing = await svc.getAward(req.params.id);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Award not found." });
+    const { actorUserId } = _ctx(req); const ok = await svc.removeAward(req.params.id, { actorUserId }); if (!ok) return res.status(404).json({ success: false, error: "Award not found." }); res.json({ success: true });
+  }
   catch (err) { _err(res, "DELETE /api/staff-awards/:id", err); }
 }
 

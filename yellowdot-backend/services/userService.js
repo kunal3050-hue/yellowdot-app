@@ -16,6 +16,7 @@
  */
 
 const { db } = require("../firebaseAdmin");
+const { BYPASS_ROLES } = require("../config/permissionsBackend");
 
 const SCHOOL_ID   = process.env.SCHOOL_ID || "yd-main";
 const col         = () => db.collection("users");
@@ -25,6 +26,15 @@ const VALID_ROLES = new Set([
   "developer", "super_admin", "admin", "center_admin", "center_owner",
   "teacher", "accountant", "reception", "parent",
 ]);
+
+// Platform-level bypass roles (developer, super_admin) are never assignable
+// through ordinary staff-management APIs — they grant unscoped, cross-tenant
+// access and must be provisioned outside this service.
+const ASSIGNABLE_ROLES = new Set([...VALID_ROLES].filter(r => !BYPASS_ROLES.has(r)));
+
+function _resolveAssignableRole(requestedRole, fallback = "teacher") {
+  return ASSIGNABLE_ROLES.has(requestedRole) ? requestedRole : fallback;
+}
 
 // ── Document mapper ────────────────────────────────────────────────
 
@@ -98,7 +108,7 @@ async function create(data, actorUserId = "system") {
     userId:    uid,
     email:     (data.email || "").toLowerCase().trim(),
     name:      (data.name  || "").trim(),
-    role:      VALID_ROLES.has(data.role) ? data.role : "teacher",
+    role:      _resolveAssignableRole(data.role),
     schoolId:  data.schoolId || SCHOOL_ID,
     centerId,
     center:    centerId,                          // legacy alias kept in sync
@@ -131,7 +141,10 @@ async function update(userId, updates, actorUserId = "system") {
   const patch = { updatedAt: nowISO(), updatedBy: actorUserId };
 
   if (updates.name     !== undefined) patch.name     = (updates.name || "").trim();
-  if (updates.role     !== undefined && VALID_ROLES.has(updates.role)) patch.role = updates.role;
+  if (updates.role     !== undefined) {
+    const resolved = _resolveAssignableRole(updates.role, null);
+    if (resolved) patch.role = resolved;
+  }
   if (updates.photoUrl !== undefined) patch.photoUrl = updates.photoUrl;
   // Accept both phone and mobile as the same field
   if (updates.phone    !== undefined) patch.phone    = updates.phone;
@@ -188,4 +201,8 @@ async function syncFromFirebaseAuth(uid, { email, name, photoUrl, role, centerId
   );
 }
 
-module.exports = { getAll, getOne, create, update, deactivate, syncFromFirebaseAuth, VALID_ROLES: [...VALID_ROLES] };
+module.exports = {
+  getAll, getOne, create, update, deactivate, syncFromFirebaseAuth,
+  VALID_ROLES: [...VALID_ROLES], ASSIGNABLE_ROLES: [...ASSIGNABLE_ROLES],
+  _resolveAssignableRole,
+};

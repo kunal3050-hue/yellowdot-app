@@ -18,6 +18,7 @@ const express = require("express");
 const router  = express.Router();
 const svc     = require("../services/roleService");
 const { authenticate, authorize, staffOnly } = require("../middleware/authMiddleware");
+const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 
 const ADMIN_ROLES  = ["admin", "center_admin", "super_admin", "developer"];
 const MANAGE_ROLES = ["admin", "super_admin", "developer"];
@@ -63,7 +64,7 @@ router.post("/api/roles/seed", authorize(...MANAGE_ROLES), async (req, res) => {
 router.get("/api/roles/:roleId", authorize(...ADMIN_ROLES), async (req, res) => {
   try {
     const role = await svc.getOne(req.params.roleId);
-    if (!role) return res.status(404).json({ success: false, error: "Role not found." });
+    if (!role || !checkTenantAccess(req, role).allowed) return res.status(404).json({ success: false, error: "Role not found." });
     res.json({ success: true, role });
   } catch (err) {
     console.error("[GET /api/roles/:roleId]", err.message);
@@ -89,6 +90,8 @@ router.post("/api/roles", authorize(...MANAGE_ROLES), async (req, res) => {
 // ── PUT /api/roles/:roleId ────────────────────────────────────────────────────
 router.put("/api/roles/:roleId", authorize(...MANAGE_ROLES), async (req, res) => {
   try {
+    const existing = await svc.getOne(req.params.roleId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Role not found." });
     const role = await svc.update(req.params.roleId, req.body || {}, req.user.userId);
     if (!role) return res.status(404).json({ success: false, error: "Role not found." });
     res.json({ success: true, role });
@@ -105,6 +108,8 @@ router.put("/api/roles/:roleId/permissions", authorize(...MANAGE_ROLES), async (
     if (!permissions || typeof permissions !== "object") {
       return res.status(400).json({ success: false, error: "permissions object is required." });
     }
+    const existing = await svc.getOne(req.params.roleId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Role not found." });
     const role = await svc.updatePermissions(req.params.roleId, permissions, req.user.userId);
     if (!role) return res.status(404).json({ success: false, error: "Role not found." });
     res.json({ success: true, role });
@@ -117,6 +122,8 @@ router.put("/api/roles/:roleId/permissions", authorize(...MANAGE_ROLES), async (
 // ── DELETE /api/roles/:roleId ─────────────────────────────────────────────────
 router.delete("/api/roles/:roleId", authorize(...MANAGE_ROLES), async (req, res) => {
   try {
+    const existing = await svc.getOne(req.params.roleId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Role not found." });
     await svc.remove(req.params.roleId, req.user.userId);
     res.json({ success: true, message: "Role deleted." });
   } catch (err) {
@@ -129,8 +136,10 @@ router.delete("/api/roles/:roleId", authorize(...MANAGE_ROLES), async (req, res)
 // ── GET /api/roles/:roleId/audit ──────────────────────────────────────────────
 router.get("/api/roles/:roleId/audit", authorize(...ADMIN_ROLES), async (req, res) => {
   try {
+    const existing = await svc.getOne(req.params.roleId);
+    if (!existing || !checkTenantAccess(req, existing).allowed) return res.status(404).json({ success: false, error: "Role not found." });
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-    const logs  = await svc.getAuditLogs(req.params.roleId, limit);
+    const logs  = await svc.getAuditLogs(req.params.roleId, req.user.schoolId, limit);
     res.json({ success: true, logs });
   } catch (err) {
     console.error("[GET /api/roles/:roleId/audit]", err.message);

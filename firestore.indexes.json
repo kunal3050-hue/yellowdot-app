@@ -114,6 +114,15 @@
         { "fieldPath": "teacherId",  "order": "ASCENDING" },
         { "fieldPath": "startTime",  "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "permissionAuditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roleId",     "order": "ASCENDING" },
+        { "fieldPath": "schoolId",   "order": "ASCENDING" },
+        { "fieldPath": "timestamp",  "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

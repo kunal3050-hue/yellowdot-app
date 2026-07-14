@@ -235,6 +235,11 @@ async function updateKpi(id, data, { actorUserId = "system" } = {}) {
   return docToKpi(await ref.get());
 }
 
+async function getKpi(id) {
+  const snap = await kpiCol().doc(id).get();
+  return snap.exists ? docToKpi(snap) : null;
+}
+
 async function removeKpi(id) {
   const snap = await kpiCol().doc(id).get();
   if (!snap.exists) return false;
@@ -370,6 +375,11 @@ async function upsertGoal(data, { schoolId = SCHOOL_ID, tenantId, actorUserId = 
   return docToGoal(doc);
 }
 
+async function getGoal(id) {
+  const snap = await goalCol().doc(id).get();
+  return snap.exists ? docToGoal(snap) : null;
+}
+
 async function removeGoal(id, { actorUserId = "system" } = {}) {
   const ref = goalCol().doc(id);
   const snap = await ref.get();
@@ -413,6 +423,11 @@ async function createFeedback(data, { schoolId = SCHOOL_ID, tenantId, actorUserI
   await ref.set(doc);
   await _logEvent(staff.staffId, schoolId, { type: "PARENT_FEEDBACK", description: `Rated ${doc.rating}/5 by ${doc.parentName || "a parent"}`, metadata: { rating: doc.rating }, actorUserId });
   return docToFeedback(doc);
+}
+
+async function getFeedback(id) {
+  const snap = await feedbackCol().doc(id).get();
+  return snap.exists ? docToFeedback(snap) : null;
 }
 
 async function removeFeedback(id, { actorUserId = "system" } = {}) {
@@ -467,6 +482,11 @@ async function createPromotion(data, { schoolId = SCHOOL_ID, tenantId, actorUser
   return docToPromotion(doc);
 }
 
+async function getPromotion(id) {
+  const snap = await promotionCol().doc(id).get();
+  return snap.exists ? docToPromotion(snap) : null;
+}
+
 async function removePromotion(id, { actorUserId = "system" } = {}) {
   const ref = promotionCol().doc(id); const snap = await ref.get();
   if (!snap.exists) return false;
@@ -506,6 +526,11 @@ async function createAward(data, { schoolId = SCHOOL_ID, tenantId, actorUserId =
   await ref.set(doc);
   await _logEvent(staff.staffId, schoolId, { type: "AWARD", description: `Awarded ${doc.title}`, metadata: { title: doc.title, category: doc.category }, actorUserId });
   return docToAward(doc);
+}
+
+async function getAward(id) {
+  const snap = await awardCol().doc(id).get();
+  return snap.exists ? docToAward(snap) : null;
 }
 
 async function removeAward(id, { actorUserId = "system" } = {}) {
@@ -598,17 +623,17 @@ async function getAiSummary({ schoolId = SCHOOL_ID, staffId }) {
 
 module.exports = {
   // KPIs
-  listKpis, createKpi, updateKpi, removeKpi,
+  listKpis, getKpi, createKpi, updateKpi, removeKpi,
   // Reviews
   listReviews, getReview, upsertReview, removeReview,
   // Goals
-  listGoals, upsertGoal, removeGoal,
+  listGoals, getGoal, upsertGoal, removeGoal,
   // Feedback
-  listFeedback, createFeedback, removeFeedback, feedbackSummary,
+  listFeedback, getFeedback, createFeedback, removeFeedback, feedbackSummary,
   // Promotions
-  listPromotions, createPromotion, removePromotion,
+  listPromotions, getPromotion, createPromotion, removePromotion,
   // Awards
-  listAwards, createAward, removeAward,
+  listAwards, getAward, createAward, removeAward,
   // Timeline + AI summary
   timelineFor, dashboard, getAiSummary,
 };

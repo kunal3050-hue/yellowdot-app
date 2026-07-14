@@ -480,9 +480,10 @@ async function remove(roleId, actorId) {
   return true;
 }
 
-async function getAuditLogs(roleId, limit = 50) {
+async function getAuditLogs(roleId, schoolId, limit = 50) {
   const snap = await db.collection("permissionAuditLogs")
     .where("roleId", "==", roleId)
+    .where("schoolId", "==", schoolId)
     .orderBy("timestamp", "desc")
     .limit(limit)
     .get();
