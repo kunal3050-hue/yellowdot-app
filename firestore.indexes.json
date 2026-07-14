@@ -123,6 +123,15 @@
         { "fieldPath": "schoolId",   "order": "ASCENDING" },
         { "fieldPath": "timestamp",  "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "ptmBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ptmId",      "order": "ASCENDING" },
+        { "fieldPath": "studentId",  "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
