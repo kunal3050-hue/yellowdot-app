@@ -449,7 +449,7 @@ router.get("/api/parent/ptm", loadParent, async (req, res) => {
       } catch { /* class resolution failed — show all */ }
     }
 
-    const data = await parentPtmSvc.getPtmsView({ schoolId: parent.schoolId, studentClassId, studentId, parentId: parent.parentId });
+    const data = await parentPtmSvc.getPtmsView({ schoolId: parent.schoolId, studentClassId, studentId, parentId: parent.uid });
     res.json(data);
   } catch (e) {
     console.error("[GET /api/parent/ptm]", e.message);
@@ -473,7 +473,7 @@ router.post("/api/parent/ptm/:id/book", loadParent, async (req, res) => {
     const ptm = await ptmSvc.getPtm(req.params.id);
     if (!ptm || ptm.schoolId !== parent.schoolId) return res.status(404).json({ error: "PTM not found" });
 
-    const booking = await ptmSvc.bookSlot({ ptmId: ptm.id, slotId, studentId, parentId: parent.parentId });
+    const booking = await ptmSvc.bookSlot({ ptmId: ptm.id, slotId, studentId, parentId: parent.uid });
 
     const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
     notif.notifyAsync(() =>
@@ -499,7 +499,7 @@ router.patch("/api/parent/ptm/bookings/:bookingId/reschedule", loadParent, async
     const { newSlotId } = req.body;
     if (!newSlotId) return res.status(400).json({ error: "newSlotId is required" });
 
-    const booking = await ptmSvc.rescheduleBooking(req.params.bookingId, newSlotId, { parentId: req.parent.parentId });
+    const booking = await ptmSvc.rescheduleBooking(req.params.bookingId, newSlotId, { parentId: req.parent.uid });
 
     const SCHOOL_ID = process.env.SCHOOL_ID || "ydseawoods";
     notif.notifyAsync(() =>
@@ -522,7 +522,7 @@ router.patch("/api/parent/ptm/bookings/:bookingId/reschedule", loadParent, async
 // ── DELETE /api/parent/ptm/bookings/:bookingId ────────────────────
 router.delete("/api/parent/ptm/bookings/:bookingId", loadParent, async (req, res) => {
   try {
-    await ptmSvc.cancelBooking(req.params.bookingId, { parentId: req.parent.parentId });
+    await ptmSvc.cancelBooking(req.params.bookingId, { parentId: req.parent.uid });
     res.json({ success: true });
   } catch (e) {
     console.error("[DELETE /api/parent/ptm/bookings/:bookingId]", e.message);

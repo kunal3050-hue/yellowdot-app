@@ -94,7 +94,7 @@ test("parent PTM: POST /:id/book blocks a cross-tenant PTM, never calls bookSlot
   const req = {
     params: { id: "PTM-1" },
     body: { studentId: "YD001", slotId: "SLOT-1" },
-    parent: { parentId: "P1", schoolId: "school-A", studentIds: ["YD001"] },
+    parent: { uid: "P1", schoolId: "school-A", studentIds: ["YD001"] },
   };
   const res = mockRes();
   await handler(req, res);
@@ -120,7 +120,7 @@ test("parent PTM: POST /:id/book allows a same-tenant PTM for the parent's own c
   const req = {
     params: { id: "PTM-2" },
     body: { studentId: "YD001", slotId: "SLOT-1" },
-    parent: { parentId: "P1", schoolId: "school-A", studentIds: ["YD001"] },
+    parent: { uid: "P1", schoolId: "school-A", studentIds: ["YD001"] },
   };
   const res = mockRes();
   await handler(req, res);
@@ -144,7 +144,7 @@ test("parent PTM: GET /api/parent/ptm ignores a studentId not linked to this par
   const handler = findRouteHandler(parentRoutes, "/api/parent/ptm", "get");
   const req = {
     query: { studentId: "YD999-FOREIGN" }, // not one of the parent's own children
-    parent: { parentId: "P1", schoolId: "school-A", studentIds: ["YD001"] },
+    parent: { uid: "P1", schoolId: "school-A", studentIds: ["YD001"] },
   };
   const res = mockRes();
   await handler(req, res);
@@ -155,4 +155,45 @@ test("parent PTM: GET /api/parent/ptm ignores a studentId not linked to this par
 
   parentPtmSvc.getPtmsView = origGetPtmsView;
   studentSvc.getOne = origGetOne;
+});
+
+// ── Regression: req.parent has no .parentId field, only .uid — a pre-existing
+// bug found during this milestone's own live verification. Every PTM call site
+// that read parent.parentId was silently passing undefined, which defeated
+// the ownership check above entirely. Lock in the correct field everywhere. ──
+
+test("parent PTM: reschedule/cancel/book/list all pass parent.uid as the ownership key, not the nonexistent parent.parentId", async () => {
+  const parentRoutes = require("../routes/parentRoutes");
+  const ptmSvc = require("../services/ptmService");
+  const parentPtmSvc = require("../services/parentPtmService");
+  const notif = require("../services/notificationService");
+  const orig = {
+    getPtm: ptmSvc.getPtm, bookSlot: ptmSvc.bookSlot,
+    rescheduleBooking: ptmSvc.rescheduleBooking, cancelBooking: ptmSvc.cancelBooking,
+    getPtmsView: parentPtmSvc.getPtmsView, notifyAsync: notif.notifyAsync,
+  };
+  const captured = {};
+  ptmSvc.getPtm = async () => ({ id: "PTM-3", schoolId: "school-A", title: "T" });
+  ptmSvc.bookSlot = async (args) => { captured.book = args.parentId; return { id: "B1" }; };
+  ptmSvc.rescheduleBooking = async (id, slot, opts) => { captured.reschedule = opts.parentId; return { studentId: "YD001" }; };
+  ptmSvc.cancelBooking = async (id, opts) => { captured.cancel = opts.parentId; };
+  parentPtmSvc.getPtmsView = async (args) => { captured.list = args.parentId; return {}; };
+  notif.notifyAsync = () => {};
+
+  const req = { parent: { uid: "REAL-UID", schoolId: "school-A", studentIds: ["YD001"] } };
+  const res = () => mockRes();
+
+  await findRouteHandler(parentRoutes, "/api/parent/ptm", "get")({ ...req, query: {} }, res());
+  await findRouteHandler(parentRoutes, "/api/parent/ptm/:id/book", "post")({ ...req, params: { id: "PTM-3" }, body: { studentId: "YD001", slotId: "S1" } }, res());
+  await findRouteHandler(parentRoutes, "/api/parent/ptm/bookings/:bookingId/reschedule", "patch")({ ...req, params: { bookingId: "B1" }, body: { newSlotId: "S2" } }, res());
+  await findRouteHandler(parentRoutes, "/api/parent/ptm/bookings/:bookingId", "delete")({ ...req, params: { bookingId: "B1" } }, res());
+
+  assert.equal(captured.list, "REAL-UID");
+  assert.equal(captured.book, "REAL-UID");
+  assert.equal(captured.reschedule, "REAL-UID");
+  assert.equal(captured.cancel, "REAL-UID");
+
+  Object.assign(ptmSvc, { getPtm: orig.getPtm, bookSlot: orig.bookSlot, rescheduleBooking: orig.rescheduleBooking, cancelBooking: orig.cancelBooking });
+  parentPtmSvc.getPtmsView = orig.getPtmsView;
+  notif.notifyAsync = orig.notifyAsync;
 });
