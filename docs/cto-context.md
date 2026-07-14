@@ -2,7 +2,7 @@
 ## Version 2.0 — Master Planning Document
 
 > **Single source of truth for project status, architecture, and long-term product strategy.**
-> Last updated: 2026-07-14 · Version: 2.0 (Security & Tenant Isolation section added; HR module status corrected — see that section for detail)
+> Last updated: 2026-07-14 · Version: 2.0 (Security & Tenant Isolation section added and updated through Milestone 16; HR module status corrected — see that section for detail)
 > Update this file after every major feature addition, removal, architectural decision, or module promotion.
 
 ---
@@ -1717,14 +1717,21 @@ Key KPIs: Today's attendance %, monthly fee collection vs. target, occupancy rat
 | M10 | Pickup/CCTV config tenant isolation | ✅ Closed |
 | M11 | CCTV credential protection | ✅ Closed |
 | M12 | HR/finance/admin tenant isolation (H1) + role-escalation cap | ✅ Closed (2026-07-14) |
+| M13 | Staff management tenant isolation + second role-escalation path (staff-invite) | ✅ Closed (2026-07-14) |
+| M14 | PTM parent-booking ownership + `parent.uid` field-bug fix | ✅ Closed (2026-07-14) |
+| M15 | Attendance/QR platform tenant isolation | ✅ Closed (2026-07-14) |
+| M16 | Communication module tenant isolation + schoolId-injection fix | ✅ Closed (2026-07-14) |
 
-All 8 original Critical findings (C1–C8) and the H1 High finding are closed. Remaining backlog (Medium/Low findings, and modules not yet audited against the Tenant Security Baseline) is tracked in the Security Audit Report produced alongside this doc-sync pass — see `docs/production-ops/` for the dated report.
+All 8 original Critical findings (C1–C8) and every High finding identified in the post-M12 module audit (H1 plus the 6 gaps found across `staffRoutes.js`, `parentRoutes.js`, `attendanceRoutes.js`/`staffAttendanceRoutes.js`/`qrRoutes.js`, and `communicationRoutes.js`) are now closed. Full before/after detail, score progression, and remaining backlog: `docs/production-ops/` Security Hardening Phase Completion Report (2026-07-14).
 
 ### Known accepted security debt
 
 - **Shared system-role documents** (`roles/admin`, `roles/teacher`, etc.) use a fixed slug ID, not a per-school one — every tenant shares the same doc, and the owning tenant's permission-matrix edits apply platform-wide via an intentional cache bypass. Milestone 12 closed the cross-tenant *mutation* surface but not the underlying data-model sharing. Needs a dedicated migration to per-tenant role documents.
 - **Student IDs are globally sequential**, not namespaced per school (accepted since Milestone 6 — tenant checks make ID-guessing irrelevant to authorization, but a full renamespace would require migrating every collection that stores a bare `studentId` foreign key).
 - **CCTV credential encryption key must be included in every deploy's `docker run -e` flags** — it isn't in the VPS's `--env-file`, so a deploy that forgets the flag silently reverts to unencrypted storage.
+- **`qrConfigs`/centers are not a first-class, `schoolId`-owned collection** — Milestone 15's `centerBelongsToSchool()` is a pragmatic existence check against `users`, not a durable ownership record. A center with zero assigned staff would (conservatively, safely) appear to belong to no school.
+- **`incidentSvc.acknowledge()`'s use of `parent.parentId`** (the same nonexistent-field bug fixed for PTM bookings in M14) was found but not fixed at `parentRoutes.js:567` — out of M14's named scope, needs its own check.
+- **Tenant-isolation coverage is now complete for every audited backend module** as of M16 except `tenantRoutes.js`, which is intentionally cross-tenant by design (platform Super Admin) and was recommended for a separate privileged-access review rather than a per-school tenant check.
 
 ---
 
