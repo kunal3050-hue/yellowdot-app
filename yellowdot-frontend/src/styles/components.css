@@ -1665,3 +1665,101 @@
   .yd-print-only { display: block !important; }
 }
 .yd-print-only { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INSTALL APP BUTTON  (InstallAppButton.jsx — manual entry points: Login,
+   Sidebar footer, Settings → About)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* "icon" variant — Sidebar user-footer button */
+.yd-iab-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--yd-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+.yd-iab-icon-btn:hover  { background: var(--yd-yellow-light, #FFF9E0); color: var(--yd-yellow-dark, #D9AE00); }
+.yd-iab-icon-btn:active { transform: scale(0.93); }
+
+/* "link" variant — Login page */
+.yd-iab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.yd-iab-link:hover { color: #6B7280; }
+.yd-iab-link svg { width: 14px; height: 14px; }
+
+/* "card" variant — Settings → About */
+.yd-iab-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--yd-radius);
+  background: var(--yd-yellow-light, #FFF9E0);
+  border: 1px solid var(--yd-yellow-border, rgba(244,196,0,0.30));
+}
+.yd-iab-card--installed {
+  background: var(--yd-success-soft);
+  border-color: var(--yd-success-border);
+}
+.yd-iab-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yd-surface);
+  color: var(--yd-yellow-dark, #D9AE00);
+}
+.yd-iab-card--installed .yd-iab-card-icon { color: var(--yd-success); }
+.yd-iab-card-copy { flex: 1; min-width: 0; }
+.yd-iab-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--yd-charcoal);
+  margin-bottom: 2px;
+}
+.yd-iab-card-desc {
+  font-size: 12px;
+  color: var(--yd-text-soft);
+  line-height: 1.4;
+}
+.yd-iab-card-btn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 9px;
+  border: none;
+  background: var(--yd-yellow);
+  color: var(--yd-charcoal, #1E1B4B);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.yd-iab-card-btn:hover  { opacity: 0.88; }
+.yd-iab-card-btn:active { transform: scale(0.97); }
+
+@media (max-width: 480px) {
+  .yd-iab-card { flex-wrap: wrap; }
+  .yd-iab-card-btn { width: 100%; }
+}

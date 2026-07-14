@@ -4,12 +4,14 @@ import { useAuth } from "./contexts/AuthContext";
 
 // ── Always-eager: infrastructure (tiny, needed on every render) ──────────────
 import { AuthProvider }  from "./contexts/AuthContext";
+import { InstallProvider } from "./contexts/InstallContext";
 import ProtectedRoute    from "./components/auth/ProtectedRoute";
 import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
 import { parentRoutes } from "./modules/parent";
 import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
+import IosInstallGuide   from "./components/IosInstallGuide";
 import SplashScreen      from "./components/SplashScreen";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
@@ -126,10 +128,14 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+       <InstallProvider>
         {/* DEV-only floating view switcher — tree-shaken in production builds */}
         <DevRoleSwitch />
         {/* PWA install banner (shows after 2.5s, respects 30-day dismissal) */}
         <InstallPrompt />
+        {/* iOS "Add to Home Screen" guide — opened from the banner, Login,
+            Sidebar footer, or Settings → About; all share InstallContext */}
+        <IosInstallGuide />
         {/* SplashScreen shown while Firebase auth resolves, then fades out */}
         <AuthSplash />
         <Suspense fallback={<SplashScreen />}>
@@ -719,6 +725,7 @@ function App() {
 
           </Routes>
         </Suspense>
+       </InstallProvider>
       </AuthProvider>
     </BrowserRouter>
   );

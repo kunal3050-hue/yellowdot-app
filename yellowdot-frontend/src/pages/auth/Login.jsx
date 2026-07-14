@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PLATFORM_NAME } from "../../config/environment";
+import InstallAppButton from "../../components/InstallAppButton";
 
 // ── Route map ──────────────────────────────────────────────────────────────────
 function getHomeRoute(role) {
@@ -218,6 +219,11 @@ export default function Login() {
 
       {/* ── 5. Google button ───────────────────────────────────────────────── */}
       <GoogleButton loading={loading} onClick={handleGoogle} />
+
+      {/* ── 6. Install app (hidden once installed or unsupported) ──────────── */}
+      <div style={{ marginTop: 20, animation: rise(0.55) }}>
+        <InstallAppButton variant="link" />
+      </div>
 
     </div>
   );

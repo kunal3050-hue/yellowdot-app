@@ -19,10 +19,11 @@ import {
   ROUTES, ROLE_LABELS, ROLE_HIERARCHY, ROLE_PERMISSIONS,
   isBypassRole,
 } from "../config/permissions";
-import { APP_ENV, APP_NAME, APP_VERSION, currentEnvMeta } from "../config/environment";
+import { APP_ENV, APP_NAME, APP_VERSION, PLATFORM_NAME, currentEnvMeta } from "../config/environment";
 import { FLAGS, FLAG_GROUPS } from "../config/featureFlags";
 import { RELEASE_NOTES, CHANGE_TYPE_META } from "../config/releaseNotes";
 import ReleasesDashboard from "./releases/ReleasesDashboard";
+import InstallAppButton from "../components/InstallAppButton";
 
 // ══════════════════════════════════════════════════════════════════
 // ICONS  (Lucide-style SVG, 16×16)
@@ -78,6 +79,7 @@ const SECTIONS = [
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
   { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
   { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",      desc: "QR codes for gate entry and check-in" },
+  { id: "about",        label: "About",              icon: "Info",        desc: "App version and install options" },
   { id: "releases",     label: "Staged Releases",    icon: "Rocket",      desc: "Module pipeline: Development → Testing → Production", developerOnly: true },
   { id: "release",      label: "Release & Build",    icon: "GitBranch",   desc: "Environment, version, feature flags", developerOnly: true },
 ];
@@ -1224,6 +1226,41 @@ function GateConfigSection() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SECTION — ABOUT  (all roles)
+// ══════════════════════════════════════════════════════════════════
+
+function AboutSection() {
+  return (
+    <>
+      <SectionHeader
+        title="About"
+        desc={`Version info and install options for ${PLATFORM_NAME}.`}
+      />
+
+      <Card title={PLATFORM_NAME} icon="Info">
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+          <img
+            src="/icons/pwa-192x192.png"
+            alt=""
+            style={{ width: 56, height: 56, borderRadius: 14, boxShadow: "var(--yd-shadow-sm)" }}
+          />
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--yd-charcoal)" }}>
+              {PLATFORM_NAME}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+              Version {APP_VERSION}
+            </div>
+          </div>
+        </div>
+
+        <InstallAppButton variant="card" showInstalledStatus />
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // SECTION 13 — RELEASE & BUILD  (developer role only)
 // ══════════════════════════════════════════════════════════════════
 
@@ -1465,6 +1502,7 @@ export default function Settings() {
       case "parent":        return <ParentSection      {...props} />;
       case "payment":       return <PaymentSection     {...props} />;
       case "gate_config":   return <GateConfigSection />;
+      case "about":         return <AboutSection />;
       case "releases":      return <ReleasesDashboard />;
       case "release":       return <ReleaseSection />;
       default:              return null;

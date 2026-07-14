@@ -1169,3 +1169,123 @@ html, body {
     to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
   }
 }
+
+/* Real app-icon image inside the banner's icon slot (replaces inline SVG mark) */
+.yd-ip-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IOS "ADD TO HOME SCREEN" GUIDE  (IosInstallGuide.jsx, rendered via Modal)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Desktop/tablet entrance — Modal has no default open animation outside the
+   mobile bottom-sheet breakpoint; scoped to this modal only. */
+@media (min-width: 601px) {
+  .yd-ios-guide {
+    animation: yd-ig-pop-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+@keyframes yd-ig-pop-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+.yd-ig-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--yd-border-light);
+}
+.yd-ig-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  box-shadow: var(--yd-shadow-sm);
+}
+.yd-ig-hero-text {
+  font-size: 13px;
+  color: var(--yd-text-soft);
+  line-height: 1.5;
+  max-width: 380px;
+}
+
+.yd-ig-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.yd-ig-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.yd-ig-step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--yd-yellow-light, #FFF9E0);
+  color: var(--yd-yellow-dark, #D9AE00);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.yd-ig-step-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border-light);
+  color: var(--yd-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.yd-ig-step-icon svg { width: 15px; height: 15px; }
+.yd-ig-step-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+.yd-ig-step-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--yd-charcoal);
+  line-height: 1.35;
+}
+.yd-ig-step-desc {
+  font-size: 12px;
+  color: var(--yd-text-muted);
+  line-height: 1.4;
+}
+
+.yd-ig-done-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  background: var(--yd-yellow);
+  color: var(--yd-charcoal, #1E1B4B);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.yd-ig-done-btn:hover  { opacity: 0.9; }
+.yd-ig-done-btn:active { transform: scale(0.98); }

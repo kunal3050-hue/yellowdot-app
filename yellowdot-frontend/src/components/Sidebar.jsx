@@ -26,6 +26,7 @@ import {
   SIDEBAR_GROUPS, PARENT_MENU,
   resolveInitialOpen, storeSectionState,
 } from "../config/sidebarConfig";
+import InstallAppButton from "./InstallAppButton";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ICON SYSTEM
@@ -880,6 +881,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <InstallAppButton variant="icon" />
               <button
                 className="yd-sl-logout-btn yd-sl-logout-btn--settings"
                 onClick={() => navigate("/settings")}
