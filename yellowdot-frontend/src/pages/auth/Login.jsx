@@ -31,8 +31,8 @@ function getGreeting() {
   return "Good evening 🌙";
 }
 
-// ── Shared spring easing ───────────────────────────────────────────────────────
-const SPRING = "cubic-bezier(0.22, 1, 0.36, 1)";
+// ── Shared spring easing (matches tokens.css --yd-ease-spring) ─────────────────
+const SPRING = "var(--yd-ease-spring)";
 
 // ── Keyframes + safe-area support ─────────────────────────────────────────────
 const CSS = `
@@ -111,7 +111,7 @@ export default function Login() {
         /* ── canvas ── */
         position:   "fixed",
         inset:      0,
-        background: "#FFFFFF",
+        background: "var(--yd-white)",
 
         /* ── layout: column, starts ~15 vh from top (not centred) ── */
         display:        "flex",
@@ -146,7 +146,7 @@ export default function Login() {
           width:     90,
           height:    90,
           display:   "block",
-          filter:    "drop-shadow(0 8px 24px rgba(255, 196, 0, 0.14))",
+          filter:    "drop-shadow(0 8px 24px rgba(255, 196, 0, 0.14))", /* pure yellow, not brand --yd-yellow (244,196,0) — no exact token match, kept literal */
           userSelect:       "none",
           WebkitUserSelect: "none",
           marginBottom: 36,         /* increased gap to wordmark */
@@ -280,7 +280,7 @@ function GoogleButton({ loading, onClick }) {
         borderRadius:   16,
 
         /* colour */
-        background:     pressed ? "#F7F7F5" : "#FFFFFF",
+        background:     pressed ? "#F7F7F5" : "var(--yd-white)",
         border:         "1px solid rgba(0,0,0,0.09)",
 
         /* layout */
@@ -329,7 +329,7 @@ function Spinner() {
         height:         18,
         borderRadius:   "50%",
         border:         "2px solid rgba(0,0,0,0.10)",
-        borderTopColor: "#F4C400",
+        borderTopColor: "var(--yd-yellow)",
         animation:      "yd-spin 0.75s linear infinite",
         flexShrink:     0,
       }}

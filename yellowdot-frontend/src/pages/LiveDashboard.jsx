@@ -75,9 +75,9 @@ const Skel = ({ w = "52%", h = 30 }) => (
 );
 
 /* ── Single stat card ──────────────────────────────────────────────── */
-function Stat({ label, value, sub, loading, accent = "#F5C518", error }) {
+function Stat({ label, value, sub, loading, accent = "var(--yd-yellow)", error }) {
   return (
-    <div className="ld-stat" style={{ "--ld-accent": error ? "#EF4444" : accent }}>
+    <div className="ld-stat" style={{ "--ld-accent": error ? "var(--yd-danger)" : accent }}>
       <div className="ld-stat-top">
         <span className="ld-stat-label">{label}</span>
         <div className="ld-stat-accent-dot" />
@@ -112,9 +112,9 @@ function ErrorBanner({ errors }) {
   if (!errors.length) return null;
   return (
     <div style={{
-      background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10,
+      background: "var(--yd-danger-soft)", border: "1px solid var(--yd-danger-border)", borderRadius: 10,
       padding: "10px 16px", marginBottom: 20,
-      fontSize: 12, color: "#B91C1C", display: "flex", gap: 8, alignItems: "flex-start",
+      fontSize: 12, color: "var(--yd-danger)", display: "flex", gap: 8, alignItems: "flex-start",
     }}>
       <span style={{ flexShrink: 0 }}>⚠</span>
       <div>
@@ -321,35 +321,35 @@ export default function LiveDashboard() {
         }
 
         .ld-header { margin-bottom: 36px; animation: ld-fade-up 360ms ease both; }
-        .ld-greeting { font-size: 13px; font-weight: 500; color: #A8A29E; margin: 0 0 4px; letter-spacing: .01em; }
-        .ld-title { font-size: clamp(22px,4vw,30px); font-weight: 700; color: #1C1917; letter-spacing: -.025em; margin: 0 0 10px; line-height: 1.15; }
+        .ld-greeting { font-size: 13px; font-weight: 500; color: var(--yd-text-muted); margin: 0 0 4px; letter-spacing: .01em; }
+        .ld-title { font-size: clamp(22px,4vw,30px); font-weight: 700; color: var(--yd-charcoal); letter-spacing: -.025em; margin: 0 0 10px; line-height: 1.15; }
         .ld-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .ld-date { font-size: 12.5px; color: #A8A29E; font-weight: 400; }
+        .ld-date { font-size: 12.5px; color: var(--yd-text-muted); font-weight: 400; }
 
-        .ld-live-badge { display:inline-flex;align-items:center;gap:6px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:20px;padding:3px 10px 3px 7px; }
-        .ld-live-dot { width:7px;height:7px;border-radius:50%;background:#22C55E;flex-shrink:0;animation:ld-live-pulse 2s infinite; }
-        .ld-live-text { font-size:10.5px;font-weight:700;color:#16A34A;text-transform:uppercase;letter-spacing:.08em; }
+        .ld-live-badge { display:inline-flex;align-items:center;gap:6px;background:var(--yd-success-soft);border:1px solid var(--yd-success-border);border-radius:20px;padding:3px 10px 3px 7px; }
+        .ld-live-dot { width:7px;height:7px;border-radius:50%;background:var(--yd-success);flex-shrink:0;animation:ld-live-pulse 2s infinite; }
+        .ld-live-text { font-size:10.5px;font-weight:700;color:var(--yd-success);text-transform:uppercase;letter-spacing:.08em; }
 
-        .ld-refresh-btn { background:none;border:1px solid #E8E0D6;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#A8A29E;cursor:pointer;transition:border-color 150ms,color 150ms; }
-        .ld-refresh-btn:hover { border-color:#F5C518;color:#78350F; }
+        .ld-refresh-btn { background:none;border:1px solid var(--yd-border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--yd-text-muted);cursor:pointer;transition:border-color 150ms,color 150ms; }
+        .ld-refresh-btn:hover { border-color:var(--yd-yellow);color:var(--yd-yellow-dark); }
 
         .ld-section { margin-bottom:32px;animation:ld-fade-up 380ms ease both; }
         .ld-section-header { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
-        .ld-section-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#C4B5A5;white-space:nowrap; }
-        .ld-section-line { flex:1;height:1px;background:#F0EDE8; }
+        .ld-section-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--yd-text-muted);white-space:nowrap; }
+        .ld-section-line { flex:1;height:1px;background:var(--yd-border-light); }
 
         .ld-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px; }
 
-        .ld-stat { background:#FFF;border:1px solid #F0EDE8;border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;transition:border-color 180ms,box-shadow 180ms,transform 180ms;cursor:default; }
-        .ld-stat::before { content:"";position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--ld-accent,#F5C518);border-radius:14px 14px 0 0;opacity:.55;transition:opacity 180ms; }
-        .ld-stat:hover { border-color:#E8E0D6;box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px); }
+        .ld-stat { background:var(--yd-white);border:1px solid var(--yd-border-light);border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;transition:border-color 180ms,box-shadow 180ms,transform 180ms;cursor:default; }
+        .ld-stat::before { content:"";position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--ld-accent,var(--yd-yellow));border-radius:14px 14px 0 0;opacity:.55;transition:opacity 180ms; }
+        .ld-stat:hover { border-color:var(--yd-border);box-shadow:var(--yd-shadow-sm);transform:translateY(-1px); }
         .ld-stat:hover::before { opacity:.9; }
         .ld-stat-top { display:flex;justify-content:space-between;align-items:center; }
-        .ld-stat-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#B8A99A; }
-        .ld-stat-accent-dot { width:6px;height:6px;border-radius:50%;background:var(--ld-accent,#F5C518);opacity:.4;flex-shrink:0; }
-        .ld-stat-value { font-size:28px;font-weight:700;color:#1C1917;letter-spacing:-.04em;line-height:1; }
-        .ld-stat-sub { font-size:11px;color:#B8A99A;font-weight:400; }
-        .ld-stat-value.unavail { font-size:20px;color:#D4C9BE;letter-spacing:0; }
+        .ld-stat-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--yd-text-muted); }
+        .ld-stat-accent-dot { width:6px;height:6px;border-radius:50%;background:var(--ld-accent,var(--yd-yellow));opacity:.4;flex-shrink:0; }
+        .ld-stat-value { font-size:28px;font-weight:700;color:var(--yd-charcoal);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums; }
+        .ld-stat-sub { font-size:11px;color:var(--yd-text-muted);font-weight:400; }
+        .ld-stat-value.unavail { font-size:20px;color:var(--yd-text-muted);letter-spacing:0; }
 
         @media(max-width:560px) { .ld-grid { grid-template-columns:1fr 1fr; } }
       `}</style>
@@ -387,42 +387,42 @@ export default function LiveDashboard() {
             value={totalStudents}
             sub="active students"
             loading={loading}
-            accent="#F5C518"
+            accent="var(--yd-yellow)"
           />
           <Stat
             label="Present Today"
             value={presentToday}
             sub={attendancePct ? `${attendancePct} rate` : "attendance today"}
             loading={loading}
-            accent="#22C55E"
+            accent="var(--yd-success)"
           />
           <Stat
             label="Absent Today"
             value={absentToday}
             sub="not checked in"
             loading={loading}
-            accent="#F97316"
+            accent="var(--yd-warning)"
           />
           <Stat
             label="Checked In Now"
             value={checkedInNow}
             sub="currently inside"
             loading={loading}
-            accent="#3B82F6"
+            accent="var(--yd-info)"
           />
           <Stat
             label="Active Classrooms"
             value={activeRooms}
             sub="rooms with students"
             loading={loading}
-            accent="#8B5CF6"
+            accent="var(--yd-info)"
           />
           <Stat
             label="Total Families"
             value={families}
             sub="family units registered"
             loading={loading}
-            accent="#F59E0B"
+            accent="var(--yd-warning)"
           />
         </Section>
 
@@ -433,14 +433,14 @@ export default function LiveDashboard() {
             value={totalStaff}
             sub="registered members"
             loading={loading}
-            accent="#F5C518"
+            accent="var(--yd-yellow)"
           />
           <Stat
             label="Teachers on Duty"
             value={teacherCount}
             sub="teacher-role users"
             loading={loading}
-            accent="#10B981"
+            accent="var(--yd-success)"
           />
           {/* Staff attendance is not tracked in this system */}
           <Stat
@@ -448,14 +448,14 @@ export default function LiveDashboard() {
             value="—"
             sub="not tracked"
             loading={false}
-            accent="#94A3B8"
+            accent="var(--yd-neutral)"
           />
           <Stat
             label="Staff Absent"
             value="—"
             sub="not tracked"
             loading={false}
-            accent="#94A3B8"
+            accent="var(--yd-neutral)"
           />
         </Section>
 
@@ -466,28 +466,28 @@ export default function LiveDashboard() {
             value={feesCollected != null ? inr(feesCollected) : null}
             sub="total paid (all time)"
             loading={loading}
-            accent="#F5C518"
+            accent="var(--yd-yellow)"
           />
           <Stat
             label="Pending Payments"
             value={pendingCount}
             sub="invoices pending/partial"
             loading={loading}
-            accent="#F97316"
+            accent="var(--yd-warning)"
           />
           <Stat
             label="Overdue Fees"
             value={overdueAmt != null ? inr(overdueAmt) : null}
             sub="overdue balance"
             loading={loading}
-            accent="#EF4444"
+            accent="var(--yd-danger)"
           />
           <Stat
             label="Monthly Collection"
             value={monthlyCollect != null ? inr(monthlyCollect) : null}
             sub="this calendar month"
             loading={loading}
-            accent="#10B981"
+            accent="var(--yd-success)"
           />
         </Section>
 
@@ -498,21 +498,21 @@ export default function LiveDashboard() {
             value={attendancePct}
             sub="today's percentage"
             loading={loading}
-            accent="#F5C518"
+            accent="var(--yd-yellow)"
           />
           <Stat
             label="Pickup Pending"
             value={pickupReq}
             sub="awaiting collection"
             loading={loading}
-            accent="#F97316"
+            accent="var(--yd-warning)"
           />
           <Stat
             label="Meals Served"
             value={mealsServed}
             sub="students fed today"
             loading={loading}
-            accent="#10B981"
+            accent="var(--yd-success)"
           />
           {/* No transport module configured */}
           <Stat
@@ -520,7 +520,7 @@ export default function LiveDashboard() {
             value="—"
             sub="not configured"
             loading={false}
-            accent="#94A3B8"
+            accent="var(--yd-neutral)"
           />
         </Section>
 
