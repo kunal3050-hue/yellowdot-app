@@ -432,8 +432,14 @@ router.post("/api/parent/events/:id/rsvp", loadParent, async (req, res) => {
 router.get("/api/parent/ptm", loadParent, async (req, res) => {
   try {
     const parent = req.parent;
-    const studentId    = req.query.studentId || parent.studentIds?.[0];
-    const SCHOOL_ID    = process.env.SCHOOL_ID || "ydseawoods";
+    const requestedStudentId = req.query.studentId;
+    // Never trust a client-supplied studentId — only honor it if it's actually
+    // one of this parent's own linked children, otherwise fall back to their
+    // first linked child (matches the "force the server value" pattern used
+    // elsewhere for parent-scoped routes).
+    const studentId = (requestedStudentId && parent.studentIds?.includes(requestedStudentId))
+      ? requestedStudentId
+      : parent.studentIds?.[0];
 
     let studentClassId = null;
     if (studentId) {
@@ -443,7 +449,7 @@ router.get("/api/parent/ptm", loadParent, async (req, res) => {
       } catch { /* class resolution failed — show all */ }
     }
 
-    const data = await parentPtmSvc.getPtmsView({ schoolId: SCHOOL_ID, studentClassId, studentId, parentId: parent.parentId });
+    const data = await parentPtmSvc.getPtmsView({ schoolId: parent.schoolId, studentClassId, studentId, parentId: parent.parentId });
     res.json(data);
   } catch (e) {
     console.error("[GET /api/parent/ptm]", e.message);
@@ -465,7 +471,7 @@ router.post("/api/parent/ptm/:id/book", loadParent, async (req, res) => {
     }
 
     const ptm = await ptmSvc.getPtm(req.params.id);
-    if (!ptm) return res.status(404).json({ error: "PTM not found" });
+    if (!ptm || ptm.schoolId !== parent.schoolId) return res.status(404).json({ error: "PTM not found" });
 
     const booking = await ptmSvc.bookSlot({ ptmId: ptm.id, slotId, studentId, parentId: parent.parentId });
 

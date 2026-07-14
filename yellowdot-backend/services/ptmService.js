@@ -220,6 +220,10 @@ async function rescheduleBooking(bookingId, newSlotId, { parentId } = {}) {
   const bookDoc = await bookingCol().doc(bookingId).get();
   if (!bookDoc.exists) throw new Error("Booking not found");
   const booking = bookDoc.data();
+  // Ownership check first, before any status detail is revealed — hides the
+  // existence of a booking that isn't this parent's. Also covers cross-tenant
+  // hijack attempts, since a foreign parentId can never match.
+  if (parentId !== undefined && booking.parentId !== parentId) throw new Error("Booking not found");
   if (booking.status === "cancelled") throw new Error("Booking is already cancelled");
 
   // Validate new slot
@@ -244,6 +248,7 @@ async function cancelBooking(bookingId, { parentId } = {}) {
   const bookDoc = await bookingCol().doc(bookingId).get();
   if (!bookDoc.exists) throw new Error("Booking not found");
   const booking = bookDoc.data();
+  if (parentId !== undefined && booking.parentId !== parentId) throw new Error("Booking not found");
   if (booking.status === "cancelled") throw new Error("Already cancelled");
 
   const now = nowISO();
