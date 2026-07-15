@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
     "@react-oauth/google": "^0.13.5",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.6",

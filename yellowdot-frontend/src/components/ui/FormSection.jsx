@@ -19,7 +19,9 @@
  */
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { accordionVariants, usePrefersReducedMotion, withReducedMotion } from "./motion";
 
 export default function FormSection({
   title,
@@ -33,6 +35,7 @@ export default function FormSection({
   children,
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const reduced = usePrefersReducedMotion();
 
   return (
     <div
@@ -109,10 +112,22 @@ export default function FormSection({
       </div>
 
       {/* Body */}
-      {(!collapsible || open) && (
-        <div style={{ padding: "20px" }}>
-          {children}
-        </div>
+      {!collapsible ? (
+        <div style={{ padding: "20px" }}>{children}</div>
+      ) : (
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              variants={withReducedMotion(accordionVariants, reduced)}
+              initial="collapsed"
+              animate="expanded"
+              exit="collapsed"
+              style={{ overflow: "hidden" }}
+            >
+              <div style={{ padding: "20px" }}>{children}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
     </div>
   );

@@ -28,6 +28,20 @@ export { default as Table         } from "./Table";
 export { default as DataTable     } from "./DataTable";
 export { default as StatsCard     } from "./StatsCard";
 export { default as InvoiceCard   } from "./InvoiceCard";
+export { default as Timeline      } from "./Timeline";
+export { default as ActivityFeed  } from "./ActivityFeed";
+
+/* ── Charts (Recharts wrapper) ───────────────────────────────────── */
+export {
+  KpiCard, LineChart, AreaChart, BarChart, PieChart,
+  Sparkline, ProgressRing, useChartTokens,
+} from "./Charts";
+
+/* ── Wizard (multi-step flow) ────────────────────────────────────── */
+export { default as Wizard } from "./Wizard";
+
+/* ── Quick Action Card (dashboard building block) ────────────────── */
+export { default as QuickActionCard } from "./QuickActionCard";
 
 /* ── Toolbar / Search ────────────────────────────────────────────── */
 export { default as SearchBar     } from "./SearchBar";

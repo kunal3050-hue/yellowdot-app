@@ -11,6 +11,8 @@ import {
   BookmarkPlus, Bookmark, ChevronDown, Trash2, Archive, FileDown,
 } from "lucide-react";
 import { flexRender } from "@tanstack/react-table";
+import { motion } from "framer-motion";
+import { popoverVariants, usePrefersReducedMotion, withReducedMotion } from "../motion";
 
 function useClickOutside(ref, onOutside) {
   useEffect(() => {
@@ -25,6 +27,7 @@ function useClickOutside(ref, onOutside) {
 function Popover({ label, icon, badge, children, align = "left" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const reduced = usePrefersReducedMotion();
   useClickOutside(ref, () => setOpen(false));
 
   return (
@@ -41,9 +44,15 @@ function Popover({ label, icon, badge, children, align = "left" }) {
         <ChevronDown size={13} strokeWidth={2.5} />
       </button>
       {open && (
-        <div className={`yd-dt-popover yd-dt-popover--${align}`} onClick={e => e.stopPropagation()}>
+        <motion.div
+          className={`yd-dt-popover yd-dt-popover--${align}`}
+          onClick={e => e.stopPropagation()}
+          variants={withReducedMotion(popoverVariants, reduced)}
+          initial="hidden"
+          animate="visible"
+        >
           {typeof children === "function" ? children({ close: () => setOpen(false) }) : children}
-        </div>
+        </motion.div>
       )}
     </div>
   );

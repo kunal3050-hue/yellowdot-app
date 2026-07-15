@@ -1,0 +1,157 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ActivityFeed — src/components/ui/ActivityFeed/
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-af-root { display: flex; flex-direction: column; gap: 12px; }
+
+.yd-af-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.yd-af-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 160px;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: var(--yd-radius-sm);
+  border: 1px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-muted);
+}
+.yd-af-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--yd-charcoal);
+  width: 100%;
+}
+.yd-af-search input::placeholder { color: var(--yd-text-muted); }
+
+.yd-af-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+.yd-af-chip {
+  border: 1px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+.yd-af-chip:hover { background: var(--yd-soft); }
+.yd-af-chip--active {
+  background: var(--yd-charcoal);
+  border-color: var(--yd-charcoal);
+  color: #fff;
+}
+
+.yd-af-mark-all { margin-left: auto; white-space: nowrap; }
+
+.yd-af-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+.yd-af-item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 12px 10px 12px 18px;
+  border-bottom: 1px solid var(--yd-border-light);
+  cursor: default;
+}
+.yd-af-item:last-child { border-bottom: none; }
+.yd-af-item--unread { background: var(--yd-info-soft); border-radius: var(--yd-radius-sm); cursor: pointer; }
+.yd-af-item--unread:hover { background: var(--yd-soft); }
+
+.yd-af-unread-dot {
+  position: absolute;
+  left: 6px;
+  top: 18px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yd-info);
+}
+
+.yd-af-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.yd-af-top { display: flex; align-items: center; gap: 8px; }
+.yd-af-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--yd-charcoal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yd-af-category {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.yd-af-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--yd-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.yd-af-text {
+  font-size: 12.5px;
+  color: var(--yd-text-soft);
+  line-height: 1.5;
+}
+.yd-af-mention {
+  color: var(--yd-info);
+  font-weight: 600;
+}
+
+.yd-af-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.yd-af-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--yd-radius-sm);
+  border: 1px solid var(--yd-border);
+  background: var(--yd-surface);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--yd-text-soft);
+  text-decoration: none;
+}
+.yd-af-attachment:hover { background: var(--yd-soft); color: var(--yd-charcoal); }
+
+.yd-af-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .yd-af-mark-all { margin-left: 0; width: 100%; }
+  .yd-af-time { display: none; }
+}

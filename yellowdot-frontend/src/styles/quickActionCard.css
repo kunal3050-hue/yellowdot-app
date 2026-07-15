@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   QuickActionCard — src/components/ui/QuickActionCard/
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-qac {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 16px 16px 14px;
+  border-radius: var(--yd-radius-card);
+  border: 1px solid var(--yd-border);
+  background: var(--yd-surface);
+  box-shadow: var(--yd-elevation-small);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.yd-qac:hover { border-color: var(--yd-border-warm); }
+.yd-qac:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: 2px; }
+
+.yd-qac--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.yd-qac-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.yd-qac-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--yd-radius-sm);
+  background: var(--yd-yellow-light);
+  color: var(--yd-charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.yd-qac-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--yd-info-soft);
+  color: var(--yd-info);
+}
+
+.yd-qac-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--yd-charcoal);
+}
+
+.yd-qac-desc {
+  font-size: 11.5px;
+  color: var(--yd-text-muted);
+  line-height: 1.4;
+}
+
+.yd-qac-shortcut {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--yd-text-muted);
+  background: var(--yd-soft);
+  border: 1px solid var(--yd-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.yd-qac-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--yd-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--yd-surface);
+}

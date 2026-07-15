@@ -1,0 +1,136 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Wizard — src/components/ui/Wizard/
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-wiz-root { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Draft recovery banner ───────────────────────────────────────── */
+.yd-wiz-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--yd-radius-sm);
+  background: var(--yd-info-soft);
+  border: 1px solid var(--yd-info-border);
+  font-size: 12.5px;
+  color: var(--yd-text);
+}
+.yd-wiz-draft-actions { display: flex; gap: 8px; }
+
+/* ── Mobile compact bar (hidden on desktop) ──────────────────────── */
+.yd-wiz-mobile-bar { display: none; }
+
+/* ── Body layout ──────────────────────────────────────────────────── */
+.yd-wiz-body { display: flex; gap: 28px; }
+.yd-wiz-root--vertical .yd-wiz-body { flex-direction: row; }
+.yd-wiz-root--horizontal .yd-wiz-body { flex-direction: column; }
+
+.yd-wiz-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Progress — horizontal ───────────────────────────────────────── */
+.yd-wiz-progress { display: flex; list-style: none; margin: 0; padding: 0; }
+.yd-wiz-progress--horizontal { align-items: flex-start; }
+.yd-wiz-progress--vertical { flex-direction: column; width: 200px; flex-shrink: 0; }
+
+.yd-wiz-progress-item {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.yd-wiz-progress--horizontal .yd-wiz-progress-item { flex: 1; flex-direction: column; }
+.yd-wiz-progress--vertical .yd-wiz-progress-item { flex-direction: row; gap: 10px; padding-bottom: 22px; }
+
+.yd-wiz-progress-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: var(--yd-transition-fast);
+  z-index: 1;
+}
+.yd-wiz-progress-dot:disabled { cursor: not-allowed; }
+.yd-wiz-progress-dot--current { border-color: var(--yd-yellow); background: var(--yd-yellow); color: var(--yd-charcoal); }
+.yd-wiz-progress-dot--done { border-color: var(--yd-success); background: var(--yd-success); color: #fff; }
+.yd-wiz-progress-dot--locked { opacity: 0.5; }
+
+.yd-wiz-progress-label-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+  text-align: center;
+}
+.yd-wiz-progress--vertical .yd-wiz-progress-label-wrap { align-items: flex-start; margin-top: 0; text-align: left; }
+.yd-wiz-progress-label { font-size: 11.5px; font-weight: 600; color: var(--yd-text-soft); }
+.yd-wiz-progress-optional { font-size: 10px; color: var(--yd-text-muted); }
+
+.yd-wiz-progress-line {
+  position: absolute;
+  background: var(--yd-border);
+  z-index: 0;
+}
+.yd-wiz-progress--horizontal .yd-wiz-progress-line { top: 13px; left: 50%; width: 100%; height: 2px; }
+.yd-wiz-progress--vertical .yd-wiz-progress-line { left: 13px; top: 28px; width: 2px; height: calc(100% - 6px); }
+
+/* ── Step content ─────────────────────────────────────────────────── */
+.yd-wiz-step { min-height: 120px; }
+
+.yd-wiz-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--yd-border-light);
+}
+
+/* ── Success state ────────────────────────────────────────────────── */
+.yd-wiz-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 24px;
+}
+.yd-wiz-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--yd-success-soft);
+  color: var(--yd-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.yd-wiz-success-title { font-size: 17px; font-weight: 800; color: var(--yd-charcoal); }
+.yd-wiz-success-desc { font-size: 13px; color: var(--yd-text-muted); max-width: 360px; }
+.yd-wiz-success-action { margin-top: 10px; }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .yd-wiz-progress { display: none; }
+  .yd-wiz-body { flex-direction: column; gap: 16px; }
+  .yd-wiz-mobile-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--yd-text-soft);
+  }
+  .yd-wiz-mobile-track { height: 4px; border-radius: 999px; background: var(--yd-soft); overflow: hidden; }
+  .yd-wiz-mobile-fill { height: 100%; background: var(--yd-yellow); transition: width 0.2s var(--yd-ease); }
+}

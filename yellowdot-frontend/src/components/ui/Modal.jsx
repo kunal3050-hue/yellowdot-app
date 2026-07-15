@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import Button from "./Button";
+import { overlayVariants, dialogVariants, usePrefersReducedMotion, withReducedMotion } from "./motion";
 
 /**
  * Modal — centered overlay dialog
@@ -43,19 +45,29 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
+  const reduced = usePrefersReducedMotion();
+
   if (!isOpen) return null;
 
   const sizeClass = size === "wide" ? "yd-modal-wide" : size === "xl" ? "yd-modal-xl" : "";
 
   return createPortal(
-    <div
+    <motion.div
       className="yd-overlay"
       onClick={closeOnBackdrop ? (e) => { if (e.target === e.currentTarget) onClose?.(); } : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      variants={withReducedMotion(overlayVariants, reduced)}
+      initial="hidden"
+      animate="visible"
     >
-      <div className={`yd-modal ${sizeClass} ${className}`}>
+      <motion.div
+        className={`yd-modal ${sizeClass} ${className}`}
+        variants={withReducedMotion(dialogVariants, reduced)}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Header */}
         <div className="yd-modal-header">
           <h2>{title}</h2>
@@ -77,8 +89,8 @@ export default function Modal({
             )}
           </div>
         )}
-      </div>
-    </div>,
+      </motion.div>
+    </motion.div>,
     document.body
   );
 }

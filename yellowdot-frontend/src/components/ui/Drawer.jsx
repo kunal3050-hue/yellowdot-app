@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { overlayVariants, drawerVariants, usePrefersReducedMotion, withReducedMotion } from "./motion";
 
 /**
  * Drawer — slide-in panel from the right
@@ -38,24 +40,32 @@ export default function Drawer({
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
+  const reduced = usePrefersReducedMotion();
+
   if (!isOpen) return null;
 
   return createPortal(
     <>
       {/* Backdrop */}
-      <div
+      <motion.div
         className="yd-drawer-overlay"
         onClick={onClose}
         aria-hidden="true"
+        variants={withReducedMotion(overlayVariants, reduced)}
+        initial="hidden"
+        animate="visible"
       />
 
       {/* Panel */}
-      <div
+      <motion.div
         className={`yd-drawer ${className}`}
         style={{ width }}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        variants={withReducedMotion(drawerVariants, reduced)}
+        initial="hidden"
+        animate="visible"
       >
         {/* Header */}
         <div className="yd-drawer-header">
@@ -72,7 +82,7 @@ export default function Drawer({
         {footer && (
           <div className="yd-drawer-footer">{footer}</div>
         )}
-      </div>
+      </motion.div>
     </>,
     document.body
   );

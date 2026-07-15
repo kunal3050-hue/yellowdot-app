@@ -9,6 +9,11 @@ import "./styles/animations.css";
 import "./styles/global.css";
 import "./styles/components.css";
 import "./styles/dataTable.css";
+import "./styles/timeline.css";
+import "./styles/activityFeed.css";
+import "./styles/charts.css";
+import "./styles/wizard.css";
+import "./styles/quickActionCard.css";
 import "./styles/layout.css";
 import "./styles/settings.css";
 import "./styles/mobile.css";  // responsive overrides — must be last

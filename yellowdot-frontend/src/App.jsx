@@ -60,6 +60,7 @@ const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
 const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
 const DataTablePlayground = lazy(() => import("./pages/dev/DataTablePlayground"));
+const ComponentPlayground = lazy(() => import("./pages/dev/ComponentPlayground"));
 const QRManagement        = lazy(() => import("./pages/QRManagement"));
 const AcademicsClasses            = lazy(() => import("./pages/academics/AcademicsClasses"));
 const AcademicsBatches            = lazy(() => import("./pages/academics/AcademicsBatches"));
@@ -574,6 +575,14 @@ function App() {
                 import.meta.env.DEV
                   ? <MainLayout><DataTablePlayground /></MainLayout>
                   : <ProtectedRoute routeKey="dev-tools"><MainLayout><DataTablePlayground /></MainLayout></ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/component-playground"
+              element={
+                import.meta.env.DEV
+                  ? <MainLayout><ComponentPlayground /></MainLayout>
+                  : <ProtectedRoute routeKey="dev-tools"><MainLayout><ComponentPlayground /></MainLayout></ProtectedRoute>
               }
             />
 

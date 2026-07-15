@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { toastVariants, usePrefersReducedMotion, withReducedMotion } from "./motion";
 
 /* ── Context ─────────────────────────────────────────────────────────── */
 const ToastContext = createContext(null);
@@ -39,9 +41,11 @@ export function ToastProvider({ children }) {
       {children}
       {createPortal(
         <div className="yd-toast-container" aria-live="polite">
-          {toasts.map(t => (
-            <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
-          ))}
+          <AnimatePresence initial={false}>
+            {toasts.map(t => (
+              <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
+            ))}
+          </AnimatePresence>
         </div>,
         document.body
       )}
@@ -71,16 +75,18 @@ const ICONS = {
 };
 
 function ToastItem({ toast, onDismiss }) {
-  const cls = [
-    "yd-toast",
-    `yd-toast-${toast.type}`,
-    toast.exiting ? "yd-toast-exiting" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const reduced = usePrefersReducedMotion();
+  const cls = ["yd-toast", `yd-toast-${toast.type}`].filter(Boolean).join(" ");
 
   return (
-    <div className={cls} role="alert">
+    <motion.div
+      className={cls}
+      role="alert"
+      variants={withReducedMotion(toastVariants, reduced)}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <span style={{ fontSize: 14, flexShrink: 0 }}>{ICONS[toast.type]}</span>
       <span style={{ flex: 1 }}>{toast.message}</span>
       <button
@@ -105,6 +111,6 @@ function ToastItem({ toast, onDismiss }) {
       >
         ✕
       </button>
-    </div>
+    </motion.div>
   );
 }
