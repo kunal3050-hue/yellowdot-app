@@ -46,22 +46,24 @@
   --yd-text-warm:      #1E293B;
 
   /* ── Semantic — Success ──────────────────────────────────────────── */
-  --yd-success:        #16A34A;
+  /* Base updated per KUE BOXS Design System v2 — soft/border pairs already
+     matched this hue family at the Tailwind 50/200 shade, kept as-is. */
+  --yd-success:        #22C55E;
   --yd-success-soft:   #F0FDF4;
   --yd-success-border: #BBF7D0;
 
   /* ── Semantic — Danger ───────────────────────────────────────────── */
-  --yd-danger:         #DC2626;
+  --yd-danger:         #EF4444;
   --yd-danger-soft:    #FEF2F2;
   --yd-danger-border:  #FECACA;
 
   /* ── Semantic — Warning ──────────────────────────────────────────── */
-  --yd-warning:        #D97706;
+  --yd-warning:        #F59E0B;
   --yd-warning-soft:   #FFFBEB;
   --yd-warning-border: #FDE68A;
 
   /* ── Semantic — Info ─────────────────────────────────────────────── */
-  --yd-info:           #2563EB;
+  --yd-info:           #3B82F6;
   --yd-info-soft:      #EFF6FF;
   --yd-info-border:    #BFDBFE;
 
@@ -123,16 +125,38 @@
   --yd-radius-2xl: 32px;
   --yd-radius-full: 9999px;
 
+  /* ── Border Radius — semantic (KUE BOXS Design System v2) ─────────── */
+  /* Named per-element radii called for by the design spec. Distinct from
+     the generic scale above, which other elements (badges, chips, avatars)
+     keep using as before. */
+  --yd-radius-card:   18px;
+  --yd-radius-button: 12px;
+  --yd-radius-input:  12px;
+  --yd-radius-dialog: 20px;
+
   /* ── Shadows — pure neutral, no yellow tint ──────────────────────── */
-  --yd-shadow-xs:     0 1px 2px rgba(0, 0, 0, 0.04);
+  /* xs/md/xl are now aliases of sm/base/lg respectively (six->four
+     consolidation) — kept as distinct variable names only so nothing
+     currently referencing them directly needs to change. */
+  --yd-shadow-xs:     var(--yd-shadow-sm);
   --yd-shadow-sm:     0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --yd-shadow:        0 4px 16px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --yd-shadow-md:     0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --yd-shadow-md:     var(--yd-shadow);
   --yd-shadow-lg:     0 16px 48px rgba(0, 0, 0, 0.10), 0 8px 16px rgba(0, 0, 0, 0.05);
-  --yd-shadow-xl:     0 24px 80px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.07);
+  --yd-shadow-xl:     var(--yd-shadow-lg);
   --yd-shadow-yellow: 0 4px 16px rgba(244, 196, 0, 0.35);
   --yd-shadow-card:   0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --yd-shadow-inset:  inset 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  /* ── Elevation — canonical 4-level scale (KUE BOXS Design System v2) ── */
+  /* None/Small/Medium/Large per the approved spec. Consolidates the six
+     levels above (xs+sm -> Small, base+md -> Medium, lg+xl -> Large) into
+     four named levels for new usage, without breaking anything still
+     referencing the older --yd-shadow-xs/-md/-xl directly. */
+  --yd-elevation-none:   none;
+  --yd-elevation-small:  var(--yd-shadow-sm);
+  --yd-elevation-medium: var(--yd-shadow);
+  --yd-elevation-large:  var(--yd-shadow-lg);
 
   /* ── Transitions ─────────────────────────────────────────────────── */
   --yd-ease:         cubic-bezier(0.4, 0, 0.2, 1);
@@ -162,13 +186,13 @@
   --yd-navy-glow:      rgba(15, 23, 42, 0.08);
   --yd-navy-shadow:    0 4px 20px rgba(15, 23, 42, 0.12);
 
-  /* ── Extended palette ────────────────────────────────────────────── */
-  --yd-olive:          #16A34A;
-  --yd-olive-soft:     #F0FDF4;
-  --yd-olive-border:   #BBF7D0;
-  --yd-amber:          #D97706;
-  --yd-amber-soft:     #FFFBEB;
-  --yd-amber-border:   #FDE68A;
+  /* ── Extended palette (aliases — kept in sync with Success/Warning) ── */
+  --yd-olive:          var(--yd-success);
+  --yd-olive-soft:     var(--yd-success-soft);
+  --yd-olive-border:   var(--yd-success-border);
+  --yd-amber:          var(--yd-warning);
+  --yd-amber-soft:     var(--yd-warning-soft);
+  --yd-amber-border:   var(--yd-warning-border);
 
   /* ── Layout ──────────────────────────────────────────────────────── */
   --yd-sidebar-width:      256px;

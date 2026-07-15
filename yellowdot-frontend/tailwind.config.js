@@ -1,4 +1,10 @@
 /** @type {import('tailwindcss').Config} */
+// ─────────────────────────────────────────────────────────────────────────
+// KUE BOXS Design System v2 — every value below reads from src/styles/
+// tokens.css's CSS custom properties rather than duplicating literals, so
+// there is exactly one source of truth for color/radius/shadow. Update a
+// value in tokens.css and both plain CSS (var(--yd-*)) and Tailwind
+// utilities (bg-yd-yellow, rounded-card, shadow-medium, etc.) pick it up.
 export default {
   content: [
     "./index.html",
@@ -6,66 +12,66 @@ export default {
   ],
   theme: {
     extend: {
-      // ── Yellow Dot Brand Tokens (Final) ───────────────────────────
       colors: {
         yd: {
           // ── Brand yellows ─────────────────────────────────────────
-          yellow:          "#F4C400",
-          "yellow-dark":   "#D9AE00",
-          "yellow-hover":  "#D9AE00",
-          "yellow-light":  "#FFF9E0",
-          "yellow-soft":   "#FFF9E0",
-          "yellow-pale":   "#FFFDF0",
+          yellow:          "var(--yd-yellow)",
+          "yellow-dark":   "var(--yd-yellow-dark)",
+          "yellow-hover":  "var(--yd-yellow-dark)",
+          "yellow-light":  "var(--yd-yellow-light)",
+          "yellow-soft":   "var(--yd-yellow-light)",
+          "yellow-pale":   "var(--yd-yellow-pale)",
 
           // ── Text ──────────────────────────────────────────────────
-          charcoal:        "#0F172A",
-          black:           "#0A0A0A",
-          navy:            "#0F172A",
-          "navy-2":        "#1E293B",
-          text:            "#0F172A",
-          "text-2":        "#64748B",
-          "text-3":        "#94A3B8",
-          "text-warm":     "#1E293B",
+          charcoal:        "var(--yd-charcoal)",
+          black:           "var(--yd-black)",
+          navy:            "var(--yd-navy)",
+          "navy-2":        "var(--yd-navy-2)",
+          text:            "var(--yd-text)",
+          "text-2":        "var(--yd-text-soft)",
+          "text-3":        "var(--yd-text-muted)",
+          "text-warm":     "var(--yd-text-warm)",
 
-          // ── Surfaces — pure white ──────────────────────────────────
-          bg:              "#FFFFFF",
-          cream:           "#FFFFFF",
-          soft:            "#F8F8F8",
-          surface:         "#FFFFFF",
+          // ── Surfaces ────────────────────────────────────────────────
+          bg:              "var(--yd-bg)",
+          cream:           "var(--yd-cream)",
+          soft:            "var(--yd-soft)",
+          surface:         "var(--yd-surface)",
 
           // ── Borders — cool neutral ─────────────────────────────────
-          border:          "#E8E8E8",
-          "border-light":  "#F1F1F1",
-          "border-warm":   "#E4E4E7",
+          border:          "var(--yd-border)",
+          "border-light":  "var(--yd-border-light)",
+          "border-warm":   "var(--yd-border-warm)",
 
           // ── Semantic: danger ───────────────────────────────────────
-          danger:          "#DC2626",
-          "danger-soft":   "#FEF2F2",
-          "danger-border": "#FECACA",
+          danger:          "var(--yd-danger)",
+          "danger-soft":   "var(--yd-danger-soft)",
+          "danger-border": "var(--yd-danger-border)",
 
           // ── Semantic: success ──────────────────────────────────────
-          success:         "#16A34A",
-          "success-soft":  "#F0FDF4",
-          "success-border":"#BBF7D0",
+          success:         "var(--yd-success)",
+          "success-soft":  "var(--yd-success-soft)",
+          "success-border":"var(--yd-success-border)",
 
           // ── Semantic: warning ──────────────────────────────────────
-          warn:            "#D97706",
-          "warn-soft":     "#FFFBEB",
-          "warn-border":   "#FDE68A",
+          warn:            "var(--yd-warning)",
+          "warn-soft":     "var(--yd-warning-soft)",
+          "warn-border":   "var(--yd-warning-border)",
 
           // ── Semantic: info ─────────────────────────────────────────
-          info:            "#2563EB",
-          "info-soft":     "#EFF6FF",
-          "info-border":   "#BFDBFE",
+          info:            "var(--yd-info)",
+          "info-soft":     "var(--yd-info-soft)",
+          "info-border":   "var(--yd-info-border)",
 
           // ── Sidebar ───────────────────────────────────────────────
-          "sidebar-bg":    "#FFFFFF",
-          "sidebar-hover": "#F4F4F5",
-          "sidebar-active":"#0F172A",
+          "sidebar-bg":    "var(--yd-sidebar-bg)",
+          "sidebar-hover": "var(--yd-sidebar-hover)",
+          "sidebar-active":"var(--yd-sidebar-active)",
         },
       },
 
-      // ── Typography — Plus Jakarta Sans ────────────────────────────
+      // ── Typography — Plus Jakarta Sans (kept; see Design System v2 log:
+      //    no compelling usability benefit found to switch to Manrope/Inter) ──
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', "Inter", "system-ui", "-apple-system", "sans-serif"],
       },
@@ -73,17 +79,30 @@ export default {
         "2xs": ["10px", { lineHeight: "14px" }],
       },
 
-      // ── Border radius ─────────────────────────────────────────────
+      // ── Border radius — semantic, per-element (Design System v2) ─────
+      // Generic yd-sm/yd/yd-md/yd-lg/yd-xl kept for anything already using
+      // them; card/button/input/dialog are the new named element radii.
       borderRadius: {
-        "yd-sm": "6px",
-        yd:      "10px",
-        "yd-md": "14px",
-        "yd-lg": "18px",
-        "yd-xl": "24px",
+        "yd-sm": "var(--yd-radius-sm)",
+        yd:      "var(--yd-radius)",
+        "yd-md": "var(--yd-radius-md)",
+        "yd-lg": "var(--yd-radius-lg)",
+        "yd-xl": "var(--yd-radius-xl)",
+        card:    "var(--yd-radius-card)",
+        button:  "var(--yd-radius-button)",
+        input:   "var(--yd-radius-input)",
+        dialog:  "var(--yd-radius-dialog)",
       },
 
-      // ── Shadows — warm yellow-tinted ──────────────────────────────
+      // ── Shadows — four canonical elevation levels (Design System v2) ──
+      // shadow-none / shadow-small / shadow-medium / shadow-large are the
+      // only levels new code should reach for. yd-md/yd-lg/yd-yellow/etc.
+      // are kept for anything already using the old warm-tinted scale.
       boxShadow: {
+        none:        "var(--yd-elevation-none)",
+        small:       "var(--yd-elevation-small)",
+        medium:      "var(--yd-elevation-medium)",
+        large:       "var(--yd-elevation-large)",
         yd:          "0 1px 3px rgba(244,196,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
         "yd-md":     "0 4px 16px rgba(244,196,0,0.08), 0 2px 4px rgba(0,0,0,0.06)",
         "yd-lg":     "0 8px 32px rgba(244,196,0,0.10), 0 4px 8px rgba(0,0,0,0.06)",
