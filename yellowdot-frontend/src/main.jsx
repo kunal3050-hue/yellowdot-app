@@ -8,6 +8,7 @@ import "./styles/tokens.css";
 import "./styles/animations.css";
 import "./styles/global.css";
 import "./styles/components.css";
+import "./styles/dataTable.css";
 import "./styles/layout.css";
 import "./styles/settings.css";
 import "./styles/mobile.css";  // responsive overrides — must be last
