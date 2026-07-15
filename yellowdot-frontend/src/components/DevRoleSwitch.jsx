@@ -11,6 +11,7 @@
  */
 
 import { useLocation, Link } from "react-router-dom";
+import { GraduationCap, User } from "lucide-react";
 
 const PARENT_PATHS = ["/parent-home", "/parent-attendance", "/parent-daily-care",
   "/parent-profile", "/parent-child", "/parent-notifications",
@@ -86,27 +87,10 @@ function FloatingPill() {
   );
 }
 
-const IC = {
-  width: 12, height: 12, fill: "none",
-  stroke: "currentColor", strokeWidth: "2",
-  strokeLinecap: "round", strokeLinejoin: "round",
-};
-
-function StaffIcon({ active }) {
-  return (
-    <svg viewBox="0 0 24 24" {...IC}>
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-    </svg>
-  );
+function StaffIcon() {
+  return <GraduationCap size={12} strokeWidth={2} />;
 }
 
-function ParentIcon({ active }) {
-  return (
-    <svg viewBox="0 0 24 24" {...IC}>
-      <circle cx="12" cy="7" r="4" />
-      <path d="M5.5 21c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
-    </svg>
-  );
+function ParentIcon() {
+  return <User size={12} strokeWidth={2} />;
 }

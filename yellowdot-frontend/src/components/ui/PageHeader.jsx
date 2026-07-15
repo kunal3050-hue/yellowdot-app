@@ -1,3 +1,5 @@
+import { ArrowLeft } from "lucide-react";
+
 /**
  * PageHeader — top of a page: title, subtitle, back link, actions
  *
@@ -61,9 +63,5 @@ export default function PageHeader({
 }
 
 function ArrowLeftIcon() {
-  return (
-    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-      <path d="M19 12H5M12 5l-7 7 7 7" />
-    </svg>
-  );
+  return <ArrowLeft size={13} strokeWidth={2.5} />;
 }

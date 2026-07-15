@@ -1,3 +1,5 @@
+import { Search, X } from "lucide-react";
+
 /**
  * SearchToolbar — search bar + filter chips + action buttons in one row
  *
@@ -156,17 +158,9 @@ export default function SearchToolbar({
 }
 
 function SearchIcon() {
-  return (
-    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-    </svg>
-  );
+  return <Search size={13} strokeWidth={2} />;
 }
 
 function XIcon() {
-  return (
-    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
+  return <X size={12} strokeWidth={2.5} />;
 }

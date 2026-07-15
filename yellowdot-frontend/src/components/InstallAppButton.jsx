@@ -20,6 +20,7 @@
  *       disappear once there's nothing left to do.
  */
 
+import { Download, CheckCircle2 } from "lucide-react";
 import { useInstall } from "../contexts/InstallContext";
 import { PLATFORM_NAME } from "../config/environment";
 
@@ -93,22 +94,9 @@ export default function InstallAppButton({ variant = "link", showInstalledStatus
 }
 
 function DownloadIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
+  return <Download size={16} strokeWidth={2} />;
 }
 
 function CheckCircleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
+  return <CheckCircle2 size={18} strokeWidth={2} />;
 }

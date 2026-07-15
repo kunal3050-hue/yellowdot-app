@@ -19,6 +19,7 @@
  */
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 export default function FormSection({
   title,
@@ -119,22 +120,16 @@ export default function FormSection({
 
 function ChevronIcon({ open }) {
   return (
-    <svg
-      width="16"
-      height="16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
+    <ChevronDown
+      size={16}
+      strokeWidth={2}
       style={{
         color: "var(--yd-text-muted)",
         transform: open ? "rotate(180deg)" : "rotate(0deg)",
         transition: "transform 0.18s ease",
         flexShrink: 0,
       }}
-    >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
+    />
   );
 }
 

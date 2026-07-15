@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Search, Bell, ChevronDown as ChevronDownLucide, Menu, Check } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ROLE_LABELS, isBypassRole } from "../config/permissions";
 
@@ -132,10 +133,7 @@ function CommandPalette({ open, onClose }) {
       >
         {/* ── Search input ────────────────────────────────────────── */}
         <div className="yd-cmd-input-wrap">
-          <svg className="yd-cmd-search-icon" width="16" height="16" fill="none"
-            stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
+          <Search className="yd-cmd-search-icon" size={16} strokeWidth={2.5} />
           <input
             ref={inputRef}
             className="yd-cmd-input"
@@ -296,18 +294,16 @@ function CenterSwitcherBtn({ center, open, onClick }) {
       }}>
         {formatCenter(center)}
       </span>
-      <svg
-        width="10" height="10" fill="none" stroke="currentColor"
-        strokeWidth="2.5" viewBox="0 0 24 24"
+      <ChevronDownLucide
+        size={10}
+        strokeWidth={2.5}
         style={{
           color: "var(--yd-text-muted)",
           transform: open ? "rotate(180deg)" : "none",
           transition: "transform 0.18s",
           flexShrink: 0,
         }}
-      >
-        <path d="M6 9l6 6 6-6" />
-      </svg>
+      />
     </button>
   );
 }
@@ -359,11 +355,7 @@ function CenterDropdown({ centers, active, onSelect }) {
               <span style={{ fontSize: 13 }}>📍</span>
               <span style={{ flex: 1 }}>{formatCenter(id)}</span>
               {isActive && (
-                <svg width="14" height="14" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" viewBox="0 0 24 24"
-                  style={{ color: "var(--yd-yellow-dark)", flexShrink: 0 }}>
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+                <Check size={14} strokeWidth={2.5} style={{ color: "var(--yd-yellow-dark)", flexShrink: 0 }} />
               )}
             </button>
           );
@@ -573,45 +565,25 @@ function DropdownBtn({ icon, label, onClick, badge, danger }) {
 // ICONS
 // ══════════════════════════════════════════════════════════════════════════
 function SearchIcon() {
-  return (
-    <svg width="14" height="14" fill="none" stroke="currentColor"
-      strokeWidth="2.5" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-    </svg>
-  );
+  return <Search size={14} strokeWidth={2.5} />;
 }
 
 function BellIcon() {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor"
-      strokeWidth="2" viewBox="0 0 24 24">
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 01-3.46 0" />
-    </svg>
-  );
+  return <Bell size={16} strokeWidth={2} />;
 }
 
 function ChevronDown({ open }) {
   return (
-    <svg
-      width="12" height="12" fill="none" stroke="currentColor"
-      strokeWidth="2.5" viewBox="0 0 24 24"
+    <ChevronDownLucide
+      size={12}
+      strokeWidth={2.5}
       className={`yd-tb-chevron${open ? " yd-tb-chevron--open" : ""}`}
-    >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
+    />
   );
 }
 
 function HamburgerIcon() {
-  return (
-    <svg width="18" height="18" fill="none" stroke="currentColor"
-      strokeWidth="2" viewBox="0 0 24 24">
-      <line x1="3" y1="6"  x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
+  return <Menu size={18} strokeWidth={2} />;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
