@@ -57,7 +57,3 @@ export { default as EmptyState    } from "./EmptyState";
 export { default as LoadingPage,
          PageError                } from "./LoadingPage";
 export { ToastProvider, useToast  } from "./Toast";
-
-/* ── Theme config (re-exported for convenience) ──────────────────── */
-export { theme, statusConfig,
-         colors, shadows          } from "../../design-system/theme";
