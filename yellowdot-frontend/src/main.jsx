@@ -16,6 +16,7 @@ import "./styles/wizard.css";
 import "./styles/quickActionCard.css";
 import "./styles/liveDashboard.css";
 import "./styles/quickNav.css";
+import "./styles/students.css";
 import "./styles/layout.css";
 import "./styles/settings.css";
 import "./styles/mobile.css";  // responsive overrides — must be last

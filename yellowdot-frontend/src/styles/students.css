@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Students module — src/pages/Students/
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--yd-text-muted);
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: var(--yd-radius-sm);
+  cursor: pointer;
+}
+.yd-back-link:hover { background: var(--yd-soft); color: var(--yd-charcoal); }
+
+.yd-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--yd-text-soft);
+  background: none;
+  border: none;
+  border-radius: var(--yd-radius-sm);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.yd-overflow-item:hover { background: var(--yd-soft); color: var(--yd-charcoal); }
+.yd-overflow-item--danger { color: var(--yd-danger); }
+.yd-overflow-item--danger:hover { background: var(--yd-danger-soft); color: var(--yd-danger); }
