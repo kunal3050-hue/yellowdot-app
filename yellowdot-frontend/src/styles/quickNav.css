@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Quick Navigation — src/pages/QuickNav.jsx
+   Externalized, token-driven replacement for the page's former inline
+   <style> block with hardcoded hex values (Design System v2 Phase 2.1).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.qn-root { max-width: var(--yd-content-max); margin: 0 auto; }
+
+.qn-section { margin-bottom: 32px; }
+.qn-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.qn-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; color: var(--yd-text-muted); white-space: nowrap; }
+.qn-section-line { flex: 1; height: 1px; background: var(--yd-border-light); }
+
+.qn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+@media (max-width: 600px) {
+  .qn-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .qn-grid { grid-template-columns: 1fr; }
+}

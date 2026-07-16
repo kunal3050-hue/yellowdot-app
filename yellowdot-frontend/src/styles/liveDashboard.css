@@ -1,0 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Live Dashboard — src/pages/LiveDashboard.jsx
+   Externalized from the page's former inline <style> block (Design System
+   v2 Phase 2.1) so keyframes/utility classes live alongside the rest of
+   the token-driven stylesheet chain instead of per-page <style> tags.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes ld-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ld-live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.40); }
+  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.ld-root { max-width: var(--yd-content-max); margin: 0 auto; }
+
+.ld-header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.ld-live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--yd-success-soft); border: 1px solid var(--yd-success-border);
+  border-radius: 999px; padding: 3px 10px 3px 7px;
+}
+.ld-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yd-success); flex-shrink: 0; animation: ld-live-pulse 2s infinite; }
+.ld-live-text { font-size: 10.5px; font-weight: 700; color: var(--yd-success); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.ld-refresh-btn {
+  background: none; border: 1px solid var(--yd-border); border-radius: 8px;
+  padding: 5px 11px; font-size: 11px; font-weight: 600; color: var(--yd-text-muted);
+  cursor: pointer; transition: border-color 150ms, color 150ms; display: inline-flex; align-items: center; gap: 5px;
+}
+.ld-refresh-btn:hover { border-color: var(--yd-yellow); color: var(--yd-yellow-dark); }
+.ld-refresh-btn:disabled { opacity: 0.6; cursor: default; }
+
+.ld-updated { font-size: 12.5px; color: var(--yd-text-muted); }
+
+.ld-section { margin-bottom: 32px; animation: ld-fade-up 380ms ease both; }
+.ld-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ld-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; color: var(--yd-text-muted); white-space: nowrap; }
+.ld-section-line { flex: 1; height: 1px; background: var(--yd-border-light); }
+
+.ld-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+.ld-qa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+
+.ld-split {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.ld-panel {
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  border-radius: var(--yd-radius-card);
+  box-shadow: var(--yd-elevation-small);
+  padding: 18px 20px;
+}
+.ld-panel-scroll { max-height: 420px; overflow-y: auto; }
+
+.ld-notif-placeholder {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 6px; padding: 28px 16px; color: var(--yd-text-muted);
+}
+.ld-notif-badge {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--yd-yellow-light); border: 1px solid var(--yd-yellow); color: var(--yd-charcoal);
+}
+
+@media (max-width: 900px) {
+  .ld-split { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .ld-kpi-grid, .ld-qa-grid { grid-template-columns: 1fr 1fr; }
+}

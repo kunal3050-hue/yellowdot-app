@@ -17,8 +17,8 @@
  * Staff
  *   Total Staff         GET /api/users               → non-parent users count
  *   Teachers On Duty    GET /api/users               → teacher-role count
- *   Staff Present       not tracked → "—"
- *   Staff Absent        not tracked → "—"
+ *   Staff Present        not tracked → "—"
+ *   Staff Absent         not tracked → "—"
  *
  * Finance
  *   Fees Collected      GET /api/invoices            → Σ paidAmount
@@ -31,12 +31,21 @@
  *   Pickup Pending      GET /api/pickup-requests?status=pending → count
  *   Meals Served        GET /api/food-consumption?date=today   → unique student count
  *   Transport Active    not configured → "—"
+ *
+ * Today's Schedule (Timeline) and Recent Activity (ActivityFeed) are
+ * derived client-side from the same fetched arrays above — no new API
+ * calls were added for the Design System v2 Phase 2.1 redesign.
  * ─────────────────────────────────────────────────────────────────
  */
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  UserPlus, ClipboardCheck, Receipt, Megaphone, Car, RefreshCw, Bell,
+} from "lucide-react";
 import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
+import { PageHeader, KpiCard, QuickActionCard, Timeline, ActivityFeed } from "../components/ui";
 
 const get = (url) => api.get(url).then((r) => r.data);
 const todayISO   = () => new Date().toISOString().slice(0, 10);
@@ -69,40 +78,15 @@ function monthStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-/* ── Skeleton ──────────────────────────────────────────────────────── */
-const Skel = ({ w = "52%", h = 30 }) => (
-  <div className="yd-skeleton" style={{ height: h, width: w, borderRadius: 6 }} />
-);
+const REFRESH_MS = 60_000; // 60 seconds
 
-/* ── Single stat card ──────────────────────────────────────────────── */
-function Stat({ label, value, sub, loading, accent = "var(--yd-yellow)", error }) {
+/* ── Quiet section label (kept lightweight — not every grouping needs
+   the heavier SectionHeader primitive) ─────────────────────────────── */
+function SectionLabel({ title }) {
   return (
-    <div className="ld-stat" style={{ "--ld-accent": error ? "var(--yd-danger)" : accent }}>
-      <div className="ld-stat-top">
-        <span className="ld-stat-label">{label}</span>
-        <div className="ld-stat-accent-dot" />
-      </div>
-      {loading ? (
-        <Skel />
-      ) : error ? (
-        <div className="ld-stat-value unavail" title={error}>⚠</div>
-      ) : (
-        <div className="ld-stat-value">{value ?? "—"}</div>
-      )}
-      {sub && <div className="ld-stat-sub">{sub}</div>}
-    </div>
-  );
-}
-
-/* ── Section wrapper ───────────────────────────────────────────────── */
-function Section({ title, children, index }) {
-  return (
-    <div className="ld-section" style={{ animationDelay: `${index * 60}ms` }}>
-      <div className="ld-section-header">
-        <span className="ld-section-title">{title}</span>
-        <div className="ld-section-line" />
-      </div>
-      <div className="ld-grid">{children}</div>
+    <div className="ld-section-header">
+      <span className="ld-section-title">{title}</span>
+      <div className="ld-section-line" />
     </div>
   );
 }
@@ -125,11 +109,10 @@ function ErrorBanner({ errors }) {
   );
 }
 
-const REFRESH_MS = 60_000; // 60 seconds
-
 /* ══════════════════════════════════════════════════════════════════ */
 export default function LiveDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // ── Raw API results ─────────────────────────────────────────────
   const [students,  setStudents]  = useState(null);   // array from /students
@@ -150,7 +133,6 @@ export default function LiveDashboard() {
   // ── Fetch ───────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     const d  = todayISO();
-    const ms = monthStart();
     const errs = [];
 
     const [
@@ -260,8 +242,7 @@ export default function LiveDashboard() {
   const totalStaff   = staffMembers?.length ?? null;
   const teacherCount = useMemo(() => {
     if (!staffMembers) return null;
-    const n = staffMembers.filter((u) => (u.role || "").toLowerCase().includes("teacher")).length;
-    return n;   // 0 is a valid value — shows as 0 not —
+    return staffMembers.filter((u) => (u.role || "").toLowerCase().includes("teacher")).length;
   }, [staffMembers]);
 
   // ── Derived: Finance ────────────────────────────────────────────
@@ -289,13 +270,75 @@ export default function LiveDashboard() {
   // ── Derived: Operations ─────────────────────────────────────────
   const mealsServed = useMemo(() => {
     if (!food) return null;
-    // Count unique students who have at least one served/completed meal today
     const served = food.filter((f) => {
       const st = (f.status || "").toLowerCase();
       return !st || st === "served" || st === "completed" || st === "yes" || Number(f.quantity) > 0;
     });
     return new Set(served.map((f) => f.studentId).filter(Boolean)).size;
   }, [food]);
+
+  // ── Derived: Today's Schedule (Timeline) ─────────────────────────
+  // Chronological view of today's already-tracked events — check-ins and
+  // meals served — assembled client-side from data already fetched above.
+  const todaySchedule = useMemo(() => {
+    const items = [];
+    (inside?.students || []).forEach((s, i) => {
+      if (!s.checkIn) return;
+      items.push({
+        id: `checkin-${s.studentId || s.id || i}`,
+        type: "attendance",
+        title: `${s.studentName || s.name || "A student"} checked in`,
+        description: s.class || s.Class || undefined,
+        timestamp: new Date(`${todayISO()}T${s.checkIn}`).getTime() || Date.now(),
+      });
+    });
+    (food || []).forEach((f, i) => {
+      const st = (f.status || "").toLowerCase();
+      const served = !st || st === "served" || st === "completed" || st === "yes" || Number(f.quantity) > 0;
+      if (!served || !f.lastUpdated) return;
+      items.push({
+        id: `meal-${f.studentId || i}`,
+        type: "communication",
+        title: `${f.studentName || "A student"} — meal logged`,
+        description: f.mealType || f.category || undefined,
+        timestamp: new Date(f.lastUpdated).getTime() || Date.now(),
+      });
+    });
+    return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 12);
+  }, [inside, food]);
+
+  // ── Derived: Recent Activity (ActivityFeed) ──────────────────────
+  // Money-moved and billing events, assembled from the invoices/payments
+  // arrays already fetched above — no new API calls.
+  const recentActivity = useMemo(() => {
+    const items = [];
+    (payments || []).forEach((p, i) => {
+      items.push({
+        id: `pay-${p.id || i}`,
+        category: "billing",
+        title: `Payment received${p.studentName ? ` — ${p.studentName}` : ""}`,
+        body: `${inr(Number(p.amount) || 0)} recorded${p.method ? ` via ${p.method}` : ""}`,
+        timestamp: p.paymentDate ? new Date(p.paymentDate).getTime() : Date.now(),
+      });
+    });
+    (invoices || [])
+      .filter((inv) => inv.status === "Overdue")
+      .forEach((inv, i) => {
+        items.push({
+          id: `overdue-${inv.id || inv.invoiceNumber || i}`,
+          category: "approval",
+          title: `Invoice ${inv.invoiceNumber || ""} overdue`,
+          body: `${inv.studentName || "A student"} — balance ${inr(Number(inv.balance) || 0)}`,
+          timestamp: inv.dueDate ? new Date(inv.dueDate).getTime() : Date.now() - 1,
+        });
+      });
+    return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+  }, [payments, invoices]);
+
+  const ACTIVITY_CATEGORIES = [
+    { key: "billing", label: "Billing", color: "var(--yd-success)", bg: "var(--yd-success-soft)" },
+    { key: "approval", label: "Overdue", color: "var(--yd-danger)", bg: "var(--yd-danger-soft)" },
+  ];
 
   // ── Refresh button ──────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
@@ -308,223 +351,160 @@ export default function LiveDashboard() {
     : null;
 
   return (
-    <>
-      <style>{`
-        @keyframes ld-fade-up {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes ld-live-pulse {
-          0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.40); }
-          70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
-          100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-        }
-
-        .ld-header { margin-bottom: 36px; animation: ld-fade-up 360ms ease both; }
-        .ld-greeting { font-size: 13px; font-weight: 500; color: var(--yd-text-muted); margin: 0 0 4px; letter-spacing: .01em; }
-        .ld-title { font-size: clamp(22px,4vw,30px); font-weight: 700; color: var(--yd-charcoal); letter-spacing: -.025em; margin: 0 0 10px; line-height: 1.15; }
-        .ld-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .ld-date { font-size: 12.5px; color: var(--yd-text-muted); font-weight: 400; }
-
-        .ld-live-badge { display:inline-flex;align-items:center;gap:6px;background:var(--yd-success-soft);border:1px solid var(--yd-success-border);border-radius:20px;padding:3px 10px 3px 7px; }
-        .ld-live-dot { width:7px;height:7px;border-radius:50%;background:var(--yd-success);flex-shrink:0;animation:ld-live-pulse 2s infinite; }
-        .ld-live-text { font-size:10.5px;font-weight:700;color:var(--yd-success);text-transform:uppercase;letter-spacing:.08em; }
-
-        .ld-refresh-btn { background:none;border:1px solid var(--yd-border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--yd-text-muted);cursor:pointer;transition:border-color 150ms,color 150ms; }
-        .ld-refresh-btn:hover { border-color:var(--yd-yellow);color:var(--yd-yellow-dark); }
-
-        .ld-section { margin-bottom:32px;animation:ld-fade-up 380ms ease both; }
-        .ld-section-header { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
-        .ld-section-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--yd-text-muted);white-space:nowrap; }
-        .ld-section-line { flex:1;height:1px;background:var(--yd-border-light); }
-
-        .ld-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px; }
-
-        .ld-stat { background:var(--yd-white);border:1px solid var(--yd-border-light);border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;transition:border-color 180ms,box-shadow 180ms,transform 180ms;cursor:default; }
-        .ld-stat::before { content:"";position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--ld-accent,var(--yd-yellow));border-radius:14px 14px 0 0;opacity:.55;transition:opacity 180ms; }
-        .ld-stat:hover { border-color:var(--yd-border);box-shadow:var(--yd-shadow-sm);transform:translateY(-1px); }
-        .ld-stat:hover::before { opacity:.9; }
-        .ld-stat-top { display:flex;justify-content:space-between;align-items:center; }
-        .ld-stat-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--yd-text-muted); }
-        .ld-stat-accent-dot { width:6px;height:6px;border-radius:50%;background:var(--ld-accent,var(--yd-yellow));opacity:.4;flex-shrink:0; }
-        .ld-stat-value { font-size:28px;font-weight:700;color:var(--yd-charcoal);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums; }
-        .ld-stat-sub { font-size:11px;color:var(--yd-text-muted);font-weight:400; }
-        .ld-stat-value.unavail { font-size:20px;color:var(--yd-text-muted);letter-spacing:0; }
-
-        @media(max-width:560px) { .ld-grid { grid-template-columns:1fr 1fr; } }
-      `}</style>
-
-      <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-
-        {/* ── Header ──────────────────────────────────────────────── */}
-        <div className="ld-header">
-          <p className="ld-greeting">
-            {getGreeting()}{user?.name ? `, ${firstName(user.name)}` : ""}
-          </p>
-          <h1 className="ld-title">Live Dashboard</h1>
-          <div className="ld-meta">
-            <span className="ld-date">{todayLabel()}</span>
+    <div className="ld-root">
+      <PageHeader
+        title="Live Dashboard"
+        subtitle={`${getGreeting()}${user?.name ? `, ${firstName(user.name)}` : ""} · ${todayLabel()}`}
+        actions={
+          <div className="ld-header-actions">
             <div className="ld-live-badge">
               <div className="ld-live-dot" />
               <span className="ld-live-text">Live</span>
             </div>
             <button className="ld-refresh-btn" onClick={handleRefresh} disabled={loading}>
-              ↻ Refresh
+              <RefreshCw size={12} strokeWidth={2.5} />
+              Refresh
             </button>
-            {lastAtStr && !loading && (
-              <span className="ld-date">Updated {lastAtStr}</span>
-            )}
+            {lastAtStr && !loading && <span className="ld-updated">Updated {lastAtStr}</span>}
+          </div>
+        }
+      />
+
+      <ErrorBanner errors={errors} />
+
+      {/* ── STUDENTS ────────────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Students" />
+        <div className="ld-kpi-grid">
+          <KpiCard label="Total Enrolled" value={totalStudents ?? "—"} trendLabel="active students" loading={loading} />
+          <KpiCard label="Present Today" value={presentToday ?? "—"} trendLabel={attendancePct ? `${attendancePct} rate` : "attendance today"} loading={loading} />
+          <KpiCard label="Absent Today" value={absentToday ?? "—"} trendLabel="not checked in" loading={loading} />
+          <KpiCard label="Checked In Now" value={checkedInNow ?? "—"} trendLabel="currently inside" loading={loading} />
+          <KpiCard label="Active Classrooms" value={activeRooms ?? "—"} trendLabel="rooms with students" loading={loading} />
+          <KpiCard label="Total Families" value={families ?? "—"} trendLabel="family units registered" loading={loading} />
+        </div>
+      </div>
+
+      {/* ── STAFF ───────────────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Staff" />
+        <div className="ld-kpi-grid">
+          <KpiCard label="Total Staff" value={totalStaff ?? "—"} trendLabel="registered members" loading={loading} />
+          <KpiCard label="Teachers on Duty" value={teacherCount ?? "—"} trendLabel="teacher-role users" loading={loading} />
+          <KpiCard label="Staff Present" value="—" trendLabel="not tracked" loading={false} />
+          <KpiCard label="Staff Absent" value="—" trendLabel="not tracked" loading={false} />
+        </div>
+      </div>
+
+      {/* ── FINANCE ─────────────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Finance" />
+        <div className="ld-kpi-grid">
+          <KpiCard label="Fees Collected" value={feesCollected != null ? inr(feesCollected) : "—"} trendLabel="total paid (all time)" loading={loading} />
+          <KpiCard label="Pending Payments" value={pendingCount ?? "—"} trendLabel="invoices pending/partial" loading={loading} />
+          <KpiCard label="Overdue Fees" value={overdueAmt != null ? inr(overdueAmt) : "—"} trendLabel="overdue balance" loading={loading} />
+          <KpiCard label="Monthly Collection" value={monthlyCollect != null ? inr(monthlyCollect) : "—"} trendLabel="this calendar month" loading={loading} />
+        </div>
+      </div>
+
+      {/* ── OPERATIONS ──────────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Operations" />
+        <div className="ld-kpi-grid">
+          <KpiCard label="Attendance Rate" value={attendancePct ?? "—"} trendLabel="today's percentage" loading={loading} />
+          <KpiCard label="Pickup Pending" value={pickupReq ?? "—"} trendLabel="awaiting collection" loading={loading} />
+          <KpiCard label="Meals Served" value={mealsServed ?? "—"} trendLabel="students fed today" loading={loading} />
+          <KpiCard label="Transport Active" value="—" trendLabel="not configured" loading={false} />
+        </div>
+      </div>
+
+      {/* ── QUICK ACTIONS ───────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Quick Actions" />
+        <div className="ld-qa-grid">
+          <QuickActionCard
+            icon={<UserPlus size={18} strokeWidth={2} />}
+            title="Add Student"
+            description="Enroll a new student"
+            permission={{ routeKey: "students" }}
+            onClick={() => { navigate("/add-student"); }}
+          />
+          <QuickActionCard
+            icon={<ClipboardCheck size={18} strokeWidth={2} />}
+            title="Take Attendance"
+            description="Mark today's attendance"
+            permission={{ routeKey: "attendance" }}
+            onClick={() => { navigate("/attendance"); }}
+          />
+          <QuickActionCard
+            icon={<Receipt size={18} strokeWidth={2} />}
+            title="Generate Invoice"
+            description="Create a new invoice"
+            permission={{ routeKey: "invoice" }}
+            onClick={() => { navigate("/generate-invoice"); }}
+          />
+          <QuickActionCard
+            icon={<Megaphone size={18} strokeWidth={2} />}
+            title="Send Notice"
+            description="Post a school notice"
+            permission={{ routeKey: "notices" }}
+            onClick={() => { navigate("/notices"); }}
+          />
+          <QuickActionCard
+            icon={<Car size={18} strokeWidth={2} />}
+            title="Pickup Authorization"
+            description="Authorise a pickup"
+            count={typeof pickupReq === "number" ? pickupReq : undefined}
+            permission={{ routeKey: "pickup-authorization" }}
+            onClick={() => { navigate("/pickup-authorization"); }}
+          />
+        </div>
+      </div>
+
+      {/* ── TODAY'S SCHEDULE + RECENT ACTIVITY ───────────────────── */}
+      <div className="ld-section">
+        <div className="ld-split">
+          <div>
+            <SectionLabel title="Today's Schedule" />
+            <div className="ld-panel ld-panel-scroll">
+              <Timeline
+                items={todaySchedule}
+                loading={loading && todaySchedule.length === 0}
+                empty={{ title: "No events yet today", description: "Check-ins and meal logs will appear here as they happen." }}
+              />
+            </div>
+          </div>
+          <div>
+            <SectionLabel title="Recent Activity" />
+            <div className="ld-panel ld-panel-scroll">
+              <ActivityFeed
+                items={recentActivity}
+                loading={loading && recentActivity.length === 0}
+                categories={ACTIVITY_CATEGORIES}
+                searchable={false}
+                empty={{ title: "No recent activity", description: "Payments and billing events will appear here." }}
+              />
+            </div>
           </div>
         </div>
-
-        {/* ── Error banner (only when partial failures) ────────────── */}
-        <ErrorBanner errors={errors} />
-
-        {/* ── STUDENTS ────────────────────────────────────────────── */}
-        <Section title="Students" index={0}>
-          <Stat
-            label="Total Enrolled"
-            value={totalStudents}
-            sub="active students"
-            loading={loading}
-            accent="var(--yd-yellow)"
-          />
-          <Stat
-            label="Present Today"
-            value={presentToday}
-            sub={attendancePct ? `${attendancePct} rate` : "attendance today"}
-            loading={loading}
-            accent="var(--yd-success)"
-          />
-          <Stat
-            label="Absent Today"
-            value={absentToday}
-            sub="not checked in"
-            loading={loading}
-            accent="var(--yd-warning)"
-          />
-          <Stat
-            label="Checked In Now"
-            value={checkedInNow}
-            sub="currently inside"
-            loading={loading}
-            accent="var(--yd-info)"
-          />
-          <Stat
-            label="Active Classrooms"
-            value={activeRooms}
-            sub="rooms with students"
-            loading={loading}
-            accent="var(--yd-info)"
-          />
-          <Stat
-            label="Total Families"
-            value={families}
-            sub="family units registered"
-            loading={loading}
-            accent="var(--yd-warning)"
-          />
-        </Section>
-
-        {/* ── STAFF ───────────────────────────────────────────────── */}
-        <Section title="Staff" index={1}>
-          <Stat
-            label="Total Staff"
-            value={totalStaff}
-            sub="registered members"
-            loading={loading}
-            accent="var(--yd-yellow)"
-          />
-          <Stat
-            label="Teachers on Duty"
-            value={teacherCount}
-            sub="teacher-role users"
-            loading={loading}
-            accent="var(--yd-success)"
-          />
-          {/* Staff attendance is not tracked in this system */}
-          <Stat
-            label="Staff Present"
-            value="—"
-            sub="not tracked"
-            loading={false}
-            accent="var(--yd-neutral)"
-          />
-          <Stat
-            label="Staff Absent"
-            value="—"
-            sub="not tracked"
-            loading={false}
-            accent="var(--yd-neutral)"
-          />
-        </Section>
-
-        {/* ── FINANCE ─────────────────────────────────────────────── */}
-        <Section title="Finance" index={2}>
-          <Stat
-            label="Fees Collected"
-            value={feesCollected != null ? inr(feesCollected) : null}
-            sub="total paid (all time)"
-            loading={loading}
-            accent="var(--yd-yellow)"
-          />
-          <Stat
-            label="Pending Payments"
-            value={pendingCount}
-            sub="invoices pending/partial"
-            loading={loading}
-            accent="var(--yd-warning)"
-          />
-          <Stat
-            label="Overdue Fees"
-            value={overdueAmt != null ? inr(overdueAmt) : null}
-            sub="overdue balance"
-            loading={loading}
-            accent="var(--yd-danger)"
-          />
-          <Stat
-            label="Monthly Collection"
-            value={monthlyCollect != null ? inr(monthlyCollect) : null}
-            sub="this calendar month"
-            loading={loading}
-            accent="var(--yd-success)"
-          />
-        </Section>
-
-        {/* ── OPERATIONS ──────────────────────────────────────────── */}
-        <Section title="Operations" index={3}>
-          <Stat
-            label="Attendance Rate"
-            value={attendancePct}
-            sub="today's percentage"
-            loading={loading}
-            accent="var(--yd-yellow)"
-          />
-          <Stat
-            label="Pickup Pending"
-            value={pickupReq}
-            sub="awaiting collection"
-            loading={loading}
-            accent="var(--yd-warning)"
-          />
-          <Stat
-            label="Meals Served"
-            value={mealsServed}
-            sub="students fed today"
-            loading={loading}
-            accent="var(--yd-success)"
-          />
-          {/* No transport module configured */}
-          <Stat
-            label="Transport Active"
-            value="—"
-            sub="not configured"
-            loading={false}
-            accent="var(--yd-neutral)"
-          />
-        </Section>
-
       </div>
-    </>
+
+      {/* ── NOTIFICATIONS ───────────────────────────────────────── */}
+      <div className="ld-section">
+        <SectionLabel title="Notifications" />
+        <div className="ld-panel">
+          <div className="ld-notif-placeholder">
+            <Bell size={24} strokeWidth={1.5} />
+            <span className="ld-notif-badge">Coming soon</span>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--yd-text-soft)", marginTop: 4 }}>
+              Staff notifications aren't wired up yet
+            </div>
+            <div style={{ fontSize: 12, maxWidth: 320 }}>
+              Reserved for a future staff notification feed — no backend endpoint exists for it yet.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
