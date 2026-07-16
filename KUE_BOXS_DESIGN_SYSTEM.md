@@ -298,6 +298,8 @@ With the v2 component library complete, work now proceeds module-by-module, appl
 
 - **Phase 2.1 — Dashboard:** Live Dashboard, Quick Navigation, KPI cards, Recent Activity, Quick Actions, Notifications, Today's Schedule. The benchmark module for every one after it.
 - **Phase 2.2 — Students:** Student List, Student Profile, Admission Details, Medical, Documents, Journey, Attendance, Pickup.
+- **Phase 2.2b — Students cleanup:** unified the module onto one Student Profile, one Add/Edit Wizard, and shared components/hooks — no duplicate implementations.
+- **Phase 2.2c — Platform Layout Standard:** codified the page anatomy every module below must follow (PageShell, PageHeader, KpiRow, FilterBar, ActionBar, StatusBadge, Skeleton variants, Drawer) using Students as the reference implementation. See `KUE_BOXS_LAYOUT_STANDARD.md`.
 - **Phase 2.3 — Staff:** Employees, Departments, Designations, Attendance, Leave, Payroll.
 - **Phase 2.4 — Parents:** Parent List, Parent Profile, Communication, PTM, Incidents.
 - **Phase 2.5 — Fees:** Invoices, Payments, Billing, Reports.

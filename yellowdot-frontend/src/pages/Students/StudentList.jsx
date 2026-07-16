@@ -1,16 +1,17 @@
 /**
  * StudentList.jsx — premium student directory
  * ─────────────────────────────────────────────────────────────────
- * Replaces the old 280px "compact directory" side panel with a
- * full-width DataTable v2 view: KPI summary + search/filters/bulk
- * actions/export, all built on the canonical v2 component. Row click
- * opens the student's profile within the same /students route (no
- * new routes were added).
+ * Reference implementation of the Platform Layout Standard (see
+ * docs/design-system/KUE_BOXS_LAYOUT_STANDARD.md): PageShell assembles
+ * PageHeader -> KpiRow -> Main Content in the standard order/spacing.
+ * DataTable's own toolbar (DataTableToolbar) serves as this page's
+ * Filters row -- no separate FilterBar is stacked on top of it. Row
+ * click opens the student's profile within the same /students route.
  * ─────────────────────────────────────────────────────────────────
  */
 import { useMemo } from "react";
 import { UserPlus } from "lucide-react";
-import { KpiCard, DataTable, Badge, Button } from "../../components/ui";
+import { PageShell, PageHeader, KpiRow, KpiCard, DataTable, Badge, Button } from "../../components/ui";
 import { calcAge } from "./shared";
 
 export default function StudentList({
@@ -86,25 +87,22 @@ export default function StudentList({
   }
 
   return (
-    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16, height: "100%", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--yd-charcoal)" }}>Students</h1>
-          <p style={{ fontSize: 12, color: "var(--yd-text-muted)", marginTop: 2 }}>{students.length} students enrolled</p>
-        </div>
-        {canAdd && (
-          <Button variant="primary" leftIcon={<UserPlus size={14} strokeWidth={2} />} onClick={onAdd}>
-            Add Student
-          </Button>
-        )}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, maxWidth: 560 }}>
-        <KpiCard label="Total Students" value={students.length} loading={loading} />
-        <KpiCard label="Active" value={activeCount} loading={loading} />
-        <KpiCard label="Classes" value={classCount} loading={loading} />
-      </div>
-
+    <PageShell
+      header={
+        <PageHeader
+          title="Students"
+          subtitle={`${students.length} student${students.length === 1 ? "" : "s"} enrolled`}
+          primaryAction={canAdd ? { label: "Add Student", icon: <UserPlus size={14} strokeWidth={2} />, onClick: onAdd } : undefined}
+        />
+      }
+      kpis={
+        <KpiRow maxWidth={560}>
+          <KpiCard label="Total Students" value={students.length} loading={loading} />
+          <KpiCard label="Active" value={activeCount} loading={loading} />
+          <KpiCard label="Classes" value={classCount} loading={loading} />
+        </KpiRow>
+      }
+    >
       <DataTable
         tableId="students-list"
         columns={columns}
@@ -124,6 +122,6 @@ export default function StudentList({
           action: canAdd ? { label: "+ Add Student", onClick: onAdd } : undefined,
         }}
       />
-    </div>
+    </PageShell>
   );
 }

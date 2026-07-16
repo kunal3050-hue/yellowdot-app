@@ -1,4 +1,5 @@
 export { default as KpiCard      } from "./KpiCard";
+export { default as KpiRow       } from "./KpiRow";
 export { default as LineChart    } from "./LineChart";
 export { default as AreaChart    } from "./AreaChart";
 export { default as BarChart     } from "./BarChart";

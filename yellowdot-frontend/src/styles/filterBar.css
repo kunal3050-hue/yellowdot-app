@@ -1,0 +1,262 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   FilterBar — src/components/ui/FilterBar.jsx
+   Standalone filter bar for list/card/timeline pages not built on
+   <DataTable> (DataTable pages use its own DataTableToolbar, styled in
+   dataTable.css, which is the same visual language).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-filterbar {
+  padding: 10px 16px;
+  background: var(--yd-surface);
+  border-bottom: 1px solid var(--yd-border-light);
+  flex-shrink: 0;
+}
+.yd-filterbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.yd-filterbar-field { display: flex; align-items: center; gap: 6px; }
+.yd-filterbar-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--yd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.yd-filterbar-select {
+  height: 28px;
+  padding: 0 24px 0 8px;
+  border-radius: var(--yd-radius-sm);
+  border: 1.5px solid var(--yd-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--yd-text);
+  background: var(--yd-surface);
+  font-family: var(--yd-font);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%239CA3AF' stroke-width='1.5' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  min-width: 80px;
+}
+
+.yd-filterbar-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--yd-radius-full);
+  border: 1.5px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-soft);
+  cursor: pointer;
+  transition: var(--yd-transition-fast);
+  white-space: nowrap;
+}
+.yd-filterbar-chip:hover { border-color: var(--yd-border-warm); }
+.yd-filterbar-chip--active {
+  background: var(--yd-yellow-light);
+  border-color: var(--yd-yellow);
+  color: var(--yd-charcoal);
+}
+
+.yd-filterbar-mini-input {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--yd-radius-sm);
+  border: 1.5px solid var(--yd-border);
+  font-size: 11px;
+  font-family: var(--yd-font);
+  color: var(--yd-text);
+  background: var(--yd-surface);
+  outline: none;
+}
+.yd-filterbar-mini-input:focus { border-color: var(--yd-yellow); }
+
+.yd-filterbar-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--yd-text-muted);
+  background: var(--yd-soft);
+  border: 1px solid var(--yd-border);
+  border-radius: var(--yd-radius-full);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.yd-filterbar-clear {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yd-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 2px;
+}
+.yd-filterbar-clear:hover { color: var(--yd-danger); }
+
+.yd-filterbar-saved-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--yd-radius-sm);
+  border: 1.5px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--yd-transition-fast);
+}
+.yd-filterbar-saved-btn:hover,
+.yd-filterbar-saved-btn--active {
+  background: var(--yd-soft);
+  color: var(--yd-charcoal);
+}
+
+.yd-filterbar-saved-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--yd-z-popover, 30);
+  min-width: 220px;
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  border-radius: var(--yd-radius-sm);
+  box-shadow: var(--yd-elevation-medium);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.yd-filterbar-saved-save-row { display: flex; gap: 6px; }
+.yd-filterbar-saved-save-row .yd-filterbar-mini-input { flex: 1; }
+.yd-filterbar-saved-save-row button {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--yd-radius-sm);
+  border: 1px solid var(--yd-border); background: var(--yd-surface);
+  color: var(--yd-text-soft); cursor: pointer; flex-shrink: 0;
+}
+.yd-filterbar-saved-save-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+.yd-filterbar-saved-save-row button:not(:disabled):hover { background: var(--yd-yellow-light); border-color: var(--yd-yellow); color: var(--yd-charcoal); }
+.yd-filterbar-saved-empty { font-size: 12px; color: var(--yd-text-muted); padding: 8px 0; }
+.yd-filterbar-saved-item {
+  display: flex; align-items: center; justify-content: space-between;
+  border-radius: var(--yd-radius-sm); padding: 4px 6px;
+}
+.yd-filterbar-saved-item:hover { background: var(--yd-soft); }
+.yd-filterbar-saved-item-name {
+  flex: 1; text-align: left; background: none; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--yd-text);
+}
+.yd-filterbar-saved-item-del {
+  background: none; border: none; cursor: pointer; color: var(--yd-text-muted);
+  display: flex; align-items: center;
+}
+.yd-filterbar-saved-item-del:hover { color: var(--yd-danger); }
+
+@media (max-width: 640px) {
+  .yd-filterbar-row { gap: 6px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ActionBar — src/components/ui/ActionBar.jsx
+   ═══════════════════════════════════════════════════════════════════════ */
+.yd-actionbar { display: flex; align-items: center; }
+.yd-actionbar-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.yd-actionbar--bulk {
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: var(--yd-radius-sm);
+  background: var(--yd-yellow-light);
+  border: 1px solid var(--yd-yellow);
+}
+.yd-actionbar-bulk-count { font-size: 12px; font-weight: 700; color: var(--yd-charcoal); white-space: nowrap; }
+
+.yd-actionbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--yd-radius-sm);
+  border: 1px solid var(--yd-border);
+  background: var(--yd-surface);
+  color: var(--yd-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--yd-font);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--yd-transition-fast);
+}
+.yd-actionbar-btn:hover { background: var(--yd-soft); color: var(--yd-charcoal); }
+.yd-actionbar-btn--danger { color: var(--yd-danger); border-color: var(--yd-danger-border); }
+.yd-actionbar-btn--danger:hover { background: var(--yd-danger-soft); }
+
+.yd-actionbar-clear {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yd-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.yd-actionbar-clear:hover { color: var(--yd-charcoal); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PageShell — src/components/ui/PageShell.jsx
+   The Standard Page Structure: Header -> KPIs -> Filters -> Content ->
+   Panel -> Footer. Owns the page-level padding/spacing so individual
+   modules don't hand-roll it; Filters/Content manage their own internal
+   padding (FilterBar/DataTableToolbar are full-bleed with a border).
+   ═══════════════════════════════════════════════════════════════════════ */
+.yd-shell {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--yd-bg-sunken);
+}
+
+.yd-shell-top {
+  flex-shrink: 0;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.yd-shell-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 24px 20px;
+}
+.yd-shell-content:first-child { padding-top: 20px; }
+
+.yd-shell-footer {
+  flex-shrink: 0;
+  padding: 10px 24px;
+  border-top: 1px solid var(--yd-border-light);
+  background: var(--yd-surface);
+}
+
+@media (max-width: 640px) {
+  .yd-shell-top { padding: 14px 16px; gap: 12px; }
+  .yd-shell-footer { padding: 8px 16px; }
+}

@@ -10,7 +10,7 @@ export { default as Badge         } from "./Badge";
 export { default as StatusBadge   } from "./StatusBadge";
 export { default as Avatar        } from "./Avatar";
 export { default as Card          } from "./Card";
-export { default as Skeleton      } from "./Skeleton";
+export { default as Skeleton, SkeletonTable, SkeletonCards, SkeletonTimeline, SkeletonForm } from "./Skeleton";
 
 /* ── Form ─────────────────────────────────────────────────────────── */
 export { default as Input         } from "./Input";
@@ -20,6 +20,7 @@ export { default as FormSection,
 
 /* ── Layout / Page structure ─────────────────────────────────────── */
 export { default as PageHeader    } from "./PageHeader";
+export { default as PageShell     } from "./PageShell";
 export { default as SectionHeader } from "./SectionHeader";
 export { default as ActionBar     } from "./ActionBar";
 
@@ -33,7 +34,7 @@ export { default as ActivityFeed  } from "./ActivityFeed";
 
 /* ── Charts (Recharts wrapper) ───────────────────────────────────── */
 export {
-  KpiCard, LineChart, AreaChart, BarChart, PieChart,
+  KpiCard, KpiRow, LineChart, AreaChart, BarChart, PieChart,
   Sparkline, ProgressRing, useChartTokens,
 } from "./Charts";
 
@@ -45,7 +46,7 @@ export { default as QuickActionCard } from "./QuickActionCard";
 
 /* ── Toolbar / Search ────────────────────────────────────────────── */
 export { default as SearchBar     } from "./SearchBar";
-export { default as SearchToolbar } from "./SearchToolbar";
+export { default as FilterBar     } from "./FilterBar";
 
 /* ── Overlays ────────────────────────────────────────────────────── */
 export { default as Modal         } from "./Modal";
