@@ -46,7 +46,8 @@ const ROUTE_REGISTRY = [
   { path: "/students/new",        routeKey: ROUTES.STUDENTS,               label: "New Admission",        category: "sub",    layout: "bare"   },
   { path: "/add-student",         routeKey: ROUTES.STUDENTS,               label: "Add Student",          category: "sub",    layout: "bare"   },
   { path: "/edit-student/:id",    routeKey: ROUTES.STUDENTS,               label: "Edit Student",         category: "sub",    layout: "bare"   },
-  // /student-profile/:id removed — student profiles live inside /students
+  // /student-profile/:id is a deep-link-only route (e.g. from Family) that
+  // renders the same profile shell as /students -- not a primary nav entry.
 
   // Attendance & Daily Ops
   { path: "/attendance",          routeKey: ROUTES.ATTENDANCE,             label: "Attendance",           category: "app",    layout: "bare"   },

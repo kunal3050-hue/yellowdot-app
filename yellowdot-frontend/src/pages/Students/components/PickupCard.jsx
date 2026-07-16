@@ -1,50 +1,17 @@
 /**
- * PickupTab — same endpoints as the original PickupAuthTab plus the
- * pickup-history feed already fetched elsewhere in this module (merged
- * timeline was previously only in the Timeline tab) -- authorized persons
- * list + Timeline of pickup history/emergency pickups. There is no OTP
- * verification field anywhere in the backend (checked pickupHistory/
- * pickupAuthorization controllers), so no OTP status is shown -- not
- * fabricated.
+ * PickupCard — same endpoints as the original (pickup-authorization +
+ * pickup-history), now backed by the shared useStudentPickup hook.
+ * Authorized-persons list + Timeline of pickup history. No OTP status
+ * shown -- no such field exists in the backend (checked during audit).
+ * Shared component -- used by the profile shell for both /students and
+ * /student-profile/:id.
  */
-import { useState, useEffect, useCallback, useRef } from "react";
 import { Lock, TriangleAlert } from "lucide-react";
 import { Avatar, StatusBadge, Button, Timeline, EmptyState, Skeleton } from "../../../components/ui";
-import { get, del } from "../shared";
+import useStudentPickup from "../hooks/useStudentPickup";
 
-export default function PickupTab({ student, toast }) {
-  const [persons, setPersons] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const mountedRef = useRef(true);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    get(`/api/pickup-authorization?studentId=${encodeURIComponent(student.Student_ID)}`)
-      .then(d => { if (mountedRef.current) setPersons(d.entries || []); })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setLoading(false); });
-  }, [student.Student_ID]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    load();
-    get(`/api/pickup-history?studentId=${encodeURIComponent(student.Student_ID)}&limit=30`)
-      .then(d => { if (mountedRef.current) setHistory(d.entries || []); })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setHistoryLoading(false); });
-    return () => { mountedRef.current = false; };
-  }, [load, student.Student_ID]);
-
-  async function remove(id, name) {
-    if (!window.confirm(`Remove ${name}?`)) return;
-    try {
-      const r = await del(`/api/pickup-authorization/${id}`);
-      if (r.success) { toast.success(`${name} removed.`); load(); }
-      else toast.error(r.error || "Failed.");
-    } catch { toast.error("Error removing."); }
-  }
+export default function PickupCard({ student, toast }) {
+  const { persons, history, loading, historyLoading, removePerson } = useStudentPickup(student.Student_ID, toast);
 
   const historyItems = history.map((e, i) => ({
     id: e.id || i,
@@ -80,7 +47,7 @@ export default function PickupTab({ student, toast }) {
                   <p style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>{p.relation} · {p.mobile || "—"}</p>
                 </div>
                 <StatusBadge status={p.status} size="xs" />
-                <Button size="xs" variant="ghost" onClick={() => remove(p.entryId, p.pickupName)}>✕</Button>
+                <Button size="xs" variant="ghost" onClick={() => removePerson(p.entryId, p.pickupName)}>✕</Button>
               </div>
             ))}
           </div>

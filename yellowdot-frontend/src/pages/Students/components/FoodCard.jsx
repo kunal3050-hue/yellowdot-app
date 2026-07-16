@@ -1,14 +1,14 @@
 /**
- * FoodTab — same endpoint as the original (/api/food-consumption?studentId=).
+ * FoodCard — same endpoint as the original (/api/food-consumption?studentId=).
  * Kept (not in the Phase 2.2 requested tab list, but preserving existing
- * functionality per the "do not remove features" rule), lightly restyled.
+ * functionality per the "do not remove features" rule). Shared component
+ * -- used by the profile shell for both /students and /student-profile/:id.
  */
 import { useState, useEffect, useRef } from "react";
 import { Button, Badge, EmptyState, Skeleton } from "../../../components/ui";
-
 import { get } from "../shared";
 
-export default function FoodTab({ student }) {
+export default function FoodCard({ student }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);

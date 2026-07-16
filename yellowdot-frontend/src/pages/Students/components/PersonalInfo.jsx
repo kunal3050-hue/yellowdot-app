@@ -1,12 +1,14 @@
 /**
- * PersonalInfoTab — full field-by-field detail, split out from Overview
+ * PersonalInfo — full field-by-field detail, split out from Overview
  * so Overview stays a quick-glance hero and this stays the "all fields"
  * reference view (modern SaaS profile pattern: summary tab + detail tab).
+ * Shared component -- used by the profile shell for both /students and
+ * /student-profile/:id.
  */
 import { Card } from "../../../components/ui";
 import { calcAge } from "../shared";
 
-export default function PersonalInfoTab({ student }) {
+export default function PersonalInfo({ student }) {
   const fields = [
     { label: "Full Name", val: student.Student_Name },
     { label: "Student ID", val: student.Student_ID },

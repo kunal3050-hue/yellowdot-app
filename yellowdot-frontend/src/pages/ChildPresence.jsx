@@ -625,7 +625,7 @@ export default function ChildPresence() {
   function handleMoreAction(stu, action) {
     setMoreMenuId(null);
     const sid = stuId(stu);
-    if      (action === "view")     navigate(`/student-profile?id=${sid}`);
+    if      (action === "view")     navigate(`/student-profile/${sid}`);
     else if (action === "attHist")  navigate(`/attendance?studentId=${sid}`);
     else if (action === "pickHist") navigate(`/pickup-history?studentId=${sid}`);
     else if (action === "emergency" || action === "checkout") openCheckout(stu);

@@ -26,9 +26,7 @@ const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
 const CCTV                = lazy(() => import("./pages/CCTV"));
 const Students            = lazy(() => import("./pages/Students"));
-const NewAdmission        = lazy(() => import("./pages/NewAdmission"));
-const AddStudent          = lazy(() => import("./pages/AddStudent"));
-const EditStudent         = lazy(() => import("./pages/EditStudent"));
+const StudentWizard       = lazy(() => import("./pages/Students/StudentWizard"));
 const StudentProfile      = lazy(() => import("./pages/StudentProfile"));
 
 const Attendance          = lazy(() => import("./pages/Attendance"));
@@ -230,7 +228,7 @@ function App() {
               path="/students/new"
               element={
                 <ProtectedRoute routeKey="students">
-                  <NewAdmission />
+                  <StudentWizard />
                 </ProtectedRoute>
               }
             />
@@ -238,7 +236,7 @@ function App() {
               path="/add-student"
               element={
                 <ProtectedRoute routeKey="students">
-                  <AddStudent />
+                  <StudentWizard />
                 </ProtectedRoute>
               }
             />
@@ -246,7 +244,7 @@ function App() {
               path="/edit-student/:id"
               element={
                 <ProtectedRoute routeKey="students">
-                  <EditStudent />
+                  <StudentWizard />
                 </ProtectedRoute>
               }
             />

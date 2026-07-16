@@ -1,54 +1,32 @@
 /**
- * DocumentsTab — same storage contract as the original (localStorage-backed
- * per-student doc list; there is no backend document API yet — preserved
- * exactly, not fabricated), rebuilt as modern document cards with a
- * drag-and-drop upload zone added alongside the existing click-to-upload.
+ * DocumentsCard — same storage contract as the original (localStorage-
+ * backed; no backend document API exists yet), now backed by the
+ * shared useStudentDocuments hook. Drag-and-drop upload alongside the
+ * existing click-to-upload. Shared component -- used by the profile
+ * shell for both /students and /student-profile/:id.
  */
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { FileText, Upload, Trash2 } from "lucide-react";
 import { Select, Button, EmptyState } from "../../../components/ui";
-import { compressImage } from "../shared";
+import useStudentDocuments from "../hooks/useStudentDocuments";
 
 const DOC_TYPES = ["Birth Certificate", "Aadhaar Card", "Passport Photo", "Medical Record", "Transfer Certificate", "Other"];
 
-export default function DocumentsTab({ student, toast }) {
-  const [docs,       setDocs      ] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`yd_docs_${student.Student_ID}`) || "[]"); } catch { return []; }
-  });
-  const [docType,    setDocType   ] = useState(DOC_TYPES[0]);
-  const [loading,    setLoading   ] = useState(false);
-  const [dragOver,   setDragOver  ] = useState(false);
+export default function DocumentsCard({ student, toast }) {
+  const { docs, uploading, upload, remove } = useStudentDocuments(student.Student_ID, toast);
+  const [docType, setDocType] = useState(DOC_TYPES[0]);
+  const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
 
-  async function uploadFile(file) {
-    if (!file) return;
-    setLoading(true);
-    try {
-      const dataUrl = file.type.startsWith("image/") ? await compressImage(file, 400, 400, 0.8) : "";
-      const doc = { id: `doc-${Date.now()}`, type: docType, name: file.name, size: `${(file.size / 1024).toFixed(1)} KB`, mimeType: file.type, dataUrl, uploadedAt: new Date().toLocaleDateString("en-IN") };
-      const updated = [doc, ...docs];
-      setDocs(updated);
-      localStorage.setItem(`yd_docs_${student.Student_ID}`, JSON.stringify(updated));
-      toast.success(`${docType} uploaded.`);
-    } catch { toast.error("Upload failed."); }
-    finally { setLoading(false); }
-  }
-
   function handleUpload(e) {
-    uploadFile(e.target.files?.[0]);
+    upload(e.target.files?.[0], docType);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  const handleDrop = useCallback((e) => {
+  function handleDrop(e) {
     e.preventDefault();
     setDragOver(false);
-    uploadFile(e.dataTransfer.files?.[0]);
-  }, [docType, docs]); // eslint-disable-line
-
-  function remove(id) {
-    const updated = docs.filter(d => d.id !== id);
-    setDocs(updated);
-    localStorage.setItem(`yd_docs_${student.Student_ID}`, JSON.stringify(updated));
+    upload(e.dataTransfer.files?.[0], docType);
   }
 
   return (
@@ -61,9 +39,7 @@ export default function DocumentsTab({ student, toast }) {
         onDrop={handleDrop}
         style={{
           border: `2px dashed ${dragOver ? "var(--yd-yellow)" : "var(--yd-border)"}`,
-          borderRadius: "var(--yd-radius-card)",
-          padding: 20,
-          textAlign: "center",
+          borderRadius: "var(--yd-radius-card)", padding: 20, textAlign: "center",
           background: dragOver ? "var(--yd-yellow-pale)" : "var(--yd-soft)",
           transition: "border-color 0.15s ease, background 0.15s ease",
         }}
@@ -76,7 +52,7 @@ export default function DocumentsTab({ student, toast }) {
           <div style={{ minWidth: 160 }}>
             <Select value={docType} onChange={e => setDocType(e.target.value)} options={DOC_TYPES} />
           </div>
-          <Button size="sm" variant="primary" leftIcon={<Upload size={12} strokeWidth={2} />} loading={loading} onClick={() => fileRef.current?.click()}>
+          <Button size="sm" variant="primary" leftIcon={<Upload size={12} strokeWidth={2} />} loading={uploading} onClick={() => fileRef.current?.click()}>
             Upload
           </Button>
           <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx" style={{ display: "none" }} onChange={handleUpload} />

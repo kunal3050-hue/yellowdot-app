@@ -1,14 +1,15 @@
 /**
- * NapTab — same endpoint as the original (/api/nap-sessions?studentId=).
+ * NapCard — same endpoint as the original (/api/nap-sessions?studentId=).
  * Kept (not in the Phase 2.2 requested tab list, but preserving existing
- * functionality), lightly restyled.
+ * functionality). Shared component -- used by the profile shell for
+ * both /students and /student-profile/:id.
  */
 import { useState, useEffect, useRef } from "react";
 import { Moon } from "lucide-react";
 import { Button, EmptyState, Skeleton } from "../../../components/ui";
 import { get } from "../shared";
 
-export default function NapTab({ student }) {
+export default function NapCard({ student }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);

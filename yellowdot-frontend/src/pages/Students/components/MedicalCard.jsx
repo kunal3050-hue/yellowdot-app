@@ -1,45 +1,28 @@
 /**
- * MedicalTab — same API contract as the original (/api/student-medical/:id),
- * rebuilt as clean cards with critical info (allergies, blood group,
- * emergency notes) visually prominent per the Phase 2.2 spec.
+ * MedicalCard — same API contract as the original (/api/student-medical/:id),
+ * now backed by the shared useStudentMedical hook. Critical info
+ * (allergies, blood group) stays visually prominent via a danger-toned
+ * alert card. Shared component -- used by the profile shell for both
+ * /students and /student-profile/:id.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { TriangleAlert, Droplet, Pill, Phone } from "lucide-react";
 import { Card, Field, Input, Select, Button, Skeleton } from "../../../components/ui";
-import { get, put } from "../shared";
+import useStudentMedical from "../hooks/useStudentMedical";
+import { BLOOD_GROUPS } from "../StudentWizard/schema";
 
-const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
-
-export default function MedicalTab({ student, toast }) {
-  const [loading, setLoading] = useState(true);
+export default function MedicalCard({ student, toast }) {
+  const { form: saved, loading, saving, save } = useStudentMedical(student.Student_ID, toast);
   const [editing, setEditing] = useState(false);
-  const [saving,  setSaving ] = useState(false);
-  const [form,    setForm   ] = useState({ bloodGroup: "", allergies: "", medications: "", doctorName: "", doctorPhone: "", emergencyNotes: "", notes: "" });
-  const mountedRef = useRef(true);
+  const [form, setForm] = useState(saved);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    get(`/api/student-medical/${encodeURIComponent(student.Student_ID)}`)
-      .then(d => {
-        if (!mountedRef.current) return;
-        const e = d.entry;
-        if (e) setForm({ bloodGroup: e.bloodGroup || "", allergies: e.allergies || "", medications: e.medications || "", doctorName: e.doctorName || "", doctorPhone: e.doctorPhone || "", emergencyNotes: e.emergencyNotes || "", notes: e.notes || "" });
-      })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setLoading(false); });
-    return () => { mountedRef.current = false; };
-  }, [student.Student_ID]);
+  useEffect(() => { if (!editing) setForm(saved); }, [saved, editing]);
 
   const sf = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  async function save() {
-    setSaving(true);
-    try {
-      const r = await put(`/api/student-medical/${student.Student_ID}`, form);
-      if (r.success) { toast.success("Medical info saved."); setEditing(false); }
-      else toast.error(r.error || "Failed.");
-    } catch { toast.error("Error saving."); }
-    finally { if (mountedRef.current) setSaving(false); }
+  async function handleSave() {
+    const ok = await save(form);
+    if (ok) setEditing(false);
   }
 
   if (loading) {
@@ -58,13 +41,12 @@ export default function MedicalTab({ student, toast }) {
           <Button size="xs" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
         ) : (
           <div style={{ display: "flex", gap: 6 }}>
-            <Button size="xs" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
-            <Button size="xs" variant="success" onClick={save} loading={saving}>Save</Button>
+            <Button size="xs" variant="outline" onClick={() => { setEditing(false); setForm(saved); }}>Cancel</Button>
+            <Button size="xs" variant="success" onClick={handleSave} loading={saving}>Save</Button>
           </div>
         )}
       </div>
 
-      {/* Critical info banner */}
       {form.allergies && !editing && (
         <Card padding="12px 16px" style={{ background: "var(--yd-danger-soft)", border: "1px solid var(--yd-danger-border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -77,7 +59,6 @@ export default function MedicalTab({ student, toast }) {
         </Card>
       )}
 
-      {/* Critical fields row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
         <Card padding="12px 14px">
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>

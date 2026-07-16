@@ -6,7 +6,11 @@
  *
  * @prop {Array} steps   [{
  *   key, label, optional?, locked?, fields?: string[] (RHF field names validated on Next),
- *   render: (form: UseFormReturn) => ReactNode
+ *   render: a component receiving the spread UseFormReturn as props
+ *     (register, watch, setValue, formState, ...). Rendered as
+ *     <step.render {...form} /> -- a real component boundary, so step
+ *     components may freely use their own hooks (useState, etc.) for
+ *     step-local UI state without violating the Rules of Hooks.
  * }]
  * @prop {object} defaultValues     react-hook-form defaultValues
  * @prop {ZodSchema} schema         optional zod schema for the whole form (validated via trigger per-step)
@@ -155,7 +159,7 @@ export default function Wizard({
 
           <div className="yd-wiz-content">
             <WizardStep key={step.key} stepKey={step.key} direction={direction}>
-              {step.render(form)}
+              <step.render {...form} />
             </WizardStep>
 
             <div className="yd-wiz-nav">

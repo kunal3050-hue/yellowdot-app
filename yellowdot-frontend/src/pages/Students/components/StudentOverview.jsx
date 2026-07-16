@@ -1,13 +1,14 @@
 /**
- * OverviewTab — hero card + at-a-glance KPIs + parent quick-contacts.
- * Detailed field-by-field data lives in PersonalInfoTab; this tab is the
- * "glance and go" landing view of the profile.
+ * StudentOverview — hero card + at-a-glance KPIs + parent quick-contacts.
+ * Detailed field-by-field data lives in PersonalInfo; this is the
+ * "glance and go" landing view of the profile. Shared component --
+ * used by the profile shell for both /students and /student-profile/:id.
  */
 import { Phone } from "lucide-react";
 import { Avatar, StatusBadge, Button, Card } from "../../../components/ui";
 import { calcAge } from "../shared";
 
-export default function OverviewTab({ student, onEdit, canEdit = true }) {
+export default function StudentOverview({ student, onEdit, canEdit = true }) {
   const parents = [
     { role: "Father", name: student.Father_Name, phone: student.Father_WhatsApp },
     { role: "Mother", name: student.Mother_Name, phone: student.Mother_WhatsApp },

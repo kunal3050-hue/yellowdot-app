@@ -1,12 +1,13 @@
 /**
- * ParentsTab — same edit/save contract as the original (PUT /update-student/:id),
- * rebuilt on Card/Field/Input for visual consistency.
+ * ParentCard — same edit/save contract as the original (PUT
+ * /update-student/:id). Shared component -- used by the profile shell
+ * for both /students and /student-profile/:id.
  */
 import { useState } from "react";
 import { Card, Field, Input, Button } from "../../../components/ui";
 import { put } from "../shared";
 
-export default function ParentsTab({ student, onSaved, toast }) {
+export default function ParentCard({ student, onSaved, toast }) {
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving ] = useState(false);
   const [form,    setForm   ] = useState({

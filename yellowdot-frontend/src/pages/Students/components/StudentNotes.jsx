@@ -1,46 +1,21 @@
 /**
- * NotesTab — same API contract as the original (/api/student-notes),
- * rebuilt on ActivityFeed-adjacent card styling for visual consistency.
+ * StudentNotes — same API contract as the original (/api/student-notes),
+ * now backed by the shared useStudentNotes hook. Shared component --
+ * used by the profile shell for both /students and /student-profile/:id.
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState } from "react";
 import { Card, Button, EmptyState, Skeleton } from "../../../components/ui";
-import { get, post, del } from "../shared";
+import useStudentNotes from "../hooks/useStudentNotes";
 
 const SUGGESTIONS = ["Cries during nap", "Picky eater", "Shy initially", "Hydration reminder", "Needs extra attention", "Allergic reaction risk", "Separation anxiety"];
 
-export default function NotesTab({ student, toast }) {
-  const [notes,   setNotes  ] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function StudentNotes({ student, toast }) {
+  const { notes, loading, saving, addNote, deleteNote } = useStudentNotes(student.Student_ID, toast);
   const [newNote, setNewNote] = useState("");
-  const [saving,  setSaving ] = useState(false);
-  const mountedRef = useRef(true);
 
-  const load = useCallback(() => {
-    get(`/api/student-notes/${encodeURIComponent(student.Student_ID)}`)
-      .then(d => { if (mountedRef.current) setNotes(d.notes || []); })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setLoading(false); });
-  }, [student.Student_ID]);
-
-  useEffect(() => { mountedRef.current = true; load(); return () => { mountedRef.current = false; }; }, [load]);
-
-  async function addNote() {
-    if (!newNote.trim()) return;
-    setSaving(true);
-    try {
-      const r = await post(`/api/student-notes/${student.Student_ID}`, { note: newNote.trim(), createdBy: "Staff" });
-      if (r.success) { toast.success("Note saved."); setNewNote(""); load(); }
-      else toast.error(r.error || "Failed.");
-    } catch { toast.error("Error saving note."); }
-    finally { setSaving(false); }
-  }
-
-  async function deleteNote(noteId) {
-    try {
-      const r = await del(`/api/student-notes/${noteId}`);
-      if (r.success) { toast.success("Note deleted."); load(); }
-      else toast.error(r.error || "Failed.");
-    } catch { toast.error("Error deleting."); }
+  async function handleAdd() {
+    const ok = await addNote(newNote);
+    if (ok) setNewNote("");
   }
 
   return (
@@ -69,9 +44,9 @@ export default function NotesTab({ student, toast }) {
           rows={2}
           className="yd-input"
           style={{ flex: 1, resize: "none" }}
-          onKeyDown={e => { if (e.key === "Enter" && e.ctrlKey) addNote(); }}
+          onKeyDown={e => { if (e.key === "Enter" && e.ctrlKey) handleAdd(); }}
         />
-        <Button variant="primary" size="sm" onClick={addNote} loading={saving} disabled={!newNote.trim()}>Add</Button>
+        <Button variant="primary" size="sm" onClick={handleAdd} loading={saving} disabled={!newNote.trim()}>Add</Button>
       </div>
 
       {loading ? (
