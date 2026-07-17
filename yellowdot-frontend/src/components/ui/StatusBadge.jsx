@@ -43,6 +43,11 @@ const STATUS_LABEL_GROUP = {
   // User roles
   developer: "yellow", super_admin: "danger", admin: "info", center_admin: "info",
   teacher: "success", accountant: "warning", reception: "neutral", parent: "yellow",
+  // Staff employment status (staffService.STAFF_ENUMS.employmentStatuses)
+  draft: "neutral", active: "success", on_leave: "warning", notice_period: "warning",
+  resigned: "neutral", terminated: "danger", inactive: "neutral", retired: "neutral",
+  // Staff login-link status (staffService.LOGIN_STATUS_META)
+  not_linked: "neutral", invitation_sent: "warning", disabled: "danger",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -51,6 +56,9 @@ const FRIENDLY_LABEL = {
   developer: "Developer", super_admin: "Super Admin", admin: "Admin",
   center_admin: "Ctr Admin", teacher: "Teacher", accountant: "Accountant",
   reception: "Reception", parent: "Parent",
+  draft: "Draft", active: "Active", on_leave: "On Leave", notice_period: "Notice Period",
+  resigned: "Resigned", terminated: "Terminated", inactive: "Inactive", retired: "Retired",
+  not_linked: "Not Linked", invitation_sent: "Invitation Sent", disabled: "Disabled",
 };
 
 function _statusConfig(status) {

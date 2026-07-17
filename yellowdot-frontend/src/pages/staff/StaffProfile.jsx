@@ -3,41 +3,29 @@
  * ────────────────────────────────────────────────────────────
  * Tabs: Overview · Employment · Documents · Emergency · Salary · Login · Timeline
  *
- * Phase 1.1 additions:
- *   • Profile photo upload + crop (Firebase Storage)
- *   • Multi-classroom (assignedClassrooms[])
- *   • Designation pulls Employee Category from master data
- *   • Login tab: invite, link, unlink, disable, copy reset link
- *   • Delete is a soft-delete with confirm
+ * Design System v2 / Platform Layout Standard retrofit: PageHeader (with
+ * breadcrumb-style back link + StatusBadge meta row) + FormSection/FormGrid/
+ * Field/Input/Select/Button/Tabs/SkeletonForm replace the page's hand-rolled
+ * tokens and atoms. This single component still serves create+view+edit --
+ * unlike Students, the audit found no duplicate Add/Edit implementation to
+ * consolidate here, so the tabbed single-page pattern is kept (mirrors
+ * StudentProfile's shell, not StudentWizard, since there's no natural
+ * multi-step boundary in employee onboarding to justify a Wizard).
+ * All staffService/departmentService/designationService calls unchanged.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import staffService, {
-  STAFF_ENUMS, EMPLOYMENT_STATUS_META, LOGIN_STATUS_META,
-} from "../../services/staffService";
+import staffService, { STAFF_ENUMS } from "../../services/staffService";
 import departmentService from "../../services/departmentService";
 import designationService from "../../services/designationService";
 import PhotoUploader from "../../components/staff/PhotoUploader";
-
-const T = {
-  bg:          "#FFFDF7",
-  surface:     "#FFFFFF",
-  surfaceWarm: "#FDFAF5",
-  border:      "rgba(0,0,0,0.08)",
-  borderGold:  "rgba(244,196,0,0.35)",
-  shadow:      "0 1px 4px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-  text:        "#2A2A2A",
-  textMuted:   "#8C8880",
-  textSoft:    "#6A6560",
-  gold:        "#F4C400",
-  goldMid:     "#B45309",
-  goldLight:   "rgba(244,196,0,0.10)",
-  green:       "#059669",
-  red:         "#DC2626",
-  redLight:    "rgba(220,38,38,0.09)",
-};
+import {
+  PageShell, PageHeader, StatusBadge, Button, Tabs,
+  FormSection, Field, FormGrid, SkeletonForm,
+  Input as SharedInput, Select as SharedSelect,
+} from "../../components/ui";
 
 const TABS = [
   { id: "overview",   label: "Overview" },
@@ -65,6 +53,16 @@ const EMPTY = {
   emergencyContact: { name: "", relation: "", mobile: "" },
   salary:           { monthlyCtc: 0, currency: "INR", paymentMode: "", bankAccountLast4: "" },
 };
+
+// ── Local adapters over the shared Input/Select (keeps this file's many
+//    value/onChange(v) call sites unchanged while rendering the design
+//    system's actual markup/styling, not ad-hoc inline styles) ──────────
+function Input({ value, onChange, ...rest }) {
+  return <SharedInput value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
+}
+function Select({ value, onChange, options, placeholder, ...rest }) {
+  return <SharedSelect value={value ?? ""} onChange={(e) => onChange(e.target.value)} options={options} placeholder={placeholder} {...rest} />;
+}
 
 // ── Page ─────────────────────────────────────────────────────────────
 
@@ -198,96 +196,53 @@ export default function StaffProfile() {
     setData(prev => ({ ...prev, photoUrl: url, photoStoragePath: path || "" }));
   }
 
-  return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <button
-            onClick={() => navigate("/staff/employees")}
-            style={{ background: "none", border: "none", color: T.goldMid, fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 4 }}
-          >‹ Back to Directory</button>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", margin: 0 }}>
-            {isCreating
-              ? "New Employee"
-              : (data.displayName || `${data.firstName} ${data.lastName}`.trim() || "Loading…")}
-          </h1>
-          {!isCreating && (
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6, color: T.textSoft, fontSize: 13, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>
-                {data.employeeCode}
-              </span>
-              <Dot />
-              <span>{data.designationName || "—"}</span>
-              <Dot />
-              <StatusPill status={data.employmentStatus} />
-              <Dot />
-              <LoginPill status={data.loginStatus} />
-              {data.deletedAt && (<>
-                <Dot />
-                <span style={{ color: T.red, fontWeight: 600 }}>Soft-deleted</span>
-              </>)}
-            </div>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {!isCreating && canManage && !data.deletedAt && (
-            <button onClick={handleDelete} style={{ background: T.surface, color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-              Mark Inactive
-            </button>
-          )}
-          {dirty && (
-            <button onClick={handleDiscard} disabled={saving} style={{ background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-              Discard
-            </button>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || (!dirty && !isCreating)}
-            style={{
-              background: T.gold, color: "#1E1E1E",
-              border: "none", borderRadius: 10,
-              padding: "10px 22px", fontWeight: 700, fontSize: 13,
-              cursor: saving || (!dirty && !isCreating) ? "not-allowed" : "pointer",
-              opacity:  saving || (!dirty && !isCreating) ? 0.5 : 1,
-              boxShadow: T.shadow,
-            }}
-          >
-            {saving ? "Saving…" : isCreating ? "Create Employee" : "Save Changes"}
-          </button>
-        </div>
-      </div>
+  const secondaryActions = [];
+  if (!isCreating && canManage && !data.deletedAt) {
+    secondaryActions.push({ key: "delete", label: "Mark Inactive", variant: "outline", onClick: handleDelete });
+  }
+  if (dirty) {
+    secondaryActions.push({ key: "discard", label: "Discard", variant: "outline", onClick: handleDiscard, disabled: saving });
+  }
 
+  return (
+    <PageShell
+      header={
+        <PageHeader
+          title={isCreating ? "New Employee" : (data.displayName || `${data.firstName} ${data.lastName}`.trim() || "Loading…")}
+          tag="Staff Management"
+          backLabel="Back to Directory"
+          onBack={() => navigate("/staff/employees")}
+          subtitle={!isCreating && (
+            <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>{data.employeeCode}</span>
+              <span>{data.designationName || "—"}</span>
+              <StatusBadge status={data.employmentStatus} />
+              <StatusBadge status={data.loginStatus} />
+              {data.deletedAt && <span style={{ color: "var(--yd-danger)", fontWeight: 700, fontSize: 12 }}>Soft-deleted</span>}
+            </span>
+          )}
+          secondaryActions={secondaryActions}
+          primaryAction={{
+            label: saving ? "Saving…" : isCreating ? "Create Employee" : "Save Changes",
+            onClick: handleSave,
+            disabled: saving || (!dirty && !isCreating),
+          }}
+        />
+      }
+    >
       {error && (
-        <div style={{ background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
           {error}
         </div>
       )}
 
       {loading ? (
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: 40, textAlign: "center", color: T.textMuted }}>
-          Loading employee…
-        </div>
+        <SkeletonForm fields={6} />
       ) : (
         <>
           {!isCreating && (
-            <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
-              {TABS.map(t => {
-                const active = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    style={{
-                      background: "none", border: "none",
-                      padding: "10px 16px", cursor: "pointer",
-                      fontSize: 13, fontWeight: active ? 700 : 500,
-                      color: active ? T.text : T.textSoft,
-                      borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
-                      marginBottom: -1, whiteSpace: "nowrap",
-                    }}
-                  >{t.label}</button>
-                );
-              })}
+            <div style={{ marginBottom: 16 }}>
+              <Tabs tabs={TABS} activeTab={tab} onChange={setTab} />
             </div>
           )}
 
@@ -324,7 +279,7 @@ export default function StaffProfile() {
           {!isCreating && tab === "timeline"   && <TimelineTab events={timeline} />}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -332,8 +287,8 @@ export default function StaffProfile() {
 
 function OverviewTab({ data, setField, onPhotoChange, user, isCreating }) {
   return (
-    <Card>
-      <Section title="Profile Photo">
+    <>
+      <FormSection title="Profile Photo">
         <PhotoUploader
           schoolId={user?.schoolId}
           staffId={isCreating ? null : data.staffId}
@@ -343,19 +298,23 @@ function OverviewTab({ data, setField, onPhotoChange, user, isCreating }) {
           onChange={onPhotoChange}
         />
         {isCreating && (
-          <div style={{ marginTop: 8, fontSize: 11, color: T.textMuted }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--yd-text-muted)" }}>
             Save the employee first, then return here to upload a photo to Firebase Storage.
           </div>
         )}
-      </Section>
+      </FormSection>
 
-      <Section title="Basic Information">
-        <Grid>
-          <ReadOnly label="Employee ID" value={data.employeeCode || "Auto-assigned (EMP000001) on save"} mono />
-          <Field label="First Name *">
+      <FormSection title="Basic Information">
+        <FormGrid cols={2}>
+          <Field label="Employee ID">
+            <div className="yd-input" style={{ display: "flex", alignItems: "center", background: "var(--yd-soft)", color: "var(--yd-text-soft)", fontFamily: "ui-monospace, Cascadia Code, monospace" }}>
+              {data.employeeCode || "Auto-assigned (EMP000001) on save"}
+            </div>
+          </Field>
+          <Field label="First Name" required>
             <Input value={data.firstName} onChange={(v) => setField("firstName", v)} />
           </Field>
-          <Field label="Last Name *">
+          <Field label="Last Name" required>
             <Input value={data.lastName} onChange={(v) => setField("lastName", v)} />
           </Field>
           <Field label="Display Name">
@@ -378,18 +337,18 @@ function OverviewTab({ data, setField, onPhotoChange, user, isCreating }) {
           <Field label="Marital Status">
             <Select value={data.maritalStatus} onChange={(v) => setField("maritalStatus", v)} options={STAFF_ENUMS.maritalStatus} placeholder="Select…" />
           </Field>
-        </Grid>
-      </Section>
+        </FormGrid>
+      </FormSection>
 
-      <Section title="Contact">
-        <Grid>
+      <FormSection title="Contact">
+        <FormGrid cols={2}>
           <Field label="Mobile">
             <Input value={data.mobile} onChange={(v) => setField("mobile", v)} placeholder="+91 …" />
           </Field>
           <Field label="Email">
             <Input type="email" value={data.email} onChange={(v) => setField("email", v)} placeholder="name@school.com" />
           </Field>
-          <Field label="Address" span={2}>
+          <Field label="Address">
             <Input value={data.address} onChange={(v) => setField("address", v)} />
           </Field>
           <Field label="City">
@@ -401,16 +360,15 @@ function OverviewTab({ data, setField, onPhotoChange, user, isCreating }) {
           <Field label="Pincode">
             <Input value={data.pincode} onChange={(v) => setField("pincode", v)} />
           </Field>
-        </Grid>
-      </Section>
-    </Card>
+        </FormGrid>
+      </FormSection>
+    </>
   );
 }
 
 // ── Tab: Employment ─────────────────────────────────────────────────
 
 function EmploymentTab({ data, setField, selectDepartment, selectDesignation, departments, designations }) {
-  // Available designations are filtered by department if selected
   const desigOptions = designations
     .filter(d => !data.departmentId || !d.departmentId || d.departmentId === data.departmentId)
     .map(d => ({
@@ -419,59 +377,60 @@ function EmploymentTab({ data, setField, selectDepartment, selectDesignation, de
     }));
 
   return (
-    <Card>
-      <Section title="Employment">
-        <Grid>
-          <Field label="Joining Date">
-            <Input type="date" value={data.joiningDate} onChange={(v) => setField("joiningDate", v)} />
-          </Field>
-          <Field label="Confirmation Date">
-            <Input type="date" value={data.confirmationDate} onChange={(v) => setField("confirmationDate", v)} />
-          </Field>
-          <Field label="Branch">
-            <Input value={data.branch} onChange={(v) => setField("branch", v)} placeholder="e.g. Seawoods Main" />
-          </Field>
-          <Field label="Center ID">
-            <Input value={data.centerId} onChange={(v) => setField("centerId", v)} placeholder="e.g. seawoods-main" />
-          </Field>
-          <Field label="Department">
-            <Select
-              value={data.departmentId}
-              onChange={(v) => selectDepartment(v)}
-              options={departments.map(d => ({ value: d.deptId, label: d.name }))}
-              placeholder="Select department"
-            />
-          </Field>
-          <Field label="Designation">
-            <Select
-              value={data.designationId}
-              onChange={(v) => selectDesignation(v)}
-              options={desigOptions}
-              placeholder="Select designation"
-            />
-          </Field>
-          <ReadOnly label="Employee Category" value={data.category ? labelForCategory(data.category) : "(set by designation)"} />
-          <Field label="Role (system)">
-            <Input value={data.role} onChange={(v) => setField("role", v)} placeholder="e.g. teacher, accountant" />
-          </Field>
-          <Field label="Reporting Manager">
-            <Input value={data.reportingManager} onChange={(v) => setField("reportingManager", v)} placeholder="Manager's name" />
-          </Field>
-          <Field label="Employment Type">
-            <Select value={data.employmentType} onChange={(v) => setField("employmentType", v)} options={STAFF_ENUMS.employmentTypes} />
-          </Field>
-          <Field label="Employment Status">
-            <Select value={data.employmentStatus} onChange={(v) => setField("employmentStatus", v)} options={STAFF_ENUMS.employmentStatuses} />
-          </Field>
-          <Field label="Assigned Classrooms" span={2}>
-            <ClassroomChips
-              value={data.assignedClassrooms}
-              onChange={(v) => setField("assignedClassrooms", v)}
-            />
-          </Field>
-        </Grid>
-      </Section>
-    </Card>
+    <FormSection title="Employment">
+      <FormGrid cols={2}>
+        <Field label="Joining Date">
+          <Input type="date" value={data.joiningDate} onChange={(v) => setField("joiningDate", v)} />
+        </Field>
+        <Field label="Confirmation Date">
+          <Input type="date" value={data.confirmationDate} onChange={(v) => setField("confirmationDate", v)} />
+        </Field>
+        <Field label="Branch">
+          <Input value={data.branch} onChange={(v) => setField("branch", v)} placeholder="e.g. Seawoods Main" />
+        </Field>
+        <Field label="Center ID">
+          <Input value={data.centerId} onChange={(v) => setField("centerId", v)} placeholder="e.g. seawoods-main" />
+        </Field>
+        <Field label="Department">
+          <Select
+            value={data.departmentId}
+            onChange={(v) => selectDepartment(v)}
+            options={departments.map(d => ({ value: d.deptId, label: d.name }))}
+            placeholder="Select department"
+          />
+        </Field>
+        <Field label="Designation">
+          <Select
+            value={data.designationId}
+            onChange={(v) => selectDesignation(v)}
+            options={desigOptions}
+            placeholder="Select designation"
+          />
+        </Field>
+        <Field label="Employee Category">
+          <div className="yd-input" style={{ display: "flex", alignItems: "center", background: "var(--yd-soft)", color: "var(--yd-text-soft)" }}>
+            {data.category ? labelForCategory(data.category) : "(set by designation)"}
+          </div>
+        </Field>
+        <Field label="Role (system)">
+          <Input value={data.role} onChange={(v) => setField("role", v)} placeholder="e.g. teacher, accountant" />
+        </Field>
+        <Field label="Reporting Manager">
+          <Input value={data.reportingManager} onChange={(v) => setField("reportingManager", v)} placeholder="Manager's name" />
+        </Field>
+        <Field label="Employment Type">
+          <Select value={data.employmentType} onChange={(v) => setField("employmentType", v)} options={STAFF_ENUMS.employmentTypes} />
+        </Field>
+        <Field label="Employment Status">
+          <Select value={data.employmentStatus} onChange={(v) => setField("employmentStatus", v)} options={STAFF_ENUMS.employmentStatuses} />
+        </Field>
+      </FormGrid>
+      <div style={{ marginTop: 14 }}>
+        <Field label="Assigned Classrooms">
+          <ClassroomChips value={data.assignedClassrooms} onChange={(v) => setField("assignedClassrooms", v)} />
+        </Field>
+      </div>
+    </FormSection>
   );
 }
 
@@ -496,14 +455,14 @@ function ClassroomChips({ value = [], onChange }) {
   return (
     <div style={{
       display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
-      border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 8px",
-      background: "#FFFFFF",
+      border: "1px solid var(--yd-border)", borderRadius: 8, padding: "6px 8px",
+      background: "var(--yd-surface)",
     }}>
       {value.map((c, i) => (
         <span key={`${c}-${i}`} style={{
-          background: T.goldLight,
-          color: T.goldMid,
-          border: `1px solid ${T.borderGold}`,
+          background: "var(--yd-yellow-light, #FFF9E0)",
+          color: "var(--yd-yellow-dark)",
+          border: "1px solid var(--yd-yellow)",
           borderRadius: 999, padding: "3px 10px",
           fontSize: 12, fontWeight: 600,
           display: "inline-flex", alignItems: "center", gap: 6,
@@ -512,7 +471,7 @@ function ClassroomChips({ value = [], onChange }) {
           <button
             type="button"
             onClick={() => removeAt(i)}
-            style={{ background: "none", border: "none", color: T.goldMid, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}
+            style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}
           >×</button>
         </span>
       ))}
@@ -543,31 +502,24 @@ function DocumentsTab() {
     { label: "Resume",                  hint: "Latest CV / résumé" },
   ];
   return (
-    <Card>
-      <Section title="Documents">
-        <div style={{ fontSize: 13, color: T.textSoft, marginBottom: 14, padding: "10px 14px", background: "#FFF7E0", border: `1px solid ${T.borderGold}`, borderRadius: 10 }}>
-          Document upload is coming in <strong>Phase 2</strong>.
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-          {PLACEHOLDERS.map(p => (
-            <div key={p.label} style={{
-              border: `1px dashed ${T.border}`,
-              borderRadius: 12, padding: 16,
-              background: T.surfaceWarm, opacity: 0.85,
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{p.label}</div>
-              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>{p.hint}</div>
-              <button disabled style={{
-                marginTop: 12, background: T.surface, color: T.textMuted,
-                border: `1px solid ${T.border}`, borderRadius: 8,
-                padding: "6px 12px", fontSize: 12, fontWeight: 600,
-                cursor: "not-allowed",
-              }}>Upload (soon)</button>
-            </div>
-          ))}
-        </div>
-      </Section>
-    </Card>
+    <FormSection title="Documents">
+      <div style={{ fontSize: 13, color: "var(--yd-text-soft)", marginBottom: 14, padding: "10px 14px", background: "var(--yd-yellow-light, #FFF9E0)", border: "1px solid var(--yd-yellow)", borderRadius: 10 }}>
+        Document upload is coming in <strong>Phase 2</strong>.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+        {PLACEHOLDERS.map(p => (
+          <div key={p.label} style={{
+            border: "1px dashed var(--yd-border)",
+            borderRadius: 12, padding: 16,
+            background: "var(--yd-bg-sunken)", opacity: 0.85,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--yd-charcoal)" }}>{p.label}</div>
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)", marginTop: 4 }}>{p.hint}</div>
+            <Button size="xs" variant="outline" disabled style={{ marginTop: 12 }}>Upload (soon)</Button>
+          </div>
+        ))}
+      </div>
+    </FormSection>
   );
 }
 
@@ -575,21 +527,19 @@ function DocumentsTab() {
 
 function EmergencyTab({ data, setNested }) {
   return (
-    <Card>
-      <Section title="Emergency Contact">
-        <Grid>
-          <Field label="Name">
-            <Input value={data.emergencyContact.name} onChange={(v) => setNested("emergencyContact", "name", v)} />
-          </Field>
-          <Field label="Relation">
-            <Input value={data.emergencyContact.relation} onChange={(v) => setNested("emergencyContact", "relation", v)} placeholder="Spouse / Parent / Sibling" />
-          </Field>
-          <Field label="Mobile">
-            <Input value={data.emergencyContact.mobile} onChange={(v) => setNested("emergencyContact", "mobile", v)} />
-          </Field>
-        </Grid>
-      </Section>
-    </Card>
+    <FormSection title="Emergency Contact">
+      <FormGrid cols={2}>
+        <Field label="Name">
+          <Input value={data.emergencyContact.name} onChange={(v) => setNested("emergencyContact", "name", v)} />
+        </Field>
+        <Field label="Relation">
+          <Input value={data.emergencyContact.relation} onChange={(v) => setNested("emergencyContact", "relation", v)} placeholder="Spouse / Parent / Sibling" />
+        </Field>
+        <Field label="Mobile">
+          <Input value={data.emergencyContact.mobile} onChange={(v) => setNested("emergencyContact", "mobile", v)} />
+        </Field>
+      </FormGrid>
+    </FormSection>
   );
 }
 
@@ -597,29 +547,27 @@ function EmergencyTab({ data, setNested }) {
 
 function SalaryTab({ data, setNested, canEditSalary }) {
   return (
-    <Card>
-      <Section title="Salary">
-        {!canEditSalary && (
-          <div style={{ fontSize: 12, color: T.textSoft, marginBottom: 14, padding: "8px 12px", background: T.surfaceWarm, border: `1px solid ${T.border}`, borderRadius: 8 }}>
-            Salary details are read-only for your role. Contact an Admin or Center Owner to update.
-          </div>
-        )}
-        <Grid>
-          <Field label="Monthly CTC">
-            <Input type="number" value={data.salary.monthlyCtc} onChange={(v) => setNested("salary", "monthlyCtc", Number(v) || 0)} disabled={!canEditSalary} />
-          </Field>
-          <Field label="Currency">
-            <Input value={data.salary.currency} onChange={(v) => setNested("salary", "currency", v)} disabled={!canEditSalary} />
-          </Field>
-          <Field label="Payment Mode">
-            <Input value={data.salary.paymentMode} onChange={(v) => setNested("salary", "paymentMode", v)} placeholder="Bank Transfer / Cheque / UPI" disabled={!canEditSalary} />
-          </Field>
-          <Field label="Bank A/C (last 4)">
-            <Input value={data.salary.bankAccountLast4} onChange={(v) => setNested("salary", "bankAccountLast4", v)} placeholder="1234" maxLength={4} disabled={!canEditSalary} />
-          </Field>
-        </Grid>
-      </Section>
-    </Card>
+    <FormSection title="Salary">
+      {!canEditSalary && (
+        <div style={{ fontSize: 12, color: "var(--yd-text-soft)", marginBottom: 14, padding: "8px 12px", background: "var(--yd-bg-sunken)", border: "1px solid var(--yd-border)", borderRadius: 8 }}>
+          Salary details are read-only for your role. Contact an Admin or Center Owner to update.
+        </div>
+      )}
+      <FormGrid cols={2}>
+        <Field label="Monthly CTC">
+          <Input type="number" value={data.salary.monthlyCtc} onChange={(v) => setNested("salary", "monthlyCtc", Number(v) || 0)} disabled={!canEditSalary} />
+        </Field>
+        <Field label="Currency">
+          <Input value={data.salary.currency} onChange={(v) => setNested("salary", "currency", v)} disabled={!canEditSalary} />
+        </Field>
+        <Field label="Payment Mode">
+          <Input value={data.salary.paymentMode} onChange={(v) => setNested("salary", "paymentMode", v)} placeholder="Bank Transfer / Cheque / UPI" disabled={!canEditSalary} />
+        </Field>
+        <Field label="Bank A/C (last 4)">
+          <Input value={data.salary.bankAccountLast4} onChange={(v) => setNested("salary", "bankAccountLast4", v)} placeholder="1234" maxLength={4} disabled={!canEditSalary} />
+        </Field>
+      </FormGrid>
+    </FormSection>
   );
 }
 
@@ -694,91 +642,84 @@ function LoginTab({ staffId, data, onChange, canManage }) {
   }
 
   return (
-    <Card>
-      <Section title="Login Account">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", marginBottom: 18 }}>
-          <LoginPill status={data.loginStatus} />
-          {data.linkedUserId && (
-            <span style={{ fontSize: 12, color: T.textSoft, fontFamily: "ui-monospace, Cascadia Code, monospace" }}>
-              UID: {data.linkedUserId}
-            </span>
+    <FormSection title="Login Account">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", marginBottom: 18 }}>
+        <StatusBadge status={data.loginStatus} />
+        {data.linkedUserId && (
+          <span style={{ fontSize: 12, color: "var(--yd-text-soft)", fontFamily: "ui-monospace, Cascadia Code, monospace" }}>
+            UID: {data.linkedUserId}
+          </span>
+        )}
+        {data.invitedAt && (
+          <span style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+            Invited {new Date(data.invitedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
+
+      {resetLink && (
+        <div style={{ background: "var(--yd-yellow-light, #FFF9E0)", border: "1px solid var(--yd-yellow)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Password set-up link generated</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              readOnly
+              value={resetLink}
+              style={{ flex: 1, border: "1px solid var(--yd-border)", borderRadius: 6, padding: "5px 8px", fontSize: 12, background: "var(--yd-surface)", fontFamily: "ui-monospace, Cascadia Code, monospace" }}
+            />
+            <Button size="xs" variant="outline" onClick={() => navigator.clipboard?.writeText(resetLink)}>Copy</Button>
+          </div>
+          <div style={{ marginTop: 6, color: "var(--yd-text-soft)" }}>
+            Send this link to the employee. They'll set their own password and sign in.
+          </div>
+        </div>
+      )}
+
+      {!canManage && (
+        <div style={{ fontSize: 12, color: "var(--yd-text-soft)", padding: "8px 12px", background: "var(--yd-bg-sunken)", border: "1px solid var(--yd-border)", borderRadius: 8 }}>
+          Login account actions require admin / center-owner / center-admin privileges.
+        </div>
+      )}
+
+      {canManage && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {data.loginStatus === "not_linked" && (
+            <>
+              <Button variant="primary" size="sm" onClick={doInvite} loading={busy}>Invite Employee</Button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  value={linkUid}
+                  onChange={(e) => setLinkUid(e.target.value)}
+                  placeholder="Firebase UID to link"
+                  className="yd-input"
+                  style={{ minWidth: 240 }}
+                />
+                <Button variant="outline" size="sm" onClick={doLink} disabled={busy}>Link Existing</Button>
+              </div>
+            </>
           )}
-          {data.invitedAt && (
-            <span style={{ fontSize: 12, color: T.textMuted }}>
-              Invited {new Date(data.invitedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-            </span>
+          {data.loginStatus === "invitation_sent" && (
+            <>
+              <Button variant="primary" size="sm" onClick={doInvite} loading={busy}>Resend Invite</Button>
+              <Button variant="outline" size="sm" onClick={doUnlink} disabled={busy}>Cancel Invite</Button>
+            </>
+          )}
+          {(data.loginStatus === "active" || data.loginStatus === "disabled") && (
+            <>
+              <Button variant={data.loginStatus === "active" ? "danger" : "success"} size="sm" onClick={toggleDisabled} disabled={busy}>
+                {data.loginStatus === "active" ? "Disable Login" : "Re-enable Login"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={doUnlink} disabled={busy}>Unlink</Button>
+            </>
           )}
         </div>
-
-        {error && (
-          <div style={{ background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
-            {error}
-          </div>
-        )}
-
-        {resetLink && (
-          <div style={{ background: "#FFF7E0", border: `1px solid ${T.borderGold}`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Password set-up link generated</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                readOnly
-                value={resetLink}
-                style={{ flex: 1, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12, background: T.surface, fontFamily: "ui-monospace, Cascadia Code, monospace" }}
-              />
-              <button
-                type="button"
-                onClick={() => navigator.clipboard?.writeText(resetLink)}
-                style={miniBtn()}
-              >Copy</button>
-            </div>
-            <div style={{ marginTop: 6, color: T.textSoft }}>
-              Send this link to the employee. They'll set their own password and sign in.
-            </div>
-          </div>
-        )}
-
-        {!canManage && (
-          <div style={{ fontSize: 12, color: T.textSoft, padding: "8px 12px", background: T.surfaceWarm, border: `1px solid ${T.border}`, borderRadius: 8 }}>
-            Login account actions require admin / center-owner / center-admin privileges.
-          </div>
-        )}
-
-        {canManage && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {data.loginStatus === "not_linked" && (
-              <>
-                <button onClick={doInvite} disabled={busy} style={primaryBtn(busy)}>
-                  {busy ? "Inviting…" : "Invite Employee"}
-                </button>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input
-                    value={linkUid}
-                    onChange={(e) => setLinkUid(e.target.value)}
-                    placeholder="Firebase UID to link"
-                    style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, background: T.surface, minWidth: 240 }}
-                  />
-                  <button onClick={doLink} disabled={busy} style={ghostBtn(busy)}>Link Existing</button>
-                </div>
-              </>
-            )}
-            {data.loginStatus === "invitation_sent" && (
-              <>
-                <button onClick={doInvite} disabled={busy} style={primaryBtn(busy)}>Resend Invite</button>
-                <button onClick={doUnlink} disabled={busy} style={ghostBtn(busy, T.red)}>Cancel Invite</button>
-              </>
-            )}
-            {(data.loginStatus === "active" || data.loginStatus === "disabled") && (
-              <>
-                <button onClick={toggleDisabled} disabled={busy} style={ghostBtn(busy, data.loginStatus === "active" ? T.red : T.green)}>
-                  {data.loginStatus === "active" ? "Disable Login" : "Re-enable Login"}
-                </button>
-                <button onClick={doUnlink} disabled={busy} style={ghostBtn(busy)}>Unlink</button>
-              </>
-            )}
-          </div>
-        )}
-      </Section>
-    </Card>
+      )}
+    </FormSection>
   );
 }
 
@@ -787,36 +728,32 @@ function LoginTab({ staffId, data, onChange, canManage }) {
 function TimelineTab({ events }) {
   if (!events.length) {
     return (
-      <Card>
-        <Section title="Activity Timeline">
-          <div style={{ color: T.textMuted, fontSize: 13, padding: "8px 4px" }}>
-            No events yet.
-          </div>
-        </Section>
-      </Card>
+      <FormSection title="Activity Timeline">
+        <div style={{ color: "var(--yd-text-muted)", fontSize: 13, padding: "8px 4px" }}>
+          No events yet.
+        </div>
+      </FormSection>
     );
   }
   return (
-    <Card>
-      <Section title="Activity Timeline">
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {events.map((ev) => (
-            <div key={ev.eventId || ev.createdAt} style={{
-              display: "grid", gridTemplateColumns: "140px 1fr",
-              gap: 14, padding: "12px 0", borderBottom: `1px solid ${T.border}`,
-            }}>
-              <div style={{ fontSize: 12, color: T.textMuted }}>
-                {new Date(ev.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{prettyEventType(ev.type)}</div>
-                <div style={{ fontSize: 13, color: T.textSoft, marginTop: 2 }}>{ev.description}</div>
-              </div>
+    <FormSection title="Activity Timeline">
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        {events.map((ev) => (
+          <div key={ev.eventId || ev.createdAt} style={{
+            display: "grid", gridTemplateColumns: "140px 1fr",
+            gap: 14, padding: "12px 0", borderBottom: "1px solid var(--yd-border-light)",
+          }}>
+            <div style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+              {new Date(ev.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
             </div>
-          ))}
-        </div>
-      </Section>
-    </Card>
+            <div>
+              <div style={{ fontSize: 13, color: "var(--yd-charcoal)", fontWeight: 600 }}>{prettyEventType(ev.type)}</div>
+              <div style={{ fontSize: 13, color: "var(--yd-text-soft)", marginTop: 2 }}>{ev.description}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </FormSection>
   );
 }
 
@@ -843,144 +780,4 @@ function prettyEventType(type) {
     USER_DISABLED:        "Login account disabled",
   };
   return map[type] || type;
-}
-
-// ── Atoms ────────────────────────────────────────────────────────────
-
-function Card({ children }) {
-  return (
-    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, padding: 24 }}>
-      {children}
-    </div>
-  );
-}
-function Section({ title, children }) {
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid, marginBottom: 12 }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-function Grid({ children }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-      {children}
-    </div>
-  );
-}
-function Field({ label, span = 1, children }) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: `span ${span}` }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>
-      {children}
-    </label>
-  );
-}
-function ReadOnly({ label, value, mono }) {
-  return (
-    <Field label={label}>
-      <div style={{
-        background: T.surfaceWarm,
-        border: `1px solid ${T.border}`,
-        borderRadius: 8,
-        padding: "9px 12px",
-        fontSize: 13,
-        color: T.textSoft,
-        fontFamily: mono ? "ui-monospace, Cascadia Code, monospace" : undefined,
-      }}>{value}</div>
-    </Field>
-  );
-}
-function Input({ type = "text", value, onChange, placeholder, disabled, maxLength }) {
-  return (
-    <input
-      type={type}
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      disabled={disabled}
-      maxLength={maxLength}
-      style={{
-        border: `1px solid ${T.border}`, borderRadius: 8,
-        padding: "9px 12px", fontSize: 13,
-        background: disabled ? T.surfaceWarm : "#FFFFFF",
-        color: T.text, outline: "none",
-        opacity: disabled ? 0.7 : 1,
-      }}
-    />
-  );
-}
-function Select({ value, onChange, options = [], placeholder, disabled }) {
-  return (
-    <select
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      style={{
-        border: `1px solid ${T.border}`, borderRadius: 8,
-        padding: "9px 12px", fontSize: 13,
-        background: disabled ? T.surfaceWarm : "#FFFFFF",
-        color: T.text, outline: "none",
-      }}
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-}
-function StatusPill({ status }) {
-  const meta = EMPLOYMENT_STATUS_META[status] || EMPLOYMENT_STATUS_META.inactive;
-  return (
-    <span style={{
-      display: "inline-block", padding: "3px 9px", borderRadius: 999,
-      fontSize: 11, fontWeight: 600,
-      background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`,
-    }}>{meta.label}</span>
-  );
-}
-function LoginPill({ status }) {
-  const meta = LOGIN_STATUS_META[status] || LOGIN_STATUS_META.not_linked;
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 6,
-      padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-      background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.dot }} />
-      Login · {meta.label}
-    </span>
-  );
-}
-function Dot() {
-  return <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textMuted }} />;
-}
-function primaryBtn(disabled) {
-  return {
-    background: T.gold, color: "#1E1E1E",
-    border: "none", borderRadius: 10,
-    padding: "8px 16px", fontWeight: 700, fontSize: 13,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity:  disabled ? 0.5 : 1,
-  };
-}
-function ghostBtn(disabled, color = T.text) {
-  return {
-    background: T.surface, color,
-    border: `1px solid ${color === T.text ? T.border : `${color}55`}`,
-    borderRadius: 10, padding: "8px 14px",
-    fontWeight: 600, fontSize: 13,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity:  disabled ? 0.5 : 1,
-  };
-}
-function miniBtn() {
-  return {
-    background: T.surface, color: T.text,
-    border: `1px solid ${T.border}`,
-    borderRadius: 6, padding: "4px 10px",
-    fontSize: 11, fontWeight: 600, cursor: "pointer",
-  };
 }
