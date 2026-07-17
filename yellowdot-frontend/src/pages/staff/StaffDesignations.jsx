@@ -1,30 +1,17 @@
 /**
  * StaffDesignations.jsx — Designations management
  * ─────────────────────────────────────────────────
- * Simple CRUD list keyed to optional department.
+ * Design System v2 / Platform Layout Standard: PageShell -> PageHeader ->
+ * DataTable (search/sort/export/pagination + department column filter
+ * supplied for free) -> Modal (create/edit). Same designationService/
+ * departmentService calls/payloads.
  */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import designationService from "../../services/designationService";
 import departmentService  from "../../services/departmentService";
 import { STAFF_ENUMS } from "../../services/staffService";
-
-const T = {
-  bg:          "#FFFDF7",
-  surface:     "#FFFFFF",
-  surfaceWarm: "#FDFAF5",
-  border:      "rgba(0,0,0,0.08)",
-  borderGold:  "rgba(244,196,0,0.35)",
-  shadow:      "0 1px 4px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-  text:        "#2A2A2A",
-  textMuted:   "#8C8880",
-  textSoft:    "#6A6560",
-  gold:        "#F4C400",
-  goldMid:     "#B45309",
-  green:       "#059669",
-  red:         "#DC2626",
-  redLight:    "rgba(220,38,38,0.09)",
-};
+import { PageShell, PageHeader, DataTable, Badge, Modal, Button, Field, FormGrid, Input, Select } from "../../components/ui";
 
 const EMPTY = {
   name: "", description: "", level: "",
@@ -33,6 +20,10 @@ const EMPTY = {
   sortOrder: 0, active: true,
 };
 
+function labelForCategory(id) {
+  return STAFF_ENUMS.categories.find(c => c.value === id)?.label || "—";
+}
+
 export default function StaffDesignations() {
   const [rows, setRows]         = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -40,7 +31,6 @@ export default function StaffDesignations() {
   const [error, setError]       = useState("");
   const [modal, setModal]       = useState(null);
   const [saving, setSaving]     = useState(false);
-  const [deptFilter, setDeptFilter] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -58,8 +48,6 @@ export default function StaffDesignations() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
-
-  const filtered = deptFilter ? rows.filter(r => r.departmentId === deptFilter) : rows;
 
   function openCreate() { setModal({ mode: "create", data: { ...EMPTY } }); }
   function openEdit(d)  { setModal({ mode: "edit",   data: { ...d } }); }
@@ -101,241 +89,118 @@ export default function StaffDesignations() {
     }
   }
 
-  return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>
-            Staff Management
-          </div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0", letterSpacing: "-0.02em" }}>Designations</h1>
-          <div style={{ fontSize: 13, color: T.textSoft, marginTop: 4 }}>Job titles and levels assignable to staff.</div>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} style={{
-            border: `1px solid ${T.border}`, borderRadius: 10,
-            padding: "9px 12px", fontSize: 13, background: "#FDFAF5",
-          }}>
-            <option value="">All departments</option>
-            {departments.map(d => <option key={d.deptId} value={d.deptId}>{d.name}</option>)}
-          </select>
-          <button onClick={openCreate} style={{ background: T.gold, color: "#1E1E1E", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: T.shadow }}>
-            + Add Designation
-          </button>
-        </div>
-      </div>
+  const departmentOptions = useMemo(() => departments.map(d => ({ value: d.deptId, label: d.name })), [departments]);
 
+  const columns = useMemo(() => [
+    {
+      key: "name", label: "Name", sortable: true, filterable: true, width: 200,
+      render: (v, row) => (
+        <span style={{ fontWeight: 600 }}>
+          {v}
+          {row.isSystem && <span style={{ marginLeft: 6 }}><Badge variant="yellow">system</Badge></span>}
+        </span>
+      ),
+    },
+    {
+      key: "departmentName", label: "Department", sortable: true, filterable: true,
+      filterType: "multiselect", filterOptions: departmentOptions, width: 160,
+      render: (v) => v || "—",
+    },
+    {
+      key: "category", label: "Category", sortable: true, filterable: true,
+      filterType: "select", filterOptions: STAFF_ENUMS.categories, width: 140,
+      render: (v) => labelForCategory(v),
+    },
+    { key: "level", label: "Level", width: 110, render: (v) => v || "—" },
+    { key: "sortOrder", label: "Sort", sortable: true, width: 80 },
+    {
+      key: "active", label: "Status", width: 120,
+      render: (v, row) => (
+        <button type="button" onClick={() => toggleActive(row)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <Badge variant={v ? "success" : "neutral"} dot>{v ? "Active" : "Inactive"}</Badge>
+        </button>
+      ),
+    },
+    {
+      key: "actions", label: "", type: "actions", width: 130, hideable: false,
+      actions: (row) => (
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button size="xs" variant="ghost" onClick={() => openEdit(row)}>Edit</Button>
+          {!row.isSystem && <Button size="xs" variant="ghost" onClick={() => handleDelete(row)}>Delete</Button>}
+        </div>
+      ),
+    },
+  ], [departmentOptions]);
+
+  return (
+    <PageShell
+      header={
+        <PageHeader
+          title="Designations"
+          tag="Staff Management"
+          subtitle="Job titles and levels assignable to staff."
+          primaryAction={{ label: "Add Designation", icon: <Plus size={14} strokeWidth={2} />, onClick: openCreate }}
+        />
+      }
+    >
       {error && (
-        <div style={{ background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
           {error}
         </div>
       )}
 
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 760 }}>
-            <thead style={{ background: T.surfaceWarm, borderBottom: `1px solid ${T.border}` }}>
-              <tr>
-                <Th>Name</Th>
-                <Th>Department</Th>
-                <Th>Category</Th>
-                <Th>Level</Th>
-                <Th>Sort</Th>
-                <Th>Status</Th>
-                <Th align="right">Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: T.textMuted }}>Loading…</td></tr>}
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: T.textMuted }}>
-                  No designations match this filter.
-                </td></tr>
-              )}
-              {!loading && filtered.map(d => (
-                <tr key={d.designationId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <Td weight={600}>
-                    {d.name}
-                    {d.isSystem && <span style={systemTagStyle}>system</span>}
-                  </Td>
-                  <Td color={T.textSoft}>{d.departmentName || "—"}</Td>
-                  <Td color={T.textSoft}>{labelForCategory(d.category)}</Td>
-                  <Td color={T.textSoft}>{d.level || "—"}</Td>
-                  <Td>{d.sortOrder}</Td>
-                  <Td>
-                    <button onClick={() => toggleActive(d)} style={pillStyle(d.active)}>
-                      {d.active ? "Active" : "Inactive"}
-                    </button>
-                  </Td>
-                  <Td align="right">
-                    <button onClick={() => openEdit(d)} style={miniBtn()}>Edit</button>
-                    {!d.isSystem && (
-                      <button onClick={() => handleDelete(d)} style={{ ...miniBtn(), color: T.red, borderColor: `${T.red}55` }}>Delete</button>
-                    )}
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        tableId="staff-designations"
+        columns={columns}
+        data={rows}
+        loading={loading}
+        entityLabel="designations"
+        searchPlaceholder="Search designations…"
+        empty={{ title: "No designations found", description: "Adjust filters or add your first designation.", action: { label: "+ Add Designation", onClick: openCreate } }}
+      />
 
       {modal && (
-        <Modal title={modal.mode === "create" ? "Add Designation" : "Edit Designation"} onClose={closeModal}>
-          <FormGrid>
-            <Field label="Name *">
-              <Input value={modal.data.name} onChange={(v) => setModal({ ...modal, data: { ...modal.data, name: v } })} />
+        <Modal
+          isOpen
+          onClose={closeModal}
+          title={modal.mode === "create" ? "Add Designation" : "Edit Designation"}
+          footer={
+            <>
+              <Button variant="outline" onClick={closeModal} disabled={saving}>Cancel</Button>
+              <Button variant="primary" onClick={handleSave} loading={saving}>Save</Button>
+            </>
+          }
+        >
+          <FormGrid cols={2}>
+            <Field label="Name" required>
+              <Input value={modal.data.name} onChange={(e) => setModal({ ...modal, data: { ...modal.data, name: e.target.value } })} />
             </Field>
             <Field label="Department">
-              <select
-                value={modal.data.departmentId}
-                onChange={(e) => selectDept(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="">— None —</option>
-                {departments.map(d => <option key={d.deptId} value={d.deptId}>{d.name}</option>)}
-              </select>
+              <Select value={modal.data.departmentId} onChange={(e) => selectDept(e.target.value)} options={departmentOptions} placeholder="— None —" />
             </Field>
-            <Field label="Category *">
-              <select
-                value={modal.data.category}
-                onChange={(e) => setModal({ ...modal, data: { ...modal.data, category: e.target.value } })}
-                style={selectStyle}
-              >
-                {STAFF_ENUMS.categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+            <Field label="Category" required>
+              <Select value={modal.data.category} onChange={(e) => setModal({ ...modal, data: { ...modal.data, category: e.target.value } })} options={STAFF_ENUMS.categories} />
             </Field>
             <Field label="Level">
-              <Input value={modal.data.level} onChange={(v) => setModal({ ...modal, data: { ...modal.data, level: v } })} placeholder="Junior / Senior / Lead" />
+              <Input value={modal.data.level} onChange={(e) => setModal({ ...modal, data: { ...modal.data, level: e.target.value } })} placeholder="Junior / Senior / Lead" />
             </Field>
             <Field label="Sort Order">
-              <Input type="number" value={modal.data.sortOrder} onChange={(v) => setModal({ ...modal, data: { ...modal.data, sortOrder: Number(v) || 0 } })} />
-            </Field>
-            <Field label="Description" span={2}>
-              <Input value={modal.data.description} onChange={(v) => setModal({ ...modal, data: { ...modal.data, description: v } })} />
-            </Field>
-            <Field label="Status">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                <input type="checkbox" checked={modal.data.active} onChange={(e) => setModal({ ...modal, data: { ...modal.data, active: e.target.checked } })} />
-                Active
-              </label>
+              <Input type="number" value={modal.data.sortOrder} onChange={(e) => setModal({ ...modal, data: { ...modal.data, sortOrder: Number(e.target.value) || 0 } })} />
             </Field>
           </FormGrid>
-          <ModalActions onCancel={closeModal} onSave={handleSave} saving={saving} />
+          <div style={{ marginTop: 12 }}>
+            <Field label="Description">
+              <Input value={modal.data.description} onChange={(e) => setModal({ ...modal, data: { ...modal.data, description: e.target.value } })} />
+            </Field>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={modal.data.active} onChange={(e) => setModal({ ...modal, data: { ...modal.data, active: e.target.checked } })} />
+              Active
+            </label>
+          </div>
         </Modal>
       )}
-    </div>
-  );
-}
-
-// ── Shared atoms ──────────────────────────────────────────────────
-
-function Th({ children, align }) {
-  return <th style={{ textAlign: align || "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted }}>{children}</th>;
-}
-function labelForCategory(id) {
-  return STAFF_ENUMS.categories.find(c => c.value === id)?.label || "—";
-}
-const systemTagStyle = {
-  marginLeft: 6, fontSize: 10, fontWeight: 600,
-  padding: "1px 6px", borderRadius: 4,
-  background: "#FFF7E0", border: "1px solid rgba(244,196,0,0.35)",
-  color: "#B45309", textTransform: "uppercase", letterSpacing: "0.05em",
-};
-function Td({ children, align, weight, color }) {
-  return <td style={{ textAlign: align || "left", padding: "12px 14px", fontSize: 13, fontWeight: weight, color: color || T.text }}>{children}</td>;
-}
-function pillStyle(active) {
-  return {
-    background:  active ? "#f0fdf4" : T.surfaceWarm,
-    color:       active ? T.green   : T.textMuted,
-    border:      `1px solid ${active ? "#bbf7d0" : T.border}`,
-    borderRadius:999,
-    padding:     "3px 10px",
-    fontSize:    11,
-    fontWeight:  600,
-    cursor:      "pointer",
-  };
-}
-function miniBtn() {
-  return {
-    background: T.surface,
-    color: T.text,
-    border: `1px solid ${T.border}`,
-    borderRadius: 8,
-    padding: "5px 12px",
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: "pointer",
-    marginLeft: 6,
-  };
-}
-const selectStyle = {
-  border: `1px solid ${T.border}`,
-  borderRadius: 8,
-  padding: "9px 12px",
-  fontSize: 13,
-  background: "#FFFFFF",
-  outline: "none",
-  cursor: "pointer",
-};
-
-function Modal({ title, children, onClose }) {
-  return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0,
-      background: "rgba(20, 18, 12, 0.45)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 200,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        background: T.surface, border: `1px solid ${T.border}`,
-        borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,0.20)",
-        width: "min(560px, calc(100vw - 32px))",
-        maxHeight: "calc(100vh - 64px)",
-        overflow: "auto", padding: 24,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.text }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, color: T.textMuted, cursor: "pointer", lineHeight: 1 }}>×</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-function FormGrid({ children }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>{children}</div>;
-}
-function Field({ label, span = 1, children }) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: `span ${span}` }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>
-      {children}
-    </label>
-  );
-}
-function Input({ type = "text", value, onChange, placeholder }) {
-  return (
-    <input
-      type={type}
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{
-        border: `1px solid ${T.border}`, borderRadius: 8,
-        padding: "9px 12px", fontSize: 13, background: "#FFFFFF", outline: "none",
-      }}
-    />
-  );
-}
-function ModalActions({ onCancel, onSave, saving }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-      <button onClick={onCancel} disabled={saving} style={{ background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
-      <button onClick={onSave} disabled={saving} style={{ background: T.gold, color: "#1E1E1E", border: "none", borderRadius: 10, padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
-        {saving ? "Saving…" : "Save"}
-      </button>
-    </div>
+    </PageShell>
   );
 }
