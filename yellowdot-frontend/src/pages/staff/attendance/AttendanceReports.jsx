@@ -1,10 +1,14 @@
 /**
  * AttendanceReports.jsx — Daily + Monthly reports with CSV export
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + Tabs + KpiRow + StatusBadge. Same staffAttendanceService
+ * calls/export logic.
  */
-
 import { useCallback, useEffect, useState } from "react";
+import { Download } from "lucide-react";
 import staffAttendanceService, { STATUS_META } from "../../../services/staffAttendanceService";
-import { T, pillStyle, fmtMins } from "./_shared";
+import { PageShell, PageHeader, Tabs, KpiRow, KpiCard, StatusBadge, Select, SkeletonTable } from "../../../components/ui";
+import { fmtMins } from "./_shared";
 
 function isoToday() { return new Date().toISOString().slice(0, 10); }
 
@@ -12,9 +16,19 @@ function csvEscape(v) {
   const s = v == null ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+function download(name, body) {
+  const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+
+const REPORT_TABS = [{ id: "daily", label: "Daily" }, { id: "monthly", label: "Monthly" }];
 
 export default function AttendanceReports() {
-  const [mode, setMode] = useState("daily"); // daily | monthly
+  const [mode, setMode] = useState("daily");
   const [date, setDate] = useState(isoToday());
   const now = new Date();
   const [year, setYear]   = useState(now.getFullYear());
@@ -59,73 +73,65 @@ export default function AttendanceReports() {
     download(`monthly-${monthly.year}-${String(monthly.month).padStart(2,"0")}.csv`, lines.join("\n"));
   }
 
-  function download(name, body) {
-    const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
-    const a    = document.createElement("a");
-    a.href     = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 0);
-  }
-
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Staff Attendance</div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0", letterSpacing: "-0.02em" }}>Reports</h1>
-      </div>
+    <PageShell
+      header={
+        <PageHeader
+          title="Reports"
+          tag="Staff Attendance"
+          primaryAction={mode === "daily"
+            ? { label: "Export CSV", icon: <Download size={14} strokeWidth={2} />, onClick: exportDaily, disabled: !daily }
+            : { label: "Export CSV", icon: <Download size={14} strokeWidth={2} />, onClick: exportMonthly, disabled: !monthly }}
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, borderBottom: `1px solid ${T.border}` }}>
-        {[["daily","Daily"],["monthly","Monthly"]].map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setMode(id)}
-            style={{ background: "none", border: "none", padding: "10px 16px", cursor: "pointer", fontSize: 13, fontWeight: mode === id ? 700 : 500, color: mode === id ? T.text : T.textSoft, borderBottom: `2px solid ${mode === id ? T.gold : "transparent"}`, marginBottom: -1 }}
-          >{label}</button>
-        ))}
+      <div style={{ marginBottom: 14 }}>
+        <Tabs tabs={REPORT_TABS} activeTab={mode} onChange={setMode} />
       </div>
-
-      {error && <div style={errorBox}>{error}</div>}
 
       {mode === "daily" && (
         <>
-          <div style={toolbar}>
-            <label style={lbl}>Date <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inp} /></label>
-            <button onClick={exportDaily} style={btn(T.surface, T.text, T.border)} disabled={!daily}>Export CSV</button>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "var(--yd-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
+              Date <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="yd-input" style={{ width: "auto" }} />
+            </label>
           </div>
-          {loading ? <Loading /> : daily && (
+          {loading ? <SkeletonTable rows={6} columns={8} /> : daily && (
             <>
-              <Grid7
-                cards={[
-                  ["Total",    daily.total],
-                  ["Present",  daily.present],
-                  ["Absent",   daily.absent, T.red],
-                  ["Half Day", daily.halfDay, T.goldMid],
-                  ["Leave",    daily.leave, T.goldMid],
-                  ["Late",     daily.late, T.goldMid],
-                  ["OT",       daily.overtime, T.green],
-                ]}
-              />
-              <Table>
+              <div style={{ marginBottom: 14 }}>
+                <KpiRow>
+                  <KpiCard label="Total" value={daily.total} />
+                  <KpiCard label="Present" value={daily.present} />
+                  <KpiCard label="Absent" value={daily.absent} />
+                  <KpiCard label="Half Day" value={daily.halfDay} />
+                  <KpiCard label="Leave" value={daily.leave} />
+                  <KpiCard label="Late" value={daily.late} />
+                  <KpiCard label="OT" value={daily.overtime} />
+                </KpiRow>
+              </div>
+              <ReportTable>
                 <thead><tr><th style={th}>Employee</th><th style={th}>Dept</th><th style={th}>Status</th><th style={th}>In</th><th style={th}>Out</th><th style={th}>Hours</th><th style={th}>Late</th><th style={th}>OT</th></tr></thead>
                 <tbody>
-                  {(daily.rows || []).map(r => {
-                    const m = STATUS_META[r.status] || STATUS_META.absent;
-                    return (
-                      <tr key={r.attendanceId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                        <td style={td}>{r.displayName}</td>
-                        <td style={td}>{r.departmentName || "—"}</td>
-                        <td style={td}><span style={pillStyle(m.color, m.bg, m.border)}>{m.label}</span></td>
-                        <td style={td}>{r.checkIn ? r.checkIn.slice(11, 16) : "—"}</td>
-                        <td style={td}>{r.checkOut ? r.checkOut.slice(11, 16) : "—"}</td>
-                        <td style={td}>{r.hoursWorked ? `${r.hoursWorked}h` : "—"}</td>
-                        <td style={td}>{r.isLate ? fmtMins(r.lateBy) : "—"}</td>
-                        <td style={td}>{r.overtimeMinutes ? fmtMins(r.overtimeMinutes) : "—"}</td>
-                      </tr>
-                    );
-                  })}
+                  {(daily.rows || []).map(r => (
+                    <tr key={r.attendanceId} style={{ borderBottom: "1px solid var(--yd-border-light)" }}>
+                      <td style={td}>{r.displayName}</td>
+                      <td style={td}>{r.departmentName || "—"}</td>
+                      <td style={td}><StatusBadge status={r.status} /></td>
+                      <td style={td}>{r.checkIn ? r.checkIn.slice(11, 16) : "—"}</td>
+                      <td style={td}>{r.checkOut ? r.checkOut.slice(11, 16) : "—"}</td>
+                      <td style={td}>{r.hoursWorked ? `${r.hoursWorked}h` : "—"}</td>
+                      <td style={td}>{r.isLate ? fmtMins(r.lateBy) : "—"}</td>
+                      <td style={td}>{r.overtimeMinutes ? fmtMins(r.overtimeMinutes) : "—"}</td>
+                    </tr>
+                  ))}
                 </tbody>
-              </Table>
+              </ReportTable>
             </>
           )}
         </>
@@ -133,25 +139,25 @@ export default function AttendanceReports() {
 
       {mode === "monthly" && (
         <>
-          <div style={toolbar}>
-            <label style={lbl}>Year
-              <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ ...inp, width: 100 }} />
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "var(--yd-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
+              Year <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="yd-input" style={{ width: 100 }} />
             </label>
-            <label style={lbl}>Month
-              <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={inp}>
-                {Array.from({length: 12}, (_, i) => i + 1).map(m =>
-                  <option key={m} value={m}>{new Date(2000, m - 1, 1).toLocaleDateString("en-IN", { month: "long" })}</option>
-                )}
-              </select>
+            <label style={{ fontSize: 12, color: "var(--yd-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
+              Month
+              <Select
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+                options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2000, i, 1).toLocaleDateString("en-IN", { month: "long" }) }))}
+              />
             </label>
-            <button onClick={exportMonthly} style={btn(T.surface, T.text, T.border)} disabled={!monthly}>Export CSV</button>
           </div>
-          {loading ? <Loading /> : monthly && (
+          {loading ? <SkeletonTable rows={6} columns={9} /> : monthly && (
             <>
-              <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: T.textSoft, boxShadow: T.shadow }}>
+              <div className="yd-card" style={{ marginBottom: 14, fontSize: 13, color: "var(--yd-text-soft)" }}>
                 Period: <strong>{monthly.fromDate}</strong> → <strong>{monthly.toDate}</strong> · {monthly.totalRecords} record(s) · {monthly.staffRows.length} employee(s)
               </div>
-              <Table>
+              <ReportTable>
                 <thead>
                   <tr>
                     <th style={th}>Employee</th><th style={th}>Dept</th>
@@ -161,10 +167,10 @@ export default function AttendanceReports() {
                 </thead>
                 <tbody>
                   {monthly.staffRows.map(r => (
-                    <tr key={r.staffId} style={{ borderBottom: `1px solid ${T.border}` }}>
+                    <tr key={r.staffId} style={{ borderBottom: "1px solid var(--yd-border-light)" }}>
                       <td style={td}>
                         <div style={{ fontWeight: 600 }}>{r.displayName}</div>
-                        <div style={{ fontSize: 11, color: T.textMuted, fontFamily: "ui-monospace, Cascadia Code, monospace" }}>{r.employeeCode}</div>
+                        <div style={{ fontSize: 11, color: "var(--yd-text-muted)", fontFamily: "ui-monospace, Cascadia Code, monospace" }}>{r.employeeCode}</div>
                       </td>
                       <td style={td}>{r.departmentName || "—"}</td>
                       <td style={td}>{r.present}</td>
@@ -177,45 +183,24 @@ export default function AttendanceReports() {
                     </tr>
                   ))}
                 </tbody>
-              </Table>
+              </ReportTable>
             </>
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
-function Loading() { return <div style={{ padding: 30, textAlign: "center", color: T.textMuted }}>Loading…</div>; }
-function Table({ children }) {
+function ReportTable({ children }) {
   return (
-    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
+    <div className="yd-card" style={{ overflow: "hidden", padding: 0 }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>{children}</table>
       </div>
     </div>
   );
 }
-function Grid7({ cards }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10, marginBottom: 14 }}>
-      {cards.map(([label, value, color]) => (
-        <div key={label} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px", position: "relative", overflow: "hidden", boxShadow: T.shadow }}>
-          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: color || T.gold }} />
-          <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, textTransform: "uppercase" }}>{label}</div>
-          <div style={{ marginTop: 4, fontSize: 20, fontWeight: 700, color: T.text }}>{value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
-const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted };
-const td = { padding: "10px 14px", fontSize: 13, color: T.text };
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const lbl = { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.textSoft };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 13, background: T.surfaceWarm };
-const toolbar = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14, marginBottom: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", boxShadow: T.shadow };
-function btn(bg, color, border) {
-  return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
-}
+const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--yd-text-muted)" };
+const td = { padding: "10px 14px", fontSize: 13, color: "var(--yd-text)" };

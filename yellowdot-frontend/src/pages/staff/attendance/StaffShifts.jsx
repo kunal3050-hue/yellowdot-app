@@ -1,10 +1,13 @@
 /**
  * StaffShifts.jsx — Shift definitions CRUD
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + DataTable + Modal/FormGrid/Field/Input/Button/Badge. Same
+ * staffAttendanceService shift calls/payloads.
  */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import staffAttendanceService from "../../../services/staffAttendanceService";
-import { T } from "./_shared";
+import { PageShell, PageHeader, DataTable, Badge, Modal, Button, Field, FormGrid, Input } from "../../../components/ui";
 
 const EMPTY = {
   name: "", code: "", startTime: "09:00", endTime: "17:00",
@@ -58,112 +61,124 @@ export default function StaffShifts() {
     catch (err) { alert(err.response?.data?.error || err.message); }
   }
 
+  function patch(fields) {
+    setModal(m => ({ ...m, data: { ...m.data, ...fields } }));
+  }
+
+  const columns = useMemo(() => [
+    {
+      key: "name", label: "Name", sortable: true, filterable: true, width: 180,
+      render: (v, row) => (
+        <span style={{ fontWeight: 600 }}>
+          {v}
+          {row.isSystem && <span style={{ marginLeft: 6 }}><Badge variant="yellow">system</Badge></span>}
+          {row.isDefault && <span style={{ marginLeft: 6 }}><Badge variant="success">default</Badge></span>}
+        </span>
+      ),
+    },
+    { key: "code", label: "Code", width: 90, render: (v) => v || "—" },
+    { key: "startTime", label: "Window", width: 130, render: (v, row) => `${row.startTime} – ${row.endTime}` },
+    { key: "graceMinutes", label: "Grace", width: 90, render: (v) => `${v}m` },
+    { key: "halfDayMinHours", label: "Half-Day ≥", width: 100, render: (v) => `${v}h` },
+    { key: "fullDayMinHours", label: "Full-Day ≥", width: 100, render: (v) => `${v}h` },
+    { key: "overtimeAfterMinutes", label: "OT after", width: 100, render: (v) => `${Math.floor(v / 60)}h${v % 60 ? ` ${v % 60}m` : ""}` },
+    {
+      key: "active", label: "Status", width: 110,
+      render: (v, row) => (
+        <button type="button" onClick={() => toggleActive(row)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <Badge variant={v ? "success" : "neutral"} dot>{v ? "Active" : "Inactive"}</Badge>
+        </button>
+      ),
+    },
+    {
+      key: "actions", label: "", type: "actions", width: 130, hideable: false,
+      actions: (row) => (
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button size="xs" variant="ghost" onClick={() => openEdit(row)}>Edit</Button>
+          {!row.isSystem && <Button size="xs" variant="ghost" onClick={() => remove(row)}>Delete</Button>}
+        </div>
+      ),
+    },
+  ], []);
+
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Staff Attendance</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Shifts</h1>
-          <div style={{ fontSize: 13, color: T.textSoft, marginTop: 4 }}>Working windows that drive late/early/half-day/overtime calculations.</div>
-        </div>
-        <button onClick={openCreate} style={btn(T.gold, "#1E1E1E")}>+ Add Shift</button>
-      </div>
-
-      {error && <div style={errorBox}>{error}</div>}
-
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 880 }}>
-            <thead style={{ background: T.surfaceWarm, borderBottom: `1px solid ${T.border}` }}>
-              <tr>
-                <th style={th}>Name</th>
-                <th style={th}>Code</th>
-                <th style={th}>Window</th>
-                <th style={th}>Grace</th>
-                <th style={th}>Half-Day ≥</th>
-                <th style={th}>Full-Day ≥</th>
-                <th style={th}>OT after</th>
-                <th style={th}>Status</th>
-                <th style={{ ...th, textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={9} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={9} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>No shifts yet. Defaults seed on first dashboard visit.</td></tr>}
-              {!loading && rows.map(s => (
-                <tr key={s.shiftId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={td}>
-                    <strong>{s.name}</strong>
-                    {s.isSystem && <span style={tag}>system</span>}
-                    {s.isDefault && <span style={{ ...tag, background: "#f0fdf4", color: T.green, borderColor: "#bbf7d0" }}>default</span>}
-                  </td>
-                  <td style={td}>{s.code || "—"}</td>
-                  <td style={td}>{s.startTime} – {s.endTime}</td>
-                  <td style={td}>{s.graceMinutes}m</td>
-                  <td style={td}>{s.halfDayMinHours}h</td>
-                  <td style={td}>{s.fullDayMinHours}h</td>
-                  <td style={td}>{Math.floor(s.overtimeAfterMinutes / 60)}h{s.overtimeAfterMinutes % 60 ? ` ${s.overtimeAfterMinutes % 60}m` : ""}</td>
-                  <td style={td}><button onClick={() => toggleActive(s)} style={pillBtn(s.active)}>{s.active ? "Active" : "Inactive"}</button></td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <button onClick={() => openEdit(s)} style={mini()}>Edit</button>
-                    {!s.isSystem && <button onClick={() => remove(s)} style={{ ...mini(), color: T.red, borderColor: `${T.red}55` }}>Delete</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {modal && (
-        <div onClick={close} style={modalBackdrop}>
-          <div onClick={(e) => e.stopPropagation()} style={modalCard}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{modal.mode === "create" ? "Add Shift" : "Edit Shift"}</h2>
-              <button onClick={close} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: T.textMuted }}>×</button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-              {field("Name *",       <input value={modal.data.name} onChange={(e) => setModal({ ...modal, data: { ...modal.data, name: e.target.value } })} style={inp} />)}
-              {field("Code",         <input value={modal.data.code} onChange={(e) => setModal({ ...modal, data: { ...modal.data, code: e.target.value } })} style={inp} />)}
-              {field("Start",        <input type="time" value={modal.data.startTime} onChange={(e) => setModal({ ...modal, data: { ...modal.data, startTime: e.target.value } })} style={inp} />)}
-              {field("End",          <input type="time" value={modal.data.endTime}   onChange={(e) => setModal({ ...modal, data: { ...modal.data, endTime: e.target.value } })}   style={inp} />)}
-              {field("Grace (min)",  <input type="number" value={modal.data.graceMinutes}        onChange={(e) => setModal({ ...modal, data: { ...modal.data, graceMinutes: Number(e.target.value) || 0 } })} style={inp} />)}
-              {field("Half-Day (h)", <input type="number" step="0.5" value={modal.data.halfDayMinHours} onChange={(e) => setModal({ ...modal, data: { ...modal.data, halfDayMinHours: Number(e.target.value) || 0 } })} style={inp} />)}
-              {field("Full-Day (h)", <input type="number" step="0.5" value={modal.data.fullDayMinHours} onChange={(e) => setModal({ ...modal, data: { ...modal.data, fullDayMinHours: Number(e.target.value) || 0 } })} style={inp} />)}
-              {field("OT after (min)", <input type="number" value={modal.data.overtimeAfterMinutes} onChange={(e) => setModal({ ...modal, data: { ...modal.data, overtimeAfterMinutes: Number(e.target.value) || 0 } })} style={inp} />)}
-              {field("Sort Order",   <input type="number" value={modal.data.sortOrder} onChange={(e) => setModal({ ...modal, data: { ...modal.data, sortOrder: Number(e.target.value) || 0 } })} style={inp} />)}
-              {field("Default?", <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.isDefault} onChange={(e) => setModal({ ...modal, data: { ...modal.data, isDefault: e.target.checked } })} /> School default</label>)}
-              {field("Active?",  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.active}    onChange={(e) => setModal({ ...modal, data: { ...modal.data, active: e.target.checked } })} /> Active</label>)}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-              <button onClick={close} style={btn(T.surface, T.text, T.border)}>Cancel</button>
-              <button onClick={save} disabled={saving} style={btn(T.gold, "#1E1E1E")}>{saving ? "Saving…" : "Save"}</button>
-            </div>
-          </div>
+    <PageShell
+      header={
+        <PageHeader
+          title="Shifts"
+          tag="Staff Attendance"
+          subtitle="Working windows that drive late/early/half-day/overtime calculations."
+          primaryAction={{ label: "Add Shift", icon: <Plus size={14} strokeWidth={2} />, onClick: openCreate }}
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
         </div>
       )}
-    </div>
+
+      <DataTable
+        tableId="staff-shifts"
+        columns={columns}
+        data={rows}
+        loading={loading}
+        entityLabel="shifts"
+        searchPlaceholder="Search shifts…"
+        empty={{ title: "No shifts yet", description: "Defaults seed on first dashboard visit.", action: { label: "+ Add Shift", onClick: openCreate } }}
+      />
+
+      {modal && (
+        <Modal
+          isOpen
+          onClose={close}
+          title={modal.mode === "create" ? "Add Shift" : "Edit Shift"}
+          footer={
+            <>
+              <Button variant="outline" onClick={close} disabled={saving}>Cancel</Button>
+              <Button variant="primary" onClick={save} loading={saving}>Save</Button>
+            </>
+          }
+        >
+          <FormGrid cols={2}>
+            <Field label="Name" required>
+              <Input value={modal.data.name} onChange={(e) => patch({ name: e.target.value })} />
+            </Field>
+            <Field label="Code">
+              <Input value={modal.data.code} onChange={(e) => patch({ code: e.target.value })} />
+            </Field>
+            <Field label="Start">
+              <Input type="time" value={modal.data.startTime} onChange={(e) => patch({ startTime: e.target.value })} />
+            </Field>
+            <Field label="End">
+              <Input type="time" value={modal.data.endTime} onChange={(e) => patch({ endTime: e.target.value })} />
+            </Field>
+            <Field label="Grace (min)">
+              <Input type="number" value={modal.data.graceMinutes} onChange={(e) => patch({ graceMinutes: Number(e.target.value) || 0 })} />
+            </Field>
+            <Field label="Half-Day (h)">
+              <Input type="number" step="0.5" value={modal.data.halfDayMinHours} onChange={(e) => patch({ halfDayMinHours: Number(e.target.value) || 0 })} />
+            </Field>
+            <Field label="Full-Day (h)">
+              <Input type="number" step="0.5" value={modal.data.fullDayMinHours} onChange={(e) => patch({ fullDayMinHours: Number(e.target.value) || 0 })} />
+            </Field>
+            <Field label="OT after (min)">
+              <Input type="number" value={modal.data.overtimeAfterMinutes} onChange={(e) => patch({ overtimeAfterMinutes: Number(e.target.value) || 0 })} />
+            </Field>
+            <Field label="Sort Order">
+              <Input type="number" value={modal.data.sortOrder} onChange={(e) => patch({ sortOrder: Number(e.target.value) || 0 })} />
+            </Field>
+          </FormGrid>
+          <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={modal.data.isDefault} onChange={(e) => patch({ isDefault: e.target.checked })} /> School default
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={modal.data.active} onChange={(e) => patch({ active: e.target.checked })} /> Active
+            </label>
+          </div>
+        </Modal>
+      )}
+    </PageShell>
   );
 }
-
-function field(label, control) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>
-      {control}
-    </label>
-  );
-}
-
-const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted };
-const td = { padding: "10px 14px", fontSize: 13, color: T.text };
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const tag = { marginLeft: 6, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "#FFF7E0", border: "1px solid rgba(244,196,0,0.35)", color: T.goldMid, textTransform: "uppercase", letterSpacing: "0.05em" };
-const modalBackdrop = { position: "fixed", inset: 0, background: "rgba(20,18,12,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 };
-const modalCard = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 22, width: "min(640px, calc(100vw - 32px))", maxHeight: "calc(100vh - 64px)", overflow: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.20)" };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, background: "#FFFFFF" };
-function btn(bg, color, border) {
-  return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
-}
-function mini() { return { background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", marginLeft: 6 }; }
-function pillBtn(active) { return { background: active ? "#f0fdf4" : T.surfaceWarm, color: active ? T.green : T.textMuted, border: `1px solid ${active ? "#bbf7d0" : T.border}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }; }

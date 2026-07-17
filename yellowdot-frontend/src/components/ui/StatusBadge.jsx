@@ -48,6 +48,9 @@ const STATUS_LABEL_GROUP = {
   resigned: "neutral", terminated: "danger", inactive: "neutral", retired: "neutral",
   // Staff login-link status (staffService.LOGIN_STATUS_META)
   not_linked: "neutral", invitation_sent: "warning", disabled: "danger",
+  // Staff attendance status (staffAttendanceService.ATTENDANCE_STATUSES)
+  present: "success", absent: "danger", half_day: "warning", leave: "warning",
+  holiday: "info", wfh: "neutral", weekend: "neutral",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -59,6 +62,8 @@ const FRIENDLY_LABEL = {
   draft: "Draft", active: "Active", on_leave: "On Leave", notice_period: "Notice Period",
   resigned: "Resigned", terminated: "Terminated", inactive: "Inactive", retired: "Retired",
   not_linked: "Not Linked", invitation_sent: "Invitation Sent", disabled: "Disabled",
+  present: "Present", absent: "Absent", half_day: "Half Day", leave: "Leave",
+  holiday: "Holiday", wfh: "WFH", weekend: "Weekend",
 };
 
 function _statusConfig(status) {
