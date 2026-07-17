@@ -38,6 +38,15 @@ const FILTER_TABS = [
   { key: "PENDING_APPROVAL", label: "Pending Approval"},
 ];
 
+// Presentational only — maps each filter tab to a small leading icon.
+const FILTER_ICONS = {
+  ALL:              IcoUsers,
+  CHECKED_IN:       IcoCheckCircle,
+  NOT_ARRIVED:      IcoClock,
+  CHECKED_OUT:      IcoLogOut,
+  PENDING_APPROVAL: IcoHourglass,
+};
+
 const RELATION_OPTS = [
   "Unknown", "Father", "Mother", "Grandmother", "Grandfather",
   "Uncle", "Aunt", "Driver", "Guardian", "Other",
@@ -62,6 +71,16 @@ function todayIso() {
 }
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+}
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good Morning";
+  if (h < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+function firstName(user) {
+  const n = user?.displayName || user?.name || "";
+  return n.trim().split(" ")[0] || "there";
 }
 function fmtTime(iso) {
   if (!iso) return "";
@@ -162,6 +181,19 @@ export default function ChildPresence() {
 
   // Auto-focus search on mount for rapid sequential morning arrivals
   useEffect(() => { searchRef.current?.focus(); }, []);
+
+  // "/" focuses search from anywhere on the page (skip while typing elsewhere)
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== "/") return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -644,13 +676,62 @@ export default function ChildPresence() {
       <style>{`
         @keyframes cp-in  { from { opacity:0; transform:translateY(6px); }   to { opacity:1; transform:translateY(0); } }
         @keyframes cp-spn { to   { transform:rotate(360deg); } }
-        @keyframes cp-pop { from { opacity:0; transform:scale(0.92) translateY(4px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        @keyframes cp-pop { from { opacity:0; transform:scale(0.94) translateY(3px); } to { opacity:1; transform:scale(1) translateY(0); } }
 
-        .cp-card     { transition:box-shadow 0.15s, transform 0.15s; }
-        .cp-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.09) !important; transform:translateY(-1px); }
-        .cp-actbtn:hover { opacity:0.85 !important; }
+        .cp-card      { transition:box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease; }
+        .cp-card:hover  { box-shadow:0 8px 24px rgba(17,24,39,0.09) !important; transform:translateY(-2px); border-color:#D1D5DB; }
+
+        .cp-actbtn    { transition:filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+        .cp-actbtn:hover:not(:disabled) { filter:brightness(0.96); transform:translateY(-1px); box-shadow:0 3px 10px rgba(17,24,39,0.12); }
+        .cp-actbtn:active:not(:disabled) { transform:translateY(0); filter:brightness(0.92); }
+        .cp-actbtn:disabled { opacity:0.55; cursor:not-allowed; }
+
+        .cp-headbtn   { transition:background 0.15s ease, transform 0.15s ease; }
+        .cp-headbtn:hover { background:#E5E7EB !important; }
+        .cp-headbtn:active { transform:translateY(1px); }
+
+        .cp-btn       { transition:filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+        .cp-btn:hover:not(:disabled) { filter:brightness(0.94); box-shadow:0 3px 10px rgba(17,24,39,0.12); }
+        .cp-btn:active:not(:disabled) { transform:translateY(1px); }
+        .cp-btn:disabled { cursor:not-allowed; }
+
+        .cp-closebtn  { transition:background 0.15s ease, color 0.15s ease; }
+        .cp-closebtn:hover { background:#E5E7EB !important; color:#111827 !important; }
+
+        .cp-searchclear { transition:background 0.15s ease; }
+        .cp-searchclear:hover { background:#D1D5DB !important; }
+
+        .cp-fab, .cp-fabaction { transition:transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; }
+        .cp-fab:hover     { filter:brightness(0.96); box-shadow:0 6px 24px rgba(0,0,0,0.22); }
+        .cp-fabaction:hover { transform:scale(1.08); }
+        .cp-fab:focus-visible, .cp-fabaction:focus-visible { outline:2px solid #F4C400; outline-offset:3px; }
+
+        .cp-prow      { transition:background 0.15s ease; }
         .cp-prow:hover   { background:#F1F5F9 !important; }
-        .cp-morebtn:hover { background:#F3F4F6 !important; }
+        .cp-morebtn   { transition:background 0.15s ease, color 0.15s ease; }
+        .cp-morebtn:hover { background:#F3F4F6 !important; color:#374151 !important; }
+
+        .cp-chip:hover:not([aria-pressed="true"]) { border-color:#D1D5DB; background:#F3F4F6 !important; }
+        .cp-chip:active { transform:translateY(1px); }
+
+        .cp-search    { transition:border-color 0.15s ease, box-shadow 0.15s ease; }
+        .cp-search:focus { border-color:#F4C400 !important; box-shadow:0 0 0 3px rgba(244,196,0,0.18); background:#FFFFFF !important; }
+        .cp-select    { transition:border-color 0.15s ease; }
+        .cp-select:focus { border-color:#F4C400 !important; box-shadow:0 0 0 3px rgba(244,196,0,0.18); }
+
+        /* Focus-visible rings for keyboard navigation across all interactive elements */
+        .cp-actbtn:focus-visible,
+        .cp-headbtn:focus-visible,
+        .cp-chip:focus-visible,
+        .cp-morebtn:focus-visible,
+        .cp-search:focus-visible,
+        .cp-select:focus-visible,
+        .cp-btn:focus-visible,
+        .cp-closebtn:focus-visible,
+        .cp-searchclear:focus-visible {
+          outline:2px solid #F4C400 !important;
+          outline-offset:2px;
+        }
 
         /* Responsive card grid: 1 col → 2 col → 3 col → 4 col */
         @media (min-width:600px)  { .cp-grid { grid-template-columns:repeat(2,1fr) !important; } }
@@ -666,6 +747,11 @@ export default function ChildPresence() {
         @media (max-width:599px) {
           .cp-chips { flex-wrap:nowrap !important; overflow-x:auto; padding-bottom:4px; }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .cp-card, .cp-actbtn, .cp-headbtn, .cp-chip, .cp-search, .cp-select { transition:none !important; }
+          .cp-card:hover { transform:none !important; }
+        }
       `}</style>
 
       <div style={S.page} onClick={handlePageClick}>
@@ -673,10 +759,12 @@ export default function ChildPresence() {
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={S.hdr}>
           <div>
+            <p style={S.greeting}>{getGreeting()}, {firstName(user)} 👋</p>
             <h1 style={S.title}>Gate Register</h1>
+            <p style={S.subtitle}>Track arrivals and pickups at the gate in real time</p>
             <p style={S.dateStr}>{todayLabel()}</p>
           </div>
-          <button style={{ ...S.btn, ...S.btnGhost }} onClick={loadData}>
+          <button className="cp-headbtn" style={{ ...S.btn, ...S.btnGhost }} onClick={loadData} aria-label="Refresh gate register data">
             <IcoRefresh /> Refresh
           </button>
         </div>
@@ -708,16 +796,20 @@ export default function ChildPresence() {
 
         {/* ── Live Dashboard ───────────────────────────────────────────────── */}
         <div className="cp-dash" style={S.dash}>
-          <DashCard icon="🟢" label="Present"          n={counts.present}        color="#065F46" bg="#D1FAE5" />
-          <DashCard icon="🟡" label="Not Arrived"      n={counts.notArrived}     color="#92400E" bg="#FEF3C7" />
-          <DashCard icon="🔵" label="Picked Up"        n={counts.pickedUp}       color="#374151" bg="#F3F4F6" />
+          <DashCard
+            icon="🟢" label="Present" n={counts.present} color="#065F46" bg="#D1FAE5"
+            sub={counts.total ? `${Math.round((counts.present / counts.total) * 100)}% attendance today` : "No students yet"}
+          />
+          <DashCard icon="🟡" label="Not Arrived" n={counts.notArrived} color="#92400E" bg="#FEF3C7" sub="Awaiting arrival" />
+          <DashCard icon="🔵" label="Picked Up"   n={counts.pickedUp}   color="#374151" bg="#F3F4F6" sub="Already home" />
           <DashCard
             icon="⏳" label="Pending Approval"
             n={counts.pendingApproval}
             color="#5B21B6" bg="#EDE9FE"
+            sub={counts.pendingApproval > 0 ? `${counts.pendingApproval} awaiting pickup` : "All caught up"}
             pulse={counts.pendingApproval > 0}
           />
-          <DashCard icon="👤" label="Total Students"  n={counts.total}           color="#1E3A5F" bg="#E0F2FE" />
+          <DashCard icon="👥" label="Total Students" n={counts.total} color="#1E3A5F" bg="#E0F2FE" sub="Enrolled today" />
         </div>
 
         {/* ── Activity Timeline ────────────────────────────────────────────── */}
@@ -742,13 +834,19 @@ export default function ChildPresence() {
               <div style={S.tlBody}>
                 {activityFeed.map((ev, i) => (
                   <div key={i} style={S.tlRow}>
-                    <div style={{ ...S.tlLine, background: i === activityFeed.length - 1 ? "transparent" : "#E5E7EB" }} />
-                    <div style={{ ...S.tlDot, background: ev.isIn ? "#10B981" : "#9CA3AF" }} />
-                    <span style={S.tlTime}>{fmtTime(ev.time)}</span>
-                    <span style={S.tlText}>
-                      <strong style={{ color: "#111827" }}>{ev.name}</strong>{" "}
-                      <span style={{ color: "#6B7280" }}>{ev.action}</span>
-                    </span>
+                    <div style={S.tlIconCol}>
+                      <div style={{ ...S.tlDot, background: ev.isIn ? "#10B981" : "#9CA3AF" }} aria-hidden="true">
+                        {ev.isIn ? <IcoArrowIn /> : <IcoArrowOut />}
+                      </div>
+                      {i !== activityFeed.length - 1 && <div style={S.tlLine} />}
+                    </div>
+                    <div style={S.tlBodyCol}>
+                      <span style={S.tlText}>
+                        <strong style={{ color: "#111827" }}>{ev.name}</strong>{" "}
+                        <span style={{ color: "#6B7280" }}>{ev.action}</span>
+                      </span>
+                      <span style={S.tlTime}>{fmtTime(ev.time)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -765,10 +863,13 @@ export default function ChildPresence() {
                         : tab.key === "PENDING_APPROVAL"  ? counts.pendingApproval
                         : null;
             const active = statusFilter === tab.key;
+            const Icon = FILTER_ICONS[tab.key];
             return (
               <button
                 key={tab.key}
+                className="cp-chip"
                 onClick={e => { e.stopPropagation(); setStatusFilter(tab.key); }}
+                aria-pressed={active}
                 style={{
                   ...S.chipBtn,
                   ...(active ? S.chipBtnActive : {}),
@@ -776,6 +877,7 @@ export default function ChildPresence() {
                     ? { borderColor: "#A78BFA", color: "#5B21B6" } : {}),
                 }}
               >
+                {Icon && <Icon size={12} />}
                 {tab.label}
                 {count !== null && (
                   <span style={{
@@ -794,17 +896,37 @@ export default function ChildPresence() {
 
         {/* ── Search row ───────────────────────────────────────────────────── */}
         <div style={S.filters}>
-          <input
-            ref={searchRef}
-            style={S.searchIn}
-            placeholder="Search by name, class, ID, parent or phone…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <div style={S.searchWrap}>
+            <span style={S.searchIcon} aria-hidden="true"><IcoSearch /></span>
+            <input
+              ref={searchRef}
+              className="cp-search"
+              style={S.searchIn}
+              placeholder="Search students, parents, or phone number…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              aria-label="Search students"
+            />
+            {search ? (
+              <button
+                type="button"
+                className="cp-searchclear"
+                style={S.searchClear}
+                onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+                aria-label="Clear search"
+              >
+                <IcoX size={11} />
+              </button>
+            ) : (
+              <span style={S.searchHint} aria-hidden="true">/</span>
+            )}
+          </div>
           <select
+            className="cp-select"
             style={S.classIn}
             value={classFilter}
             onChange={e => setClassFilter(e.target.value)}
+            aria-label="Filter by class"
           >
             <option value="">All Classes</option>
             {classes.map(c => <option key={c} value={c}>{c}</option>)}
@@ -826,7 +948,7 @@ export default function ChildPresence() {
         ) : dataError ? (
           <div style={S.centered}>
             <p style={S.muted}>{dataError}</p>
-            <button style={{ ...S.btn, ...S.btnGhost }} onClick={loadData}>Retry</button>
+            <button className="cp-btn" style={{ ...S.btn, ...S.btnGhost }} onClick={loadData}>Retry</button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={S.centered}>
@@ -917,19 +1039,28 @@ export default function ChildPresence() {
 }
 
 // ── DashCard ──────────────────────────────────────────────────────────────────
-function DashCard({ icon, label, n, color, bg, pulse }) {
+function DashCard({ icon, label, n, color, bg, sub, pulse }) {
   return (
-    <div style={{
-      ...S.dashCard,
-      background: bg,
-      outline: pulse ? `2px solid ${color}` : "none",
-      outlineOffset: 2,
-    }}>
-      <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
-      <span style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1 }}>{n}</span>
-      <span style={{ fontSize: 10, fontWeight: 700, color, opacity: 0.7, marginTop: 1, lineHeight: 1.3, textAlign: "left" }}>
+    <div
+      role="group"
+      aria-label={`${label}: ${n}${sub ? `, ${sub}` : ""}`}
+      style={{
+        ...S.dashCard,
+        background: `linear-gradient(150deg, ${bg} 0%, #FFFFFF 135%)`,
+        outline: pulse ? `2px solid ${color}` : "none",
+        outlineOffset: 2,
+      }}
+    >
+      <span style={{ fontSize: 30, lineHeight: 1 }} aria-hidden="true">{icon}</span>
+      <span style={{ fontSize: 27, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{n}</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color, opacity: 0.75, lineHeight: 1.3, textAlign: "left" }}>
         {label}
       </span>
+      {sub && (
+        <span style={{ fontSize: 10.5, fontWeight: 500, color, opacity: 0.55, lineHeight: 1.3, textAlign: "left" }}>
+          {sub}
+        </span>
+      )}
     </div>
   );
 }
@@ -961,8 +1092,8 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
     <div className="cp-card" style={{ ...S.card, borderColor, background: cardBg }}>
 
       {/* Top: avatar + name + ⋮ */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           {photo ? (
             <img src={photo} alt="" style={S.cardPhoto} />
           ) : (
@@ -972,8 +1103,7 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
           )}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={S.cardName}>{stuName(stu)}</div>
-            <div style={S.cardCls}>{stuCls(stu)}</div>
-            <div style={S.cardAdm}>#{stuAdmNo(stu)}</div>
+            <div style={S.cardMeta}>{stuCls(stu)} <span style={S.cardMetaDot}>•</span> #{stuAdmNo(stu)}</div>
           </div>
         </div>
 
@@ -1003,7 +1133,7 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
       </div>
 
       {/* Status badges */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12, flex: 1 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, flex: 1 }}>
         {hasApproval ? (
           <>
             <div style={{ ...S.badge, background: "#D1FAE5", color: "#065F46" }}>
@@ -1011,8 +1141,9 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
               Parent Approved
             </div>
             <span style={S.cardSub}>
+              <IcoUsers size={11} />
               {approvedRequest.personName || "Unknown"}
-              {approvedRequest.deviceAuthenticated ? " · 🔒 Device Verified" : ""}
+              {approvedRequest.deviceAuthenticated ? " · 🔒 Verified" : ""}
             </span>
           </>
         ) : (
@@ -1022,33 +1153,38 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
               {cfg.label}
             </div>
             {hasPending && (
-              <div style={{ ...S.badge, background: "#EDE9FE", color: "#5B21B6", marginTop: 2 }}>
+              <div style={{ ...S.badge, background: "#EDE9FE", color: "#5B21B6" }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#7C3AED", flexShrink: 0 }} />
                 Waiting Approval
               </div>
             )}
-            {subText && <span style={S.cardSub}>{subText}</span>}
+            {subText && (
+              <span style={S.cardSub}>
+                {status === "CHECKED_IN" ? <IcoClock size={11} /> : <IcoLogOut size={11} />}
+                {subText}
+              </span>
+            )}
           </>
         )}
       </div>
 
       {/* Action button */}
       {busy ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}><Spin size={20} /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}><Spin size={20} /></div>
       ) : hasApproval ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#10B981", color: "#FFFFFF" }} onClick={onRelease}>
-          Release Child
+        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#10B981", color: "#FFFFFF" }} onClick={onRelease} aria-label={`Release ${stuName(stu)}`}>
+          <IcoCheckCircle size={14} /> Release Child
         </button>
       ) : canIn ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#D1FAE5", color: "#065F46" }} onClick={onCheckIn}>
-          ✓ Check In
+        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#D1FAE5", color: "#065F46" }} onClick={onCheckIn} aria-label={`Check in ${stuName(stu)}`}>
+          <IcoCheckCircle size={14} /> Check In
         </button>
       ) : canOut ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#FEE2E2", color: "#991B1B" }} onClick={onCheckOut}>
-          Pick Up
+        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#FEE2E2", color: "#991B1B" }} onClick={onCheckOut} aria-label={`Start pickup for ${stuName(stu)}`}>
+          <IcoLogOut size={14} /> Pick Up
         </button>
       ) : (
-        <div style={{ textAlign: "center", color: "#D1D5DB", fontSize: 12, padding: "6px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#D1D5DB", fontSize: 12, padding: "8px 0" }} aria-disabled="true">
           Picked up {subText ? `· ${subText}` : ""}
         </div>
       )}
@@ -1093,6 +1229,7 @@ function SpeedDialFAB({ open, onToggle, onScanBadge, onManualCheckIn, onVisitorE
             >
               <span style={S.fabLabel}>{a.label}</span>
               <button
+                className="cp-fabaction"
                 style={{ ...S.fabAction, background: a.color }}
                 onClick={a.onClick}
                 aria-label={a.label}
@@ -1104,6 +1241,7 @@ function SpeedDialFAB({ open, onToggle, onScanBadge, onManualCheckIn, onVisitorE
         </div>
       )}
       <button
+        className="cp-fab"
         style={{
           ...S.fab,
           background: open ? "#1F2937" : "#F4C400",
@@ -1140,7 +1278,7 @@ function CheckoutModal({
       <div style={S.modal} onClick={e => e.stopPropagation()}>
 
         {!["sent", "approved", "rejected"].includes(step) && (
-          <button style={S.closeBtn} onClick={onClose} aria-label="Close">✕</button>
+          <button className="cp-closebtn" style={S.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         )}
 
         {/* ── select ── */}
@@ -1192,8 +1330,8 @@ function CheckoutModal({
               <video ref={videoRefCb} autoPlay playsInline muted style={S.video} />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-              <button style={{ ...S.btn, ...S.btnGhost, flex: 1 }} onClick={onClose}>Cancel</button>
-              <button style={{ ...S.btn, ...S.btnDark,  flex: 2 }} onClick={onCapture}>
+              <button className="cp-btn" style={{ ...S.btn, ...S.btnGhost, flex: 1 }} onClick={onClose}>Cancel</button>
+              <button className="cp-btn" style={{ ...S.btn, ...S.btnDark,  flex: 2 }} onClick={onCapture}>
                 Capture Photo
               </button>
             </div>
@@ -1217,8 +1355,9 @@ function CheckoutModal({
               {RELATION_OPTS.map(r => <option key={r}>{r}</option>)}
             </select>
             <div style={{ display: "flex", gap: 10 }}>
-              <button style={{ ...S.btn, ...S.btnGhost, flex: 1 }} onClick={onRetake}>Retake</button>
+              <button className="cp-btn" style={{ ...S.btn, ...S.btnGhost, flex: 1 }} onClick={onRetake}>Retake</button>
               <button
+                className="cp-btn"
                 style={{ ...S.btn, ...S.btnDark, flex: 2, opacity: sending ? 0.6 : 1 }}
                 onClick={onSend}
                 disabled={sending}
@@ -1241,7 +1380,7 @@ function CheckoutModal({
               <Spin size={16} />
               <span>Waiting for parent response…</span>
             </div>
-            <button style={{ ...S.btn, ...S.btnGhost, width: "100%", marginTop: 12 }} onClick={onClose}>
+            <button className="cp-btn" style={{ ...S.btn, ...S.btnGhost, width: "100%", marginTop: 12 }} onClick={onClose}>
               Close (check back later)
             </button>
           </div>
@@ -1259,6 +1398,7 @@ function CheckoutModal({
               <img src={photo} alt="Approved person" style={{ ...S.capImg, border: "2px solid #10B981" }} />
             )}
             <button
+              className="cp-btn"
               style={{ ...S.btn, ...S.btnDark, width: "100%", marginTop: 16, background: "#10B981", boxShadow: "0 4px 14px rgba(16,185,129,0.35)", opacity: sending ? 0.6 : 1 }}
               onClick={onRelease}
               disabled={sending}
@@ -1279,7 +1419,7 @@ function CheckoutModal({
             {photo && (
               <img src={photo} alt="Rejected person" style={{ ...S.capImg, border: "2px solid #EF4444", opacity: 0.7 }} />
             )}
-            <button style={{ ...S.btn, ...S.btnDark, width: "100%", marginTop: 16 }} onClick={onClose}>
+            <button className="cp-btn" style={{ ...S.btn, ...S.btnDark, width: "100%", marginTop: 16 }} onClick={onClose}>
               Dismiss
             </button>
           </div>
@@ -1315,6 +1455,87 @@ function IcoRefresh() {
   );
 }
 
+function IcoArrowIn() {
+  return (
+    <svg width={11} height={11} viewBox="0 0 24 24" fill="none"
+      stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="19 12 12 19 5 12"/><line x1="12" y1="19" x2="12" y2="5"/>
+    </svg>
+  );
+}
+
+function IcoArrowOut() {
+  return (
+    <svg width={11} height={11} viewBox="0 0 24 24" fill="none"
+      stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/>
+    </svg>
+  );
+}
+
+function IcoSearch() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  );
+}
+
+function IcoX({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
+function IcoClock({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+    </svg>
+  );
+}
+
+function IcoCheckCircle({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  );
+}
+
+function IcoLogOut({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  );
+}
+
+function IcoHourglass({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 22h14M5 2h14M5 2v5a7 7 0 0 0 7 5 7 7 0 0 0 7-5V2M5 22v-5a7 7 0 0 1 7-5 7 7 0 0 1 7 5v5"/>
+    </svg>
+  );
+}
+
+function IcoUsers({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+
 function IcoActivity({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -1345,58 +1566,70 @@ const S = {
   },
 
   // Header
-  hdr:     { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" },
-  title:   { fontSize: 26, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.5px" },
-  dateStr: { fontSize: 13, color: "#9CA3AF", margin: "4px 0 0" },
+  hdr:      { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 22, flexWrap: "wrap" },
+  greeting: { fontSize: 13, fontWeight: 700, color: "#B45309", margin: 0, letterSpacing: "0.01em" },
+  title:    { fontSize: 27, fontWeight: 800, color: "#111827", margin: "3px 0 0", letterSpacing: "-0.5px" },
+  subtitle: { fontSize: 13, color: "#6B7280", margin: "5px 0 0", maxWidth: 420, lineHeight: 1.4 },
+  dateStr:  { fontSize: 12, color: "#9CA3AF", margin: "6px 0 0", fontWeight: 600 },
 
   // Dashboard
-  dash:     { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" },
+  dash:     { display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" },
   dashCard: {
-    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4,
-    padding: "12px 14px", borderRadius: 12, flex: "1 0 88px", minWidth: 80,
+    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5,
+    padding: "16px 16px 14px", borderRadius: 16, flex: "1 1 150px", minWidth: 140, minHeight: 108,
+    border: "1px solid rgba(17,24,39,0.05)",
+    boxShadow: "0 1px 2px rgba(17,24,39,0.03), 0 6px 16px rgba(17,24,39,0.055)",
+    position: "relative", overflow: "hidden",
   },
 
   // Activity timeline
-  timeline: { background: "#FAFAFA", border: "1px solid #E5E7EB", borderRadius: 14, marginBottom: 14, overflow: "hidden" },
-  tlToggle: { display: "flex", alignItems: "center", gap: 7, padding: "11px 14px", width: "100%", border: "none", background: "transparent", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#374151" },
-  tlBody:   { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 0 },
-  tlRow:    { display: "flex", alignItems: "center", gap: 10, padding: "6px 0", position: "relative", paddingLeft: 22 },
-  tlLine:   { position: "absolute", left: 6, top: 0, bottom: 0, width: 2 },
-  tlDot:    { position: "absolute", left: 2, width: 10, height: 10, borderRadius: "50%", border: "2px solid #FAFAFA", flexShrink: 0 },
-  tlTime:   { fontSize: 12, color: "#9CA3AF", fontWeight: 600, minWidth: 62, flexShrink: 0 },
-  tlText:   { fontSize: 13, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  timeline:   { background: "#FAFAFA", border: "1px solid #E5E7EB", borderRadius: 14, marginBottom: 14, overflow: "hidden" },
+  tlToggle:   { display: "flex", alignItems: "center", gap: 7, padding: "12px 14px", width: "100%", border: "none", background: "transparent", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#374151" },
+  tlBody:     { padding: "2px 14px 14px", display: "flex", flexDirection: "column", gap: 0, maxHeight: 320, overflowY: "auto" },
+  tlRow:      { display: "flex", alignItems: "flex-start", gap: 12, padding: "7px 0" },
+  tlIconCol:  { display: "flex", flexDirection: "column", alignItems: "center", width: 20, flexShrink: 0 },
+  tlLine:     { width: 2, flex: 1, minHeight: 10, background: "#E5E7EB", marginTop: 2 },
+  tlDot:      { width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 3px #FAFAFA" },
+  tlBodyCol:  { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flex: 1, minWidth: 0, paddingTop: 1 },
+  tlTime:     { fontSize: 11.5, color: "#9CA3AF", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" },
+  tlText:     { fontSize: 13, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
 
   // Filter chips
-  chipBtn:       { padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid #E5E7EB", background: "#FAFAFA", color: "#374151", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.15s" },
+  chipBtn:       { padding: "7px 13px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid #E5E7EB", background: "#FAFAFA", color: "#374151", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6, transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease" },
   chipBtnActive: { background: "#111827", color: "#FFFFFF", border: "1.5px solid #111827" },
 
   // Search / filters row
-  filters:  { display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" },
-  searchIn: { flex: "1 1 200px", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#111827", outline: "none", background: "#FAFAFA", boxSizing: "border-box" },
-  classIn:  { padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#374151", outline: "none", background: "#FAFAFA", cursor: "pointer" },
+  filters:     { display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" },
+  searchWrap:  { position: "relative", flex: "1 1 240px", display: "flex", alignItems: "center" },
+  searchIcon:  { position: "absolute", left: 13, display: "flex", color: "#9CA3AF", pointerEvents: "none" },
+  searchIn:    { width: "100%", padding: "10px 40px 10px 36px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#111827", outline: "none", background: "#FAFAFA", boxSizing: "border-box" },
+  searchClear: { position: "absolute", right: 8, display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", border: "none", background: "#E5E7EB", color: "#6B7280", cursor: "pointer" },
+  searchHint:  { position: "absolute", right: 12, fontSize: 11, fontWeight: 700, color: "#9CA3AF", background: "#EEF0F2", border: "1px solid #E5E7EB", borderRadius: 5, padding: "1px 6px", pointerEvents: "none" },
+  classIn:     { padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#374151", outline: "none", background: "#FAFAFA", cursor: "pointer" },
 
   // Card grid
-  grid: { display: "grid", gridTemplateColumns: "1fr", gap: 12, paddingBottom: 8 },
+  grid: { display: "grid", gridTemplateColumns: "1fr", gap: 14, paddingBottom: 8 },
 
   // Student card
   card: {
-    display: "flex", flexDirection: "column", padding: "14px 14px 12px",
+    display: "flex", flexDirection: "column", padding: "16px 16px 14px",
     background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: 16,
-    minHeight: 190,
+    minHeight: 200,
+    boxShadow: "0 1px 2px rgba(17,24,39,0.03)",
   },
-  cardPhoto: { width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0 },
-  cardAva:   { width: 44, height: 44, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  avaText:   { fontSize: 13, fontWeight: 800, color: "#92400E" },
-  cardName:  { fontSize: 14, fontWeight: 700, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 },
-  cardCls:   { fontSize: 12, color: "#6B7280", marginTop: 1 },
-  cardAdm:   { fontSize: 11, color: "#9CA3AF" },
-  cardSub:   { fontSize: 11, color: "#9CA3AF", paddingLeft: 1 },
+  cardPhoto: { width: 56, height: 56, borderRadius: 14, objectFit: "cover", flexShrink: 0 },
+  cardAva:   { width: 56, height: 56, borderRadius: 14, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  avaText:   { fontSize: 16, fontWeight: 800, color: "#92400E" },
+  cardName:  { fontSize: 15.5, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175, letterSpacing: "-0.01em" },
+  cardMeta:  { fontSize: 12, color: "#6B7280", marginTop: 3, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  cardMetaDot: { color: "#D1D5DB" },
+  cardSub:   { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#9CA3AF", fontWeight: 500 },
 
   // Badge
-  badge: { display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
+  badge: { display: "inline-flex", alignItems: "center", gap: 6, padding: "3.5px 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", letterSpacing: "0.01em" },
 
   // Card action button
-  cardBtn: { width: "100%", padding: "9px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", textAlign: "center" },
+  cardBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "11px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", textAlign: "center" },
 
   // ⋮ menu
   moreBtn:  { background: "transparent", border: "none", cursor: "pointer", padding: "3px 7px", fontSize: 18, color: "#9CA3AF", lineHeight: 1, borderRadius: 6 },
