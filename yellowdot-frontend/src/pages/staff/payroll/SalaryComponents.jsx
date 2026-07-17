@@ -1,12 +1,22 @@
 /**
  * SalaryComponents.jsx — CRUD master for salary components
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + DataTable + Modal/FormGrid/Field/Input/Select/Button/Badge.
+ * Same payrollService component calls/payloads.
  */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import payrollService from "../../../services/payrollService";
-import { T } from "./_shared";
+import { PageShell, PageHeader, DataTable, Badge, Modal, Button, Field, FormGrid, Input, Select } from "../../../components/ui";
 
 const EMPTY = { code: "", name: "", kind: "earning", type: "fixed", percent: 0, amount: 0, taxable: false, active: true, sortOrder: 0 };
+
+const KIND_OPTIONS = [{ value: "earning", label: "Earning" }, { value: "deduction", label: "Deduction" }];
+const TYPE_OPTIONS = [
+  { value: "fixed", label: "Fixed amount" },
+  { value: "percent_basic", label: "% of Basic" },
+  { value: "lop_proration", label: "LOP proration (auto)" },
+];
 
 export default function SalaryComponents() {
   const [rows, setRows] = useState([]);
@@ -27,6 +37,8 @@ export default function SalaryComponents() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
+  function patch(f) { setModal(m => ({ ...m, data: { ...m.data, ...f } })); }
+
   async function save() {
     setSaving(true);
     try {
@@ -43,106 +55,85 @@ export default function SalaryComponents() {
     catch (err) { alert(err.response?.data?.error || err.message); }
   }
 
+  const columns = useMemo(() => [
+    { key: "code", label: "Code", width: 80, render: (v) => <span style={{ fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>{v || "—"}</span> },
+    {
+      key: "name", label: "Name", sortable: true, filterable: true, width: 160,
+      render: (v, row) => <span>{v}{row.isSystem && <span style={{ marginLeft: 6 }}><Badge variant="yellow">system</Badge></span>}</span>,
+    },
+    { key: "kind", label: "Kind", sortable: true, filterable: true, filterType: "select", filterOptions: KIND_OPTIONS, width: 110, render: (v) => v === "earning" ? <span style={{ color: "var(--yd-success)", fontWeight: 600 }}>Earning</span> : <span style={{ color: "var(--yd-danger)", fontWeight: 600 }}>Deduction</span> },
+    { key: "type", label: "Type", width: 130, render: (v) => (TYPE_OPTIONS.find(t => t.value === v) || {}).label || v },
+    { key: "percent", label: "Default %", width: 100, render: (v, row) => row.type === "percent_basic" ? `${v}%` : "—" },
+    { key: "amount", label: "Default ₹", width: 110, render: (v, row) => row.type === "fixed" ? `₹ ${(v || 0).toLocaleString("en-IN")}` : "—" },
+    { key: "taxable", label: "Taxable", width: 90, render: (v) => v ? "Yes" : "—" },
+    {
+      key: "active", label: "Status", width: 110,
+      render: (v, row) => v ? <span style={{ color: "var(--yd-success)" }}>Active</span> : <span style={{ color: "var(--yd-text-muted)" }}>Inactive</span>,
+    },
+    {
+      key: "actions", label: "", type: "actions", width: 130, hideable: false,
+      actions: (row) => (
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button size="xs" variant="ghost" onClick={() => setModal({ mode: "edit", data: { ...row } })}>Edit</Button>
+          {!row.isSystem && <Button size="xs" variant="ghost" onClick={() => remove(row)}>Delete</Button>}
+        </div>
+      ),
+    },
+  ], []);
+
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Payroll</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Salary Components</h1>
-          <div style={{ fontSize: 13, color: T.textSoft, marginTop: 4 }}>Master list of earnings and deductions used by salary structures and payroll runs.</div>
-        </div>
-        <button onClick={() => setModal({ mode: "create", data: { ...EMPTY } })} style={btn(T.gold, "#1E1E1E")}>+ Add Component</button>
-      </div>
-
-      {error && <div style={errorBox}>{error}</div>}
-
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 880 }}>
-            <thead style={{ background: T.surfaceWarm, borderBottom: `1px solid ${T.border}` }}>
-              <tr>
-                <th style={th}>Code</th><th style={th}>Name</th>
-                <th style={th}>Kind</th><th style={th}>Type</th>
-                <th style={th}>Default %</th><th style={th}>Default ₹</th>
-                <th style={th}>Taxable</th><th style={th}>Status</th>
-                <th style={{ ...th, textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={9} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={9} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>No components yet — defaults seed on first dashboard visit.</td></tr>}
-              {!loading && rows.map(c => (
-                <tr key={c.componentId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={{ ...td, fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>{c.code || "—"}</td>
-                  <td style={td}>{c.name}{c.isSystem && <span style={tag}>system</span>}</td>
-                  <td style={td}>{c.kind === "earning" ? <span style={{ color: T.green, fontWeight: 600 }}>Earning</span> : <span style={{ color: T.red, fontWeight: 600 }}>Deduction</span>}</td>
-                  <td style={td}>{c.type}</td>
-                  <td style={td}>{c.type === "percent_basic" ? `${c.percent}%` : "—"}</td>
-                  <td style={td}>{c.type === "fixed" ? `₹ ${c.amount.toLocaleString("en-IN")}` : "—"}</td>
-                  <td style={td}>{c.taxable ? "Yes" : "—"}</td>
-                  <td style={td}>{c.active ? <span style={{ color: T.green }}>Active</span> : <span style={{ color: T.textMuted }}>Inactive</span>}</td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <button onClick={() => setModal({ mode: "edit", data: { ...c } })} style={mini()}>Edit</button>
-                    {!c.isSystem && <button onClick={() => remove(c)} style={{ ...mini(), color: T.red, borderColor: `${T.red}55` }}>Delete</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {modal && (
-        <div onClick={() => setModal(null)} style={backdrop}>
-          <div onClick={(e) => e.stopPropagation()} style={card}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, marginBottom: 14 }}>{modal.mode === "create" ? "Add Component" : "Edit Component"}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-              {fld("Code *",  <input value={modal.data.code} onChange={(e) => set("code", e.target.value)} style={inp} />)}
-              {fld("Name *",  <input value={modal.data.name} onChange={(e) => set("name", e.target.value)} style={inp} />)}
-              {fld("Kind",
-                <select value={modal.data.kind} onChange={(e) => set("kind", e.target.value)} style={inp}>
-                  <option value="earning">Earning</option>
-                  <option value="deduction">Deduction</option>
-                </select>)}
-              {fld("Type",
-                <select value={modal.data.type} onChange={(e) => set("type", e.target.value)} style={inp}>
-                  <option value="fixed">Fixed amount</option>
-                  <option value="percent_basic">% of Basic</option>
-                  <option value="lop_proration">LOP proration (auto)</option>
-                </select>)}
-              {modal.data.type === "percent_basic" && fld("Default %",
-                <input type="number" value={modal.data.percent} onChange={(e) => set("percent", Number(e.target.value) || 0)} style={inp} />)}
-              {modal.data.type === "fixed" && fld("Default ₹",
-                <input type="number" value={modal.data.amount} onChange={(e) => set("amount", Number(e.target.value) || 0)} style={inp} />)}
-              {fld("Sort Order",
-                <input type="number" value={modal.data.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value) || 0)} style={inp} />)}
-              {fld("Taxable?", <label style={ck}><input type="checkbox" checked={modal.data.taxable} onChange={(e) => set("taxable", e.target.checked)} /> Tax-affected</label>)}
-              {fld("Active?",  <label style={ck}><input type="checkbox" checked={modal.data.active}  onChange={(e) => set("active",  e.target.checked)} /> Active</label>)}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-              <button onClick={() => setModal(null)} style={btn(T.surface, T.text, T.border)}>Cancel</button>
-              <button onClick={save} disabled={saving} style={btn(T.gold, "#1E1E1E")}>{saving ? "Saving…" : "Save"}</button>
-            </div>
-          </div>
+    <PageShell
+      header={
+        <PageHeader
+          title="Salary Components"
+          tag="Payroll"
+          subtitle="Master list of earnings and deductions used by salary structures and payroll runs."
+          primaryAction={{ label: "Add Component", icon: <Plus size={14} strokeWidth={2} />, onClick: () => setModal({ mode: "create", data: { ...EMPTY } }) }}
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
         </div>
       )}
-    </div>
+
+      <DataTable
+        tableId="salary-components"
+        columns={columns}
+        data={rows}
+        loading={loading}
+        entityLabel="components"
+        searchPlaceholder="Search components…"
+        empty={{ title: "No components yet", description: "Defaults seed on first dashboard visit.", action: { label: "+ Add Component", onClick: () => setModal({ mode: "create", data: { ...EMPTY } }) } }}
+      />
+
+      {modal && (
+        <Modal
+          isOpen
+          onClose={() => setModal(null)}
+          title={modal.mode === "create" ? "Add Component" : "Edit Component"}
+          footer={<><Button variant="outline" onClick={() => setModal(null)} disabled={saving}>Cancel</Button><Button variant="primary" onClick={save} loading={saving}>Save</Button></>}
+        >
+          <FormGrid cols={2}>
+            <Field label="Code" required><Input value={modal.data.code} onChange={(e) => patch({ code: e.target.value })} /></Field>
+            <Field label="Name" required><Input value={modal.data.name} onChange={(e) => patch({ name: e.target.value })} /></Field>
+            <Field label="Kind"><Select value={modal.data.kind} onChange={(e) => patch({ kind: e.target.value })} options={KIND_OPTIONS} /></Field>
+            <Field label="Type"><Select value={modal.data.type} onChange={(e) => patch({ type: e.target.value })} options={TYPE_OPTIONS} /></Field>
+            {modal.data.type === "percent_basic" && (
+              <Field label="Default %"><Input type="number" value={modal.data.percent} onChange={(e) => patch({ percent: Number(e.target.value) || 0 })} /></Field>
+            )}
+            {modal.data.type === "fixed" && (
+              <Field label="Default ₹"><Input type="number" value={modal.data.amount} onChange={(e) => patch({ amount: Number(e.target.value) || 0 })} /></Field>
+            )}
+            <Field label="Sort Order"><Input type="number" value={modal.data.sortOrder} onChange={(e) => patch({ sortOrder: Number(e.target.value) || 0 })} /></Field>
+          </FormGrid>
+          <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.taxable} onChange={(e) => patch({ taxable: e.target.checked })} /> Tax-affected</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.active} onChange={(e) => patch({ active: e.target.checked })} /> Active</label>
+          </div>
+        </Modal>
+      )}
+    </PageShell>
   );
-
-  function set(k, v) { setModal(m => ({ ...m, data: { ...m.data, [k]: v } })); }
 }
-
-function fld(label, control) {
-  return <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>{control}</label>;
-}
-
-const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted };
-const td = { padding: "10px 14px", fontSize: 13, color: T.text };
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, background: "#FFFFFF" };
-const ck  = { display: "flex", alignItems: "center", gap: 8, fontSize: 13 };
-const tag = { marginLeft: 6, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "#FFF7E0", border: "1px solid rgba(244,196,0,0.35)", color: T.goldMid, textTransform: "uppercase" };
-const backdrop = { position: "fixed", inset: 0, background: "rgba(20,18,12,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 };
-const card = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 22, width: "min(680px, calc(100vw - 32px))", maxHeight: "calc(100vh - 64px)", overflow: "auto" };
-function btn(bg, color, border) { return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }; }
-function mini() { return { background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", marginLeft: 6 }; }

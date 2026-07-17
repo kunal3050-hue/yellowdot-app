@@ -53,6 +53,8 @@ const STATUS_LABEL_GROUP = {
   holiday: "info", wfh: "neutral", weekend: "neutral",
   // Leave request status (leaveService.LEAVE_STATUS_META)
   pending: "warning", approved: "success", rejected: "danger", cancelled: "neutral",
+  // Payroll run status (payrollService.RUN_STATUS_META)
+  processed: "success", locked: "warning", reversed: "danger",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -67,6 +69,7 @@ const FRIENDLY_LABEL = {
   present: "Present", absent: "Absent", half_day: "Half Day", leave: "Leave",
   holiday: "Holiday", wfh: "WFH", weekend: "Weekend",
   pending: "Pending", approved: "Approved", rejected: "Rejected", cancelled: "Cancelled",
+  processed: "Processed", locked: "Locked", reversed: "Reversed",
 };
 
 function _statusConfig(status) {

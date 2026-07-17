@@ -1,11 +1,14 @@
 /**
  * PayrollRun.jsx — Process / view a monthly payroll run + per-employee payslip preview
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + KpiRow + DataTable + StatusBadge. Same payrollService calls.
  */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import payrollService, { RUN_STATUS_META } from "../../../services/payrollService";
-import { T, pillStyle, inr, monthName } from "./_shared";
+import { ExternalLink } from "lucide-react";
+import payrollService from "../../../services/payrollService";
+import { PageShell, PageHeader, KpiRow, KpiCard, DataTable, StatusBadge, Select } from "../../../components/ui";
+import { inr, monthName } from "./_shared";
 
 export default function PayrollRun() {
   const [sp, setSp] = useSearchParams();
@@ -39,7 +42,6 @@ export default function PayrollRun() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  // Sync URL
   useEffect(() => {
     const next = new URLSearchParams(sp);
     next.set("year", String(year));
@@ -74,101 +76,85 @@ export default function PayrollRun() {
     finally { setBusy(false); }
   }
 
-  return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: monthName(i + 1) }));
+
+  const secondaryActions = [];
+  if (run && run.status === "processed") secondaryActions.push({ key: "lock", label: "Lock", onClick: lock, disabled: busy });
+  if (run && run.status === "locked")    secondaryActions.push({ key: "reopen", label: "Reopen", onClick: reopen, disabled: busy });
+
+  const columns = useMemo(() => [
+    {
+      key: "displayName", label: "Employee", sortable: true, filterable: true, width: 180,
+      render: (v, row) => (
         <div>
-          <button onClick={() => navigate("/staff/payroll")} style={{ background: "none", border: "none", color: T.goldMid, fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 4 }}>‹ Back to Payroll</button>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Payroll</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Run · {monthName(month)} {year}</h1>
-          {run && (() => {
-            const m = RUN_STATUS_META[run.status] || RUN_STATUS_META.draft;
-            return <div style={{ marginTop: 6 }}><span style={pillStyle(m.color, m.bg, m.border)}>{m.label}</span></div>;
-          })()}
+          <div style={{ fontWeight: 600 }}>{v}</div>
+          <div style={{ fontSize: 11, color: "var(--yd-text-muted)", fontFamily: "ui-monospace, Cascadia Code, monospace" }}>{row.employeeCode}</div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.textSoft }}>Year
-            <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ ...inp, width: 100 }} />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.textSoft }}>Month
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={inp}>
-              {Array.from({length: 12}, (_, i) => i + 1).map(mm => <option key={mm} value={mm}>{monthName(mm)}</option>)}
-            </select>
-          </label>
-          {(!run || run.status === "draft" || run.status === "processed") && (
-            <button onClick={process} disabled={busy} style={btn(T.gold, "#1E1E1E")}>{busy ? "Processing…" : run ? "Re-process" : "Process Payroll"}</button>
-          )}
-          {run && run.status === "processed" && <button onClick={lock} disabled={busy} style={btn(T.surface, T.text, T.border)}>Lock</button>}
-          {run && run.status === "locked"    && <button onClick={reopen} disabled={busy} style={btn(T.surface, T.text, T.border)}>Reopen</button>}
-        </div>
-      </div>
+      ),
+    },
+    { key: "paidDays", label: "Paid Days", width: 100 },
+    { key: "lopDays", label: "LOP", width: 80, render: (v) => v || "—" },
+    { key: "gross", label: "Gross", sortable: true, width: 110, render: (v) => inr(v) },
+    { key: "totalDeductions", label: "Deductions", width: 110, render: (v) => inr(v) },
+    { key: "net", label: "Net", sortable: true, width: 110, render: (v) => <strong>{inr(v)}</strong> },
+    {
+      key: "actions", label: "", type: "actions", width: 90, hideable: false,
+      actions: (row) => (
+        <a href={payrollService.payslipPdfUrl(row.payslipId)} target="_blank" rel="noreferrer" className="btn btn-ghost btn-xs" style={{ display: "inline-flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
+          <ExternalLink size={11} strokeWidth={2} /> PDF
+        </a>
+      ),
+    },
+  ], []);
 
-      {error && <div style={errorBox}>{error}</div>}
-
-      {run && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
-          <KPI label="Employees"   value={run.totals?.employees || 0} />
-          <KPI label="Gross"       value={inr(run.totals?.gross)}                       accent={T.goldMid} />
-          <KPI label="Deductions"  value={inr(run.totals?.deductions)}                  accent={T.red}     />
-          <KPI label="Net Payable" value={inr(run.totals?.net)}                         accent={T.green}   />
+  return (
+    <PageShell
+      header={
+        <PageHeader
+          title={`Run · ${monthName(month)} ${year}`}
+          tag="Payroll"
+          backLabel="Back to Payroll"
+          onBack={() => navigate("/staff/payroll")}
+          subtitle={run && <StatusBadge status={run.status} />}
+          primaryAction={(!run || run.status === "draft" || run.status === "processed")
+            ? { label: busy ? "Processing…" : run ? "Re-process" : "Process Payroll", onClick: process, disabled: busy }
+            : undefined}
+          secondaryActions={secondaryActions}
+        />
+      }
+      kpis={run && (
+        <KpiRow maxWidth={640}>
+          <KpiCard label="Employees" value={run.totals?.employees || 0} />
+          <KpiCard label="Gross" value={inr(run.totals?.gross)} />
+          <KpiCard label="Deductions" value={inr(run.totals?.deductions)} />
+          <KpiCard label="Net Payable" value={inr(run.totals?.net)} />
+        </KpiRow>
+      )}
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
         </div>
       )}
 
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
-            <thead style={{ background: T.surfaceWarm, borderBottom: `1px solid ${T.border}` }}>
-              <tr>
-                <th style={th}>Employee</th>
-                <th style={th}>Paid Days</th>
-                <th style={th}>LOP</th>
-                <th style={th}>Gross</th>
-                <th style={th}>Deductions</th>
-                <th style={th}>Net</th>
-                <th style={{ ...th, textAlign: "right" }}>Payslip</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>Loading…</td></tr>}
-              {!loading && !run && <tr><td colSpan={7} style={{ padding: 30, textAlign: "center", color: T.textMuted }}>No run for {monthName(month)} {year}. Click <strong>Process Payroll</strong> to create one.</td></tr>}
-              {!loading && run && payslips.length === 0 && <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>Run exists but has no payslips — make sure staff salaries are configured.</td></tr>}
-              {!loading && payslips.map(p => (
-                <tr key={p.payslipId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={td}>
-                    <div style={{ fontWeight: 600 }}>{p.displayName}</div>
-                    <div style={{ fontSize: 11, color: T.textMuted, fontFamily: "ui-monospace, Cascadia Code, monospace" }}>{p.employeeCode}</div>
-                  </td>
-                  <td style={td}>{p.paidDays}</td>
-                  <td style={td}>{p.lopDays || "—"}</td>
-                  <td style={td}>{inr(p.gross)}</td>
-                  <td style={td}>{inr(p.totalDeductions)}</td>
-                  <td style={{ ...td, fontWeight: 700 }}>{inr(p.net)}</td>
-                  <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                    <a href={payrollService.payslipPdfUrl(p.payslipId)} target="_blank" rel="noreferrer" style={miniLink()}>PDF</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--yd-text-soft)" }}>
+          Year <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="yd-input" style={{ width: 100 }} />
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--yd-text-soft)" }}>
+          Month <Select value={month} onChange={(e) => setMonth(Number(e.target.value))} options={monthOptions} />
+        </label>
       </div>
-    </div>
+
+      <DataTable
+        tableId="payroll-run-payslips"
+        columns={columns}
+        data={payslips}
+        loading={loading}
+        entityLabel="payslips"
+        searchPlaceholder="Search employee…"
+        empty={{ title: !run ? `No run for ${monthName(month)} ${year}` : "Run exists but has no payslips", description: !run ? 'Click "Process Payroll" to create one.' : "Make sure staff salaries are configured." }}
+      />
+    </PageShell>
   );
 }
-
-function KPI({ label, value, accent = T.gold }) {
-  return (
-    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "16px 18px", position: "relative", overflow: "hidden", boxShadow: T.shadow }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: accent }} />
-      <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 22, fontWeight: 700, color: T.text }}>{value}</div>
-    </div>
-  );
-}
-
-const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted };
-const td = { padding: "10px 14px", fontSize: 13, color: T.text };
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 13, background: T.surfaceWarm };
-function btn(bg, color, border) { return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }; }
-function miniLink() { return { textDecoration: "none", background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600 }; }
