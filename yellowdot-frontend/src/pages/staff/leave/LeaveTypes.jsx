@@ -1,10 +1,13 @@
 /**
  * LeaveTypes.jsx — Master CRUD for leave types
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + DataTable + Modal/FormGrid/Field/Input/Select/Button/Badge.
+ * Same leaveService calls/payloads.
  */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import leaveService, { GENDER_RESTRICTIONS } from "../../../services/leaveService";
-import { T } from "./_shared";
+import { PageShell, PageHeader, DataTable, Badge, Modal, Button, Field, FormGrid, Input, Select } from "../../../components/ui";
 
 const EMPTY = {
   code: "", name: "",
@@ -36,6 +39,7 @@ export default function LeaveTypes() {
   function openCreate() { setModal({ mode: "create", data: { ...EMPTY } }); }
   function openEdit(d)  { setModal({ mode: "edit",   data: { ...d } }); }
   function close()      { setModal(null); }
+  function patch(f)     { setModal(m => ({ ...m, data: { ...m.data, ...f } })); }
 
   async function save() {
     setSaving(true);
@@ -56,116 +60,87 @@ export default function LeaveTypes() {
     catch (err) { alert(err.response?.data?.error || err.message); }
   }
 
+  const columns = useMemo(() => [
+    { key: "code", label: "Code", width: 80, render: (v) => <span style={{ fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>{v || "—"}</span> },
+    {
+      key: "name", label: "Name", sortable: true, filterable: true, width: 180,
+      render: (v, row) => <span style={{ fontWeight: 600 }}>{v}{row.isSystem && <span style={{ marginLeft: 6 }}><Badge variant="yellow">system</Badge></span>}</span>,
+    },
+    { key: "annualEntitlement", label: "Annual", width: 90, render: (v) => `${v}d` },
+    { key: "paid", label: "Paid", width: 80, render: (v) => v ? "Yes" : <span style={{ color: "var(--yd-danger)" }}>No</span> },
+    { key: "carryForward", label: "Carry-Fwd", width: 100, render: (v) => v ? "Yes" : "—" },
+    { key: "maxCarryForward", label: "Max CF", width: 90, render: (v, row) => row.carryForward ? `${v}d` : "—" },
+    { key: "gender", label: "Gender", width: 110, render: (v) => (GENDER_RESTRICTIONS.find(g => g.value === v) || {}).label || v },
+    { key: "requiresApproval", label: "Approval", width: 100, render: (v) => v ? "Required" : "Auto" },
+    {
+      key: "active", label: "Status", width: 110,
+      render: (v, row) => (
+        <button type="button" onClick={() => toggleActive(row)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <Badge variant={v ? "success" : "neutral"} dot>{v ? "Active" : "Inactive"}</Badge>
+        </button>
+      ),
+    },
+    {
+      key: "actions", label: "", type: "actions", width: 130, hideable: false,
+      actions: (row) => (
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button size="xs" variant="ghost" onClick={() => openEdit(row)}>Edit</Button>
+          {!row.isSystem && <Button size="xs" variant="ghost" onClick={() => remove(row)}>Delete</Button>}
+        </div>
+      ),
+    },
+  ], []);
+
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Leave Management</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Leave Types</h1>
-          <div style={{ fontSize: 13, color: T.textSoft, marginTop: 4 }}>Master list of leave categories with annual entitlement, payment, and carry-forward rules.</div>
-        </div>
-        <button onClick={openCreate} style={btn(T.gold, "#1E1E1E")}>+ Add Leave Type</button>
-      </div>
-
-      {error && <div style={errorBox}>{error}</div>}
-
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: T.shadow, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 980 }}>
-            <thead style={{ background: T.surfaceWarm, borderBottom: `1px solid ${T.border}` }}>
-              <tr>
-                <th style={th}>Code</th><th style={th}>Name</th>
-                <th style={th}>Annual</th><th style={th}>Paid</th>
-                <th style={th}>Carry-Fwd</th><th style={th}>Max CF</th>
-                <th style={th}>Gender</th><th style={th}>Approval</th>
-                <th style={th}>Status</th>
-                <th style={{ ...th, textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={10} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={10} style={{ padding: 24, textAlign: "center", color: T.textMuted }}>No leave types — defaults seed on first dashboard visit.</td></tr>}
-              {!loading && rows.map(d => (
-                <tr key={d.leaveTypeId} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={{ ...td, fontFamily: "ui-monospace, Cascadia Code, monospace", fontSize: 12 }}>{d.code || "—"}</td>
-                  <td style={td}>
-                    <strong>{d.name}</strong>
-                    {d.isSystem && <span style={tag}>system</span>}
-                  </td>
-                  <td style={td}>{d.annualEntitlement}d</td>
-                  <td style={td}>{d.paid ? "Yes" : <span style={{ color: T.red }}>No</span>}</td>
-                  <td style={td}>{d.carryForward ? "Yes" : "—"}</td>
-                  <td style={td}>{d.carryForward ? `${d.maxCarryForward}d` : "—"}</td>
-                  <td style={td}>{(GENDER_RESTRICTIONS.find(g => g.value === d.gender) || {}).label || d.gender}</td>
-                  <td style={td}>{d.requiresApproval ? "Required" : "Auto"}</td>
-                  <td style={td}><button onClick={() => toggleActive(d)} style={pillBtn(d.active)}>{d.active ? "Active" : "Inactive"}</button></td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <button onClick={() => openEdit(d)} style={mini()}>Edit</button>
-                    {!d.isSystem && <button onClick={() => remove(d)} style={{ ...mini(), color: T.red, borderColor: `${T.red}55` }}>Delete</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {modal && (
-        <div onClick={close} style={modalBackdrop}>
-          <div onClick={(e) => e.stopPropagation()} style={modalCard}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{modal.mode === "create" ? "Add Leave Type" : "Edit Leave Type"}</h2>
-              <button onClick={close} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: T.textMuted }}>×</button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12 }}>
-              {fld("Code *",  <input value={modal.data.code} onChange={(e) => set("code", e.target.value)} style={inp} placeholder="CL / SL" />)}
-              {fld("Name *",  <input value={modal.data.name} onChange={(e) => set("name", e.target.value)} style={inp} />)}
-              {fld("Annual Entitlement (days)", <input type="number" step="0.5" value={modal.data.annualEntitlement} onChange={(e) => set("annualEntitlement", Number(e.target.value) || 0)} style={inp} />)}
-              {fld("Max Carry-Forward", <input type="number" value={modal.data.maxCarryForward} onChange={(e) => set("maxCarryForward", Number(e.target.value) || 0)} style={inp} disabled={!modal.data.carryForward} />)}
-              {fld("Gender", <select value={modal.data.gender} onChange={(e) => set("gender", e.target.value)} style={inp}>{GENDER_RESTRICTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select>)}
-              {fld("Sort Order", <input type="number" value={modal.data.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value) || 0)} style={inp} />)}
-              {fld("Paid?",            check("paid"))}
-              {fld("Carry-forward?",   check("carryForward"))}
-              {fld("Requires approval?", check("requiresApproval"))}
-              {fld("Active?",          check("active"))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-              <button onClick={close} style={btn(T.surface, T.text, T.border)}>Cancel</button>
-              <button onClick={save} disabled={saving} style={btn(T.gold, "#1E1E1E")}>{saving ? "Saving…" : "Save"}</button>
-            </div>
-          </div>
+    <PageShell
+      header={
+        <PageHeader
+          title="Leave Types"
+          tag="Leave Management"
+          subtitle="Master list of leave categories with annual entitlement, payment, and carry-forward rules."
+          primaryAction={{ label: "Add Leave Type", icon: <Plus size={14} strokeWidth={2} />, onClick: openCreate }}
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
         </div>
       )}
-    </div>
+
+      <DataTable
+        tableId="leave-types"
+        columns={columns}
+        data={rows}
+        loading={loading}
+        entityLabel="leave types"
+        searchPlaceholder="Search leave types…"
+        empty={{ title: "No leave types", description: "Defaults seed on first dashboard visit.", action: { label: "+ Add Leave Type", onClick: openCreate } }}
+      />
+
+      {modal && (
+        <Modal
+          isOpen
+          onClose={close}
+          title={modal.mode === "create" ? "Add Leave Type" : "Edit Leave Type"}
+          footer={<><Button variant="outline" onClick={close} disabled={saving}>Cancel</Button><Button variant="primary" onClick={save} loading={saving}>Save</Button></>}
+        >
+          <FormGrid cols={2}>
+            <Field label="Code" required><Input value={modal.data.code} onChange={(e) => patch({ code: e.target.value })} placeholder="CL / SL" /></Field>
+            <Field label="Name" required><Input value={modal.data.name} onChange={(e) => patch({ name: e.target.value })} /></Field>
+            <Field label="Annual Entitlement (days)"><Input type="number" step="0.5" value={modal.data.annualEntitlement} onChange={(e) => patch({ annualEntitlement: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Max Carry-Forward"><Input type="number" value={modal.data.maxCarryForward} onChange={(e) => patch({ maxCarryForward: Number(e.target.value) || 0 })} disabled={!modal.data.carryForward} /></Field>
+            <Field label="Gender"><Select value={modal.data.gender} onChange={(e) => patch({ gender: e.target.value })} options={GENDER_RESTRICTIONS} /></Field>
+            <Field label="Sort Order"><Input type="number" value={modal.data.sortOrder} onChange={(e) => patch({ sortOrder: Number(e.target.value) || 0 })} /></Field>
+          </FormGrid>
+          <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.paid} onChange={(e) => patch({ paid: e.target.checked })} /> Paid</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.carryForward} onChange={(e) => patch({ carryForward: e.target.checked })} /> Carry-forward</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.requiresApproval} onChange={(e) => patch({ requiresApproval: e.target.checked })} /> Requires approval</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><input type="checkbox" checked={modal.data.active} onChange={(e) => patch({ active: e.target.checked })} /> Active</label>
+          </div>
+        </Modal>
+      )}
+    </PageShell>
   );
-
-  function set(k, v) { setModal(m => ({ ...m, data: { ...m.data, [k]: v } })); }
-  function check(k) {
-    return <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-      <input type="checkbox" checked={Boolean(modal.data[k])} onChange={(e) => set(k, e.target.checked)} />
-      {k.replace(/([A-Z])/g, " $1").trim()}
-    </label>;
-  }
 }
-
-function fld(label, control) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>
-      {control}
-    </label>
-  );
-}
-
-const th = { textAlign: "left", padding: "10px 14px", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textMuted };
-const td = { padding: "10px 14px", fontSize: 13, color: T.text };
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const tag = { marginLeft: 6, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "#FFF7E0", border: "1px solid rgba(244,196,0,0.35)", color: T.goldMid, textTransform: "uppercase" };
-const modalBackdrop = { position: "fixed", inset: 0, background: "rgba(20,18,12,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 };
-const modalCard = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 22, width: "min(680px, calc(100vw - 32px))", maxHeight: "calc(100vh - 64px)", overflow: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.20)" };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, background: "#FFFFFF" };
-function btn(bg, color, border) {
-  return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
-}
-function mini() { return { background: T.surface, color: T.text, border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", marginLeft: 6 }; }
-function pillBtn(active) { return { background: active ? "#f0fdf4" : T.surfaceWarm, color: active ? T.green : T.textMuted, border: `1px solid ${active ? "#bbf7d0" : T.border}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }; }

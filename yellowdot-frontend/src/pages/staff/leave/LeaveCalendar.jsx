@@ -1,10 +1,15 @@
 /**
  * LeaveCalendar.jsx — Team-level leave + holiday calendar (month view).
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + StatusBadge legend; the calendar grid itself is a bespoke
+ * layout (not a DataTable fit) reskinned onto design tokens. Same
+ * leaveService.calendar call.
  */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-import leaveService, { LEAVE_STATUS_META } from "../../../services/leaveService";
-import { T, pillStyle } from "./_shared";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { LEAVE_STATUS_META } from "../../../services/leaveService";
+import leaveService from "../../../services/leaveService";
+import { PageShell, PageHeader, StatusBadge } from "../../../components/ui";
 
 const WEEK_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
@@ -36,7 +41,6 @@ export default function LeaveCalendar() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  // Build per-day index
   const byDay = useMemo(() => {
     const m = new Map();
     for (let d = 1; d <= daysInMonth(year, month); d++) {
@@ -65,30 +69,36 @@ export default function LeaveCalendar() {
   function nextMonth() { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); }
 
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Leave Management</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Team Calendar</h1>
+    <PageShell
+      header={
+        <PageHeader
+          title="Team Calendar"
+          tag="Leave Management"
+          actions={
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button onClick={prevMonth} className="yd-close-btn" aria-label="Previous month"><ChevronLeft size={16} strokeWidth={2} /></button>
+              <div style={{ fontWeight: 700, minWidth: 140, textAlign: "center" }}>
+                {new Date(year, month - 1, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+              </div>
+              <button onClick={nextMonth} className="yd-close-btn" aria-label="Next month"><ChevronRight size={16} strokeWidth={2} /></button>
+            </div>
+          }
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+          {error}
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={prevMonth} style={btn(T.surface, T.text, T.border)}>‹</button>
-          <div style={{ fontWeight: 600, minWidth: 140, textAlign: "center" }}>
-            {new Date(year, month - 1, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-          </div>
-          <button onClick={nextMonth} style={btn(T.surface, T.text, T.border)}>›</button>
-        </div>
-      </div>
+      )}
 
-      {error && <div style={errorBox}>{error}</div>}
-
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18, boxShadow: T.shadow }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", marginBottom: 8 }}>
+      <div className="yd-card" style={{ padding: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, fontSize: 11, fontWeight: 700, color: "var(--yd-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
           {WEEK_LABELS.map(w => <div key={w} style={{ textAlign: "center" }}>{w}</div>)}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
           {loading
-            ? cells.map((_, i) => <div key={i} style={cellSkel} />)
+            ? cells.map((_, i) => <div key={i} style={{ background: "var(--yd-soft)", border: "1px dashed var(--yd-border)", borderRadius: 8, minHeight: 96 }} />)
             : cells.map((d, i) => {
                 if (!d) return <div key={i} />;
                 const key = `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
@@ -99,12 +109,12 @@ export default function LeaveCalendar() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 14, marginTop: 16, flexWrap: "wrap", fontSize: 12, color: T.textSoft }}>
-        <span style={pillStyle(LEAVE_STATUS_META.approved.color, LEAVE_STATUS_META.approved.bg, LEAVE_STATUS_META.approved.border)}>Approved leave</span>
-        <span style={pillStyle(LEAVE_STATUS_META.pending.color, LEAVE_STATUS_META.pending.bg, LEAVE_STATUS_META.pending.border)}>Pending leave</span>
-        <span style={pillStyle("#92400e", "#fef3c7", "#fde68a")}>Holiday</span>
+      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+        <StatusBadge status="approved" />
+        <StatusBadge status="pending" />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 9999, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: "var(--yd-warning-soft)", color: "var(--yd-warning)", border: "1px solid var(--yd-warning-border)" }}>Holiday</span>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -113,18 +123,18 @@ function DayCell({ day, date, slot }) {
   const holiday = slot?.holidays?.[0];
   return (
     <div style={{
-      background: holiday ? "#fef3c7" : T.surfaceWarm,
-      border: `1px solid ${holiday ? "#fde68a" : T.border}`,
+      background: holiday ? "var(--yd-warning-soft)" : "var(--yd-soft)",
+      border: `1px solid ${holiday ? "var(--yd-warning-border)" : "var(--yd-border)"}`,
       borderRadius: 8, padding: "8px 8px 10px", minHeight: 96,
     }}
       title={`${date}\n${total} on leave${holiday ? `\nHoliday: ${holiday.name || holiday.title || ""}` : ""}`}
     >
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 700, color: T.text }}>{day}</span>
-        {holiday && <span style={{ fontSize: 9, fontWeight: 700, color: "#92400e" }}>HOLIDAY</span>}
+        <span style={{ fontWeight: 700, color: "var(--yd-text)" }}>{day}</span>
+        {holiday && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--yd-warning)" }}>HOLIDAY</span>}
       </div>
       {holiday && (
-        <div style={{ marginTop: 4, fontSize: 10, color: "#92400e", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ marginTop: 4, fontSize: 10, color: "var(--yd-warning)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {holiday.name || holiday.title || "Holiday"}
         </div>
       )}
@@ -141,13 +151,7 @@ function DayCell({ day, date, slot }) {
           </div>
         );
       })}
-      {total > 3 && <div style={{ marginTop: 2, fontSize: 10, color: T.textMuted }}>+{total - 3}</div>}
+      {total > 3 && <div style={{ marginTop: 2, fontSize: 10, color: "var(--yd-text-muted)" }}>+{total - 3}</div>}
     </div>
   );
-}
-
-const errorBox = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const cellSkel = { background: T.surfaceWarm, border: `1px dashed ${T.border}`, borderRadius: 8, minHeight: 96 };
-function btn(bg, color, border) {
-  return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
 }

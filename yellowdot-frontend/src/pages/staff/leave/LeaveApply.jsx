@@ -1,14 +1,16 @@
 /**
  * LeaveApply.jsx — Self-service leave application form.
  * Managers can also apply on behalf of another staff member.
+ * Design System v2 / Platform Layout Standard retrofit: PageShell +
+ * PageHeader + FormSection/FormGrid/Field/Input/Select/Button. Same
+ * leaveService/staffService calls and day-count/balance logic.
  */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import leaveService from "../../../services/leaveService";
 import staffService from "../../../services/staffService";
-import { T } from "./_shared";
+import { PageShell, PageHeader, FormSection, Field, FormGrid, Input, Select, Button } from "../../../components/ui";
 
 function dayCount(from, to, halfStart, halfEnd) {
   if (!from || !to) return 0;
@@ -33,7 +35,7 @@ export default function LeaveApply() {
   const [success, setSuccess]   = useState("");
 
   const [form, setForm] = useState({
-    staffId: "",       // empty = self
+    staffId: "",
     leaveTypeId: "",
     fromDate: new Date().toISOString().slice(0, 10),
     toDate:   new Date().toISOString().slice(0, 10),
@@ -61,7 +63,6 @@ export default function LeaveApply() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  // When staff changes (manager applying on behalf), refresh balances
   useEffect(() => {
     if (!form.staffId) {
       leaveService.myBalances().then(r => setBalances(r?.balances || [])).catch(() => {});
@@ -74,6 +75,8 @@ export default function LeaveApply() {
   const selectedBalance = balances.find(b => b.leaveTypeId === form.leaveTypeId);
   const selectedType    = types.find(t => t.leaveTypeId === form.leaveTypeId);
 
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
   async function submit(e) {
     e?.preventDefault();
     setError(""); setSuccess("");
@@ -84,7 +87,7 @@ export default function LeaveApply() {
     setSubmitting(true);
     try {
       const payload = { ...form };
-      if (!payload.staffId) delete payload.staffId; // self-apply
+      if (!payload.staffId) delete payload.staffId;
       const res = await leaveService.apply(payload);
       if (res?.success) {
         setSuccess(`Leave request submitted (${res.request.status}).`);
@@ -95,85 +98,86 @@ export default function LeaveApply() {
     } finally { setSubmitting(false); }
   }
 
+  const staffOptions = allStaff.map(s => ({ value: s.staffId, label: `${s.displayName} (${s.employeeCode})` }));
+  const typeOptions = types.map(t => ({ value: t.leaveTypeId, label: `${t.name} (${t.code})` }));
+
   return (
-    <div style={{ background: T.bg, minHeight: "100%", padding: "24px 28px 48px" }}>
-      <div style={{ marginBottom: 18 }}>
-        <button onClick={() => navigate("/staff/leave")} style={{ background: "none", border: "none", color: T.goldMid, fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 4 }}>‹ Back to Dashboard</button>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: T.goldMid }}>Leave Management</div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "4px 0 0" }}>Apply Leave</h1>
-      </div>
-
-      {error   && <div style={errorBox}>{error}</div>}
-      {success && <div style={successBox}>{success}</div>}
-
-      <form onSubmit={submit} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, boxShadow: T.shadow }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-          {canApplyForOthers && fld("Apply For",
-            <select value={form.staffId} onChange={(e) => set("staffId", e.target.value)} style={inp}>
-              <option value="">Myself</option>
-              {allStaff.map(s => <option key={s.staffId} value={s.staffId}>{s.displayName} ({s.employeeCode})</option>)}
-            </select>
-          )}
-          {fld("Leave Type *",
-            <select value={form.leaveTypeId} onChange={(e) => set("leaveTypeId", e.target.value)} style={inp}>
-              <option value="">Select…</option>
-              {types.map(t => <option key={t.leaveTypeId} value={t.leaveTypeId}>{t.name} ({t.code})</option>)}
-            </select>
-          )}
-          {fld("From *",
-            <input type="date" value={form.fromDate} onChange={(e) => set("fromDate", e.target.value)} style={inp} />
-          )}
-          {fld("To *",
-            <input type="date" value={form.toDate} onChange={(e) => set("toDate", e.target.value)} style={inp} />
-          )}
-          {fld("Half-day at start",
-            <label style={ck}><input type="checkbox" checked={form.halfDayStart} onChange={(e) => set("halfDayStart", e.target.checked)} /> First day is half</label>
-          )}
-          {fld("Half-day at end",
-            <label style={ck}><input type="checkbox" checked={form.halfDayEnd} onChange={(e) => set("halfDayEnd", e.target.checked)} /> Last day is half</label>
-          )}
-          {fld("Reason",
-            <textarea value={form.reason} onChange={(e) => set("reason", e.target.value)} rows={3} style={{ ...inp, fontFamily: "inherit" }} placeholder="Optional context for your approver" />
-          )}
-          {fld("Attachment URL (optional)",
-            <input value={form.attachmentUrl} onChange={(e) => set("attachmentUrl", e.target.value)} style={inp} placeholder="https://…" />
-          )}
+    <PageShell
+      header={
+        <PageHeader
+          title="Apply Leave"
+          tag="Leave Management"
+          backLabel="Back to Dashboard"
+          onBack={() => navigate("/staff/leave")}
+        />
+      }
+    >
+      {error && (
+        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+          {error}
         </div>
-
-        <div style={{ marginTop: 18, padding: "12px 14px", background: T.surfaceWarm, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 13, color: T.textSoft, display: "flex", gap: 18, flexWrap: "wrap" }}>
-          <span><strong style={{ color: T.text }}>{days}</strong> day(s) requested</span>
-          {selectedBalance && (
-            <span>Balance: <strong style={{ color: T.text }}>{selectedBalance.remaining}</strong> remaining of {selectedBalance.entitled + selectedBalance.carriedForward}</span>
-          )}
-          {selectedType && !selectedType.requiresApproval && (
-            <span style={{ color: T.green, fontWeight: 600 }}>Auto-approved</span>
-          )}
+      )}
+      {success && (
+        <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+          {success}
         </div>
+      )}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
-          <button type="button" onClick={() => navigate("/staff/leave")} style={btn(T.surface, T.text, T.border)}>Cancel</button>
-          <button type="submit" disabled={submitting} style={btn(T.gold, "#1E1E1E")}>{submitting ? "Submitting…" : "Submit Request"}</button>
-        </div>
+      <form onSubmit={submit}>
+        <FormSection title="Request Details">
+          <FormGrid cols={2}>
+            {canApplyForOthers && (
+              <Field label="Apply For">
+                <Select value={form.staffId} onChange={(e) => set("staffId", e.target.value)} options={staffOptions} placeholder="Myself" />
+              </Field>
+            )}
+            <Field label="Leave Type" required>
+              <Select value={form.leaveTypeId} onChange={(e) => set("leaveTypeId", e.target.value)} options={typeOptions} placeholder="Select…" />
+            </Field>
+            <Field label="From" required>
+              <Input type="date" value={form.fromDate} onChange={(e) => set("fromDate", e.target.value)} />
+            </Field>
+            <Field label="To" required>
+              <Input type="date" value={form.toDate} onChange={(e) => set("toDate", e.target.value)} />
+            </Field>
+            <Field label="Half-day at start">
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={form.halfDayStart} onChange={(e) => set("halfDayStart", e.target.checked)} /> First day is half
+              </label>
+            </Field>
+            <Field label="Half-day at end">
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={form.halfDayEnd} onChange={(e) => set("halfDayEnd", e.target.checked)} /> Last day is half
+              </label>
+            </Field>
+          </FormGrid>
+          <div style={{ marginTop: 14 }}>
+            <Field label="Reason" hint="Optional context for your approver">
+              <textarea value={form.reason} onChange={(e) => set("reason", e.target.value)} rows={3} className="yd-input" style={{ fontFamily: "inherit" }} />
+            </Field>
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Field label="Attachment URL (optional)">
+              <Input value={form.attachmentUrl} onChange={(e) => set("attachmentUrl", e.target.value)} placeholder="https://…" />
+            </Field>
+          </div>
+
+          <div style={{ marginTop: 18, padding: "12px 14px", background: "var(--yd-bg-sunken)", border: "1px solid var(--yd-border)", borderRadius: 10, fontSize: 13, color: "var(--yd-text-soft)", display: "flex", gap: 18, flexWrap: "wrap" }}>
+            <span><strong style={{ color: "var(--yd-charcoal)" }}>{days}</strong> day(s) requested</span>
+            {selectedBalance && (
+              <span>Balance: <strong style={{ color: "var(--yd-charcoal)" }}>{selectedBalance.remaining}</strong> remaining of {selectedBalance.entitled + selectedBalance.carriedForward}</span>
+            )}
+            {selectedType && !selectedType.requiresApproval && (
+              <span style={{ color: "var(--yd-success)", fontWeight: 600 }}>Auto-approved</span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+            <Button type="button" variant="outline" onClick={() => navigate("/staff/leave")}>Cancel</Button>
+            <Button type="submit" variant="primary" loading={submitting}>Submit Request</Button>
+          </div>
+        </FormSection>
       </form>
-    </div>
+    </PageShell>
   );
-
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
-}
-
-function fld(label, control) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.textSoft }}>{label}</span>
-      {control}
-    </label>
-  );
-}
-
-const errorBox   = { background: T.redLight, color: T.red, border: `1px solid ${T.red}33`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const successBox = { background: "#f0fdf4", color: T.green, border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 };
-const inp = { border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, background: "#FFFFFF" };
-const ck  = { display: "flex", alignItems: "center", gap: 8, fontSize: 13 };
-function btn(bg, color, border) {
-  return { background: bg, color, border: border ? `1px solid ${border}` : "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
 }
