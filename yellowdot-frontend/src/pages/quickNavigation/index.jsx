@@ -2,11 +2,13 @@
  * Quick Navigation Dashboard — src/pages/quickNavigation/
  * ─────────────────────────────────────────────────────────────────────
  * Premium landing page shown right after login (see RootRedirect in
- * App.jsx). Pure navigation surface: a greeting, a search box, a row of
- * recently-visited modules, a row of pinned favourites, and every module
- * the current user has access to, grouped by section. No business logic
- * lives here — every card links to an existing route; visibility is
- * gated purely by the same can(routeKey) RBAC check used app-wide.
+ * App.jsx). Pure navigation surface, top to bottom: a greeting, a row
+ * of one-tap Quick Actions, global search, "Today at a Glance" metrics,
+ * Quick Access (pinned favourites), Recent, then every module the
+ * current user has access to, grouped into categories that mirror how
+ * a preschool owner actually thinks about the business. No business
+ * logic lives here — every card links to an existing route; visibility
+ * is gated purely by the same can(routeKey) RBAC check used app-wide.
  */
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +17,9 @@ import { SECTIONS } from "./modules";
 import useRecentModules from "./useRecentModules";
 import useFavouriteModules from "./useFavouriteModules";
 import ModuleSection from "./components/ModuleSection";
+import QuickActions from "./components/QuickActions";
 import QuickSearch from "./components/QuickSearch";
+import DashboardMetrics from "./components/DashboardMetrics";
 import RecentModules from "./components/RecentModules";
 import FavouriteModules from "./components/FavouriteModules";
 
@@ -53,20 +57,24 @@ export default function QuickNavigation() {
         </p>
         <h1 className="qnd-hero-title">Quick Navigation</h1>
         <p className="qnd-hero-date">{todayLabel()}</p>
-
-        <div className="qnd-hero-search">
-          <QuickSearch onNavigate={handleNavigate} />
-        </div>
       </header>
 
-      <RecentModules
-        recentIds={recentIds}
+      <QuickActions />
+
+      <div className="qnd-hero-search">
+        <QuickSearch onNavigate={handleNavigate} />
+      </div>
+
+      <DashboardMetrics />
+
+      <FavouriteModules
         favouriteIds={favouriteIds}
         onNavigate={handleNavigate}
         onToggleFavourite={toggleFavourite}
       />
 
-      <FavouriteModules
+      <RecentModules
+        recentIds={recentIds}
         favouriteIds={favouriteIds}
         onNavigate={handleNavigate}
         onToggleFavourite={toggleFavourite}

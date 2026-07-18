@@ -1,8 +1,8 @@
 /**
- * FavouriteModules — horizontal row of pinned modules on Quick
- * Navigation. Hides itself entirely when nothing is pinned yet.
- * Resolves stored ids through MODULES_BY_ID so a removed/renamed module
- * never renders a broken card.
+ * FavouriteModules — "Quick Access": horizontal row of pinned modules
+ * on Quick Navigation. Hides itself entirely when nothing is pinned
+ * yet. Resolves stored ids through MODULES_BY_ID so a removed/renamed
+ * module never renders a broken card.
  */
 import { useAuth } from "../../../contexts/AuthContext";
 import { MODULES_BY_ID } from "../modules";
@@ -19,7 +19,7 @@ export default function FavouriteModules({ favouriteIds, onNavigate, onToggleFav
 
   return (
     <section className="qnd-section qnd-section--row">
-      <h2 className="qnd-section-title">Favourites</h2>
+      <h2 className="qnd-section-title">Quick Access</h2>
       <div className="qnd-row">
         {items.map(item => (
           <ModuleCard

@@ -1,16 +1,23 @@
 /**
- * QuickSearch — search-as-you-type across every module on the Quick
- * Navigation Dashboard. Wraps the shared SearchBar for consistent input
- * styling; adds a "/" keyboard shortcut to focus and a results dropdown
- * (icon + label + section) that navigates on click or Enter.
+ * QuickSearch — search-as-you-type across the Quick Navigation
+ * Dashboard. Wraps the shared SearchBar for consistent input styling;
+ * adds a "/" keyboard shortcut to focus and a grouped results dropdown
+ * that navigates on click or Enter.
  *
- * Results respect RBAC — a module the user can't access never appears,
- * search or no search.
+ * "Modules" results are real and RBAC-filtered (a module the user can't
+ * access never appears). Students/Parents/Staff are shown as a
+ * dedicated, clearly-disabled group — this UI is prepared for global
+ * search across those record types, but no student/parent/staff data
+ * is fetched or searched yet (that's a backend feature, out of scope
+ * for this navigation-page pass).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
 import SearchBar from "../../../components/ui/SearchBar";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ALL_MODULES } from "../modules";
+
+const COMING_SOON_GROUPS = ["Students", "Parents", "Staff"];
 
 export default function QuickSearch({ onNavigate }) {
   const { can } = useAuth();
@@ -71,35 +78,50 @@ export default function QuickSearch({ onNavigate }) {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onClear={() => { setQuery(""); setOpen(false); }}
-          placeholder="Search modules…  (press / to focus)"
+          placeholder="Search modules, students, parents, staff…  (press / to focus)"
           size="lg"
         />
       </div>
 
       {open && query && (
         <div className="qnd-search-results" role="listbox">
-          {results.length === 0 ? (
-            <div className="qnd-search-empty">No modules match "{query}"</div>
-          ) : (
-            results.map(m => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="qnd-search-item"
-                  role="option"
-                  onClick={() => handleSelect(m)}
-                >
-                  <span className="qnd-search-item-icon"><Icon size={16} strokeWidth={1.75} /></span>
-                  <span className="qnd-search-item-text">
-                    <span className="qnd-search-item-label">{m.label}</span>
-                    <span className="qnd-search-item-section">{m.sectionLabel}</span>
-                  </span>
-                </button>
-              );
-            })
-          )}
+          <div className="qnd-search-group">
+            <div className="qnd-search-group-label">Modules</div>
+            {results.length === 0 ? (
+              <div className="qnd-search-empty">No modules match "{query}"</div>
+            ) : (
+              results.map(m => {
+                const Icon = m.icon;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="qnd-search-item"
+                    role="option"
+                    onClick={() => handleSelect(m)}
+                  >
+                    <span className="qnd-search-item-icon"><Icon size={16} strokeWidth={1.75} /></span>
+                    <span className="qnd-search-item-text">
+                      <span className="qnd-search-item-label">{m.label}</span>
+                      <span className="qnd-search-item-section">{m.sectionLabel}</span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {COMING_SOON_GROUPS.map(group => (
+            <div className="qnd-search-group qnd-search-group--soon" key={group}>
+              <div className="qnd-search-group-label">{group}</div>
+              <div className="qnd-search-item qnd-search-item--soon">
+                <span className="qnd-search-item-icon"><Search size={16} strokeWidth={1.75} /></span>
+                <span className="qnd-search-item-text">
+                  <span className="qnd-search-item-label">{group} search coming soon</span>
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
