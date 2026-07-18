@@ -21,19 +21,6 @@ import securityService            from "../services/securityService";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STATUS_CFG = {
-  NOT_ARRIVED: { label: "Not Arrived", dot: "#D97706", bg: "#FEF3C7", text: "#92400E" },
-  CHECKED_IN:  { label: "Present",     dot: "#10B981", bg: "#D1FAE5", text: "#065F46" },
-  CHECKED_OUT: { label: "Picked Up",   dot: "#9CA3AF", bg: "#F3F4F6", text: "#4B5563" },
-};
-
-// Presentational only — small leading icon per status, for the standardized StatusPill.
-const STATUS_ICON = {
-  NOT_ARRIVED: IcoClock,
-  CHECKED_IN:  IcoCheckCircle,
-  CHECKED_OUT: IcoLogOut,
-};
-
 // Present first — they're inside and need monitoring
 const STATUS_ORDER = { CHECKED_IN: 0, NOT_ARRIVED: 1, CHECKED_OUT: 2 };
 
@@ -72,6 +59,42 @@ const SPRING = "cubic-bezier(0.22,1,0.36,1)";
 
 function initials(name = "") {
   return (name || "?").trim().split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
+// Curated soft gradient pairs for photo-less avatars — a child always gets
+// the same one (deterministic hash of their name), so colors stay
+// consistent across visits rather than looking random.
+const AVATAR_GRADIENTS = [
+  ["#FDE68A", "#FBBF24"], // warm yellow
+  ["#BFDBFE", "#60A5FA"], // sky blue
+  ["#FBCFE8", "#F472B6"], // pink
+  ["#C7D2FE", "#818CF8"], // indigo
+  ["#BBF7D0", "#34D399"], // mint
+  ["#FED7AA", "#FB923C"], // peach
+  ["#DDD6FE", "#A78BFA"], // lavender
+  ["#99F6E4", "#2DD4BF"], // teal
+];
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h);
+}
+function avatarGradient(name) {
+  const [from, to] = AVATAR_GRADIENTS[hashStr(name || "?") % AVATAR_GRADIENTS.length];
+  return `linear-gradient(135deg, ${from}, ${to})`;
+}
+
+// Contextual "nothing to show" copy per active filter, so an empty grid
+// reads as good news ("everyone's arrived!") rather than a dead end.
+function emptyStateFor(statusFilter, search, classFilter) {
+  if (search || classFilter) return { icon: "🔍", text: "No students match your search." };
+  switch (statusFilter) {
+    case "NOT_ARRIVED":      return { icon: "🎉", text: "Everyone has checked in!" };
+    case "CHECKED_IN":       return { icon: "🌙", text: "No one has arrived yet." };
+    case "CHECKED_OUT":      return { icon: "🏡", text: "No pickups yet today." };
+    case "PENDING_APPROVAL": return { icon: "✨", text: "No pending approvals — all clear!" };
+    default:                 return { icon: "📋", text: "No students found." };
+  }
 }
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -685,8 +708,16 @@ export default function ChildPresence() {
         @keyframes cp-spn { to   { transform:rotate(360deg); } }
         @keyframes cp-pop { from { opacity:0; transform:scale(0.94) translateY(3px); } to { opacity:1; transform:scale(1) translateY(0); } }
 
-        .cp-card      { transition:box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease; }
-        .cp-card:hover  { box-shadow:0 8px 24px rgba(17,24,39,0.09) !important; transform:translateY(-2px); border-color:#D1D5DB; }
+        @keyframes cp-fade { from { opacity:0; } to { opacity:1; } }
+
+        .cp-card      { animation:cp-in 0.28s ${SPRING} both; transition:box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease; }
+        .cp-card:hover  { box-shadow:0 10px 28px rgba(17,24,39,0.09) !important; transform:translateY(-3px); border-color:#E2E4E7; }
+
+        .cp-gridfade  { animation:cp-fade 0.18s ease both; }
+        .cp-emptystate{ animation:cp-pop 0.22s ${SPRING} both; }
+        .cp-heropop   { animation:cp-pop 0.22s ${SPRING} both; }
+
+        .cp-hero:hover:not(:disabled) { transform:translateY(-2px) !important; }
 
         .cp-kpi       { transition:box-shadow 0.16s ease, transform 0.16s ease; cursor:default; }
         .cp-kpi:hover   { box-shadow:0 2px 4px rgba(17,24,39,0.05), 0 10px 22px rgba(17,24,39,0.08) !important; transform:translateY(-2px); }
@@ -759,8 +790,9 @@ export default function ChildPresence() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .cp-card, .cp-kpi, .cp-actbtn, .cp-headbtn, .cp-chip, .cp-search, .cp-select { transition:none !important; }
-          .cp-card:hover, .cp-kpi:hover { transform:none !important; }
+          .cp-card, .cp-kpi, .cp-actbtn, .cp-headbtn, .cp-chip, .cp-search, .cp-select, .cp-hero { transition:none !important; animation:none !important; }
+          .cp-card:hover, .cp-kpi:hover, .cp-hero:hover { transform:none !important; }
+          .cp-gridfade, .cp-emptystate, .cp-heropop { animation:none !important; }
         }
       `}</style>
 
@@ -869,10 +901,11 @@ export default function ChildPresence() {
         {/* ── Filter chips ─────────────────────────────────────────────────── */}
         <div className="cp-chips" style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
           {FILTER_TABS.map(tab => {
-            const count = tab.key === "CHECKED_IN"       ? counts.present
-                        : tab.key === "NOT_ARRIVED"       ? counts.notArrived
-                        : tab.key === "CHECKED_OUT"       ? counts.pickedUp
-                        : tab.key === "PENDING_APPROVAL"  ? counts.pendingApproval
+            const count = tab.key === "ALL"               ? counts.total
+                        : tab.key === "CHECKED_IN"         ? counts.present
+                        : tab.key === "NOT_ARRIVED"        ? counts.notArrived
+                        : tab.key === "CHECKED_OUT"        ? counts.pickedUp
+                        : tab.key === "PENDING_APPROVAL"   ? counts.pendingApproval
                         : null;
             const active = statusFilter === tab.key;
             const Icon = FILTER_ICONS[tab.key];
@@ -890,17 +923,7 @@ export default function ChildPresence() {
                 }}
               >
                 {Icon && <Icon size={12} />}
-                {tab.label}
-                {count !== null && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, borderRadius: 20,
-                    padding: "0 6px", lineHeight: "18px",
-                    background: active ? "rgba(255,255,255,0.25)" : "#E5E7EB",
-                    color:      active ? "#FFFFFF" : "#374151",
-                  }}>
-                    {count}
-                  </span>
-                )}
+                {tab.label}{count !== null ? ` (${count})` : ""}
               </button>
             );
           })}
@@ -963,15 +986,18 @@ export default function ChildPresence() {
             <button className="cp-btn" style={{ ...S.btn, ...S.btnGhost }} onClick={loadData}>Retry</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={S.centered}>
-            <p style={S.muted}>
-              {search || classFilter || statusFilter !== "ALL"
-                ? "No students match your filter." : "No students found."}
-            </p>
-          </div>
+          (() => {
+            const empty = emptyStateFor(statusFilter, search, classFilter);
+            return (
+              <div key={`${statusFilter}-${search}-${classFilter}`} className="cp-emptystate" style={S.emptyState}>
+                <div style={S.emptyIcon} aria-hidden="true">{empty.icon}</div>
+                <p style={S.emptyText}>{empty.text}</p>
+              </div>
+            );
+          })()
         ) : (
-          <div className="cp-grid" style={S.grid}>
-            {filtered.map(stu => {
+          <div key={`${statusFilter}-${search}-${classFilter}`} className="cp-grid cp-gridfade" style={S.grid}>
+            {filtered.map((stu, i) => {
               const sid      = stuId(stu);
               const detail   = getStatusDetail(sid);
               const approved = approvedMap.get(sid) || null;
@@ -979,6 +1005,7 @@ export default function ChildPresence() {
               return (
                 <StudentCard
                   key={sid}
+                  index={i}
                   stu={stu}
                   detail={detail}
                   busy={!!busyIds[sid]}
@@ -1064,9 +1091,9 @@ function DashCard({ icon, label, n, color, bg, sub, pulse }) {
         outlineOffset: 2,
       }}
     >
-      <span style={{ fontSize: 34, lineHeight: 1 }} aria-hidden="true">{icon}</span>
-      <span style={{ fontSize: 29, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{n}</span>
-      <span style={{ fontSize: 11.5, fontWeight: 700, color, opacity: 0.75, lineHeight: 1.3, textAlign: "left" }}>
+      <span style={{ fontSize: 38, lineHeight: 1 }} aria-hidden="true">{icon}</span>
+      <span style={{ fontSize: 32, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{n}</span>
+      <span style={{ fontSize: 10.5, fontWeight: 600, color, opacity: 0.6, lineHeight: 1.3, textAlign: "left", textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </span>
       {sub && (
@@ -1079,15 +1106,17 @@ function DashCard({ icon, label, n, color, bg, sub, pulse }) {
 }
 
 // ── StudentCard ───────────────────────────────────────────────────────────────
-function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreOpen, onCheckIn, onCheckOut, onRelease, onMoreToggle, onMoreAction }) {
+function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreOpen, onCheckIn, onCheckOut, onRelease, onMoreToggle, onMoreAction, index = 0 }) {
   const { status, time, collector } = detail;
-  const cfg         = STATUS_CFG[status];
   const hasApproval = status === "CHECKED_IN" && !!approvedRequest;
   const hasPending  = !!pendingRequest;
   const canIn       = status === "NOT_ARRIVED";
   const canOut      = status === "CHECKED_IN" && !hasApproval;
   const photo       = stuPhoto(stu);
+  const name        = stuName(stu);
 
+  // Arrival/pickup time only shown when it's actually relevant (present or
+  // already picked up) -- not shown for "not arrived", nothing to say yet.
   let subText = null;
   if (status === "CHECKED_IN" && time && !hasApproval) {
     subText = `Arrived ${fmtTime(time)}`;
@@ -1098,25 +1127,25 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
     subText = parts.join(" · ");
   }
 
-  const borderColor = hasApproval ? "#6EE7B7" : hasPending ? "#A78BFA" : "#E5E7EB";
-  const cardBg      = hasApproval ? "#F0FDF9"  : hasPending ? "#F5F3FF"  : "#FFFFFF";
-
   return (
-    <div className="cp-card" style={{ ...S.card, borderColor, background: cardBg }}>
+    <div
+      className="cp-card"
+      style={{ ...S.card, animationDelay: `${Math.min(index, 10) * 25}ms` }}
+    >
 
-      {/* Top: avatar + name + ⋮ */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+      {/* Top: large avatar (the hero of the card) + name/class + ⋮ */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
           {photo ? (
             <img src={photo} alt="" style={S.cardPhoto} />
           ) : (
-            <div style={S.cardAva}>
-              <span style={S.avaText}>{initials(stuName(stu))}</span>
+            <div style={{ ...S.cardAva, background: avatarGradient(name) }}>
+              <span style={S.avaText}>{initials(name)}</span>
             </div>
           )}
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={S.cardName}>{stuName(stu)}</div>
-            <div style={S.cardMeta}>{stuCls(stu)} <span style={S.cardMetaDot}>•</span> #{stuAdmNo(stu)}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={S.cardName}>{name}</div>
+            <div style={S.cardMeta}>{stuCls(stu)}</div>
           </div>
         </div>
 
@@ -1145,66 +1174,51 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
         </div>
       </div>
 
-      {/* Status badges — all rendered through StatusPill for identical height/padding/radius */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, flex: 1 }}>
-        {hasApproval ? (
-          <>
-            <StatusPill icon={IcoCheckCircle} bg="#D1FAE5" color="#065F46" label="Parent Approved" />
-            <span style={S.cardSub}>
-              <IcoUsers size={11} />
-              {approvedRequest.personName || "Unknown"}
-              {approvedRequest.deviceAuthenticated ? " · 🔒 Verified" : ""}
-            </span>
-          </>
-        ) : (
-          <>
-            <StatusPill icon={STATUS_ICON[status]} bg={cfg.bg} color={cfg.text} label={cfg.label} />
-            {hasPending && (
-              <StatusPill icon={IcoHourglass} bg="#EDE9FE" color="#5B21B6" label="Waiting Approval" />
-            )}
-            {subText && (
-              <span style={S.cardSub}>
-                {status === "CHECKED_IN" ? <IcoClock size={11} /> : <IcoLogOut size={11} />}
-                {subText}
-              </span>
-            )}
-          </>
+      {/* No status pill here on purpose -- the filter chips above already
+          communicate Present/Not Arrived/Picked Up. Only a quiet caption
+          line for information the filter *can't* express: exact time, or
+          an in-progress approval hand-off. */}
+      <div style={{ flex: 1, marginBottom: 14 }}>
+        {hasApproval && (
+          <span style={S.cardNote}>
+            <IcoCheckCircle size={13} color="#10B981" />
+            Approved — {approvedRequest.personName || "Unknown"}{approvedRequest.deviceAuthenticated ? " · 🔒" : ""}
+          </span>
+        )}
+        {hasPending && !hasApproval && (
+          <span style={S.cardNote}><IcoHourglass size={13} color="#8B5CF6" /> Waiting on parent</span>
+        )}
+        {subText && !hasApproval && (
+          <span style={S.cardNote}>
+            {status === "CHECKED_IN" ? <IcoClock size={13} /> : <IcoLogOut size={13} />}
+            {subText}
+          </span>
         )}
       </div>
 
-      {/* Action button */}
-      {busy ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}><Spin size={20} /></div>
-      ) : hasApproval ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#10B981", color: "#FFFFFF" }} onClick={onRelease} aria-label={`Release ${stuName(stu)}`}>
-          <IcoCheckCircle size={14} /> Release Child
-        </button>
-      ) : canIn ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#059669", color: "#FFFFFF", boxShadow: "0 2px 8px rgba(5,150,105,0.28)" }} onClick={onCheckIn} aria-label={`Check in ${stuName(stu)}`}>
-          <IcoCheckCircle size={15} /> Check In
-        </button>
-      ) : canOut ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#FEE2E2", color: "#991B1B" }} onClick={onCheckOut} aria-label={`Start pickup for ${stuName(stu)}`}>
-          <IcoLogOut size={14} /> Pick Up
-        </button>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#D1D5DB", fontSize: 12, padding: "8px 0" }} aria-disabled="true">
-          Picked up {subText ? `· ${subText}` : ""}
-        </div>
-      )}
+      {/* Hero action — the one thing this card asks of you */}
+      <div key={hasApproval ? "release" : status} className="cp-heropop">
+        {busy ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "14px 0" }}><Spin size={22} /></div>
+        ) : hasApproval ? (
+          <button className="cp-actbtn cp-hero" style={{ ...S.heroBtn, background: "#059669", boxShadow: "0 4px 14px rgba(5,150,105,0.3)" }} onClick={onRelease} aria-label={`Release ${name}`}>
+            <IcoCheckCircle size={19} /> Release Child
+          </button>
+        ) : canIn ? (
+          <button className="cp-actbtn cp-hero" style={{ ...S.heroBtn, background: "#059669", boxShadow: "0 4px 14px rgba(5,150,105,0.3)" }} onClick={onCheckIn} aria-label={`Check in ${name}`}>
+            <IcoCheckCircle size={19} /> Check In
+          </button>
+        ) : canOut ? (
+          <button className="cp-actbtn cp-hero" style={{ ...S.heroBtn, background: "#B45309", boxShadow: "0 4px 14px rgba(180,83,9,0.28)" }} onClick={onCheckOut} aria-label={`Start pickup for ${name}`}>
+            <IcoLogOut size={19} /> Pick Up
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#D1D5DB", fontSize: 12.5, padding: "16px 0" }} aria-disabled="true">
+            Picked up{subText ? ` · ${subText}` : ""}
+          </div>
+        )}
+      </div>
     </div>
-  );
-}
-
-// ── StatusPill — the one status-badge implementation on this page ────────────
-// Fixed height/padding/radius (via S.badge) so every status pill lines up
-// identically regardless of label length; small leading icon for clarity.
-function StatusPill({ icon: Icon, bg, color, label }) {
-  return (
-    <span style={{ ...S.badge, background: bg, color }}>
-      {Icon && <Icon size={11} />}
-      {label}
-    </span>
   );
 }
 
@@ -1595,10 +1609,10 @@ const S = {
   dateStr:  { fontSize: 12.5, color: "#9CA3AF", fontWeight: 600 },
 
   // Dashboard
-  dash:     { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  dash:     { display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" },
   dashCard: {
-    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5,
-    padding: "16px 16px 14px", borderRadius: 16, flex: "1 1 150px", minWidth: 140, minHeight: 112,
+    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 7,
+    padding: "20px 18px 17px", borderRadius: 18, flex: "1 1 150px", minWidth: 140, minHeight: 124,
     border: "1px solid rgba(17,24,39,0.05)",
     boxShadow: "0 1px 2px rgba(17,24,39,0.03), 0 6px 16px rgba(17,24,39,0.055)",
     position: "relative", overflow: "hidden",
@@ -1632,20 +1646,24 @@ const S = {
   // Card grid
   grid: { display: "grid", gridTemplateColumns: "1fr", gap: 14, paddingBottom: 8 },
 
-  // Student card
+  // Student card — profile-card feel: soft float, minimal chrome, avatar-led
   card: {
-    display: "flex", flexDirection: "column", padding: "18px 18px 16px",
-    background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: 16,
-    minHeight: 208,
-    boxShadow: "0 1px 2px rgba(17,24,39,0.03)",
+    display: "flex", flexDirection: "column", padding: "20px 20px 18px",
+    background: "#FFFFFF", border: "1px solid #F1F2F4", borderRadius: 20,
+    minHeight: 216,
+    boxShadow: "0 2px 10px rgba(17,24,39,0.045)",
   },
-  cardPhoto: { width: 58, height: 58, borderRadius: 14, objectFit: "cover", flexShrink: 0 },
-  cardAva:   { width: 58, height: 58, borderRadius: 14, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  avaText:   { fontSize: 17, fontWeight: 800, color: "#92400E" },
-  cardName:  { fontSize: 16, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175, letterSpacing: "-0.01em" },
-  cardMeta:  { fontSize: 12, color: "#6B7280", marginTop: 4, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  cardPhoto: { width: 64, height: 64, borderRadius: "50%", objectFit: "cover", flexShrink: 0, boxShadow: "0 0 0 1px rgba(17,24,39,0.04)" },
+  cardAva:   { width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 1px rgba(17,24,39,0.04)" },
+  avaText:   { fontSize: 20, fontWeight: 800, color: "#FFFFFF", textShadow: "0 1px 2px rgba(0,0,0,0.12)" },
+  cardName:  { fontSize: 16.5, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175, letterSpacing: "-0.01em" },
+  cardMeta:  { fontSize: 12.5, color: "#9CA3AF", marginTop: 3, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   cardMetaDot: { color: "#D1D5DB" },
   cardSub:   { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#9CA3AF", fontWeight: 500 },
+
+  // Small caption line inside a card (e.g. "Arrived 8:14am", "Waiting on parent") —
+  // deliberately NOT a colored pill; the filter chips own status communication now
+  cardNote: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#8B93A1", fontWeight: 600 },
 
   // Badge — fixed height (22px) so every status pill matches regardless of icon/label
   badge: { display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", letterSpacing: "0.01em" },
@@ -1653,6 +1671,14 @@ const S = {
   // Card action button — the primary action on every card; radius matches the
   // page's one button-radius token (10px, shared with search/select/header btn)
   cardBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", height: 44, borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", textAlign: "center" },
+
+  // Hero action — the strongest visual element on the card (Check In / Release / Pick Up)
+  heroBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", height: 52, borderRadius: 14, fontSize: 14.5, fontWeight: 800, cursor: "pointer", border: "none", color: "#FFFFFF", textAlign: "center", letterSpacing: "-0.01em" },
+
+  // Empty state — replaces a blank grid when a filter matches nothing
+  emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "64px 20px", gap: 10 },
+  emptyIcon:  { fontSize: 40, lineHeight: 1 },
+  emptyText:  { fontSize: 14.5, fontWeight: 600, color: "#8B93A1", margin: 0 },
 
   // ⋮ menu
   moreBtn:  { background: "transparent", border: "none", cursor: "pointer", padding: "3px 7px", fontSize: 18, color: "#9CA3AF", lineHeight: 1, borderRadius: 6 },
