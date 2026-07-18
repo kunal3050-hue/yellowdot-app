@@ -27,6 +27,13 @@ const STATUS_CFG = {
   CHECKED_OUT: { label: "Picked Up",   dot: "#9CA3AF", bg: "#F3F4F6", text: "#4B5563" },
 };
 
+// Presentational only — small leading icon per status, for the standardized StatusPill.
+const STATUS_ICON = {
+  NOT_ARRIVED: IcoClock,
+  CHECKED_IN:  IcoCheckCircle,
+  CHECKED_OUT: IcoLogOut,
+};
+
 // Present first — they're inside and need monitoring
 const STATUS_ORDER = { CHECKED_IN: 0, NOT_ARRIVED: 1, CHECKED_OUT: 2 };
 
@@ -681,6 +688,9 @@ export default function ChildPresence() {
         .cp-card      { transition:box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease; }
         .cp-card:hover  { box-shadow:0 8px 24px rgba(17,24,39,0.09) !important; transform:translateY(-2px); border-color:#D1D5DB; }
 
+        .cp-kpi       { transition:box-shadow 0.16s ease, transform 0.16s ease; cursor:default; }
+        .cp-kpi:hover   { box-shadow:0 2px 4px rgba(17,24,39,0.05), 0 10px 22px rgba(17,24,39,0.08) !important; transform:translateY(-2px); }
+
         .cp-actbtn    { transition:filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
         .cp-actbtn:hover:not(:disabled) { filter:brightness(0.96); transform:translateY(-1px); box-shadow:0 3px 10px rgba(17,24,39,0.12); }
         .cp-actbtn:active:not(:disabled) { transform:translateY(0); filter:brightness(0.92); }
@@ -749,8 +759,8 @@ export default function ChildPresence() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .cp-card, .cp-actbtn, .cp-headbtn, .cp-chip, .cp-search, .cp-select { transition:none !important; }
-          .cp-card:hover { transform:none !important; }
+          .cp-card, .cp-kpi, .cp-actbtn, .cp-headbtn, .cp-chip, .cp-search, .cp-select { transition:none !important; }
+          .cp-card:hover, .cp-kpi:hover { transform:none !important; }
         }
       `}</style>
 
@@ -758,11 +768,13 @@ export default function ChildPresence() {
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={S.hdr}>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <p style={S.greeting}>{getGreeting()}, {firstName(user)} 👋</p>
-            <h1 style={S.title}>Gate Register</h1>
-            <p style={S.subtitle}>Track arrivals and pickups at the gate in real time</p>
-            <p style={S.dateStr}>{todayLabel()}</p>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <h1 style={S.title}>Gate Register</h1>
+              <span style={S.dateStr}>{todayLabel()}</span>
+            </div>
+            <p style={S.subtitle}>Monitor student arrivals, pickups and live attendance throughout the day.</p>
           </div>
           <button className="cp-headbtn" style={{ ...S.btn, ...S.btnGhost }} onClick={loadData} aria-label="Refresh gate register data">
             <IcoRefresh /> Refresh
@@ -855,7 +867,7 @@ export default function ChildPresence() {
         )}
 
         {/* ── Filter chips ─────────────────────────────────────────────────── */}
-        <div className="cp-chips" style={{ display: "flex", gap: 6, marginBottom: 10, alignItems: "center" }}>
+        <div className="cp-chips" style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
           {FILTER_TABS.map(tab => {
             const count = tab.key === "CHECKED_IN"       ? counts.present
                         : tab.key === "NOT_ARRIVED"       ? counts.notArrived
@@ -1042,17 +1054,18 @@ export default function ChildPresence() {
 function DashCard({ icon, label, n, color, bg, sub, pulse }) {
   return (
     <div
+      className="cp-kpi"
       role="group"
       aria-label={`${label}: ${n}${sub ? `, ${sub}` : ""}`}
       style={{
         ...S.dashCard,
-        background: `linear-gradient(150deg, ${bg} 0%, #FFFFFF 135%)`,
+        background: `linear-gradient(155deg, ${bg} 0%, #FFFFFF 145%)`,
         outline: pulse ? `2px solid ${color}` : "none",
         outlineOffset: 2,
       }}
     >
-      <span style={{ fontSize: 30, lineHeight: 1 }} aria-hidden="true">{icon}</span>
-      <span style={{ fontSize: 27, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{n}</span>
+      <span style={{ fontSize: 34, lineHeight: 1 }} aria-hidden="true">{icon}</span>
+      <span style={{ fontSize: 29, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{n}</span>
       <span style={{ fontSize: 11.5, fontWeight: 700, color, opacity: 0.75, lineHeight: 1.3, textAlign: "left" }}>
         {label}
       </span>
@@ -1132,14 +1145,11 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
         </div>
       </div>
 
-      {/* Status badges */}
+      {/* Status badges — all rendered through StatusPill for identical height/padding/radius */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, flex: 1 }}>
         {hasApproval ? (
           <>
-            <div style={{ ...S.badge, background: "#D1FAE5", color: "#065F46" }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10B981", flexShrink: 0 }} />
-              Parent Approved
-            </div>
+            <StatusPill icon={IcoCheckCircle} bg="#D1FAE5" color="#065F46" label="Parent Approved" />
             <span style={S.cardSub}>
               <IcoUsers size={11} />
               {approvedRequest.personName || "Unknown"}
@@ -1148,15 +1158,9 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
           </>
         ) : (
           <>
-            <div style={{ ...S.badge, background: cfg.bg, color: cfg.text }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-              {cfg.label}
-            </div>
+            <StatusPill icon={STATUS_ICON[status]} bg={cfg.bg} color={cfg.text} label={cfg.label} />
             {hasPending && (
-              <div style={{ ...S.badge, background: "#EDE9FE", color: "#5B21B6" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#7C3AED", flexShrink: 0 }} />
-                Waiting Approval
-              </div>
+              <StatusPill icon={IcoHourglass} bg="#EDE9FE" color="#5B21B6" label="Waiting Approval" />
             )}
             {subText && (
               <span style={S.cardSub}>
@@ -1176,8 +1180,8 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
           <IcoCheckCircle size={14} /> Release Child
         </button>
       ) : canIn ? (
-        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#D1FAE5", color: "#065F46" }} onClick={onCheckIn} aria-label={`Check in ${stuName(stu)}`}>
-          <IcoCheckCircle size={14} /> Check In
+        <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#059669", color: "#FFFFFF", boxShadow: "0 2px 8px rgba(5,150,105,0.28)" }} onClick={onCheckIn} aria-label={`Check in ${stuName(stu)}`}>
+          <IcoCheckCircle size={15} /> Check In
         </button>
       ) : canOut ? (
         <button className="cp-actbtn" style={{ ...S.cardBtn, background: "#FEE2E2", color: "#991B1B" }} onClick={onCheckOut} aria-label={`Start pickup for ${stuName(stu)}`}>
@@ -1189,6 +1193,18 @@ function StudentCard({ stu, detail, busy, approvedRequest, pendingRequest, moreO
         </div>
       )}
     </div>
+  );
+}
+
+// ── StatusPill — the one status-badge implementation on this page ────────────
+// Fixed height/padding/radius (via S.badge) so every status pill lines up
+// identically regardless of label length; small leading icon for clarity.
+function StatusPill({ icon: Icon, bg, color, label }) {
+  return (
+    <span style={{ ...S.badge, background: bg, color }}>
+      {Icon && <Icon size={11} />}
+      {label}
+    </span>
   );
 }
 
@@ -1207,6 +1223,12 @@ function MoreItem({ icon, label, onClick, red }) {
 }
 
 // ── SpeedDialFAB ──────────────────────────────────────────────────────────────
+// Design decision (polish pass): kept as a floating Speed Dial rather than
+// folded into the header. Its four actions (Scan Badge, Manual Check-In,
+// Visitor Entry, Emergency Pickup) aren't tied to a specific student card,
+// so they don't belong inline in the grid -- and the header is intentionally
+// kept to a single Refresh action for clarity. A persistent, thumb-reachable
+// FAB is the right pattern for a high-frequency reception/gate screen.
 function SpeedDialFAB({ open, onToggle, onScanBadge, onManualCheckIn, onVisitorEntry, onEmergencyPickup }) {
   const actions = [
     { label: "Scan Badge",       color: "#111827", onClick: onScanBadge,       icon: <IcoQr size={18} /> },
@@ -1566,17 +1588,17 @@ const S = {
   },
 
   // Header
-  hdr:      { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 22, flexWrap: "wrap" },
+  hdr:      { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20, flexWrap: "wrap" },
   greeting: { fontSize: 13, fontWeight: 700, color: "#B45309", margin: 0, letterSpacing: "0.01em" },
-  title:    { fontSize: 27, fontWeight: 800, color: "#111827", margin: "3px 0 0", letterSpacing: "-0.5px" },
-  subtitle: { fontSize: 13, color: "#6B7280", margin: "5px 0 0", maxWidth: 420, lineHeight: 1.4 },
-  dateStr:  { fontSize: 12, color: "#9CA3AF", margin: "6px 0 0", fontWeight: 600 },
+  title:    { fontSize: 28, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.15 },
+  subtitle: { fontSize: 13.5, color: "#6B7280", margin: "6px 0 0", maxWidth: 440, lineHeight: 1.5 },
+  dateStr:  { fontSize: 12.5, color: "#9CA3AF", fontWeight: 600 },
 
   // Dashboard
-  dash:     { display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" },
+  dash:     { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
   dashCard: {
     display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5,
-    padding: "16px 16px 14px", borderRadius: 16, flex: "1 1 150px", minWidth: 140, minHeight: 108,
+    padding: "16px 16px 14px", borderRadius: 16, flex: "1 1 150px", minWidth: 140, minHeight: 112,
     border: "1px solid rgba(17,24,39,0.05)",
     boxShadow: "0 1px 2px rgba(17,24,39,0.03), 0 6px 16px rgba(17,24,39,0.055)",
     position: "relative", overflow: "hidden",
@@ -1594,42 +1616,43 @@ const S = {
   tlTime:     { fontSize: 11.5, color: "#9CA3AF", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" },
   tlText:     { fontSize: 13, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
 
-  // Filter chips
-  chipBtn:       { padding: "7px 13px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid #E5E7EB", background: "#FAFAFA", color: "#374151", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6, transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease" },
-  chipBtnActive: { background: "#111827", color: "#FFFFFF", border: "1.5px solid #111827" },
+  // Filter chips — fixed height so every chip lines up regardless of label/count
+  chipBtn:       { height: 32, padding: "0 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid #E5E7EB", background: "#FAFAFA", color: "#374151", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 7, transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease" },
+  chipBtnActive: { background: "#111827", color: "#FFFFFF", border: "1.5px solid #111827", boxShadow: "0 2px 8px rgba(17,24,39,0.22)" },
 
-  // Search / filters row
-  filters:     { display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" },
+  // Search / filters row — inputs share one height token (42px) with the KPI/button scale
+  filters:     { display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" },
   searchWrap:  { position: "relative", flex: "1 1 240px", display: "flex", alignItems: "center" },
   searchIcon:  { position: "absolute", left: 13, display: "flex", color: "#9CA3AF", pointerEvents: "none" },
-  searchIn:    { width: "100%", padding: "10px 40px 10px 36px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#111827", outline: "none", background: "#FAFAFA", boxSizing: "border-box" },
-  searchClear: { position: "absolute", right: 8, display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", border: "none", background: "#E5E7EB", color: "#6B7280", cursor: "pointer" },
+  searchIn:    { width: "100%", height: 42, padding: "0 40px 0 36px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#111827", outline: "none", background: "#FAFAFA", boxSizing: "border-box" },
+  searchClear: { position: "absolute", right: 9, display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", border: "none", background: "#E5E7EB", color: "#6B7280", cursor: "pointer" },
   searchHint:  { position: "absolute", right: 12, fontSize: 11, fontWeight: 700, color: "#9CA3AF", background: "#EEF0F2", border: "1px solid #E5E7EB", borderRadius: 5, padding: "1px 6px", pointerEvents: "none" },
-  classIn:     { padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#374151", outline: "none", background: "#FAFAFA", cursor: "pointer" },
+  classIn:     { height: 42, padding: "0 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#374151", outline: "none", background: "#FAFAFA", cursor: "pointer", boxSizing: "border-box" },
 
   // Card grid
   grid: { display: "grid", gridTemplateColumns: "1fr", gap: 14, paddingBottom: 8 },
 
   // Student card
   card: {
-    display: "flex", flexDirection: "column", padding: "16px 16px 14px",
+    display: "flex", flexDirection: "column", padding: "18px 18px 16px",
     background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: 16,
-    minHeight: 200,
+    minHeight: 208,
     boxShadow: "0 1px 2px rgba(17,24,39,0.03)",
   },
-  cardPhoto: { width: 56, height: 56, borderRadius: 14, objectFit: "cover", flexShrink: 0 },
-  cardAva:   { width: 56, height: 56, borderRadius: 14, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  avaText:   { fontSize: 16, fontWeight: 800, color: "#92400E" },
-  cardName:  { fontSize: 15.5, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175, letterSpacing: "-0.01em" },
-  cardMeta:  { fontSize: 12, color: "#6B7280", marginTop: 3, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  cardPhoto: { width: 58, height: 58, borderRadius: 14, objectFit: "cover", flexShrink: 0 },
+  cardAva:   { width: 58, height: 58, borderRadius: 14, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  avaText:   { fontSize: 17, fontWeight: 800, color: "#92400E" },
+  cardName:  { fontSize: 16, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175, letterSpacing: "-0.01em" },
+  cardMeta:  { fontSize: 12, color: "#6B7280", marginTop: 4, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   cardMetaDot: { color: "#D1D5DB" },
   cardSub:   { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#9CA3AF", fontWeight: 500 },
 
-  // Badge
-  badge: { display: "inline-flex", alignItems: "center", gap: 6, padding: "3.5px 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", letterSpacing: "0.01em" },
+  // Badge — fixed height (22px) so every status pill matches regardless of icon/label
+  badge: { display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", letterSpacing: "0.01em" },
 
-  // Card action button
-  cardBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "11px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", textAlign: "center" },
+  // Card action button — the primary action on every card; radius matches the
+  // page's one button-radius token (10px, shared with search/select/header btn)
+  cardBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", height: 44, borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", textAlign: "center" },
 
   // ⋮ menu
   moreBtn:  { background: "transparent", border: "none", cursor: "pointer", padding: "3px 7px", fontSize: 18, color: "#9CA3AF", lineHeight: 1, borderRadius: 6 },
