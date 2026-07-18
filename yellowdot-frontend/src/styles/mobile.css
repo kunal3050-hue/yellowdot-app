@@ -638,6 +638,21 @@ html, body {
   outline-offset: 2px;
 }
 
+/* ── Quick Navigation Dashboard — responsive ─────────────────────────── */
+
+@media (max-width: 768px) {
+  .qnd-root { padding: var(--yd-space-4) var(--yd-space-4) var(--yd-space-12); gap: var(--yd-space-8); }
+  .qnd-hero-title { font-size: var(--yd-font-size-3xl); }
+  .qnd-hero-search { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+  /* One card per row — comfortable thumb reach, no cramped columns */
+  .qnd-grid { grid-template-columns: 1fr; }
+  .qnd-section--row .qnd-row > * { flex-basis: 132px; }
+  .qnd-card { padding: var(--yd-space-5) var(--yd-space-4) var(--yd-space-4); }
+}
+
 /* ── Reduce animation on mobile for performance ──────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

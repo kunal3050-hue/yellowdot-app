@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Search, X } from "lucide-react";
 
 /**
@@ -9,15 +10,17 @@ import { Search, X } from "lucide-react";
  * @prop {string}   placeholder (default: "Search…")
  * @prop {string}   size        "sm" | "md" | "lg"
  * @prop {string}   className
+ *
+ * Forwards `ref` to the underlying <input> (e.g. for a "/" focus shortcut).
  */
-export default function SearchBar({
+const SearchBar = forwardRef(function SearchBar({
   value = "",
   onChange,
   onClear,
   placeholder = "Search…",
   size,
   className = "",
-}) {
+}, ref) {
   const inputCls = [
     "yd-input",
     size === "lg" ? "yd-input-lg" : "",
@@ -35,6 +38,7 @@ export default function SearchBar({
       </span>
 
       <input
+        ref={ref}
         type="search"
         className={inputCls}
         value={value}
@@ -56,7 +60,9 @@ export default function SearchBar({
       )}
     </div>
   );
-}
+});
+
+export default SearchBar;
 
 function SearchIcon() {
   return <Search size={14} strokeWidth={2} />;

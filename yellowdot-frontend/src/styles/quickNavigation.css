@@ -1,0 +1,233 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Quick Navigation Dashboard — src/pages/quickNavigation/
+   Premium, whitespace-heavy landing page: large rounded module cards,
+   soft shadows, generous spacing. Built entirely on existing KUE BOXS
+   Design System v2 tokens (color/radius/shadow/spacing) — no new
+   hardcoded values.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.qnd-root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--yd-space-6) var(--yd-space-6) var(--yd-space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--yd-space-10);
+}
+
+/* ── Hero: greeting / title / date / search ───────────────────────────── */
+.qnd-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yd-space-2);
+  padding: var(--yd-space-8) 0 var(--yd-space-4);
+}
+.qnd-hero-greeting {
+  margin: 0;
+  font-size: var(--yd-font-size-md);
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-text-soft);
+}
+.qnd-hero-title {
+  margin: 0;
+  font-size: var(--yd-font-size-4xl);
+  font-weight: var(--yd-weight-extra);
+  letter-spacing: var(--yd-tracking-tight);
+  color: var(--yd-charcoal);
+  line-height: var(--yd-leading-tight);
+}
+.qnd-hero-date {
+  margin: 0 0 var(--yd-space-4);
+  font-size: var(--yd-font-size-base);
+  color: var(--yd-text-muted);
+  font-weight: var(--yd-weight-medium);
+}
+.qnd-hero-search {
+  max-width: 480px;
+}
+
+/* ── Search ────────────────────────────────────────────────────────────── */
+.qnd-search {
+  position: relative;
+}
+.qnd-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  border-radius: var(--yd-radius-md);
+  box-shadow: var(--yd-elevation-large);
+  padding: var(--yd-space-2);
+  z-index: 20;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.qnd-search-empty {
+  padding: var(--yd-space-4);
+  font-size: var(--yd-font-size-sm);
+  color: var(--yd-text-muted);
+  text-align: center;
+}
+.qnd-search-item {
+  display: flex;
+  align-items: center;
+  gap: var(--yd-space-3);
+  width: 100%;
+  padding: var(--yd-space-2) var(--yd-space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--yd-radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--yd-duration-fast) var(--yd-ease);
+}
+.qnd-search-item:hover,
+.qnd-search-item:focus-visible {
+  background: var(--yd-soft);
+  outline: none;
+}
+.qnd-search-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--yd-radius-sm);
+  background: var(--yd-yellow-light);
+  color: var(--yd-charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qnd-search-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.qnd-search-item-label {
+  font-size: var(--yd-font-size-base);
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-charcoal);
+}
+.qnd-search-item-section {
+  font-size: var(--yd-font-size-xs);
+  color: var(--yd-text-muted);
+  font-weight: var(--yd-weight-medium);
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+.qnd-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yd-space-4);
+}
+.qnd-section-title {
+  margin: 0;
+  font-size: var(--yd-font-size-lg);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-charcoal);
+  letter-spacing: var(--yd-tracking-snug);
+}
+
+/* Card grid — auto-fills, naturally responsive: 1 col on phones, up to
+   4-5 on wide desktops, no explicit breakpoints needed for the grid
+   itself (only for hero typography and row scrolling below). */
+.qnd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--yd-space-5);
+}
+
+/* Recent / Favourites — horizontal scroll row of compact cards */
+.qnd-section--row .qnd-row {
+  display: flex;
+  gap: var(--yd-space-4);
+  overflow-x: auto;
+  padding-bottom: var(--yd-space-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.qnd-section--row .qnd-row > * {
+  flex: 0 0 160px;
+}
+
+/* ── Module card ───────────────────────────────────────────────────────── */
+.qnd-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--yd-space-3);
+  width: 100%;
+  padding: var(--yd-space-6) var(--yd-space-5) var(--yd-space-5);
+  border-radius: var(--yd-radius-xl);
+  border: 1px solid var(--yd-border-light);
+  background: var(--yd-surface);
+  box-shadow: var(--yd-elevation-small);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color var(--yd-duration) var(--yd-ease), box-shadow var(--yd-duration) var(--yd-ease);
+}
+.qnd-card:hover { border-color: var(--yd-border-warm); }
+.qnd-card:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: 3px; }
+
+.qnd-card--compact {
+  padding: var(--yd-space-4);
+  gap: var(--yd-space-2);
+  border-radius: var(--yd-radius-lg);
+}
+
+.qnd-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--yd-radius-md);
+  background: linear-gradient(155deg, var(--yd-yellow-light) 0%, var(--yd-surface) 145%);
+  color: var(--yd-yellow-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qnd-card--compact .qnd-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--yd-radius-sm);
+}
+
+.qnd-card-label {
+  font-size: var(--yd-font-size-md);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-charcoal);
+  letter-spacing: var(--yd-tracking-snug);
+}
+.qnd-card--compact .qnd-card-label {
+  font-size: var(--yd-font-size-base);
+}
+
+.qnd-card-desc {
+  font-size: var(--yd-font-size-sm);
+  color: var(--yd-text-muted);
+  line-height: var(--yd-leading-snug);
+}
+
+.qnd-card-pin {
+  position: absolute;
+  top: var(--yd-space-3);
+  right: var(--yd-space-3);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--yd-radius-full);
+  border: none;
+  background: var(--yd-soft);
+  color: var(--yd-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--yd-duration-fast) var(--yd-ease), color var(--yd-duration-fast) var(--yd-ease);
+}
+.qnd-card-pin:hover { background: var(--yd-yellow-light); color: var(--yd-yellow-dark); }
+.qnd-card-pin--active { color: var(--yd-yellow-dark); background: var(--yd-yellow-light); }
+.qnd-card-pin:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: 2px; }

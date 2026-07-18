@@ -17,6 +17,7 @@ import "./styles/filterBar.css";
 import "./styles/quickActionCard.css";
 import "./styles/liveDashboard.css";
 import "./styles/quickNav.css";
+import "./styles/quickNavigation.css";
 import "./styles/students.css";
 import "./styles/layout.css";
 import "./styles/settings.css";

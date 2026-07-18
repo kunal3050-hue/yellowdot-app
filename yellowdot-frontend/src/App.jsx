@@ -23,6 +23,7 @@ const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
+const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
 const CCTV                = lazy(() => import("./pages/CCTV"));
 const Students            = lazy(() => import("./pages/Students"));
@@ -37,6 +38,7 @@ const FoodConsumption     = lazy(() => import("./pages/FoodConsumption"));
 const CareHygiene         = lazy(() => import("./pages/CareHygiene"));
 
 const Fees                = lazy(() => import("./pages/Fees"));
+const Collections         = lazy(() => import("./pages/Collections"));
 const Invoice             = lazy(() => import("./pages/Invoice"));
 const NewInvoice          = lazy(() => import("./pages/NewInvoice"));
 const FeeTemplates        = lazy(() => import("./pages/FeeTemplates"));
@@ -203,6 +205,14 @@ function App() {
               element={
                 <ProtectedRoute routeKey="dashboard">
                   <MainLayout><QuickNav /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quick-navigation"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><QuickNavigation /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -380,6 +390,14 @@ function App() {
               element={
                 <ProtectedRoute routeKey="fees">
                   <Fees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/collections"
+              element={
+                <ProtectedRoute routeKey="fees">
+                  <Collections />
                 </ProtectedRoute>
               }
             />
@@ -764,5 +782,5 @@ function RootRedirect() {
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
-  return <Navigate to="/live-dashboard" replace />;
+  return <Navigate to="/quick-navigation" replace />;
 }
