@@ -1,5 +1,5 @@
 /**
- * useExpandedSections.js — remembers which Quick Navigation categories
+ * useExpandedSections.js — remembers which Control Center categories
  * the user has expanded past their default "first row" preview.
  * Persisted to localStorage, same try/catch JSON pattern as
  * config/sidebarConfig.js's section-state helpers.

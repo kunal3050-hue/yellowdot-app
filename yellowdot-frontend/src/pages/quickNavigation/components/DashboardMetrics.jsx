@@ -1,9 +1,9 @@
 /**
- * DashboardMetrics — "Today at a Glance" KPI row above the module grid.
+ * DashboardMetrics — "Today's Overview" KPI row above the module grid.
  * Five of the seven stats are real, derived from the same endpoints
  * LiveDashboard.jsx already calls (see useDashboardStats.js). Two —
- * Staff Present and New Admissions — have no reliable backend source
- * yet (LiveDashboard itself shows "not tracked" for staff presence), so
+ * Staff Present and Admissions — have no reliable backend source yet
+ * (LiveDashboard itself shows "not tracked" for staff presence), so
  * they're realistic sample values, clearly labeled as such rather than
  * presented as live numbers.
  */
@@ -21,7 +21,7 @@ export default function DashboardMetrics() {
 
   return (
     <section className="qnd-section">
-      <h2 className="qnd-section-title">Today at a Glance</h2>
+      <h2 className="qnd-section-title">Today's Overview</h2>
       <KpiRow>
         <KpiCard
           icon={<CalendarCheck size={16} strokeWidth={1.75} />}
@@ -59,18 +59,18 @@ export default function DashboardMetrics() {
           loading={loading}
         />
         <KpiCard
-          icon={<UserPlus size={16} strokeWidth={1.75} />}
-          label="New Admissions"
-          value="3"
-          trendLabel="sample · this week"
-          loading={false}
-        />
-        <KpiCard
           icon={<Cake size={16} strokeWidth={1.75} />}
           label="Birthdays"
           value={birthdaysToday ?? "—"}
           trendLabel="today"
           loading={loading}
+        />
+        <KpiCard
+          icon={<UserPlus size={16} strokeWidth={1.75} />}
+          label="Admissions"
+          value="3"
+          trendLabel="sample · this week"
+          loading={false}
         />
       </KpiRow>
     </section>

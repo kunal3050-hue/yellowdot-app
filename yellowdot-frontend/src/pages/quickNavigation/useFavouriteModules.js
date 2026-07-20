@@ -1,5 +1,5 @@
 /**
- * useFavouriteModules.js — pin/unpin modules on Quick Navigation,
+ * useFavouriteModules.js — pin/unpin modules on Control Center,
  * persisted to localStorage. Same try/catch JSON pattern as
  * config/sidebarConfig.js's section-state helpers.
  */

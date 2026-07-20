@@ -1,6 +1,6 @@
 /**
  * ModuleListItem — compact row presentation of a module, used when
- * Quick Navigation's ViewSwitcher is set to List. Same data, same
+ * Control Center's ViewSwitcher is set to List. Same data, same
  * RBAC gate, same pin/navigate/drag callbacks as ModuleCard — only the
  * layout differs (higher information density, one line per module).
  */

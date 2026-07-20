@@ -1,5 +1,5 @@
 /**
- * QuickSearch — drives Quick Navigation's live filter. As the user
+ * QuickSearch — drives Control Center's live filter. As the user
  * types, the query is lifted to the page (onQueryChange) which passes
  * it down to every ModuleSection — matching cards stay, non-matching
  * ones disappear, matched text highlights, all instantly (no dropdown,
@@ -60,7 +60,7 @@ export default function QuickSearch({ query, onQueryChange, onNavigate }) {
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onClear={() => onQueryChange("")}
-          placeholder="Search modules…  (press / to focus)"
+          placeholder="Search students, parents, staff, modules…  (press / to focus)"
           size="lg"
         />
       </div>

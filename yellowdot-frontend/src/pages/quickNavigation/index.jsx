@@ -1,14 +1,25 @@
 /**
- * Quick Navigation Dashboard — src/pages/quickNavigation/
+ * Control Center — src/pages/quickNavigation/
  * ─────────────────────────────────────────────────────────────────────
- * Premium landing page shown right after login (see RootRedirect in
- * App.jsx). Pure navigation surface, top to bottom: a greeting, a row
- * of one-tap Quick Actions, global search, "Today at a Glance" metrics,
- * Quick Access (pinned favourites), Recent, then every module the
- * current user has access to, grouped into categories that mirror how
- * a preschool owner actually thinks about the business. No business
+ * The operational home of KUE BOXS Care, shown right after login (see
+ * RootRedirect in App.jsx) — not a navigation menu but the answer to
+ * "what's happening today, what needs attention, what can I do next,
+ * where is everything." Top to bottom: a greeting, a row of one-tap
+ * Quick Actions, global search, Today's Overview metrics, Quick Access
+ * (pinned favourites), Recent Activity, then every module the current
+ * user has access to, grouped into categories that mirror how a
+ * preschool owner actually thinks about the business. No business
  * logic lives here — every card links to an existing route; visibility
  * is gated purely by the same can(routeKey) RBAC check used app-wide.
+ *
+ * Renamed from "Quick Navigation" to "Control Center" (page title,
+ * sidebar label) without touching the route (still /quick-navigation),
+ * folder name, CSS class prefix (qnd-), or localStorage keys — all
+ * internal identifiers, stable on purpose so pinned/recent/expanded/
+ * view-mode preferences a user already set aren't silently reset by a
+ * naming change. The old, unrelated /quick-nav legacy page (QuickNav.jsx)
+ * still says "Quick Navigation" and is left alone, per the standing
+ * "preserve all existing routes" rule from when this page was built.
  */
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -60,7 +71,8 @@ export default function QuickNavigation() {
         <p className="qnd-hero-greeting">
           {getGreeting()}{user?.name ? `, ${firstName(user.name)}` : ""} 👋
         </p>
-        <h1 className="qnd-hero-title">Quick Navigation</h1>
+        <h1 className="qnd-hero-title">Control Center</h1>
+        <p className="qnd-hero-subtitle">Everything you need to run your preschool, in one place.</p>
         <p className="qnd-hero-date">{todayLabel()}</p>
       </header>
 
@@ -87,7 +99,7 @@ export default function QuickNavigation() {
       />
 
       <div className="qnd-viewrow">
-        <span className="qnd-viewrow-label">All Modules</span>
+        <span className="qnd-viewrow-label">Workspace</span>
         <ViewSwitcher modes={["grid", "list"]} value={view} onChange={setView} />
       </div>
 

@@ -67,7 +67,7 @@ export const SIDEBAR_GROUPS = [
       },
       {
         id:       "quick_nav",
-        label:    "Quick Navigation",
+        label:    "Control Center",
         path:     "/quick-navigation",
         routeKey: ROUTES.DASHBOARD,
         icon:     "Grid",

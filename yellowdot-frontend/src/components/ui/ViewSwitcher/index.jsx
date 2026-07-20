@@ -2,7 +2,7 @@
  * ViewSwitcher — KUE BOXS Design System v2 canonical view-mode toggle.
  * ═══════════════════════════════════════════════════════════════════════
  * The single reusable control for switching how a collection module
- * (Quick Navigation, Students, Staff, Invoices, Documents, ...)
+ * (Control Center, Students, Staff, Invoices, Documents, ...)
  * presents its data. Pair with `useViewMode()` for localStorage
  * persistence per module.
  *

@@ -1,6 +1,6 @@
 /**
  * FavouriteModules — "Quick Access": horizontal row of pinned modules
- * on Quick Navigation. Resolves stored ids through MODULES_BY_ID so a
+ * on Control Center. Resolves stored ids through MODULES_BY_ID so a
  * removed/renamed module never renders a broken card.
  *
  * Doubles as a drop zone: dragging any ModuleCard/ModuleListItem here

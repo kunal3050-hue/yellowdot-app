@@ -1,5 +1,5 @@
 /**
- * useDashboardStats.js — "Today at a Glance" metrics for Quick Navigation.
+ * useDashboardStats.js — "Today's Overview" metrics for Control Center.
  * ─────────────────────────────────────────────────────────────────────
  * Reuses the exact same endpoints LiveDashboard.jsx already calls
  * (/students, /api/attendance/summary, /api/pickup-requests,

@@ -1,5 +1,5 @@
 /**
- * modules.js — Quick Navigation Dashboard module registry
+ * modules.js — Control Center module registry
  * ─────────────────────────────────────────────────────────────────────
  * Single source of truth for every card on /quick-navigation: which
  * category it belongs to, which existing route it links to, which
@@ -126,14 +126,6 @@ export const SECTIONS = [
     ],
   },
   {
-    id: "reports_analytics",
-    label: "Reports & Analytics",
-    accent: ACCENT.reports_analytics,
-    items: [
-      { id: "analytics", label: "Analytics", path: "/analytics", routeKey: "analytics", icon: TrendingUp, description: "Attendance, revenue and enrolment trends over time." },
-    ],
-  },
-  {
     id: "parents",
     label: "Parents",
     accent: ACCENT.parents,
@@ -163,6 +155,14 @@ export const SECTIONS = [
       { id: "qr_management",        label: "QR Management",        path: "/qr-management",        routeKey: "qr-management",        icon: QrCode,        description: "Generate and print gate check-in QR codes." },
       { id: "cctv",                 label: "CCTV",                  path: "/cctv",                  routeKey: "cctv",                 icon: Camera,        description: "Manage camera coverage and surveillance zones." },
       { id: "incidents",            label: "Incident Reports",     path: "/incidents",             routeKey: "incidents",            icon: AlertTriangle, description: "Log and track safety incidents and follow-ups." },
+    ],
+  },
+  {
+    id: "reports_analytics",
+    label: "Reports & Analytics",
+    accent: ACCENT.reports_analytics,
+    items: [
+      { id: "analytics", label: "Analytics", path: "/analytics", routeKey: "analytics", icon: TrendingUp, description: "Attendance, revenue and enrolment trends over time." },
     ],
   },
   {

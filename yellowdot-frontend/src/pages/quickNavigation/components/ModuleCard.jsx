@@ -1,5 +1,5 @@
 /**
- * ModuleCard — premium navigation tile for the Quick Navigation
+ * ModuleCard — premium navigation tile for Control Center's
  * Dashboard. Follows the same RBAC pattern as ui/QuickActionCard
  * (can(routeKey) via useAuth). Each category supplies a soft accent
  * color (icon chip background/color/border) so cards read as belonging

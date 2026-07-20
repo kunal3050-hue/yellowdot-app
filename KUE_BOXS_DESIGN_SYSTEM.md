@@ -296,7 +296,7 @@ Every module redesign must include:
 
 With the v2 component library complete, work now proceeds module-by-module, applying DataTable v2 / QuickActionCard / Timeline / ActivityFeed / Charts / the Motion system / design tokens to real product pages, following the process in §20:
 
-- **Phase 2.1 — Dashboard:** Live Dashboard, Quick Navigation, KPI cards, Recent Activity, Quick Actions, Notifications, Today's Schedule. The benchmark module for every one after it.
+- **Phase 2.1 — Dashboard:** Live Dashboard, Control Center (originally built as "Quick Navigation," renamed 2026-07-20 — see §22), KPI cards, Recent Activity, Quick Actions, Notifications, Today's Schedule. The benchmark module for every one after it.
 - **Phase 2.2 — Students:** Student List, Student Profile, Admission Details, Medical, Documents, Journey, Attendance, Pickup.
 - **Phase 2.2b — Students cleanup:** unified the module onto one Student Profile, one Add/Edit Wizard, and shared components/hooks — no duplicate implementations.
 - **Phase 2.2c — Platform Layout Standard:** codified the page anatomy every module below must follow (PageShell, PageHeader, KpiRow, FilterBar, ActionBar, StatusBadge, Skeleton variants, Drawer) using Students as the reference implementation. See `KUE_BOXS_LAYOUT_STANDARD.md`.
@@ -316,7 +316,7 @@ Visual target: the polish level of Linear, Stripe Dashboard, Notion, Vercel, Sla
 - **`<ViewSwitcher modes={[...]} value={mode} onChange={setMode} />`** — the toggle control itself. Presentation-only: it renders icon buttons for whichever `modes` you pass (`grid | list | table | kanban | calendar | timeline | gallery`) and calls back on change. It does not know how to render any of those layouts — that stays with the page, because a "card" in Students looks nothing like a "card" in Documents.
 - **`useViewMode(moduleKey, defaultMode)`** — a small hook that persists the chosen mode to `localStorage` under `yd_view_<moduleKey>`, independent per module (switching Students to List doesn't touch Staff's preference). Same read/write-with-try/catch pattern as `sidebarConfig.js`'s section-open-state helpers.
 
-**Reference implementation:** Quick Navigation (`src/pages/quickNavigation/`) — `ViewSwitcher modes={["grid","list"]}` wired to `useViewMode("quick_navigation")`, with `ModuleCard` (grid) and `ModuleListItem` (list) as the two presentations of the same module data. `ModuleSection` picks which to render and re-keys its container on `view` so the fade-in transition replays on switch — no page reload, no data refetch, search/RBAC state untouched by the switch.
+**Reference implementation:** Control Center (`src/pages/quickNavigation/` — folder name predates the "Control Center" rename and was left as-is; see §21) — `ViewSwitcher modes={["grid","list"]}` wired to `useViewMode("quick_navigation")`, with `ModuleCard` (grid) and `ModuleListItem` (list) as the two presentations of the same module data. `ModuleSection` picks which to render and re-keys its container on `view` so the fade-in transition replays on switch — no page reload, no data refetch, search/RBAC state untouched by the switch.
 
 **Rules for adopting this in a new module:**
 1. Build one "card" component and one "row" component that both accept the *same* item shape and the *same* callbacks — don't let the two presentations drift into different data contracts.

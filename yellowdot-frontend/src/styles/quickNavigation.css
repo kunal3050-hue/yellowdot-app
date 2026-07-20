@@ -39,6 +39,12 @@
   color: var(--yd-charcoal);
   line-height: var(--yd-leading-tight);
 }
+.qnd-hero-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--yd-font-size-md);
+  color: var(--yd-text-soft);
+  font-weight: var(--yd-weight-medium);
+}
 .qnd-hero-date {
   margin: 0;
   font-size: var(--yd-font-size-base);
@@ -177,14 +183,15 @@
 .qnd-section-chevron { transition: transform var(--yd-duration) var(--yd-ease); }
 .qnd-section-chevron--open { transform: rotate(180deg); }
 
-/* Card grid — explicit column counts: mobile 1 (mobile.css), tablet 2,
-   desktop 4, ultra-wide 5. Fewer, wider columns than a dense directory —
-   this is a control center, not a sitemap. */
+/* Card grid — explicit column counts: mobile 1 (mobile.css), tablet
+   2 → 3, desktop 4, ultra-wide 5. Fewer, wider columns than a dense
+   directory — this is a control center, not a sitemap. */
 .qnd-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--yd-space-4);
 }
+@media (min-width: 900px)  { .qnd-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 1200px) { .qnd-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1920px) { .qnd-grid { grid-template-columns: repeat(5, 1fr); } }
 

@@ -1,8 +1,8 @@
 /**
- * RecentModules — horizontal row of the last 5 modules visited from
- * Quick Navigation. Hides itself entirely when there's no history yet.
- * Resolves stored ids through MODULES_BY_ID so a removed/renamed module
- * never renders a broken card.
+ * RecentModules — "Recent Activity": horizontal row of the last 5
+ * modules visited from Control Center. Hides itself entirely when
+ * there's no history yet. Resolves stored ids through MODULES_BY_ID so
+ * a removed/renamed module never renders a broken card.
  */
 import { useAuth } from "../../../contexts/AuthContext";
 import { MODULES_BY_ID } from "../modules";
@@ -19,7 +19,7 @@ export default function RecentModules({ recentIds, favouriteIds, onNavigate, onT
 
   return (
     <section className="qnd-section qnd-section--row">
-      <h2 className="qnd-section-title">Recent</h2>
+      <h2 className="qnd-section-title">Recent Activity</h2>
       <div className="qnd-row">
         {items.map(item => (
           <ModuleCard
