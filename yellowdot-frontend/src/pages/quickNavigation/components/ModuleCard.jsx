@@ -1,8 +1,13 @@
 /**
- * ModuleCard — premium large navigation tile for the Quick Navigation
+ * ModuleCard — premium navigation tile for the Quick Navigation
  * Dashboard. Follows the same RBAC pattern as ui/QuickActionCard
- * (can(routeKey) via useAuth) but sized and styled for a landing-page
- * grid: bigger icon, more whitespace, softer shadow, optional pin toggle.
+ * (can(routeKey) via useAuth). Each category supplies a soft accent
+ * color (icon chip background/color/border) so cards read as belonging
+ * to a landmark group while scrolling, not a flat undifferentiated list.
+ *
+ * Draggable (HTML5 DnD) so it can be dropped onto Quick Access to pin —
+ * the star button remains the accessible/keyboard-only way to do the
+ * same thing, drag is a mouse-only progressive enhancement.
  *
  * @prop {string}    id            module id (used for favourite/recent tracking)
  * @prop {Component} icon          lucide-react icon component (not an element)
@@ -10,16 +15,19 @@
  * @prop {string}    description
  * @prop {string}    routeKey      permission key — card renders nothing if the
  *                                 current user lacks it (see useAuth().can())
+ * @prop {object}    accent        { bg, icon, border } — this card's category color
  * @prop {boolean}   favourite     current pinned state
  * @prop {function}  onNavigate    (id, path) => void
  * @prop {function}  onToggleFavourite (id) => void
  * @prop {string}    path
  * @prop {boolean}   compact       smaller variant used in Recent/Favourite rows
+ * @prop {string}    highlightQuery  active search text to highlight within label
  */
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, ArrowRight } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { usePrefersReducedMotion } from "../../../components/ui/motion";
+import highlightText from "../highlightText";
 
 export default function ModuleCard({
   id,
@@ -27,11 +35,13 @@ export default function ModuleCard({
   label,
   description,
   routeKey,
+  accent,
   favourite = false,
   onNavigate,
   onToggleFavourite,
   path,
   compact = false,
+  highlightQuery = "",
 }) {
   const { can } = useAuth();
   const reduced = usePrefersReducedMotion();
@@ -39,7 +49,7 @@ export default function ModuleCard({
   const allowed = routeKey ? can(routeKey) : true;
   if (!allowed) return null;
 
-  const hoverAnim = reduced ? {} : { y: -3, boxShadow: "var(--yd-elevation-large)" };
+  const hoverAnim = reduced ? {} : { y: -3 };
 
   function handleKeyDown(e) {
     if (e.key === "Enter" || e.key === " ") {
@@ -48,6 +58,13 @@ export default function ModuleCard({
     }
   }
 
+  function handleDragStart(e) {
+    e.dataTransfer.setData("text/x-yd-module-id", id);
+    e.dataTransfer.effectAllowed = "copy";
+  }
+
+  const iconStyle = accent ? { background: accent.bg, color: accent.icon } : undefined;
+
   return (
     // A <button> can't legally contain the pin toggle's nested <button>, so
     // this outer tile is a div with manual button semantics (role/tabIndex/
@@ -55,12 +72,17 @@ export default function ModuleCard({
     <motion.div
       role="button"
       tabIndex={0}
+      draggable
       className={`qnd-card${compact ? " qnd-card--compact" : ""}`}
+      style={accent ? { "--qnd-card-accent": accent.border } : undefined}
       onClick={() => onNavigate(id, path)}
       onKeyDown={handleKeyDown}
+      onDragStart={handleDragStart}
+      initial={reduced ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
       whileHover={hoverAnim}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.14 }}
+      transition={{ duration: 0.16 }}
     >
       {onToggleFavourite && (
         <button
@@ -74,12 +96,20 @@ export default function ModuleCard({
         </button>
       )}
 
-      <span className="qnd-card-icon" aria-hidden="true">
-        {Icon && <Icon size={compact ? 20 : 26} strokeWidth={1.75} />}
+      <span className="qnd-card-icon" style={iconStyle} aria-hidden="true">
+        {Icon && <Icon size={compact ? 20 : 24} strokeWidth={1.75} />}
       </span>
 
-      <span className="qnd-card-label">{label}</span>
-      {!compact && description && <span className="qnd-card-desc">{description}</span>}
+      <span className="qnd-card-label">{highlightText(label, highlightQuery)}</span>
+      {!compact && description && (
+        <span className="qnd-card-desc">{highlightText(description, highlightQuery)}</span>
+      )}
+
+      {!compact && (
+        <span className="qnd-card-arrow" aria-hidden="true">
+          <ArrowRight size={15} strokeWidth={2} />
+        </span>
+      )}
     </motion.div>
   );
 }

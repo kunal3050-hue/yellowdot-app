@@ -641,7 +641,7 @@ html, body {
 /* ── Quick Navigation Dashboard — responsive ─────────────────────────── */
 
 @media (max-width: 768px) {
-  .qnd-root { padding: var(--yd-space-4) var(--yd-space-4) var(--yd-space-12); gap: var(--yd-space-8); }
+  .qnd-root { width: auto; padding: var(--yd-space-4) var(--yd-space-4) var(--yd-space-12); gap: var(--yd-space-6); }
   .qnd-hero-title { font-size: var(--yd-font-size-3xl); }
   .qnd-hero-search { max-width: 100%; }
 }
@@ -654,6 +654,9 @@ html, body {
   /* List rows: stack label/description instead of truncating side-by-side */
   .qnd-listitem-text { flex-direction: column; align-items: flex-start; gap: 1px; }
   .qnd-listitem-desc { white-space: normal; }
+  /* Section header: allow the "Show more" toggle to wrap under a long title */
+  .qnd-section-header { flex-wrap: wrap; row-gap: var(--yd-space-1); }
+  .qnd-section-title { white-space: normal; }
 }
 
 /* ── Reduce animation on mobile for performance ──────────────────────── */

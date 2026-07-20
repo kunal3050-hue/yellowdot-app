@@ -10,13 +10,14 @@
  * logic lives here — every card links to an existing route; visibility
  * is gated purely by the same can(routeKey) RBAC check used app-wide.
  */
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { ViewSwitcher, useViewMode } from "../../components/ui";
 import { SECTIONS } from "./modules";
 import useRecentModules from "./useRecentModules";
 import useFavouriteModules from "./useFavouriteModules";
+import useExpandedSections from "./useExpandedSections";
 import ModuleSection from "./components/ModuleSection";
 import QuickActions from "./components/QuickActions";
 import QuickSearch from "./components/QuickSearch";
@@ -43,8 +44,10 @@ export default function QuickNavigation() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { recentIds, recordVisit } = useRecentModules();
-  const { favouriteIds, toggleFavourite } = useFavouriteModules();
+  const { favouriteIds, toggleFavourite, pinFavourite } = useFavouriteModules();
+  const { isExpanded, toggleExpanded } = useExpandedSections();
   const [view, setView] = useViewMode("quick_navigation", "grid");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleNavigate = useCallback((id, path) => {
     recordVisit(id);
@@ -64,7 +67,7 @@ export default function QuickNavigation() {
       <QuickActions />
 
       <div className="qnd-hero-search">
-        <QuickSearch onNavigate={handleNavigate} />
+        <QuickSearch query={searchQuery} onQueryChange={setSearchQuery} onNavigate={handleNavigate} />
       </div>
 
       <DashboardMetrics />
@@ -73,6 +76,7 @@ export default function QuickNavigation() {
         favouriteIds={favouriteIds}
         onNavigate={handleNavigate}
         onToggleFavourite={toggleFavourite}
+        onPin={pinFavourite}
       />
 
       <RecentModules
@@ -95,6 +99,9 @@ export default function QuickNavigation() {
           onNavigate={handleNavigate}
           onToggleFavourite={toggleFavourite}
           view={view}
+          searchQuery={searchQuery}
+          isExpanded={isExpanded}
+          onToggleExpanded={toggleExpanded}
         />
       ))}
     </div>

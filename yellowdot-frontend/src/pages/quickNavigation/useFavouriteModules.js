@@ -35,7 +35,19 @@ export default function useFavouriteModules() {
     });
   }, []);
 
+  // Add-only, idempotent — used by drag-to-pin so dropping an
+  // already-pinned card back onto Quick Access never unpins it
+  // (unlike toggleFavourite, which the star button uses deliberately).
+  const pinFavourite = useCallback((moduleId) => {
+    setFavouriteIds(prev => {
+      if (prev.includes(moduleId)) return prev;
+      const next = [...prev, moduleId];
+      writeFavourites(next);
+      return next;
+    });
+  }, []);
+
   const isFavourite = useCallback((moduleId) => favouriteIds.includes(moduleId), [favouriteIds]);
 
-  return { favouriteIds, toggleFavourite, isFavourite };
+  return { favouriteIds, toggleFavourite, pinFavourite, isFavourite };
 }

@@ -29,6 +29,7 @@ export default function RecentModules({ recentIds, favouriteIds, onNavigate, onT
             label={item.label}
             description={item.description}
             routeKey={item.routeKey}
+            accent={item.accent}
             path={item.path}
             favourite={favouriteIds.includes(item.id)}
             onNavigate={onNavigate}
