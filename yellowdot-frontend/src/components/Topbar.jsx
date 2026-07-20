@@ -15,9 +15,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Search, Bell, ChevronDown as ChevronDownLucide, Menu, Check } from "lucide-react";
+import { Search, Bell, ChevronDown as ChevronDownLucide, Menu, Check, School } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ROLE_LABELS, isBypassRole } from "../config/permissions";
+import settingsService from "../services/settingsService";
 
 // ── Searchable nav catalogue ───────────────────────────────────────────────
 // Every page the command palette can navigate to.
@@ -270,13 +271,21 @@ function NotifPanel({ onClose }) {
 // ══════════════════════════════════════════════════════════════════════════
 // CENTER SWITCHER
 // ══════════════════════════════════════════════════════════════════════════
-function CenterSwitcherBtn({ center, open, onClick }) {
+// ══════════════════════════════════════════════════════════════════════════
+// TENANT SWITCHER — school identity (logo/name/branch), relocated from the
+// sidebar. Branch switching reuses the same real AuthContext.selectCenter
+// flow the old standalone Center Switcher used; the "Schools" section below
+// it is a future-ready, visually-inert placeholder for multi-school support
+// (no tenant-switching backend exists yet).
+// ══════════════════════════════════════════════════════════════════════════
+function TenantSwitcherBtn({ tenant, branchLabel, open, onClick }) {
   return (
     <button
       onClick={onClick}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        height: 30, padding: "0 9px",
+        display: "flex", alignItems: "center", gap: 8,
+        height: 38, maxWidth: 220,
+        padding: "3px 9px 3px 4px",
         borderRadius: "var(--yd-radius-sm)",
         border: "1px solid var(--yd-border)",
         background: open ? "var(--yd-yellow-light)" : "var(--yd-soft)",
@@ -285,17 +294,51 @@ function CenterSwitcherBtn({ center, open, onClick }) {
         transition: "all var(--yd-duration-fast) var(--yd-ease)",
       }}
     >
-      <span style={{ fontSize: 11 }}>📍</span>
-      <span style={{
-        fontSize: 11, fontWeight: 600,
-        color: "var(--yd-text-warm)",
-        maxWidth: 120, overflow: "hidden",
-        textOverflow: "ellipsis", whiteSpace: "nowrap",
+      <div style={{
+        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+        background: "#F3F0EA", border: "1px solid #E7E1D5",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "hidden",
       }}>
-        {formatCenter(center)}
-      </span>
+        {tenant.logoUrl ? (
+          <img
+            src={tenant.logoUrl}
+            alt={tenant.name || "School logo"}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <School size={13} strokeWidth={2} style={{ color: "#8A7F6B" }} />
+        )}
+      </div>
+
+      <div style={{ textAlign: "left", minWidth: 0, overflow: "hidden" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 5,
+          fontSize: 12, fontWeight: 700, color: "var(--yd-text-warm)",
+          lineHeight: 1.2,
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+            background: "var(--yd-success)",
+            boxShadow: "0 0 0 2px var(--yd-success-soft)",
+          }} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {tenant.name || "School"}
+          </span>
+        </div>
+        {branchLabel && (
+          <div style={{
+            fontSize: 10, color: "var(--yd-text-muted)", marginTop: 1,
+            fontWeight: 500, marginLeft: 11,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {branchLabel}
+          </div>
+        )}
+      </div>
+
       <ChevronDownLucide
-        size={10}
+        size={11}
         strokeWidth={2.5}
         style={{
           color: "var(--yd-text-muted)",
@@ -308,45 +351,25 @@ function CenterSwitcherBtn({ center, open, onClick }) {
   );
 }
 
-function CenterBadge({ center }) {
+function TenantDropdown({ tenant, centers, active, hasMultiCenter, onSelectCenter }) {
   return (
-    <div style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      height: 26, padding: "0 8px",
-      borderRadius: "var(--yd-radius-sm)",
-      background: "var(--yd-soft)",
-      border: "1px solid var(--yd-border)",
-    }}>
-      <span style={{ fontSize: 10 }}>📍</span>
-      <span style={{
-        fontSize: 11, fontWeight: 600,
-        color: "var(--yd-text-warm)",
-      }}>
-        {formatCenter(center)}
-      </span>
-    </div>
-  );
-}
-
-function CenterDropdown({ centers, active, onSelect }) {
-  return (
-    <div className="yd-tb-dropdown" style={{ width: 220, right: 0 }}>
+    <div className="yd-tb-dropdown" style={{ width: 240, right: 0 }}>
       <div style={{ padding: "8px 10px 6px" }}>
         <div style={{
           fontSize: 9, fontWeight: 700, textTransform: "uppercase",
           letterSpacing: "0.08em", color: "var(--yd-text-muted)",
           marginBottom: 6,
         }}>
-          Switch center
+          {hasMultiCenter ? "Switch branch" : "Branch"}
         </div>
-        {centers.map(c => {
+        {hasMultiCenter ? centers.map(c => {
           const id = typeof c === "string" ? c : c.id || c;
           const isActive = id === active;
           return (
             <button
               key={id}
               className="yd-tb-drop-item"
-              onClick={() => onSelect(id)}
+              onClick={() => onSelectCenter(id)}
               style={{
                 background: isActive ? "var(--yd-yellow-light)" : undefined,
                 fontWeight: isActive ? 700 : 500,
@@ -359,7 +382,42 @@ function CenterDropdown({ centers, active, onSelect }) {
               )}
             </button>
           );
-        })}
+        }) : active && (
+          <div className="yd-tb-drop-item" style={{ cursor: "default", fontWeight: 700, background: "var(--yd-yellow-light)" }}>
+            <span style={{ fontSize: 13 }}>📍</span>
+            <span style={{ flex: 1 }}>{formatCenter(active)}</span>
+            <Check size={14} strokeWidth={2.5} style={{ color: "var(--yd-yellow-dark)", flexShrink: 0 }} />
+          </div>
+        )}
+      </div>
+
+      <div className="yd-tb-drop-sep" />
+
+      {/* Future-ready: visually inert, no tenant-switching backend exists yet */}
+      <div style={{ padding: "6px 10px 8px" }}>
+        <div style={{
+          fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+          letterSpacing: "0.08em", color: "var(--yd-text-muted)",
+          marginBottom: 6,
+        }}>
+          School
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "6px 8px", borderRadius: "var(--yd-radius-sm)",
+          background: "var(--yd-soft)",
+        }}>
+          <School size={13} strokeWidth={2} style={{ color: "var(--yd-text-muted)", flexShrink: 0 }} />
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--yd-text-warm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {tenant.name || "This school"}
+          </span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--yd-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", flexShrink: 0 }}>
+            Current
+          </span>
+        </div>
+        <div style={{ fontSize: 10, color: "var(--yd-text-muted)", marginTop: 6, padding: "0 2px" }}>
+          Multi-school switching is coming soon.
+        </div>
       </div>
     </div>
   );
@@ -597,16 +655,16 @@ export default function Topbar({ onMenuToggle }) {
   const [cmdOpen,     setCmdOpen]     = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen,   setNotifOpen]   = useState(false);
-  const [centerOpen,  setCenterOpen]  = useState(false);
+  const [tenantOpen,  setTenantOpen]  = useState(false);
 
   // Refs for outside-click detection
   const profileRef = useRef(null);
   const notifRef   = useRef(null);
-  const centerRef  = useRef(null);
+  const tenantRef  = useRef(null);
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
   useClickOutside(notifRef,   useCallback(() => setNotifOpen(false),   []));
-  useClickOutside(centerRef,  useCallback(() => setCenterOpen(false),  []));
+  useClickOutside(tenantRef,  useCallback(() => setTenantOpen(false),  []));
 
   // Global ⌘K / Ctrl+K shortcut
   useEffect(() => {
@@ -618,11 +676,24 @@ export default function Topbar({ onMenuToggle }) {
       if (e.key === "Escape") {
         setProfileOpen(false);
         setNotifOpen(false);
-        setCenterOpen(false);
+        setTenantOpen(false);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Current tenant (school) identity — relocated from Sidebar.jsx. Best-effort
+  // only: no backend endpoint resolves a real per-branch display name yet, so
+  // the branch line below still comes from the user's own `activeCenter`.
+  const [tenant, setTenant] = useState({ name: "", logoUrl: "" });
+  useEffect(() => {
+    settingsService.getAll().then(s => {
+      setTenant({
+        name:    s?.branding?.reportHeader || s?.school?.name || "",
+        logoUrl: s?.branding?.logoUrl || s?.school?.logoUrl || "",
+      });
+    }).catch(() => {});
   }, []);
 
   // Derived values
@@ -634,7 +705,7 @@ export default function Topbar({ onMenuToggle }) {
 
   // Handle center switch
   async function handleCenterSelect(centerId) {
-    setCenterOpen(false);
+    setTenantOpen(false);
     if (centerId === user?.activeCenter) return;
     try {
       await selectCenter(centerId);
@@ -685,28 +756,25 @@ export default function Topbar({ onMenuToggle }) {
             </div>
           )}
 
-          {/* Center switcher / badge */}
-          {user?.activeCenter && (
-            hasMultiCenter ? (
-              <div ref={centerRef} className="yd-tb-center-wrap" style={{ position: "relative" }}>
-                <CenterSwitcherBtn
-                  center={user.activeCenter}
-                  open={centerOpen}
-                  onClick={() => { setCenterOpen(o => !o); setProfileOpen(false); setNotifOpen(false); }}
+          {/* Tenant switcher — active school identity, relocated from the sidebar */}
+          {(tenant.name || user?.activeCenter) && (
+            <div ref={tenantRef} className="yd-tb-tenant-wrap" style={{ position: "relative" }}>
+              <TenantSwitcherBtn
+                tenant={tenant}
+                branchLabel={user?.activeCenter ? formatCenter(user.activeCenter) : ""}
+                open={tenantOpen}
+                onClick={() => { setTenantOpen(o => !o); setProfileOpen(false); setNotifOpen(false); }}
+              />
+              {tenantOpen && (
+                <TenantDropdown
+                  tenant={tenant}
+                  centers={centers}
+                  active={user?.activeCenter}
+                  hasMultiCenter={hasMultiCenter}
+                  onSelectCenter={handleCenterSelect}
                 />
-                {centerOpen && (
-                  <CenterDropdown
-                    centers={centers}
-                    active={user.activeCenter}
-                    onSelect={handleCenterSelect}
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="yd-tb-center-badge">
-                <CenterBadge center={user.activeCenter} />
-              </div>
-            )
+              )}
+            </div>
           )}
 
           {/* Visual separator */}
@@ -716,7 +784,7 @@ export default function Topbar({ onMenuToggle }) {
           <div ref={notifRef} style={{ position: "relative" }}>
             <button
               className="yd-tb-icon-btn"
-              onClick={() => { setNotifOpen(o => !o); setProfileOpen(false); setCenterOpen(false); }}
+              onClick={() => { setNotifOpen(o => !o); setProfileOpen(false); setTenantOpen(false); }}
               aria-label="Notifications"
             >
               <BellIcon />
@@ -732,7 +800,7 @@ export default function Topbar({ onMenuToggle }) {
           <div ref={profileRef} className="yd-tb-profile-wrap">
             <button
               className="yd-tb-profile-btn"
-              onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); setCenterOpen(false); }}
+              onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); setTenantOpen(false); }}
               aria-label="Profile menu"
             >
               <Avatar user={user} size={28} radius={7} />

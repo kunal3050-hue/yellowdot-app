@@ -17,7 +17,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { PLATFORM_NAME } from "../config/environment";
-import settingsService from "../services/settingsService";
 import {
   ROLE_LABELS, ROLE_HIERARCHY,
   isBypassRole,
@@ -333,23 +332,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const [devPanelOpen,     setDevPanelOpen]     = useState(false);
   const [devSectionOpen,   setDevSectionOpen]   = useState(true); // developer nav group open state
 
-  // Current tenant (school) info for the header's tenant-info row — separate
-  // from PLATFORM_NAME, which stays fixed. Best-effort only: `branch` comes
-  // from the raw center id on the user record (no backend endpoint resolves
-  // a real per-branch display name to staff yet), so it's shown titleized.
-  const [tenant, setTenant] = useState({ name: "", logoUrl: "" });
-  useEffect(() => {
-    settingsService.getAll().then(s => {
-      setTenant({
-        name:    s?.branding?.reportHeader || s?.school?.name || "",
-        logoUrl: s?.branding?.logoUrl || s?.school?.logoUrl || "",
-      });
-    }).catch(() => {});
-  }, []);
-  const branchLabel = user?.center
-    ? String(user.center).replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
-    : "";
-
   // Effective role for filtering (dev role override or real role)
   const effectiveRole  = devRole || role;
   const isBypass       = isBypassRole(effectiveRole);
@@ -464,41 +446,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
             </div>
           </div>
         </div>
-
-        {/* ── Active school card ────────────────────────────────────────────
-            Reserved area for the logged-in tenant's own identity — separate
-            from the platform brand above. Future-ready slots for a school/
-            branch switcher (chevron) and a subscription badge live in this
-            row's layout, but stay visually inert — no handlers, no fabricated
-            plan data — until that backend support exists. Never replaces the
-            platform logo; hides itself if no tenant name/branch is resolvable
-            yet. */}
-        {(tenant.name || branchLabel) && (
-          <div className="yd-sl-school-card" title="Switch school (coming soon)">
-            <div className="yd-sl-school-logo">
-              {tenant.logoUrl ? (
-                <img
-                  src={tenant.logoUrl}
-                  alt={tenant.name || "School logo"}
-                />
-              ) : (
-                <span>{(tenant.name || branchLabel || "S").charAt(0)}</span>
-              )}
-            </div>
-            <div className="yd-sl-school-info">
-              {tenant.name && (
-                <div className="yd-sl-school-name">
-                  <span className="yd-sl-school-status" aria-hidden="true" />
-                  <span className="yd-sl-school-name-text">{tenant.name}</span>
-                </div>
-              )}
-              {branchLabel && (
-                <div className="yd-sl-school-branch">{branchLabel}</div>
-              )}
-            </div>
-            <Icon name="ChevronDown" className="yd-sl-school-chevron" />
-          </div>
-        )}
 
         {/* ── Dev role override banner ─────────────────────────────────── */}
         {devRole && (
