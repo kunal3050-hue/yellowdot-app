@@ -414,98 +414,89 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
 
         {/* ── Brand logo ───────────────────────────────────────────────── */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 11,
-          padding: "18px 18px 16px",
-          borderBottom: "1px solid #F5F0E8",
+          display: "flex", flexDirection: "column", alignItems: "center",
+          gap: 12, padding: "28px 18px 22px",
+          borderBottom: "1px solid var(--yd-border-light)",
           flexShrink: 0, position: "relative", zIndex: 1,
-          overflow: "hidden", whiteSpace: "nowrap",
         }}>
+          {mobileOpen && (
+            <button
+              className="yd-sl-mobile-close"
+              onClick={onMobileClose}
+              aria-label="Close menu"
+              style={{ position: "absolute", top: 14, right: 14 }}
+            >
+              <Icon name="X" />
+            </button>
+          )}
+
           {/* Logo image with soft yellow halo */}
           <div style={{
-            width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+            width: 54, height: 54, borderRadius: 16, flexShrink: 0,
             background: "#FFFBEB",
             border: "1.5px solid #FDE68A",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 10px rgba(245,197,24,0.22), 0 1px 3px rgba(0,0,0,0.04)",
+            boxShadow: "0 4px 16px rgba(245,197,24,0.24), 0 1px 3px rgba(0,0,0,0.05)",
             overflow: "hidden",
           }}>
             <img
               src="/icons/logo-original.png"
               alt={PLATFORM_NAME}
-              style={{ width: 26, height: 26, objectFit: "contain", display: "block" }}
+              style={{ width: 38, height: 38, objectFit: "contain", display: "block" }}
             />
           </div>
 
           {/* Brand text */}
-          <div style={{ minWidth: 0 }}>
+          <div style={{ textAlign: "center", minWidth: 0, overflow: "hidden" }}>
             <div style={{
-              fontSize: 14.5, fontWeight: 700, color: "#1C1917",
-              lineHeight: 1.15, letterSpacing: "-0.025em",
+              fontSize: 16.5, fontWeight: 700, color: "#1C1917",
+              lineHeight: 1.2, letterSpacing: "-0.02em",
+              overflow: "hidden", textOverflow: "ellipsis",
             }}>
               {PLATFORM_NAME}
             </div>
             <div style={{
-              fontSize: 10, color: "#A8906A", marginTop: 2,
-              fontWeight: 500, letterSpacing: "0.02em", lineHeight: 1,
+              fontSize: 10.5, color: "#A8906A", marginTop: 4,
+              fontWeight: 500, letterSpacing: "0.02em", lineHeight: 1.3,
+              overflow: "hidden", textOverflow: "ellipsis",
             }}>
-              Preschool Daycare CRM
+              Preschool &amp; Daycare CRM
             </div>
           </div>
-
-          {mobileOpen && (
-            <button className="yd-sl-mobile-close" onClick={onMobileClose} aria-label="Close menu" style={{ marginLeft: "auto" }}>
-              <Icon name="X" />
-            </button>
-          )}
         </div>
 
-        {/* ── Current tenant (school) ──────────────────────────────────────
+        {/* ── Active school card ────────────────────────────────────────────
             Reserved area for the logged-in tenant's own identity — separate
-            from the platform brand above. Never replaces the platform logo;
-            hides itself if no tenant name/branch is resolvable yet. */}
+            from the platform brand above. Future-ready slots for a school/
+            branch switcher (chevron) and a subscription badge live in this
+            row's layout, but stay visually inert — no handlers, no fabricated
+            plan data — until that backend support exists. Never replaces the
+            platform logo; hides itself if no tenant name/branch is resolvable
+            yet. */}
         {(tenant.name || branchLabel) && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 9,
-            padding: "10px 18px",
-            borderBottom: "1px solid #F5F0E8",
-            flexShrink: 0, overflow: "hidden", whiteSpace: "nowrap",
-          }}>
-            <div style={{
-              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-              background: "#F3F0EA", border: "1px solid #E7E1D5",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              overflow: "hidden",
-            }}>
+          <div className="yd-sl-school-card" title="Switch school (coming soon)">
+            <div className="yd-sl-school-logo">
               {tenant.logoUrl ? (
                 <img
                   src={tenant.logoUrl}
                   alt={tenant.name || "School logo"}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
               ) : (
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#8A7F6B" }}>
-                  {(tenant.name || branchLabel || "S").charAt(0)}
-                </span>
+                <span>{(tenant.name || branchLabel || "S").charAt(0)}</span>
               )}
             </div>
-            <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div className="yd-sl-school-info">
               {tenant.name && (
-                <div style={{
-                  fontSize: 11.5, fontWeight: 600, color: "#57503F",
-                  lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis",
-                }}>
-                  {tenant.name}
+                <div className="yd-sl-school-name">
+                  <span className="yd-sl-school-status" aria-hidden="true" />
+                  <span className="yd-sl-school-name-text">{tenant.name}</span>
                 </div>
               )}
               {branchLabel && (
-                <div style={{
-                  fontSize: 9.5, color: "#A8906A", marginTop: 1,
-                  fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis",
-                }}>
-                  {branchLabel}
-                </div>
+                <div className="yd-sl-school-branch">{branchLabel}</div>
               )}
             </div>
+            <Icon name="ChevronDown" className="yd-sl-school-chevron" />
           </div>
         )}
 
