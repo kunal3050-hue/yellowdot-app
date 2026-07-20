@@ -44,6 +44,10 @@ export { default as Wizard } from "./Wizard";
 /* ── Quick Action Card (dashboard building block) ────────────────── */
 export { default as QuickActionCard } from "./QuickActionCard";
 
+/* ── View Switcher (grid/list/table/... toggle, KUE BOXS v2 standard) ── */
+export { default as ViewSwitcher  } from "./ViewSwitcher";
+export { default as useViewMode   } from "./ViewSwitcher/useViewMode";
+
 /* ── Toolbar / Search ────────────────────────────────────────────── */
 export { default as SearchBar     } from "./SearchBar";
 export { default as FilterBar     } from "./FilterBar";

@@ -1,0 +1,43 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ViewSwitcher — src/components/ui/ViewSwitcher/
+   KUE BOXS Design System v2 canonical view-mode toggle. One shared
+   pattern for every collection module (Quick Navigation, Students,
+   Staff, Invoices, Documents, ...).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.yd-viewswitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--yd-radius-md);
+  background: var(--yd-soft);
+  border: 1px solid var(--yd-border-light);
+  flex-shrink: 0;
+}
+
+.yd-viewswitcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: var(--yd-radius-sm);
+  background: transparent;
+  color: var(--yd-text-muted);
+  cursor: pointer;
+  transition: background var(--yd-duration-fast) var(--yd-ease), color var(--yd-duration-fast) var(--yd-ease), box-shadow var(--yd-duration-fast) var(--yd-ease);
+}
+.yd-viewswitcher-btn:hover {
+  color: var(--yd-charcoal);
+}
+.yd-viewswitcher-btn--active {
+  background: var(--yd-surface);
+  color: var(--yd-charcoal);
+  box-shadow: var(--yd-elevation-small);
+}
+.yd-viewswitcher-btn:focus-visible {
+  outline: 2px solid var(--yd-yellow);
+  outline-offset: 2px;
+}

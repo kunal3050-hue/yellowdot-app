@@ -308,4 +308,24 @@ Visual target: the polish level of Linear, Stripe Dashboard, Notion, Vercel, Sla
 
 ---
 
+## 22. View Modes — ViewSwitcher
+
+`ViewSwitcher/` (`src/components/ui/ViewSwitcher/`) — the canonical control for letting a user choose how a collection module presents its data. Any module that lists things (modules, students, staff, invoices, leads, reports, documents, ...) should offer this where more than one presentation genuinely helps.
+
+**Two pieces, deliberately separate:**
+- **`<ViewSwitcher modes={[...]} value={mode} onChange={setMode} />`** — the toggle control itself. Presentation-only: it renders icon buttons for whichever `modes` you pass (`grid | list | table | kanban | calendar | timeline | gallery`) and calls back on change. It does not know how to render any of those layouts — that stays with the page, because a "card" in Students looks nothing like a "card" in Documents.
+- **`useViewMode(moduleKey, defaultMode)`** — a small hook that persists the chosen mode to `localStorage` under `yd_view_<moduleKey>`, independent per module (switching Students to List doesn't touch Staff's preference). Same read/write-with-try/catch pattern as `sidebarConfig.js`'s section-open-state helpers.
+
+**Reference implementation:** Quick Navigation (`src/pages/quickNavigation/`) — `ViewSwitcher modes={["grid","list"]}` wired to `useViewMode("quick_navigation")`, with `ModuleCard` (grid) and `ModuleListItem` (list) as the two presentations of the same module data. `ModuleSection` picks which to render and re-keys its container on `view` so the fade-in transition replays on switch — no page reload, no data refetch, search/RBAC state untouched by the switch.
+
+**Rules for adopting this in a new module:**
+1. Build one "card" component and one "row" component that both accept the *same* item shape and the *same* callbacks — don't let the two presentations drift into different data contracts.
+2. Any filter, search query, sort, or pagination state lives above the view toggle (in the page, not inside the card/row components) so switching views never resets it.
+3. Pick `modes` deliberately per module — a photo-first module (Documents, Students) wants Grid as default; a power-user, data-dense module (Invoices, Reports) wants List or Table as default. Don't offer Kanban/Calendar/Timeline/Gallery until a module actually needs that shape of data — they're reserved keys in `ViewSwitcher`, not a checklist to fill in.
+4. `moduleKey` in `useViewMode` must be stable and unique per module (`"students"`, `"staff"`, `"invoices"`, ...) — colliding keys would leak one module's view preference into another's.
+
+**Not yet retrofitted:** Students, Staff, Invoices, Documents, and other existing list pages still use their pre-ViewSwitcher layouts (DataTable, bespoke grids, etc.). Adopting ViewSwitcher there is real per-module work — new card/row components, wiring the toggle, verifying nothing about filtering/sorting/bulk-actions breaks — not a mechanical find-replace. Treat each as its own module pass, same process as §20.
+
+---
+
 *Companion to `SECURITY_ARCHITECTURE.md` and `MASTER_PLATFORM_STATUS.md`. Update this document in the same commit whenever a new UI pattern is introduced, an existing one changes, or a Phase 2 module is completed.*

@@ -13,6 +13,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { ViewSwitcher, useViewMode } from "../../components/ui";
 import { SECTIONS } from "./modules";
 import useRecentModules from "./useRecentModules";
 import useFavouriteModules from "./useFavouriteModules";
@@ -43,6 +44,7 @@ export default function QuickNavigation() {
   const { user } = useAuth();
   const { recentIds, recordVisit } = useRecentModules();
   const { favouriteIds, toggleFavourite } = useFavouriteModules();
+  const [view, setView] = useViewMode("quick_navigation", "grid");
 
   const handleNavigate = useCallback((id, path) => {
     recordVisit(id);
@@ -80,6 +82,11 @@ export default function QuickNavigation() {
         onToggleFavourite={toggleFavourite}
       />
 
+      <div className="qnd-viewrow">
+        <span className="qnd-viewrow-label">All Modules</span>
+        <ViewSwitcher modes={["grid", "list"]} value={view} onChange={setView} />
+      </div>
+
       {SECTIONS.map(section => (
         <ModuleSection
           key={section.id}
@@ -87,6 +94,7 @@ export default function QuickNavigation() {
           favouriteIds={favouriteIds}
           onNavigate={handleNavigate}
           onToggleFavourite={toggleFavourite}
+          view={view}
         />
       ))}
     </div>

@@ -15,6 +15,7 @@ import "./styles/charts.css";
 import "./styles/wizard.css";
 import "./styles/filterBar.css";
 import "./styles/quickActionCard.css";
+import "./styles/viewSwitcher.css";
 import "./styles/liveDashboard.css";
 import "./styles/quickNav.css";
 import "./styles/quickNavigation.css";

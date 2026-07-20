@@ -651,6 +651,9 @@ html, body {
   .qnd-grid { grid-template-columns: 1fr; }
   .qnd-section--row .qnd-row > * { flex-basis: 132px; }
   .qnd-card { padding: var(--yd-space-5) var(--yd-space-4) var(--yd-space-4); }
+  /* List rows: stack label/description instead of truncating side-by-side */
+  .qnd-listitem-text { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .qnd-listitem-desc { white-space: normal; }
 }
 
 /* ── Reduce animation on mobile for performance ──────────────────────── */

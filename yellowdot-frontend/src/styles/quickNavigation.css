@@ -149,6 +149,21 @@
   font-weight: var(--yd-weight-medium);
 }
 
+/* ── View row — "All Modules" label + ViewSwitcher, above the categories ── */
+.qnd-viewrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--yd-space-2);
+}
+.qnd-viewrow-label {
+  font-size: var(--yd-font-size-sm);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--yd-tracking-wide);
+}
+
 /* ── Sections ──────────────────────────────────────────────────────────── */
 .qnd-section {
   display: flex;
@@ -268,3 +283,81 @@
 .qnd-card-pin:hover { background: var(--yd-yellow-light); color: var(--yd-yellow-dark); }
 .qnd-card-pin--active { color: var(--yd-yellow-dark); background: var(--yd-yellow-light); }
 .qnd-card-pin:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: 2px; }
+
+/* ── List view — compact rows, higher information density ────────────────
+   Same module data as the grid, one row per module instead of a card. */
+.qnd-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--yd-border-light);
+  border-radius: var(--yd-radius-lg);
+  overflow: hidden;
+  background: var(--yd-surface);
+}
+
+.qnd-listitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--yd-space-3);
+  padding: var(--yd-space-3) var(--yd-space-4);
+  cursor: pointer;
+  border-bottom: 1px solid var(--yd-border-light);
+  transition: background var(--yd-duration-fast) var(--yd-ease);
+}
+.qnd-list > .qnd-listitem:last-child { border-bottom: none; }
+.qnd-listitem:hover { background: var(--yd-soft); }
+.qnd-listitem:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: -2px; }
+
+.qnd-listitem-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--yd-radius-sm);
+  background: linear-gradient(155deg, var(--yd-yellow-light) 0%, var(--yd-surface) 145%);
+  color: var(--yd-yellow-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qnd-listitem-text {
+  display: flex;
+  align-items: baseline;
+  gap: var(--yd-space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.qnd-listitem-label {
+  font-size: var(--yd-font-size-base);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-charcoal);
+  flex-shrink: 0;
+}
+
+.qnd-listitem-desc {
+  font-size: var(--yd-font-size-sm);
+  color: var(--yd-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qnd-listitem-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--yd-radius-full);
+  border: none;
+  background: transparent;
+  color: var(--yd-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--yd-duration-fast) var(--yd-ease), color var(--yd-duration-fast) var(--yd-ease);
+}
+.qnd-listitem-pin:hover { background: var(--yd-yellow-light); color: var(--yd-yellow-dark); }
+.qnd-listitem-pin--active { color: var(--yd-yellow-dark); }
+.qnd-listitem-pin:focus-visible { outline: 2px solid var(--yd-yellow); outline-offset: 2px; }
