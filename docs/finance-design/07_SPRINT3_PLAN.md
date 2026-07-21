@@ -2,7 +2,7 @@
 ## Sprint 3 Plan: Billing Engine & Invoice Generation
 
 **Date:** 2026-07-21
-**Status:** Planning only — no code in this document, per the explicit "proceed to Sprint 3 planning" instruction. Implementation should not begin until this plan is reviewed and Sprint 3 is explicitly kicked off, matching the rhythm every prior sprint in this domain has followed.
+**Status:** Approved. **M3.1 (LedgerEntry Idempotency) is complete** — see `04_SERVICE_CONTRACTS.md`'s Idempotency section and `06_FINANCE_EVENT_CONTRACT.md`'s `LedgerEntryCreated` entry for the frozen, resolved contract. M3.2–M3.4 remain to be implemented; M3.5 remains explicitly deferred.
 **Depends on:** everything frozen per `docs/finance-design/06_FINANCE_EVENT_CONTRACT.md`'s Architecture Freeze — this plan proposes *extending* those contracts, and flags the one place (Invoice/Invoice Line) where a genuinely new entity is needed, which itself should get its own contract addition to `04_SERVICE_CONTRACTS.md` once built, not a silent bolt-on.
 
 ---

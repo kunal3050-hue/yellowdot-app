@@ -26,6 +26,22 @@
  * contract already specifies. auditSvc/eventPublisher are required as
  * whole modules (not destructured) so their functions stay mockable in
  * tests the same way financeTransaction.js's already are.
+ *
+ * Idempotency (Sprint 3, M3.1): a caller MAY supply data.sourceType +
+ * data.sourceId (both already-existing fields, not a new concept) as a
+ * natural idempotency key. When both are present, createEntry() checks —
+ * inside the same Firestore transaction that would otherwise write the
+ * entry — whether an entry already exists for
+ * (schoolId, studentLedgerId, sourceType, sourceId), and if so, returns
+ * that existing entry and the ledger's current balance unchanged rather
+ * than posting a duplicate. This is a hard prerequisite for any
+ * retry-capable producer (invoice generation, a payment gateway webhook,
+ * the future billing scheduler) per the Sprint 3 plan.
+ *
+ * When sourceType/sourceId are NOT both supplied — every Sprint 1/2
+ * caller today — behavior is exactly as before this change: always
+ * creates a new entry. This preserves the existing 41 Finance Foundation
+ * tests' expectations without requiring any of them to change.
  */
 const { db }   = require("../firebaseAdmin");
 const auditSvc       = require("./financeAuditService");
@@ -123,8 +139,28 @@ async function createEntry(studentId, data, { schoolId = SCHOOL_ID, centerId = "
     createdBy:        actorUserId,
   };
 
-  let newBalance = null;
+  const hasIdempotencyKey = Boolean(data.sourceType && data.sourceId);
+
+  let newBalance    = null;
+  let duplicateOf    = null; // set if an idempotency check finds an existing entry
+
   await db.runTransaction(async (tx) => {
+    if (hasIdempotencyKey) {
+      const dupQuery = entriesCol()
+        .where("schoolId",        "==", schoolId)
+        .where("studentLedgerId", "==", studentId)
+        .where("sourceType",      "==", data.sourceType)
+        .where("sourceId",        "==", data.sourceId)
+        .limit(1);
+      const dupSnap = await tx.get(dupQuery);
+      if (!dupSnap.empty) {
+        duplicateOf = docToEntry(dupSnap.docs[0]);
+        const ledgerSnap = await tx.get(ledgerRef);
+        newBalance = ledgerSnap.exists ? Number(ledgerSnap.data().currentBalance || 0) : null;
+        return; // short-circuit — do not post a second entry or touch the balance
+      }
+    }
+
     const ledgerSnap = await tx.get(ledgerRef);
     if (!ledgerSnap.exists) {
       const e = new Error(`No ledger exists for student ${studentId} — create one first.`);
@@ -143,6 +179,18 @@ async function createEntry(studentId, data, { schoolId = SCHOOL_ID, centerId = "
     tx.update(ledgerRef, { currentBalance: newBalance, updatedAt: nowISO() });
   });
 
+  if (duplicateOf) {
+    // Idempotent no-op: log that a duplicate was detected (useful for ops/
+    // retry visibility) but do NOT publish LedgerEntryCreated again — no
+    // new financial fact occurred, so no new event should claim one did.
+    await auditSvc.logFinanceAudit({
+      schoolId, actorUserId,
+      action: `ledgerEntry.duplicate.${data.type}`, entityType: "ledgerEntry", entityId: duplicateOf.entryId,
+      meta: { studentId, sourceType: data.sourceType, sourceId: data.sourceId, newBalance },
+    });
+    return { entry: duplicateOf, newBalance, duplicate: true };
+  }
+
   await auditSvc.logFinanceAudit({
     schoolId, actorUserId,
     action: `ledgerEntry.create.${data.type}`, entityType: "ledgerEntry", entityId: entryId,
@@ -154,7 +202,7 @@ async function createEntry(studentId, data, { schoolId = SCHOOL_ID, centerId = "
     type: data.type, amount, signedAmount, newBalance, actorUserId,
   });
 
-  return { entry: entryDoc, newBalance };
+  return { entry: entryDoc, newBalance, duplicate: false };
 }
 
 async function listForLedger(studentId, { schoolId = SCHOOL_ID, limit = 100 } = {}) {

@@ -47,7 +47,7 @@ Currently enforced by the code (`ENTRY_TYPES`) — every value below is a real, 
 
 This document is the place to track that taxonomy going forward — add here first, then to the `ENTRY_TYPES` enum, in the same change.
 
-**Idempotency.** **Not yet enforced at the service level** — `createEntry` has no idempotency key today; each call creates exactly one new entry, and a genuine network retry of the same logical operation would currently create two. This is safe today only because every existing caller (Sprint 1/2's services) calls it from a context that doesn't retry. **This must be closed before any automated, retry-capable caller is allowed to call this method** (a payment gateway webhook, the future billing scheduler) — the recommended strategy is to require such callers to pass a natural key via the already-existing `sourceType`/`sourceId` fields, and have `createEntry` check for an existing entry with the same `(schoolId, sourceType, sourceId)` before creating a new one, no-op'ing (not erroring) on a detected duplicate — the same spirit as the platform's existing transaction-safe receipt-numbering counter.
+**Idempotency.** **Enforced as of Sprint 3, M3.1.** When a caller supplies both `data.sourceType` and `data.sourceId` (already-existing fields, not a new concept), `createEntry` checks — inside the same Firestore transaction that would otherwise write the entry — for an existing entry with the same `(schoolId, studentLedgerId, sourceType, sourceId)`. If found, it returns that existing entry and the ledger's *current* balance unchanged (`{ entry, newBalance, duplicate: true }`), writes a `ledgerEntry.duplicate.<type>` audit log entry (for retry visibility), and does **not** re-publish `LedgerEntryCreated` — no new financial fact occurred, so no event should claim one did. When `sourceType`/`sourceId` are not both supplied — every Sprint 1/2 caller today — behavior is unchanged from before this fix: always creates a new entry. **Every Sprint 3+ retry-capable producer (invoice generation, a future payment gateway webhook, the billing scheduler) is required to always supply both fields.**
 
 **Immutability.** Ledger Entries are permanently append-only, enforced at three independent layers so no single mistake can violate it:
 1. **Service layer** — no update or delete function is exported. This isn't a documented restriction on an existing capability; the capability doesn't exist as a callable operation at all.
@@ -79,7 +79,7 @@ This document is the place to track that taxonomy going forward — add here fir
 | No Student Ledger exists for the given student | `{ code: "VALIDATION" }`, thrown inside the transaction |
 | Ledger belongs to a different school | `{ code: "NOT_FOUND" }` — hide, don't reveal, matching the platform's cross-tenant convention |
 | Ledger is `frozen` or `archived` | `{ code: "VALIDATION" }` ("cannot post new entries") |
-| Duplicate idempotency key | **Not yet enforced** (see Idempotency above) — today, a genuine retry creates a second entry. This is the top-priority hardening item before any retry-capable automated caller is connected. |
+| Duplicate idempotency key (both `sourceType`/`sourceId` supplied and matching an existing entry) | Returns the existing entry, `duplicate: true` — never throws, never creates a second entry (see Idempotency above) |
 
 ---
 
