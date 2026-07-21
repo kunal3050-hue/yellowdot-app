@@ -18,6 +18,7 @@
  */
 const { db }              = require("../firebaseAdmin");
 const { logFinanceAudit } = require("./financeAuditService");
+const { publish, EVENTS } = require("./financeEventPublisher");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col       = () => db.collection("families");
@@ -80,6 +81,8 @@ async function ensureFinanceAccount(familyId, { schoolId = SCHOOL_ID, actorUserI
     schoolId, actorUserId,
     action: "familyAccount.create", entityType: "familyAccount", entityId: familyId,
   });
+
+  publish(EVENTS.FAMILY_ACCOUNT_CREATED, { schoolId, familyId, actorUserId });
 
   return { familyId, ...financeAccount, studentIds: family.studentIds || [] };
 }

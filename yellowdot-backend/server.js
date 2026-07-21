@@ -98,6 +98,7 @@ const financeSettingsRoutes  = require("./routes/financeSettingsRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
+const admissionFinanceSvc = require("./services/admissionFinanceService"); // Sprint 2 — Finance Foundation admission hook
 const studentMedicalSvc = require("./services/studentMedicalService");
 const studentNotesSvc   = require("./services/studentNotesService");
 const invoiceSvc        = require("./services/invoiceService");
@@ -149,14 +150,21 @@ app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* 
 app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
 app.use(performanceRoutes);
-// Finance Foundation (Sprint 1) — new, additive, behind FINANCE_FOUNDATION_ENABLED
-// flag (see middleware/financeFoundationFlag.js). Does not touch invoice/payment
-// routes above. Disabled by default — mounting these routers has no effect on
-// the running application until the flag is explicitly turned on.
-app.use(ledgerRoutes);
-app.use(billingPlanRoutes);
-app.use(familyAccountRoutes);
-app.use(financeSettingsRoutes);    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
+// Finance Foundation (Sprint 1, patched per Sprint 1 review) — new, additive.
+// Does not touch invoice/payment routes above. The flag now gates ROUTE
+// REGISTRATION itself, not just per-request middleware: when disabled, these
+// four routers are never added to the Express routing tree at all, so there
+// is zero middleware execution and zero routing-table footprint for a
+// disabled module — cleaner for production, simpler to debug, and matches
+// how the rest of the app is deployed. requireFinanceFoundationFlag remains
+// inside each route file too, as a second, defense-in-depth layer in case
+// this block is ever refactored and the guard here is accidentally dropped.
+if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
+  app.use(ledgerRoutes);
+  app.use(billingPlanRoutes);
+  app.use(familyAccountRoutes);
+  app.use(financeSettingsRoutes);
+}    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
 app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
@@ -297,6 +305,23 @@ app.post("/add-student", authenticate, authorize("admin","center_admin","recepti
             failed.map(f => f.reason?.message).join(", "));
         }
       });
+    }
+
+    // ── Finance Foundation admission hook (Sprint 2) ─────────────────
+    // Feature-flagged, same "don't fail the caller" contract as the
+    // pickup-auth block above — a Finance-layer failure must never break
+    // student admission itself. Creates a Student Ledger (and, only if
+    // this payload ever carries a familyId/feeTemplateId, a Family Account
+    // facet / draft Billing Plan) — no invoice, no automation.
+    if (studentId && process.env.FINANCE_FOUNDATION_ENABLED === "true") {
+      admissionFinanceSvc
+        .onStudentAdmitted({
+          studentId, schoolId, centerId,
+          familyId:      body.familyId      || body.family_id      || "",
+          feeTemplateId: body.feeTemplateId || body.fee_template_id || "",
+          actorUserId,
+        })
+        .catch(err => console.error("[add-student] Finance Foundation hook failed:", err.message));
     }
 
     res.json(result);

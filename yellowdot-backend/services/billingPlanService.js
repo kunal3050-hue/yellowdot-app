@@ -13,6 +13,7 @@
 const { db }              = require("../firebaseAdmin");
 const { logFinanceAudit } = require("./financeAuditService");
 const ledgerSvc           = require("./studentLedgerService");
+const { publish, EVENTS } = require("./financeEventPublisher");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col       = () => db.collection("billingPlans");
@@ -117,6 +118,11 @@ async function create(data, { schoolId = SCHOOL_ID, centerId = "", actorUserId =
     schoolId, actorUserId,
     action: "billingPlan.create", entityType: "billingPlan", entityId: planId,
     meta: { studentLedgerId: data.studentLedgerId, feeTemplateId: data.feeTemplateId },
+  });
+
+  publish(EVENTS.BILLING_PLAN_CREATED, {
+    schoolId, centerId: doc.centerId, planId,
+    studentLedgerId: data.studentLedgerId, feeTemplateId: data.feeTemplateId, actorUserId,
   });
 
   return doc;

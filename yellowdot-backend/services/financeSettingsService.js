@@ -13,6 +13,7 @@
  */
 const { db }              = require("../firebaseAdmin");
 const { logFinanceAudit } = require("./financeAuditService");
+const { publish, EVENTS } = require("./financeEventPublisher");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col       = () => db.collection("financeSettings");
@@ -90,6 +91,8 @@ async function updateSettings(schoolId = SCHOOL_ID, data = {}, { actorUserId = "
     action: "financeSettings.update", entityType: "financeSettings", entityId: schoolId,
     meta: { changed: Object.keys(incoming) },
   });
+
+  publish(EVENTS.FINANCE_SETTINGS_CHANGED, { schoolId, actorUserId, changed: Object.keys(incoming) });
 
   return updated;
 }

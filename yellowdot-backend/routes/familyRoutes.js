@@ -39,6 +39,7 @@ const router  = express.Router();
 const svc     = require("../services/familyService");
 const { authenticate, authorizeRoute, staffOnly } = require("../middleware/authMiddleware");
 const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
+const admissionFinanceSvc   = require("../services/admissionFinanceService"); // Sprint 2 — Finance Foundation link hook
 
 const ROUTE_KEY   = "families";
 const canView     = [authenticate, staffOnly, authorizeRoute(ROUTE_KEY)];
@@ -166,6 +167,20 @@ router.post("/api/families/:familyId/students/:studentId", ...canMutate, require
       { actorUserId: req.user.userId },
     );
     if (!result) return res.status(404).json({ success: false, error: "Family not found." });
+
+    // Finance Foundation link hook (Sprint 2) — feature-flagged, fire-and-forget,
+    // same "never fail the caller" contract as server.js's admission hook.
+    if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
+      admissionFinanceSvc
+        .onStudentLinkedToFamily({
+          familyId:  req.params.familyId,
+          studentId: req.params.studentId,
+          schoolId:  req.user.schoolId,
+          actorUserId: req.user.userId,
+        })
+        .catch(err => console.error("[POST /api/families/:familyId/students/:studentId] Finance hook failed:", err.message));
+    }
+
     res.json({ success: true, ...result });
   } catch (err) {
     console.error("[POST /api/families/:familyId/students/:studentId]", err.message);

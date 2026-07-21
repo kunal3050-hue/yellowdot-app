@@ -17,6 +17,7 @@
 const { db }               = require("../firebaseAdmin");
 const { logFinanceAudit }  = require("./financeAuditService");
 const ledgerEntrySvc       = require("./ledgerEntryService");
+const { publish, EVENTS }  = require("./financeEventPublisher");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const col       = () => db.collection("studentLedgers");
@@ -82,6 +83,8 @@ async function createLedger(studentId, { schoolId = SCHOOL_ID, centerId = "", fa
     schoolId, actorUserId,
     action: "studentLedger.create", entityType: "studentLedger", entityId: studentId,
   });
+
+  publish(EVENTS.STUDENT_LEDGER_CREATED, { schoolId, centerId, studentId, familyId, actorUserId });
 
   return doc;
 }
