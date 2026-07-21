@@ -1,7 +1,7 @@
 # KUE BOXS Care — Finance Foundation Service Contracts
 
-**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService added in Sprint 3, M3.2 — same date)
-**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, and `FinanceInvoiceService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
+**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService and FinanceRulesEngine added in Sprint 3, M3.2/M3.3 — same date)
+**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, `FinanceInvoiceService`, and `FinanceRulesEngine`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
 
 Each service's actual code lives at `yellowdot-backend/services/<name>.js`. This document is the interface future code (Billing Automation, Collections, Parent Portal, Reports, AI Finance) should be written against — not the implementation.
 
@@ -196,4 +196,28 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 
 ---
 
-*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` for the executable proof of the error-behavior claims above.*
+## FinanceRulesEngine
+
+**Responsibilities.** The single place billing-decision logic (Joining Date policy, Sibling Discount application) is evaluated during invoice generation — per the Sprint 3 approval's explicit instruction to "keep the Rules Engine deterministic and isolated." Deliberately built as **pure functions only**: every function takes plain data in and returns plain data out, with no Firestore reads or writes and no dependency on any other service's internals. The caller (M3.4's Manual Billing Engine) owns fetching Finance Settings (`financeSettingsService.getSettings`) and the sibling-discount rules (`familyService.getDiscountRules`) and passing the resolved values in as plain arguments.
+
+**This is intentionally different in shape from every other service in this document** — it has no Firestore collection, no audit log calls, and no domain events of its own, because it does not perform any action; it only computes a decision that another service (the future Billing Engine) will act on and audit under its own name.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `resolveJoiningDateFactor({ policy, joiningDate, periodStart, periodEnd })` | `policy` one of `"fullMonth"`\|`"prorated"`\|`"nextCycle"`; three ISO-parseable dates | A number in `[0, 1]` — the fraction of the period's fee actually owed. Joining at/before `periodStart` always returns `1`; joining after `periodEnd` always returns `0`, regardless of policy — the three policies only diverge for a mid-period join. | Throws `{ code: "VALIDATION" }` for an unrecognized policy, an unparseable date, or `periodEnd` before `periodStart` |
+| `resolveSiblingDiscountPercent({ siblingOrder, discountRules })` | `siblingOrder` (a student's birth-order position within their family, as already written by `familyService.js`); `discountRules` — the existing sibling-discount rule array (`{ siblingOrder, discountPercent, label }[]`) from `familyService.getDiscountRules()`, unchanged shape | The matched `discountPercent`, or `0` for a first child or when no rule matches. A student whose `siblingOrder` exceeds every defined rule receives the highest-defined rule's rate (e.g. a rule set defining 2nd/3rd/"4th Child+" gives the 4th-child rate to a 5th, 6th, ... child too) | Never throws — an empty/missing rule set simply resolves to `0` |
+| `applySiblingDiscount({ lines, siblingOrder, discountRules, discountApprovalThreshold })` | `lines` non-empty array of invoice lines (each with at least `amount`); `discountApprovalThreshold` from Finance Settings (`0` = no threshold configured) | `{ lines, discountPercent, requiresApproval }`. When `discountPercent` is `0`, `lines` is returned as the same reference, unmodified. When a threshold is configured and the resolved percentage is at or above it, `requiresApproval: true` is returned and **lines are left untouched** — this engine has no authority to silently apply a discount policy says a human must approve. Otherwise each line gets a computed `discount` field (`amount * discountPercent / 100`, rounded to 2 decimals). | Throws `{ code: "VALIDATION" }` for empty/missing `lines` |
+| `evaluateBillingPlanInvoice({ lines, joiningDatePolicy, joiningDate, periodStart, periodEnd, siblingOrder, discountRules, discountApprovalThreshold })` | Composition of the above — the single entry point M3.4 is expected to call | `{ lines, joiningDateFactor, discountPercent, requiresApproval }`. Proration is applied **before** the discount, so a discount is always computed against the amount actually owed for the period, never the full undiscounted period fee. | Throws whatever the underlying `resolveJoiningDateFactor`/`applySiblingDiscount` calls throw |
+
+**Scope, honestly stated — Scholarship application is NOT implemented.** The Sprint 3 approval's M3.3 description lists "Scholarship application" as an example of Rules Engine behavior, but no Scholarship entity or collection exists anywhere in the codebase yet (Domain Architecture Chapter 2, Part 1 tags Scholarship as a "new" entity still to be built, and the original Finance audit found zero references to scholarships anywhere in the app). Inventing a Scholarship rule against a data shape that doesn't exist would mean guessing at a design that hasn't been made yet — this is flagged as necessary follow-up work once the Scholarship entity itself is designed and built, not silently skipped or faked.
+
+**Domain invariants**
+- Every function is pure and synchronous — same inputs always produce the same output, with no I/O of any kind. This is what "deterministic and isolated" means in practice, not just in name.
+- Rules are effective-dated implicitly by the caller supplying the actual `periodStart`/`periodEnd`/`joiningDate` for the invoice being generated — this engine has no concept of "today," so a past invoice can always be recomputed identically for audit/reconciliation purposes, and a future policy change can never retroactively alter one.
+- A discount that requires approval is never partially or silently applied — `applySiblingDiscount`/`evaluateBillingPlanInvoice` return an explicit `requiresApproval: true` flag and leave the lines exactly as they were; there is no approval workflow to route into yet (not built in any sprint so far), so the caller (M3.4) is responsible for deciding what to do with that flag (e.g. surface it to staff rather than auto-generating the invoice).
+
+---
+
+*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` for the executable proof of the error-behavior claims above.*
