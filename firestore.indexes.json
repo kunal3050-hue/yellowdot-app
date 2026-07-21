@@ -26,6 +26,24 @@
       ]
     },
     {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",  "order": "ASCENDING" },
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "source",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",      "order": "ASCENDING" },
+        { "fieldPath": "billingPlanId", "order": "ASCENDING" },
+        { "fieldPath": "periodStart",   "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "financeAuditLogs",
       "queryScope": "COLLECTION",
       "fields": [

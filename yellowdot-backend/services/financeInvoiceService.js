@@ -108,6 +108,8 @@ function docToFinanceInvoice(snap) {
     status:          STATUSES.has(d.status) ? d.status : "Pending",
     source:          d.source          || "manual",
     billingPlanId:   d.billingPlanId   || "",
+    periodStart:     d.periodStart     || "",
+    periodEnd:       d.periodEnd       || "",
     schoolId:        d.schoolId        || SCHOOL_ID,
     centerId:        d.centerId        || "",
     notes:           d.notes           || "",
@@ -150,6 +152,8 @@ async function createInvoice(data, { schoolId = SCHOOL_ID, centerId = "", actorU
     status:     "Pending",
     source:        data.source        || "billingPlan",
     billingPlanId: data.billingPlanId || "",
+    periodStart:   data.periodStart   || "",
+    periodEnd:     data.periodEnd     || "",
     schoolId, centerId,
     notes:      data.notes || "",
     createdAt:  nowISO(),
@@ -197,4 +201,24 @@ async function listForStudent(studentId, { schoolId = SCHOOL_ID, limit = 100 } =
     .slice(0, limit);
 }
 
-module.exports = { createInvoice, getInvoice, listForStudent, STATUSES };
+/**
+ * findByPlanAndPeriod — the natural idempotency lookup for the Billing
+ * Engine (Sprint 3, M3.4): "has this Billing Plan already been invoiced
+ * for this period?" `(schoolId, billingPlanId, periodStart)` is a
+ * sufficient key since one plan generates at most one invoice per period.
+ * Returns null (never throws) when nothing matches, so a caller can
+ * always treat "not found" as "safe to generate."
+ */
+async function findByPlanAndPeriod(billingPlanId, periodStart, { schoolId = SCHOOL_ID } = {}) {
+  if (!billingPlanId || !periodStart) return null;
+  const snap = await col()
+    .where("schoolId",      "==", schoolId)
+    .where("billingPlanId", "==", billingPlanId)
+    .where("periodStart",   "==", periodStart)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return docToFinanceInvoice(snap.docs[0]);
+}
+
+module.exports = { createInvoice, getInvoice, listForStudent, findByPlanAndPeriod, STATUSES };

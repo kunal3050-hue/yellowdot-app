@@ -1,7 +1,7 @@
 # KUE BOXS Care — Finance Foundation Service Contracts
 
-**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService and FinanceRulesEngine added in Sprint 3, M3.2/M3.3 — same date)
-**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, `FinanceInvoiceService`, and `FinanceRulesEngine`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
+**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService, FinanceRulesEngine, and FinanceBillingEngineService added in Sprint 3, M3.2/M3.3/M3.4 — same date)
+**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, `FinanceInvoiceService`, `FinanceRulesEngine`, and `FinanceBillingEngineService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
 
 Each service's actual code lives at `yellowdot-backend/services/<name>.js`. This document is the interface future code (Billing Automation, Collections, Parent Portal, Reports, AI Finance) should be written against — not the implementation.
 
@@ -164,15 +164,16 @@ This document is the place to track that taxonomy going forward — add here fir
 
 **Responsibilities.** Creates itemized Invoices (an Invoice header plus one or more Invoice Lines) by extending the platform's existing `invoices` Firestore collection — the same collection `services/invoiceService.js` already reads and writes for the manual Invoice/InvoiceView/PaymentDrawer flow — rather than introducing a parallel collection. Every document this service writes populates all of `invoiceService.js`'s existing legacy fields (computed as the aggregate of the invoice's lines) plus new, purely additive fields (`lines`, `source`, `billingPlanId`, `studentLedgerId`), so the existing manual-flow screens can read a Finance-Foundation-generated invoice exactly like any other, with zero change to them. `services/invoiceService.js` itself is not imported or modified by this service.
 
-This service does **not** post a Ledger Entry, activate a Billing Plan, or apply any Rules Engine policy (joining-date proration, discounts, scholarships) — it only turns an already-decided set of lines into an Invoice record. Orchestrating "decide what to bill, then create the Invoice, then post the matching Ledger Entry, then log it" is the Billing Engine's job (Sprint 3, M3.4), which calls `createInvoice()` as one step in a larger transaction of its own.
+This service does **not** post a Ledger Entry, activate a Billing Plan, or apply any Rules Engine policy (joining-date proration, discounts, scholarships) — it only turns an already-decided set of lines into an Invoice record. Orchestrating "decide what to bill, then create the Invoice, then post the matching Ledger Entry, then log it" is `FinanceBillingEngineService`'s job (Sprint 3, M3.4 — see its own contract below), which calls `createInvoice()` as one step in its own orchestration.
 
 **Public methods**
 
 | Method | Inputs | Outputs | Error behavior |
 |---|---|---|---|
-| `createInvoice(data, { schoolId, centerId, actorUserId })` | `data.studentId` required; `data.lines` required, non-empty array, each line requires `feeComponentId` and a non-negative `amount` (optional `label`/`gst`/`discount`); `data.billingPlanId`/`studentLedgerId`/`studentName`/`invoiceDate`/`dueDate`/`notes`/`source` all optional | The created Invoice document: legacy-compatible aggregate fields (`amount`, `gst`, `discount`, `totalAmount`, `paidAmount: 0`, `balance: totalAmount`, `status: "Pending"`) computed as the sum of the normalized `lines`, plus `invoiceId` (`FINV######`), `invoiceNumber` (`BINV-YYYYMM-#####`), and the `lines` array itself with each line's `total` computed (`amount + gst - discount`) | See Error Behaviour table below |
+| `createInvoice(data, { schoolId, centerId, actorUserId })` | `data.studentId` required; `data.lines` required, non-empty array, each line requires `feeComponentId` and a non-negative `amount` (optional `label`/`gst`/`discount`); `data.billingPlanId`/`studentLedgerId`/`studentName`/`invoiceDate`/`dueDate`/`notes`/`source`/`periodStart`/`periodEnd` all optional | The created Invoice document: legacy-compatible aggregate fields (`amount`, `gst`, `discount`, `totalAmount`, `paidAmount: 0`, `balance: totalAmount`, `status: "Pending"`) computed as the sum of the normalized `lines`, plus `invoiceId` (`FINV######`), `invoiceNumber` (`BINV-YYYYMM-#####`), and the `lines` array itself with each line's `total` computed (`amount + gst - discount`) | See Error Behaviour table below |
 | `getInvoice(invoiceId, { schoolId })` | `invoiceId: string`, `schoolId: string` | The invoice, or `null` if it doesn't exist **or** belongs to a different school (tenant mismatch is never distinguishable from "doesn't exist" — hide, don't reveal, matching every other Finance Foundation service's convention) | Never throws for a missing/foreign invoice — returns `null` |
 | `listForStudent(studentId, { schoolId, limit })` | `limit` optional, default 100 | Invoices for that student **created by this service specifically** (`source === "billingPlan"`), newest first. Does not include invoices created through the legacy manual flow — those remain queryable only through `invoiceService.js`'s own general-purpose readers. | Never throws for a student with no such invoices — returns `[]` |
+| `findByPlanAndPeriod(billingPlanId, periodStart, { schoolId })` — **added in Sprint 3, M3.4** as the Billing Engine's idempotency lookup | `billingPlanId: string`, `periodStart: string` | The matching invoice, or `null`. `(schoolId, billingPlanId, periodStart)` is a sufficient key since one plan generates at most one invoice per period. | Never throws — a missing `billingPlanId`/`periodStart` or no match both simply return `null` |
 
 **Why two ID/number sequences instead of reusing the legacy ones.** `invoiceId` uses a distinct `FINV######` prefix (vs. legacy `INV-<timestamp>`) and `invoiceNumber` uses a distinct `BINV-YYYYMM-#####` prefix (vs. legacy `INV-YYYYMM-#####`), each generated from this service's own atomic `_counters` documents. This guarantees zero collision risk with `invoiceService.js`'s own ID generation without requiring any coordination between the two services, and makes a Billing-Engine-generated invoice immediately recognizable to anyone reading raw data.
 
@@ -220,4 +221,39 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 
 ---
 
-*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` for the executable proof of the error-behavior claims above.*
+## FinanceBillingEngineService
+
+**Responsibilities.** The staff-triggered "generate this Billing Plan's next invoice now" operation (Sprint 3, M3.4) — per the Sprint 3 approval: "Staff selects a Student or Billing Plan. Staff clicks Generate Invoice. System creates: Invoice, Invoice Lines, Ledger Entries, Audit Log." This is the first service in the Finance Foundation that owns no collection of its own — it orchestrates three already-frozen services (`FinanceRulesEngine` for the billing decision, `FinanceInvoiceService` for the Invoice write, `LedgerEntryService` for the matching charge) rather than writing anything directly.
+
+**Explicitly manual, not automated.** Nothing in this service fires on its own — there is no scheduler, no cron job, no `setInterval`, and it is never called except from the staff-triggered HTTP endpoint (`POST /api/finance/billing-plans/:planId/generate-invoice`, gated behind `FINANCE_FOUNDATION_ENABLED`). Recurring/automatic invoice generation is M3.5, explicitly deferred and not part of this service's scope.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `generateInvoiceForPlan(planId, { schoolId, centerId, actorUserId, periodStart, periodEnd })` | `planId` required; `periodStart`/`periodEnd` required (the billing period being invoiced, ISO date strings) | `{ invoice, ledgerEntry, newBalance, duplicate }`. `ledgerEntry`/`newBalance` are `null` when the resolved invoice total is `0` (a fully-discounted period creates no Ledger Entry — there is no financial movement to represent). `duplicate: true` only when BOTH the invoice already existed for this plan/period AND the ledger entry was itself a dedup no-op (see Idempotency below). | See Error Behaviour table below |
+
+**Orchestration steps** (in order): 1) fetch the Billing Plan, require `status === "active"`; 2) check `FinanceInvoiceService.findByPlanAndPeriod()` for an existing invoice this exact call would otherwise duplicate; 3) if none exists — fetch the referenced fee template, the student's `admissionDate`/`siblingOrder` (read directly from the `students` collection, not through `studentService`'s own read-mapper, which is already known to silently drop `siblingOrder`), Finance Settings, and the sibling-discount rules; run `FinanceRulesEngine.evaluateBillingPlanInvoice()`; if it returns `requiresApproval: true`, stop and throw — no Invoice is created; otherwise call `FinanceInvoiceService.createInvoice()`; 4) if the invoice's `totalAmount > 0`, call `LedgerEntryService.createEntry()` with `sourceType: "invoice"`, `sourceId: invoice.invoiceId`; 5) write one `financeAuditLogs` record for the orchestration itself (`action: "billingEngine.generateInvoice"` or `"billingEngine.duplicate"`).
+
+**Idempotency.** A Billing Plan generates at most one Invoice per period, keyed on `(schoolId, billingPlanId, periodStart)` via `FinanceInvoiceService.findByPlanAndPeriod()`, checked **before** any write. The Ledger Entry step is **always** attempted — even on the "invoice already existed" path — using the invoice's own `invoiceId` as the Ledger Entry's `sourceId`; `LedgerEntryService.createEntry()`'s own M3.1 dedup then decides whether a new entry is actually needed. This is deliberate: it self-heals the one real partial-failure risk in this two-write orchestration (an Invoice created but its Ledger Entry failing to post, e.g. a transient error) without requiring a cross-service Firestore transaction — retrying the exact same call always converges to "one Invoice, one matching Ledger Entry," never a duplicate of either, and never an Invoice permanently unbacked by its charge.
+
+**Domain invariants**
+- Never creates a second Invoice for the same `(billingPlanId, periodStart)` — checked before any write, not cleaned up after the fact.
+- Never posts a Ledger Entry with a zero or negative amount — `LedgerEntryService.createEntry()`'s own domain invariant (a Ledger Entry represents a real financial movement) is respected by skipping the post entirely for a fully-discounted invoice, rather than working around it.
+- Never silently applies a discount a school's Finance Settings say requires manual approval — `requiresApproval: true` from the Rules Engine always aborts generation before any write, never proceeds with an unapproved amount.
+- Every call — success, duplicate, or requires-approval — writes at least one `financeAuditLogs` entry, so "why does/doesn't an invoice exist for this plan and period" is always answerable from the audit trail alone.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `planId` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Missing `periodStart` or `periodEnd` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Billing Plan not found (missing or cross-tenant) | `{ code: "NOT_FOUND" }` — hide, don't reveal, matching `BillingPlanService.getPlan()`'s own convention |
+| Billing Plan is not `active` (`draft`/`paused`/`ended`) | `{ code: "VALIDATION" }` |
+| Referenced fee template not found (missing or cross-tenant) | `{ code: "VALIDATION" }` |
+| Resolved discount requires manual approval (Finance Settings' `discountApprovalThreshold`) | `{ code: "REQUIRES_APPROVAL" }` — no Invoice or Ledger Entry created |
+
+---
+
+*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` / `test/financeBillingEngineService.test.js` for the executable proof of the error-behavior claims above.*
