@@ -544,6 +544,15 @@ service cloud.firestore {
       allow write: if false; // backend-only writes, same pattern as tenantAuditLogs
     }
 
+    match /financeRefunds/{refundId} {
+      allow read:  if isSignedIn() && isFinanceOps() && sameSchool(resource.data.schoolId);
+      // Backend-only writes — the Requested -> Approved/Rejected -> Processed
+      // workflow (Sprint 4, M4.5) must never be reachable via a direct client
+      // write, only through financeRefundReversalService.js's own approval
+      // and threshold logic.
+      allow write: if false;
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // SETTINGS
     // ────────────────────────────────────────────────────────────────────

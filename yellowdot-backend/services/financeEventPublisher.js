@@ -36,6 +36,8 @@ const EVENTS = Object.freeze({
   INVOICE_GENERATED:        "InvoiceGenerated",
   PAYMENT_RECORDED:         "PaymentRecorded",
   PAYMENT_ALLOCATED:        "PaymentAllocated",
+  REFUND_PROCESSED:         "RefundProcessed",
+  PAYMENT_REVERSED:         "PaymentReversed",
 });
 
 /** publish(eventName, payload) — payload should always include schoolId. */

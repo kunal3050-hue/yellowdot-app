@@ -42,7 +42,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation",
+    "finance-foundation","finance-refund-approval",
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -52,7 +52,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation",
+    "finance-foundation","finance-refund-approval",
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -73,7 +73,7 @@ const STATIC_ROLE_PERMS = {
   ],
   accountant: [
     "dashboard","fees","invoice","analytics","students","profile",
-    "finance-foundation",
+    "finance-foundation","finance-refund-approval",
   ],
   reception: [
     "dashboard","students","attendance","parent-checkin",

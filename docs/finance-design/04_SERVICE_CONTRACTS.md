@@ -287,7 +287,7 @@ A Finance-Foundation-recorded Payment is **family-scoped** (`familyId`, not just
 
 | Method | Inputs | Outputs | Error behavior |
 |---|---|---|---|
-| `recordPayment(data, { schoolId, centerId, actorUserId })` | `data.familyId` required; `data.amount` required, positive finite number; `data.paymentMode` optional, one of `PAYMENT_MODES` (defaults `"Cash"`); `data.studentId`/`studentName`/`transactionId`/`paymentDate`/`notes` all optional | The created Payment document — `paymentId` (`FPAY######`), `receiptNumber: ""` (populated by M4.3, not this milestone), `status: "Recorded"`, `allocations: []`, `creditAppliedAmount: 0` | See Error Behaviour table below |
+| `recordPayment(data, { schoolId, centerId, actorUserId })` | `data.familyId` required; `data.amount` required, positive finite number; `data.paymentMode` optional, one of `PAYMENT_MODES` (defaults `"Cash"`); `data.studentId`/`studentName`/`transactionId`/`paymentDate`/`notes` all optional | The created Payment document — `paymentId` (`FPAY######`), `receiptNumber` (`FRCPT-YYYYMM-#####`, its own atomic month-scoped counter, added in Sprint 4 M4.3 — data/number only, no PDF), `status: "Recorded"`, `allocations: []`, `creditAppliedAmount: 0` | See Error Behaviour table below |
 | `getPayment(paymentId, { schoolId })` | `paymentId: string`, `schoolId: string` | The payment, or `null` if it doesn't exist **or** belongs to a different school (hide, don't reveal) | Never throws for a missing/foreign payment — returns `null` |
 | `listForFamily(familyId, { schoolId, limit })` | `limit` optional, default 100 | Payments for that family **created by this service specifically** (`source === "financeFoundation"`), newest first | Never throws for a family with no such payments — returns `[]` |
 | `transitionStatus(paymentId, toStatus, { schoolId, actorUserId, meta })` | `toStatus` must be a valid transition per `FinancePaymentStateMachine` from the payment's current status | The updated payment | Throws whatever `assertTransition()` throws; `{ code: "NOT_FOUND" }` for a cross-tenant payment; `{ code: "VALIDATION" }` for a missing payment |
@@ -364,4 +364,67 @@ A Finance-Foundation-recorded Payment is **family-scoped** (`familyId`, not just
 
 ---
 
-*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` / `test/financeBillingEngineService.test.js` / `test/financePaymentStateMachine.test.js` / `test/financePaymentService.test.js` / `test/financeAllocationStrategies.test.js` / `test/financePaymentAllocationService.test.js` for the executable proof of the error-behavior claims above.*
+## FinanceCreditConsumptionService
+
+**Responsibilities.** The *spend* side of the Family Account credit balance (Sprint 4, M4.4) — `FinancePaymentAllocationService` (M4.2) is the *credit* side. Before a new charge requires a fresh payment, applies available Family Account credit as a `type: "creditApplied"` Ledger Entry (a valid, correctly-signed entry type since Sprint 1, unused by any caller until this milestone). No new Firestore collection — reuses `FamilyAccountService.adjustCreditBalance()` (already transactional, already rejects a negative result) and `LedgerEntryService`'s existing `creditApplied` type verbatim.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `applyAvailableCredit(studentId, amount, { schoolId, centerId, actorUserId, familyId, sourceId })` | `studentId`/`familyId`/`sourceId` all required; `amount` required, positive finite number. `sourceId` (typically the Invoice/charge being covered) is the idempotency key. | `{ creditApplied, remainingAmount, newBalance, duplicate }` — applies `min(available credit, amount)`; `remainingAmount` is whatever still needs a fresh payment | See Error Behaviour table below |
+
+**Domain invariants**
+- Never applies more credit than either the family's available balance or the amount being covered — computed via `Math.min()` before any write, not corrected after the fact.
+- Idempotent via `sourceId`: a retried call with the same `sourceId` is detected by `LedgerEntryService.createEntry()`'s own M3.1 dedup and does not decrement the Family Account's credit balance a second time.
+- **Known ordering tradeoff, stated honestly.** The Ledger Entry is posted *before* the credit balance is decremented, so a retry after a successful entry-post-but-failed-decrement sees `duplicate: true` and will not retry the decrement either — a rare, accepted gap, not a silently-claimed guarantee. A full fix needs a cross-service transaction spanning `ledgerEntries` and `families`, out of scope for this milestone.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `studentId`, `familyId`, or `sourceId` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Missing, zero, or negative `amount` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Family account not found | `{ code: "VALIDATION" }` |
+| Zero available credit | Returns `{ creditApplied: 0, remainingAmount: amount, newBalance: null }` — never throws, never touches the ledger |
+
+---
+
+## FinanceRefundReversalService
+
+**Responsibilities.** Two related but distinct actions (Sprint 4, M4.5), per `02_DOMAIN_ARCHITECTURE.md`'s own Refund entity design:
+- **Refund** (money paid back out): `Requested → Approved/Rejected → Processed`, gated by the existing (never-enforced-until-now) `financeSettings.refundApprovalThreshold` — exactly the same "auto-apply below, require sign-off above" semantics `discountApprovalThreshold` already uses for M3.3. A genuinely new `financeRefunds/{refundId}` collection formalizes this — unlike Payment/Invoice, there is no legacy collection to extend, since Domain Architecture Chapter 2 named this "a workflow that today has no entity, route, or controller at all."
+- **Reversal** (a Payment turns out to be invalid, e.g. a bounced cheque): never edits or deletes the original Payment or its Ledger Entries — posts new, offsetting Ledger Entries and transitions the Payment to `Reversed`.
+
+**Approver authority is enforced at the route layer, not this service.** `approveRefund()` trusts `actorUserId` only as an audit-trail attribution — the actual authorization decision (is this caller allowed to approve a refund at all) happens via a narrower `finance-refund-approval` permission, checked by `authorizeRoute()` before this function is ever called, per `02_DOMAIN_ARCHITECTURE.md`'s own citation of `userService.js`'s `ASSIGNABLE_ROLES` capping pattern as the model to follow. Granted to `admin`/`center_owner`/`accountant` only — deliberately **not** `center_admin`, a real separation-of-duties boundary (a `center_admin` can request/reject a refund via the general `finance-foundation` key, but cannot approve one).
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `requestRefund(paymentId, amount, { schoolId, centerId, actorUserId, reason })` | Payment must be `Allocated` or `PartiallyRefunded`; `amount` must not exceed `payment.amount - payment.refundedAmount` | `{ refund, processed }` when auto-approved (below threshold) also includes `{ payment, newBalance }` from processing | See Error Behaviour table below |
+| `approveRefund(refundId, { schoolId, centerId, actorUserId })` | Refund must be `Requested` | `{ refund, payment, newBalance, processed: true }` | Throws `{ code: "NOT_FOUND" }`/`{ code: "VALIDATION" }` |
+| `rejectRefund(refundId, { schoolId, actorUserId, reason })` | Refund must be `Requested` | The refund, now `Rejected` — no Ledger Entry, no Payment change | Throws `{ code: "NOT_FOUND" }`/`{ code: "VALIDATION" }` |
+| `getRefund(refundId, { schoolId })` | — | The refund, or `null` (hide, don't reveal) | Never throws |
+| `reversePayment(paymentId, { schoolId, centerId, actorUserId, reason })` | Payment's current status must allow a transition to `Reversed` per `FinancePaymentStateMachine` (`Recorded`/`PartiallyAllocated`/`Allocated` only — **not** `Refunded`/`PartiallyRefunded`, an explicit non-goal) | The updated (now `Reversed`) Payment | Throws whatever `assertTransition()` throws, plus whatever `adjustCreditBalance()` throws if clawing back already-spent credit |
+
+**Domain invariants**
+- A Refund's approval threshold check mirrors `discountApprovalThreshold`'s exact semantics: `0` = no threshold configured (always auto-approve); otherwise auto-approve strictly below the threshold, require approval at or above it.
+- `reversePayment()` posts one offsetting `type: "adjustment"` Ledger Entry (with `signedAmountOverride` equal to `+`the original allocation amount) **per ledger** the Payment had settled — a Payment allocated across multiple students reverses each one independently.
+- If the Payment's overpayment had granted Family Account credit, reversal claws that credit back via the existing `adjustCreditBalance()` — which will naturally fail (via its own existing guard) if that credit has since been spent elsewhere; this is a known, accepted limitation, not silently ignored.
+- Neither Refund nor Reversal ever edits or deletes a prior Ledger Entry or Payment document — every correction is a new, appended fact, matching the platform-wide immutability precedent.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `paymentId`/`refundId`, or non-positive `amount` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Payment/Refund not found (missing or cross-tenant) | `{ code: "NOT_FOUND" }` |
+| Payment not `Allocated`/`PartiallyRefunded` (`requestRefund`) | `{ code: "VALIDATION" }` |
+| Refund amount exceeds the refundable remainder | `{ code: "VALIDATION" }` |
+| Refund not `Requested` (`approveRefund`/`rejectRefund`) | `{ code: "VALIDATION" }` |
+| Payment status does not allow `Reversed` (`reversePayment`) | Whatever `FinancePaymentStateMachine.assertTransition()` throws — `{ code: "VALIDATION" }` |
+
+---
+
+*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` / `test/financeBillingEngineService.test.js` / `test/financePaymentStateMachine.test.js` / `test/financePaymentService.test.js` / `test/financeAllocationStrategies.test.js` / `test/financePaymentAllocationService.test.js` / `test/financeCreditConsumptionService.test.js` / `test/financeRefundReversalService.test.js` for the executable proof of the error-behavior claims above.*

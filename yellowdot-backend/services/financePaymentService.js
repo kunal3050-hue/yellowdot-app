@@ -21,10 +21,15 @@
  * collision risk with the legacy service's own `PAY-<timestamp>`-style
  * IDs, mirroring the `FINV`/`BINV` precedent from M3.2.
  *
- * Receipt numbering is deliberately NOT implemented here — every new
- * Payment is created with `receiptNumber: ""` — that is M4.3's job
- * (Receipt Generation), kept as its own independently deployable
- * milestone rather than bundled into payment creation.
+ * Receipt numbering (Sprint 4, M4.3): every new Payment is generated with
+ * a sequential `FRCPT-YYYYMM-#####` receipt number, via this file's own
+ * atomic, month-scoped counter (`_nextReceiptNumber`) — mirroring
+ * `financeInvoiceService.js`'s own `BINV-YYYYMM-#####` counter rather
+ * than importing `invoiceService.js`'s unexported `genReceiptNumber()`,
+ * consistent with the "never import invoiceService.js" precedent from
+ * M3.2. No separate PDF/document is generated — this is the receipt
+ * *record* only; the platform's existing (separately-flagged) PDF
+ * architecture gap remains its own tech-debt item, untouched here.
  *
  * Payment status is governed by `financePaymentStateMachine.js`
  * (Sprint 4 Review, Recommendation 2) — every Payment is created in
@@ -55,6 +60,30 @@ async function _nextPaymentId() {
   return `FPAY${String(n).padStart(6, "0")}`;
 }
 
+/**
+ * _nextReceiptNumber — Sprint 4, M4.3: its own atomic, month-scoped
+ * counter (mirroring `financeInvoiceService._nextInvoiceNumber()`'s
+ * `BINV-YYYYMM-#####` pattern) rather than importing `invoiceService.js`'s
+ * unexported `genReceiptNumber()` — the "never import invoiceService.js"
+ * precedent established in M3.2 takes priority over reusing that
+ * specific function literally, per `02_DOMAIN_ARCHITECTURE.md`'s
+ * original (pre-Sprint-3) note. Distinct `FRCPT-` prefix guarantees zero
+ * collision with the legacy `RCPT-YYYYMM-####` sequence.
+ */
+async function _nextReceiptNumber(schoolId) {
+  const d   = new Date();
+  const ym  = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const key = `frcpt-${schoolId}-${ym}`;
+  const ref = db.collection("_counters").doc(key);
+  let seq = 1;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    seq = snap.exists ? (snap.data().seq || 0) + 1 : 1;
+    tx.set(ref, { seq, schoolId, period: ym, updatedAt: nowISO() }, { merge: true });
+  });
+  return `FRCPT-${ym}-${String(seq).padStart(5, "0")}`;
+}
+
 function docToFinancePayment(snap) {
   const d  = snap.data ? snap.data() : snap;
   const id = snap.id   || d.paymentId || "";
@@ -71,6 +100,7 @@ function docToFinancePayment(snap) {
     notes:         d.notes         || "",
     allocations:   Array.isArray(d.allocations) ? d.allocations : [],
     creditAppliedAmount: Number(d.creditAppliedAmount || 0),
+    refundedAmount: Number(d.refundedAmount || 0),
     status:        d.status || stateMachine.STATES.RECORDED,
     source:        d.source || "financeFoundation",
     schoolId:      d.schoolId      || SCHOOL_ID,
@@ -97,10 +127,11 @@ async function recordPayment(data, { schoolId = SCHOOL_ID, centerId = "", actorU
     const e = new Error(`Invalid paymentMode "${data.paymentMode}".`); e.code = "VALIDATION"; throw e;
   }
 
-  const paymentId = await _nextPaymentId();
+  const paymentId     = await _nextPaymentId();
+  const receiptNumber = await _nextReceiptNumber(schoolId);
   const doc = {
     paymentId,
-    receiptNumber: "", // generated in M4.3
+    receiptNumber,
     familyId:     data.familyId,
     studentId:    data.studentId   || "",
     studentName:  data.studentName || "",
@@ -111,6 +142,7 @@ async function recordPayment(data, { schoolId = SCHOOL_ID, centerId = "", actorU
     notes:        data.notes       || "",
     allocations:  [],
     creditAppliedAmount: 0,
+    refundedAmount: 0,
     status:       stateMachine.STATES.RECORDED,
     source:       "financeFoundation",
     schoolId, centerId,
@@ -219,4 +251,29 @@ async function appendAllocations(paymentId, newAllocations, creditAppliedThisCal
   return docToFinancePayment(updatedData);
 }
 
-module.exports = { recordPayment, getPayment, listForFamily, transitionStatus, appendAllocations, PAYMENT_MODES };
+/**
+ * appendRefund — adds to a Payment's running `refundedAmount`. Called by
+ * `financeRefundReversalService.js` (M4.5) after a Refund has actually
+ * been processed (Ledger Entry posted) — never before, so a Payment's
+ * `refundedAmount` always reflects money that has genuinely moved.
+ */
+async function appendRefund(paymentId, refundAmountThisCall, { schoolId = SCHOOL_ID } = {}) {
+  const ref = col().doc(paymentId);
+  let updatedData = null;
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) { const e = new Error("Payment not found."); e.code = "VALIDATION"; throw e; }
+    const payment = snap.data();
+    if (payment.schoolId !== schoolId) { const e = new Error("Not found."); e.code = "NOT_FOUND"; throw e; }
+
+    const refundedAmount = Number(payment.refundedAmount || 0) + Number(refundAmountThisCall || 0);
+
+    updatedData = { ...payment, refundedAmount, updatedAt: nowISO() };
+    tx.update(ref, { refundedAmount, updatedAt: nowISO() });
+  });
+
+  return docToFinancePayment(updatedData);
+}
+
+module.exports = { recordPayment, getPayment, listForFamily, transitionStatus, appendAllocations, appendRefund, PAYMENT_MODES };

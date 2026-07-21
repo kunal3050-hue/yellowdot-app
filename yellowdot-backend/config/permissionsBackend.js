@@ -29,7 +29,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation",
+    "finance-foundation", "finance-refund-approval",
   ],
 
   center_owner: [
@@ -48,7 +48,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation",
+    "finance-foundation", "finance-refund-approval",
   ],
 
   center_admin: [
@@ -83,7 +83,7 @@ const ROLE_PERMISSIONS = {
 
   accountant: [
     "dashboard", "fees", "invoice", "analytics", "students", "profile",
-    "finance-foundation",
+    "finance-foundation", "finance-refund-approval",
   ],
 
   reception: [

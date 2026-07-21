@@ -97,6 +97,7 @@ const familyAccountRoutes    = require("./routes/familyAccountRoutes");
 const financeSettingsRoutes  = require("./routes/financeSettingsRoutes");
 const financeBillingEngineRoutes = require("./routes/financeBillingEngineRoutes");
 const financePaymentRoutes   = require("./routes/financePaymentRoutes");
+const financeRefundRoutes    = require("./routes/financeRefundRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -168,6 +169,7 @@ if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
   app.use(financeSettingsRoutes);
   app.use(financeBillingEngineRoutes);
   app.use(financePaymentRoutes);
+  app.use(financeRefundRoutes);
 }    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)

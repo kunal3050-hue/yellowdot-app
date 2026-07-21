@@ -1,10 +1,12 @@
 /**
- * Finance Foundation — Sprint 4, M4.1: Payment Domain Foundation.
+ * Finance Foundation — Sprint 4, M4.1/M4.3: Payment Domain Foundation
+ * and Receipt Generation.
  *
  * Same safety discipline as every other Finance Foundation test file:
  * never touches real Firestore. `db.runTransaction` (used here for the
- * FPAY###### counter and for transitionStatus's own transaction) and
- * `db.collection("payments")` are mocked directly.
+ * FPAY###### counter, the FRCPT-YYYYMM-##### receipt counter, and for
+ * transitionStatus's own transaction) and `db.collection("payments")`
+ * are mocked directly.
  */
 const test   = require("node:test");
 const assert = require("node:assert");
@@ -62,7 +64,7 @@ test("financePaymentService.recordPayment: creates a Payment in 'Recorded' statu
 
   assert.match(payment.paymentId, /^FPAY\d{6}$/);
   assert.equal(payment.status, "Recorded");
-  assert.equal(payment.receiptNumber, "");
+  assert.match(payment.receiptNumber, /^FRCPT-\d{6}-\d{5}$/);
   assert.equal(payment.familyId, "FAM-1");
   assert.equal(payment.amount, 5000);
   assert.deepEqual(payment.allocations, []);
@@ -71,6 +73,46 @@ test("financePaymentService.recordPayment: creates a Payment in 'Recorded' statu
   assert.equal(saved.length, 1);
   assert.equal(auditArgs.action, "financePayment.record");
   assert.equal(auditArgs.meta.amount, 5000);
+
+  db.runTransaction = origRunTransaction;
+  db.collection     = origCollectionRaw;
+  auditSvc.logFinanceAudit = origLogAudit;
+});
+
+test("financePaymentService.recordPayment: receipt numbers increment sequentially per counter, independent of the paymentId counter", async () => {
+  const { db }   = require("../firebaseAdmin");
+  const auditSvc = require("../services/financeAuditService");
+  const svc      = require("../services/financePaymentService");
+
+  const origRunTransaction  = db.runTransaction;
+  const origCollectionRaw   = db.collection;
+  const origCollectionBound = db.collection.bind(db);
+  const origLogAudit        = auditSvc.logFinanceAudit;
+
+  const counts = {}; // ref.path -> current count, so each distinct counter increments independently
+  db.runTransaction = async (fn) => {
+    let capturedPath = null;
+    const fakeTx = {
+      get: async (ref) => { capturedPath = ref.path; return { exists: Boolean(counts[capturedPath]), data: () => ({ count: counts[capturedPath] || 0, seq: counts[capturedPath] || 0 }) }; },
+      set: (ref, data) => { counts[ref.path] = data.count || data.seq || (counts[ref.path] || 0) + 1; },
+    };
+    return fn(fakeTx);
+  };
+  db.collection = (name) => {
+    if (name === "payments") return { doc: () => ({ set: async () => {} }) };
+    return origCollectionBound(name);
+  };
+  auditSvc.logFinanceAudit = async () => {};
+
+  const p1 = await svc.recordPayment({ familyId: "FAM-1", amount: 100 }, { schoolId: "school-a" });
+  const p2 = await svc.recordPayment({ familyId: "FAM-1", amount: 200 }, { schoolId: "school-a" });
+
+  assert.notEqual(p1.paymentId, p2.paymentId);
+  assert.notEqual(p1.receiptNumber, p2.receiptNumber);
+  // Both counters are independent sequences — each strictly increases across the two calls.
+  const seq1 = Number(p1.receiptNumber.split("-")[2]);
+  const seq2 = Number(p2.receiptNumber.split("-")[2]);
+  assert.ok(seq2 > seq1, `expected receipt sequence to increase: ${p1.receiptNumber} -> ${p2.receiptNumber}`);
 
   db.runTransaction = origRunTransaction;
   db.collection     = origCollectionRaw;

@@ -151,6 +151,40 @@
 
 ---
 
+## RefundProcessed
+
+| Field | Value |
+|---|---|
+| **Purpose** | Announces that a Refund has actually been processed — money paid back out, a `refund` Ledger Entry posted, and the originating Payment's `refundedAmount`/status updated accordingly. Does NOT fire for a `Requested` refund still awaiting approval, or a `Rejected` one — only for `Processed`. |
+| **Producer** | `services/financeRefundReversalService.js`, `_processRefund()` (called from both `requestRefund()`'s auto-approve path and `approveRefund()`) |
+| **Trigger Conditions** | After the `refund` Ledger Entry has been posted and the Refund document marked `Processed`. Never fires for a `Requested`-but-not-yet-approved refund, nor a `Rejected` one. |
+| **Consumers (intended, none registered yet)** | Collections, Reports, Parent Portal (refund-confirmation notification) |
+| **Payload Schema** | `{ schoolId, centerId, refundId: string ("FREF######"), paymentId: string, familyId: string, studentId: string, amount: number, actorUserId, eventName: "RefundProcessed", emittedAt }` |
+| **Idempotency Key** | **None today** — a Refund, once created, is processed exactly once by construction (there is no retry path that re-processes an already-`Processed` refund; `approveRefund()` itself rejects a non-`Requested` refund). The underlying Ledger Entry this event corresponds to is nonetheless idempotent (`sourceType: "refund", sourceId: refundId`, per M3.1), as defense in depth. |
+| **Ordering Guarantees** | Same in-process caveat as above. |
+| **Versioning Strategy** | See "Versioning Policy" below. |
+| **Retry Expectations** | None — see "How events actually work today." |
+| **Audit Relationship** | A `financeAuditLogs` entry (`action: "financeRefund.process"`, `entityType: "refund"`) is written first, carrying `{paymentId, amount, newBalance, newStatus}` in its `meta`. Separate `financeRefund.request`/`financeRefund.approve` audit entries record the earlier workflow steps. |
+
+---
+
+## PaymentReversed
+
+| Field | Value |
+|---|---|
+| **Purpose** | Announces that a Payment has been reversed (e.g. a bounced cheque) — every ledger it had settled restored via offsetting entries, any granted credit clawed back, and the Payment itself transitioned to `Reversed`. |
+| **Producer** | `services/financeRefundReversalService.js`, `reversePayment()` |
+| **Trigger Conditions** | After every offsetting Ledger Entry has been posted and the Payment's status successfully transitioned to `Reversed`. Never fires if the Payment's current status doesn't allow a `Reversed` transition (already `Refunded`/`PartiallyRefunded`/`Reversed` — an explicit non-goal, not a bug) or if clawing back already-spent credit fails. |
+| **Consumers (intended, none registered yet)** | Collections (outstanding-balance recalculation — a reversed payment means the family owes again), Reports |
+| **Payload Schema** | `{ schoolId, centerId, paymentId: string, familyId: string, reason: string, actorUserId, eventName: "PaymentReversed", emittedAt }` |
+| **Idempotency Key** | **Not applicable** — `Reversed` is a terminal state in `FinancePaymentStateMachine` (no outgoing transitions), so a Payment can only ever be reversed once; a second `reversePayment()` call for the same `paymentId` is rejected by `assertTransition()` before any Ledger Entry is posted. |
+| **Ordering Guarantees** | Same in-process caveat as above. |
+| **Versioning Strategy** | See "Versioning Policy" below. |
+| **Retry Expectations** | None — see "How events actually work today." |
+| **Audit Relationship** | A `financeAuditLogs` entry (`action: "financePayment.reverse"`, `entityType: "payment"`) is written first, carrying `{reason, allocationsReversed, creditClawedBack}` in its `meta`. Combined with every offsetting Ledger Entry's own audit trail, this is the durable source of truth. |
+
+---
+
 ## Versioning Policy (applies to every event above)
 
 No payload carries an explicit schema-version field today — this is a real gap, documented honestly rather than assumed away. **Recommended, not yet implemented**: add a `schemaVersion: 1` field to every payload (either inside `publish()` itself, so it's automatic like `eventName`/`emittedAt`, or per-producer) before the first real consumer is built. Going forward, under the Architecture Freeze below:

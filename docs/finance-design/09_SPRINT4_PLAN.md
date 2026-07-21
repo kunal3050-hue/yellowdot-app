@@ -2,7 +2,7 @@
 ## Sprint 4 Plan: Payment Lifecycle
 
 **Date:** 2026-07-21
-**Status:** Approved, with two structural recommendations incorporated below (Allocation Strategy abstraction in M4.2; explicit Payment State Machine in M4.1). Implementation in progress.
+**Status:** Approved and **fully implemented — M4.1 through M4.5 all complete**, with both structural recommendations incorporated (Allocation Strategy abstraction in M4.2; explicit Payment State Machine in M4.1). M4.3 (Receipt Generation) extended `financePaymentService.recordPayment()` with a real `FRCPT-YYYYMM-#####` counter. M4.4 (Credit Balance Consumption) shipped as `services/financeCreditConsumptionService.js`. M4.5 (Refund & Reversal) shipped as `services/financeRefundReversalService.js`, with approver authority enforced via a new, narrower `finance-refund-approval` permission (admin/center_owner/accountant only — deliberately excluding `center_admin`). Sprint 4's full approved scope is now complete; M3.5 (recurring scheduler) remains explicitly deferred, unchanged.
 **Depends on:** the Sprint 3 architecture, now validated end-to-end (`08_SPRINT3_VALIDATION.md`) — Billing Plan → Rules Engine → Invoice → Ledger Entry → Ledger Balance → Audit Log → RBAC → Tenant Isolation confirmed to behave as one coherent system. Sprint 4 extends that same chain with a Payment at the front of it, not a parallel system.
 
 ---
