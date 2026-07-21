@@ -44,6 +44,15 @@
       ]
     },
     {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "familyId", "order": "ASCENDING" },
+        { "fieldPath": "source",   "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "financeAuditLogs",
       "queryScope": "COLLECTION",
       "fields": [

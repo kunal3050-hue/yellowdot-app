@@ -256,4 +256,112 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 
 ---
 
-*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` / `test/financeBillingEngineService.test.js` for the executable proof of the error-behavior claims above.*
+## FinancePaymentStateMachine
+
+**Responsibilities.** Defines the Payment lifecycle explicitly (Sprint 4 Review, Recommendation 2) rather than treating `payment.status` as a free-form string. Pure and synchronous — no Firestore, no side effects, matching the `FinanceRulesEngine` precedent.
+
+**States.** `Pending` (reserved for a future gateway-confirmed flow — no Sprint 4 caller ever creates a Payment in this state), `Recorded`, `Allocated`, `PartiallyAllocated`, `Refunded`, `PartiallyRefunded`, `Reversed`.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `canTransition(from, to)` | two state strings | `true`/`false` | Never throws — returns `false` for an unknown state or a transition not in the map |
+| `assertTransition(from, to)` | two state strings | `true` | Throws `{ code: "VALIDATION" }` for an unknown state or a transition not in the map |
+
+**Transition map.** `Pending→Recorded`; `Recorded→{Allocated, PartiallyAllocated, Reversed}`; `PartiallyAllocated→{Allocated, Reversed}`; `Allocated→{PartiallyRefunded, Refunded, Reversed}`; `PartiallyRefunded→{Refunded}`. `Refunded` and `Reversed` are terminal (no outgoing transitions) — **reversing an already-(partially-)refunded Payment is an explicit non-goal**, not silently allowed: money already paid back out via a refund makes a clean reversal a genuinely harder problem than "catch a bad payment early," which is what `Reversed` models.
+
+**Domain invariants**
+- Every payment-mutating service (`FinancePaymentService.transitionStatus`, and every later milestone that changes a Payment's status) calls `assertTransition()` before persisting a new status — an invalid transition is rejected in the service layer itself, never left to the caller to have remembered the rules correctly.
+- A same-state "transition" (the new status equals the current status) is not a transition at all — callers should skip calling `transitionStatus` entirely in that case rather than expect a self-loop; none is defined in the map.
+
+---
+
+## FinancePaymentService
+
+**Responsibilities.** Creates and manages Payment records (Sprint 4, M4.1) by extending the platform's existing `payments` Firestore collection — the same collection `services/invoiceService.js` already reads and writes for the manual PaymentDrawer/RecordPayment flow — rather than introducing a parallel collection, following the exact pattern `FinanceInvoiceService` proved for Invoices. `services/invoiceService.js` itself is not imported or modified by this service.
+
+A Finance-Foundation-recorded Payment is **family-scoped** (`familyId`, not just `studentId`) and carries an `allocations: []` array plus a `creditAppliedAmount` running total — the concrete fields `FinancePaymentAllocationService` (M4.2) reads and appends to. Every Payment document still carries a best-effort `studentId` so any existing per-student payment-history read that only looks at that field is not broken by this addition.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `recordPayment(data, { schoolId, centerId, actorUserId })` | `data.familyId` required; `data.amount` required, positive finite number; `data.paymentMode` optional, one of `PAYMENT_MODES` (defaults `"Cash"`); `data.studentId`/`studentName`/`transactionId`/`paymentDate`/`notes` all optional | The created Payment document — `paymentId` (`FPAY######`), `receiptNumber: ""` (populated by M4.3, not this milestone), `status: "Recorded"`, `allocations: []`, `creditAppliedAmount: 0` | See Error Behaviour table below |
+| `getPayment(paymentId, { schoolId })` | `paymentId: string`, `schoolId: string` | The payment, or `null` if it doesn't exist **or** belongs to a different school (hide, don't reveal) | Never throws for a missing/foreign payment — returns `null` |
+| `listForFamily(familyId, { schoolId, limit })` | `limit` optional, default 100 | Payments for that family **created by this service specifically** (`source === "financeFoundation"`), newest first | Never throws for a family with no such payments — returns `[]` |
+| `transitionStatus(paymentId, toStatus, { schoolId, actorUserId, meta })` | `toStatus` must be a valid transition per `FinancePaymentStateMachine` from the payment's current status | The updated payment | Throws whatever `assertTransition()` throws; `{ code: "NOT_FOUND" }` for a cross-tenant payment; `{ code: "VALIDATION" }` for a missing payment |
+| `appendAllocations(paymentId, newAllocations, creditAppliedThisCall, { schoolId })` — internal, used by `FinancePaymentAllocationService` (M4.2), not part of the "record a payment" public surface | Merges into the existing `allocations` array and adds to `creditAppliedAmount` — never replaces either | The updated payment | Throws `{ code: "VALIDATION" }`/`{ code: "NOT_FOUND" }` matching the same conventions as every other method here |
+
+**Domain invariants**
+- Every Payment created by this service starts in `Recorded` — never any other status — matching the platform's existing `firestore.rules` comment on `payments`: "generally immutable — only admins may correct." Only `transitionStatus`/`appendAllocations` (both state-machine- or append-only-guarded) ever change a Payment after creation.
+- `source` is always `"financeFoundation"` for a Payment this service creates — the legacy manual flow continues to go through `invoiceService.recordPayment()` entirely, untouched.
+- Distinct `FPAY######` ID prefix (own atomic counter) guarantees zero collision risk with the legacy service's own ID generation, matching the `FINV`/`BINV` precedent from M3.2.
+- Tenant-scoped from creation; a cross-tenant read is rejected as "not found," never a distinguishable error.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `familyId` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Missing, zero, or negative `amount` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Invalid `paymentMode` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Payment belongs to a different school (`getPayment`, `transitionStatus`, `appendAllocations`) | `null` (`getPayment`) or `{ code: "NOT_FOUND" }` (the others) — hide, don't reveal |
+| Invalid status transition (`transitionStatus`) | Whatever `FinancePaymentStateMachine.assertTransition()` throws — `{ code: "VALIDATION" }` |
+
+---
+
+## FinanceAllocationStrategies
+
+**Responsibilities.** A registry of pure Payment-allocation strategies (Sprint 4 Review, Recommendation 1) — every strategy shares the identical signature `strategy({ paymentAmount, outstandingLedgers, manualAllocations }) → { allocations, leftoverAmount }`, so `FinancePaymentAllocationService` never branches on strategy name beyond one registry lookup. A future strategy is a new function plus one registry entry, never a change to the allocation engine itself.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `oldestDueFirst({ paymentAmount, outstandingLedgers })` | `outstandingLedgers: { studentId, currentBalance, createdAt }[]` | `{ allocations: { studentLedgerId, amount }[], leftoverAmount }` — sweeps the payment amount across ledgers ordered by `createdAt` ascending until either the amount or every ledger's balance is exhausted | Never throws — an empty `outstandingLedgers` simply returns the full amount as `leftoverAmount` |
+| `manual({ paymentAmount, manualAllocations })` | `manualAllocations: { studentLedgerId, amount }[]`, required, non-empty | `{ allocations, leftoverAmount }` — passes the caller's explicit split through after validation; whatever isn't explicitly allocated is `leftoverAmount` | Throws `{ code: "VALIDATION" }` for an empty/missing list, a missing `studentLedgerId`, a non-positive `amount`, or a total exceeding `paymentAmount` |
+| `resolveStrategy(name)` | `name: string` | The matching strategy function | Throws `{ code: "VALIDATION" }` for an unregistered name |
+
+**Domain invariants**
+- `oldestDueFirst` ordering is honestly documented as **ledger-granularity** ("the obligation open longest"), not true per-invoice due-date FIFO — per-invoice aging isn't surfaced at the family level yet.
+- Neither strategy has any opinion on what happens to `leftoverAmount` — that decision (auto-credit vs. leave unresolved) belongs to the calling engine, not the strategy, since it depends on caller intent.
+- Every function here is pure and synchronous — no Firestore, no side effects, same inputs always produce the same outputs.
+
+---
+
+## FinancePaymentAllocationService
+
+**Responsibilities.** Allocates a recorded Payment across its Family Account's outstanding Student Ledgers (Sprint 4, M4.2), using `FinanceAllocationStrategies` for the actual split decision. Partial payments and overpayments are not separate code paths — they fall out of the same `allocatePayment()` call depending on which strategy resolves and how much `leftoverAmount` it returns.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `allocatePayment(paymentId, { schoolId, centerId, actorUserId, strategyOverride, manualAllocations, applyLeftoverToCredit })` | `paymentId` required; payment must currently be `Recorded` or `PartiallyAllocated`; `strategyOverride` optional (defaults to the Family Account's own `paymentAllocationPreference`); `manualAllocations` required only when the resolved strategy is `"manual"`; `applyLeftoverToCredit` (default `false`) only affects the `manual` strategy's leftover | `{ payment, allocations, creditApplied, leftoverAmount }` | See Error Behaviour table below |
+
+**Behavior by strategy.**
+- **`oldestDueFirst` is self-resolving.** Any `leftoverAmount` it returns is **always** auto-routed to the Family Account's credit balance via the already-existing `adjustCreditBalance()` — a payment allocated this way always reaches `Allocated` in one call, regardless of whether it exactly matched, under-matched, or overpaid the family's outstanding balance.
+- **`manual` respects explicit staff intent.** A deliberately partial split leaves its `leftoverAmount` **unresolved** (not auto-credited) unless the caller explicitly passes `applyLeftoverToCredit: true` — the Payment lands in `PartiallyAllocated` and can be resumed by calling `allocatePayment()` again for the same `paymentId`, allocating only whatever remains unresolved from all prior calls combined.
+
+**Idempotency.** Every settled ledger gets one `type: "payment"` Ledger Entry via the already-idempotent `LedgerEntryService.createEntry()` (M3.1), keyed `sourceType: "payment", sourceId: paymentId` — the studentLedgerId is already part of that dedup key, so reusing the same `paymentId` as `sourceId` across every ledger a single payment settles carries no collision risk.
+
+**Domain invariants**
+- A Payment already `Allocated` cannot be allocated again — `allocatePayment()` rejects it before any read of outstanding ledgers, since there is nothing left to resolve.
+- A Payment's `allocations` array and `creditAppliedAmount` only ever grow (via `FinancePaymentService.appendAllocations`) — a resumed, previously `PartiallyAllocated` payment never loses a prior call's work.
+- The Payment's status transition (`Recorded`/`PartiallyAllocated` → `PartiallyAllocated`/`Allocated`) is skipped entirely when the new status equals the current status (no self-loop is defined in `FinancePaymentStateMachine`), and applied via `FinancePaymentService.transitionStatus()` otherwise — an invalid transition is impossible by construction, not just by convention.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `paymentId` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Payment not found (missing or cross-tenant) | `{ code: "NOT_FOUND" }` |
+| Payment status is not `Recorded`/`PartiallyAllocated` (e.g. already `Allocated`) | `{ code: "VALIDATION" }` |
+| Family Account not found for the payment's `familyId` | `{ code: "VALIDATION" }` |
+| Unregistered allocation strategy name | `{ code: "VALIDATION" }` (from `FinanceAllocationStrategies.resolveStrategy`) |
+| `manual` strategy with missing/invalid `manualAllocations` | `{ code: "VALIDATION" }` (from `FinanceAllocationStrategies.manual`) |
+
+---
+
+*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` / `test/financeRulesEngine.test.js` / `test/financeBillingEngineService.test.js` / `test/financePaymentStateMachine.test.js` / `test/financePaymentService.test.js` / `test/financeAllocationStrategies.test.js` / `test/financePaymentAllocationService.test.js` for the executable proof of the error-behavior claims above.*

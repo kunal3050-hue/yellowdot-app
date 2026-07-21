@@ -117,6 +117,40 @@
 
 ---
 
+## PaymentRecorded
+
+| Field | Value |
+|---|---|
+| **Purpose** | Announces that a new Payment has been recorded against a Family Account — the signal Collections, Reports, and Parent Portal should react to. Does not itself mean the payment has been allocated to any Student Ledger yet — see `PaymentAllocated` for that. |
+| **Producer** | `services/financePaymentService.js`, `recordPayment()` |
+| **Trigger Conditions** | After the Payment document has been written to Firestore, always in `Recorded` status. Never fires if `recordPayment()` throws (missing `familyId`, missing/non-positive `amount`, invalid `paymentMode`). |
+| **Consumers (intended, none registered yet)** | The Payment Allocation Engine (M4.2 — calls `recordPayment()` directly rather than listening for this event, but a future out-of-process consumer could), Collections, Reports, Parent Portal (payment-confirmation notification) |
+| **Payload Schema** | `{ schoolId, centerId, paymentId: string ("FPAY######"), familyId: string, amount: number, paymentMode: string, actorUserId, eventName: "PaymentRecorded", emittedAt }` |
+| **Idempotency Key** | **None today.** `recordPayment()` is not idempotent — each call always creates a new Payment with a freshly allocated `paymentId`, the same way `InvoiceGenerated`'s producer is not idempotent. A retry-capable caller is responsible for its own dedup before calling `recordPayment()` again — this service performs no such check itself. |
+| **Ordering Guarantees** | Same in-process caveat as above. |
+| **Versioning Strategy** | See "Versioning Policy" below. |
+| **Retry Expectations** | None — see "How events actually work today." |
+| **Audit Relationship** | A `financeAuditLogs` entry (`action: "financePayment.record"`, `entityType: "payment"`) is written first, carrying `{familyId, amount, paymentMode}` in its `meta`. Combined with the Payment document itself, this is the durable source of truth. |
+
+---
+
+## PaymentAllocated
+
+| Field | Value |
+|---|---|
+| **Purpose** | Announces that a Payment's allocation call has resolved (fully or partially) — settling Ledger Entries created, any overpayment routed to Family Account credit, and the Payment's own status transitioned accordingly. |
+| **Producer** | `services/financePaymentAllocationService.js`, `allocatePayment()` |
+| **Trigger Conditions** | After every successful `allocatePayment()` call — including a call that only *partially* resolves a Payment (leaving it `PartiallyAllocated`) and a call that resumes a previously `PartiallyAllocated` Payment. Never fires if `allocatePayment()` throws (payment not found, wrong status, unknown strategy, invalid manual allocations). |
+| **Consumers (intended, none registered yet)** | Ledger Service (already updated synchronously by this same call, not reactively), Collections (outstanding-balance recalculation), Reports |
+| **Payload Schema** | `{ schoolId, centerId, paymentId: string, familyId: string, allocations: { studentLedgerId, amount }[] (only THIS call's newly-resolved allocations, not the payment's full history), creditApplied: number, status: string (the Payment's status after this call — "Allocated" or "PartiallyAllocated"), actorUserId, eventName: "PaymentAllocated", emittedAt }` |
+| **Idempotency Key** | **Not applicable in the traditional sense** — `allocatePayment()` is explicitly designed to be callable more than once for the same `paymentId` (to resume a `PartiallyAllocated` payment), and each call's event payload reflects only that call's newly-resolved portion. A consumer that wants the Payment's cumulative state should read the Payment document itself (`financePaymentService.getPayment()`), not accumulate this event's payloads. The underlying Ledger Entries this event corresponds to ARE idempotent (`sourceType: "payment", sourceId: paymentId`, per M3.1). |
+| **Ordering Guarantees** | Same in-process caveat as above. |
+| **Versioning Strategy** | See "Versioning Policy" below. |
+| **Retry Expectations** | None — see "How events actually work today." |
+| **Audit Relationship** | A `financeAuditLogs` entry (`action: "financePayment.allocate"`, `entityType: "payment"`) is written first, carrying `{strategy, allocatedThisCall, creditApplied, newStatus}` in its `meta`. Combined with the Payment document's own `allocations`/`creditAppliedAmount` fields and every settled Ledger Entry's own audit trail, this is the durable source of truth. |
+
+---
+
 ## Versioning Policy (applies to every event above)
 
 No payload carries an explicit schema-version field today — this is a real gap, documented honestly rather than assumed away. **Recommended, not yet implemented**: add a `schemaVersion: 1` field to every payload (either inside `publish()` itself, so it's automatic like `eventName`/`emittedAt`, or per-producer) before the first real consumer is built. Going forward, under the Architecture Freeze below:
