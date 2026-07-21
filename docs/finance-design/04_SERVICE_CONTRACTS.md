@@ -1,7 +1,7 @@
 # KUE BOXS Care — Finance Foundation Service Contracts
 
-**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass, same date)
-**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, and `FinanceSettingsService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
+**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService added in Sprint 3, M3.2 — same date)
+**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, and `FinanceInvoiceService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
 
 Each service's actual code lives at `yellowdot-backend/services/<name>.js`. This document is the interface future code (Billing Automation, Collections, Parent Portal, Reports, AI Finance) should be written against — not the implementation.
 
@@ -160,4 +160,40 @@ This document is the place to track that taxonomy going forward — add here fir
 
 ---
 
-*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` for the executable proof of the error-behavior claims above.*
+## FinanceInvoiceService
+
+**Responsibilities.** Creates itemized Invoices (an Invoice header plus one or more Invoice Lines) by extending the platform's existing `invoices` Firestore collection — the same collection `services/invoiceService.js` already reads and writes for the manual Invoice/InvoiceView/PaymentDrawer flow — rather than introducing a parallel collection. Every document this service writes populates all of `invoiceService.js`'s existing legacy fields (computed as the aggregate of the invoice's lines) plus new, purely additive fields (`lines`, `source`, `billingPlanId`, `studentLedgerId`), so the existing manual-flow screens can read a Finance-Foundation-generated invoice exactly like any other, with zero change to them. `services/invoiceService.js` itself is not imported or modified by this service.
+
+This service does **not** post a Ledger Entry, activate a Billing Plan, or apply any Rules Engine policy (joining-date proration, discounts, scholarships) — it only turns an already-decided set of lines into an Invoice record. Orchestrating "decide what to bill, then create the Invoice, then post the matching Ledger Entry, then log it" is the Billing Engine's job (Sprint 3, M3.4), which calls `createInvoice()` as one step in a larger transaction of its own.
+
+**Public methods**
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `createInvoice(data, { schoolId, centerId, actorUserId })` | `data.studentId` required; `data.lines` required, non-empty array, each line requires `feeComponentId` and a non-negative `amount` (optional `label`/`gst`/`discount`); `data.billingPlanId`/`studentLedgerId`/`studentName`/`invoiceDate`/`dueDate`/`notes`/`source` all optional | The created Invoice document: legacy-compatible aggregate fields (`amount`, `gst`, `discount`, `totalAmount`, `paidAmount: 0`, `balance: totalAmount`, `status: "Pending"`) computed as the sum of the normalized `lines`, plus `invoiceId` (`FINV######`), `invoiceNumber` (`BINV-YYYYMM-#####`), and the `lines` array itself with each line's `total` computed (`amount + gst - discount`) | See Error Behaviour table below |
+| `getInvoice(invoiceId, { schoolId })` | `invoiceId: string`, `schoolId: string` | The invoice, or `null` if it doesn't exist **or** belongs to a different school (tenant mismatch is never distinguishable from "doesn't exist" — hide, don't reveal, matching every other Finance Foundation service's convention) | Never throws for a missing/foreign invoice — returns `null` |
+| `listForStudent(studentId, { schoolId, limit })` | `limit` optional, default 100 | Invoices for that student **created by this service specifically** (`source === "billingPlan"`), newest first. Does not include invoices created through the legacy manual flow — those remain queryable only through `invoiceService.js`'s own general-purpose readers. | Never throws for a student with no such invoices — returns `[]` |
+
+**Why two ID/number sequences instead of reusing the legacy ones.** `invoiceId` uses a distinct `FINV######` prefix (vs. legacy `INV-<timestamp>`) and `invoiceNumber` uses a distinct `BINV-YYYYMM-#####` prefix (vs. legacy `INV-YYYYMM-#####`), each generated from this service's own atomic `_counters` documents. This guarantees zero collision risk with `invoiceService.js`'s own ID generation without requiring any coordination between the two services, and makes a Billing-Engine-generated invoice immediately recognizable to anyone reading raw data.
+
+**Domain invariants**
+- Every invoice this service creates is itemized — there is no path to create an Invoice with zero lines; the aggregate header fields are always a derived sum of `lines`, never entered independently.
+- `source` defaults to `"billingPlan"`. Nothing calls this service with `source: "manual"` today — the existing manual flow continues to go through `invoiceService.js` entirely, untouched. The field exists so a future caller (e.g., a Rules-Engine-driven auto-invoice) can distinguish itself without a schema change.
+- An Invoice document, once created, is not updated by this service — there is no `updateInvoice`/`recordPayment`/`voidInvoice` method here. Payment application and status transitions remain the legacy `invoiceService.js`'s responsibility for every invoice regardless of which service created it; this service's contract is creation only.
+- Tenant-scoped from creation; a cross-tenant read is rejected as "not found," never a distinguishable error, matching every other Finance Foundation service.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Missing `studentId` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Missing or empty `lines` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| A line missing `feeComponentId`, or with a negative `amount` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Invoice belongs to a different school (`getInvoice`) | Returns `null` — hide, don't reveal |
+| No invoice found for the given ID (`getInvoice`) | Returns `null` |
+
+**Audit & Event.** Every successful `createInvoice()` call writes one `financeAuditLogs` record (action `financeInvoice.create`, `entityType: "invoice"`, `meta: { studentId, totalAmount, lineCount, billingPlanId }`) and publishes `InvoiceGenerated` via the Finance Event Publisher — see its contract in `06_FINANCE_EVENT_CONTRACT.md`.
+
+---
+
+*This document defines the contract only. See each service's own file for implementation, and `test/financeFoundation.test.js` / `test/financeFoundationSprint2.test.js` / `test/financeFoundationSprint3.test.js` / `test/financeInvoiceService.test.js` for the executable proof of the error-behavior claims above.*

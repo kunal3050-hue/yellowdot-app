@@ -15,11 +15,11 @@ const assert = require("node:assert");
 
 // ── Mandatory Change 2 — Finance Event Publisher ───────────────────────
 
-test("financeEventPublisher: exposes the five Finance Foundation event names (four from Mandatory Change 2, plus LedgerEntryCreated added when the LedgerEntryService contract was frozen)", () => {
+test("financeEventPublisher: exposes the six Finance Foundation event names (four from Mandatory Change 2, plus LedgerEntryCreated added when the LedgerEntryService contract was frozen, plus InvoiceGenerated added in Sprint 3 M3.2)", () => {
   const { EVENTS } = require("../services/financeEventPublisher");
   assert.deepEqual(Object.values(EVENTS).sort(), [
     "BillingPlanCreated", "FamilyAccountCreated", "FinanceSettingsChanged",
-    "LedgerEntryCreated", "StudentLedgerCreated",
+    "InvoiceGenerated", "LedgerEntryCreated", "StudentLedgerCreated",
   ].sort());
 });
 

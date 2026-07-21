@@ -100,6 +100,23 @@
 
 ---
 
+## InvoiceGenerated
+
+| Field | Value |
+|---|---|
+| **Purpose** | Announces that a new itemized Invoice has been created — the signal the eventual Billing Engine orchestration (M3.4), Collections, Reports, and Parent Portal should react to. |
+| **Producer** | `services/financeInvoiceService.js`, `createInvoice()` |
+| **Trigger Conditions** | After the Invoice document has been written to Firestore. Never fires if `createInvoice()` throws (missing `studentId`, missing/empty `lines`, or an invalid line). `createInvoice()` does not itself post a Ledger Entry — a consumer that expects a matching `LedgerEntryCreated` for the same financial fact should expect it from a separate call (M3.4's orchestration), not from this event alone. |
+| **Consumers (intended, none registered yet)** | The Billing Engine orchestration itself (M3.4 — calls `createInvoice()` directly rather than listening for this event, but a future out-of-process consumer could), Collections, Reports (Invoice Automation % tracking, per the Finance PRD's KPI), Parent Portal (new-invoice notification) |
+| **Payload Schema** | `{ schoolId, centerId, invoiceId: string ("FINV######"), invoiceNumber: string ("BINV-YYYYMM-#####"), studentId: string, billingPlanId: string (empty string if not billing-plan-sourced), totalAmount: number, lineCount: number, actorUserId, eventName: "InvoiceGenerated", emittedAt }` |
+| **Idempotency Key** | **None today.** `createInvoice()` is not idempotent — each call always creates a new Invoice with a freshly allocated `invoiceId`/`invoiceNumber`, the same way `BillingPlanCreated`'s producer is not idempotent. A retry-capable caller (the future M3.4 orchestration, if it retries) is responsible for its own dedup — e.g., checking whether an Invoice already exists for the given `(studentLedgerId, billingPeriod)` before calling `createInvoice()` again — this service itself performs no such check. |
+| **Ordering Guarantees** | Same in-process caveat as above. |
+| **Versioning Strategy** | See "Versioning Policy" below. |
+| **Retry Expectations** | None — see "How events actually work today." |
+| **Audit Relationship** | A `financeAuditLogs` entry (`action: "financeInvoice.create"`, `entityType: "invoice"`) is written first, carrying `{studentId, totalAmount, lineCount, billingPlanId}` in its `meta`. Combined with the Invoice document itself, this is the durable source of truth — this event is a notification of it, not a substitute for it. |
+
+---
+
 ## Versioning Policy (applies to every event above)
 
 No payload carries an explicit schema-version field today — this is a real gap, documented honestly rather than assumed away. **Recommended, not yet implemented**: add a `schemaVersion: 1` field to every payload (either inside `publish()` itself, so it's automatic like `eventName`/`emittedAt`, or per-producer) before the first real consumer is built. Going forward, under the Architecture Freeze below:

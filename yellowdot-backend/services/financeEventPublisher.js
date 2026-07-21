@@ -33,6 +33,7 @@ const EVENTS = Object.freeze({
   BILLING_PLAN_CREATED:     "BillingPlanCreated",
   FAMILY_ACCOUNT_CREATED:   "FamilyAccountCreated",
   FINANCE_SETTINGS_CHANGED: "FinanceSettingsChanged",
+  INVOICE_GENERATED:        "InvoiceGenerated",
 });
 
 /** publish(eventName, payload) — payload should always include schoolId. */
