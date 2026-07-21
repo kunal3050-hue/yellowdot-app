@@ -81,6 +81,18 @@ service cloud.firestore {
       return myRole() in ['developer', 'super_admin', 'admin', 'accountant'];
     }
 
+    // Finance Foundation (Sprint 1) — a corrected predicate for the new
+    // studentLedgers/ledgerEntries/billingPlans/financeSettings collections
+    // only. Deliberately additive: isFinance() above is NOT modified here,
+    // so no existing invoices/payments/feeTemplates rule changes. This new
+    // predicate includes center_owner/center_admin to match what
+    // permissionsBackend.js already grants those roles for "fees"/"invoice"
+    // — isFinance() itself has that same gap and should be corrected in a
+    // later, dedicated pass rather than silently inside this one.
+    function isFinanceOps() {
+      return myRole() in ['developer', 'super_admin', 'admin', 'center_owner', 'center_admin', 'accountant'];
+    }
+
     function isReceptionOrAbove() {
       return myRole() in ['developer', 'super_admin', 'admin', 'center_admin', 'teacher', 'reception'];
     }
@@ -472,6 +484,64 @@ service cloud.firestore {
 
       allow delete: if isSignedIn() && isAdmin() && isActive() &&
         sameSchool(resource.data.schoolId);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // FINANCE FOUNDATION (Sprint 1) — Student Ledger, Ledger Entry,
+    // Billing Plan, Finance Settings. New, additive collections; the
+    // existing invoices/payments/feeTemplates rules above are untouched.
+    // ════════════════════════════════════════════════════════════════════
+
+    match /studentLedgers/{studentId} {
+      allow read: if isSignedIn() && isFinanceOps() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isFinanceOps() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isFinanceOps() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      // Never deleted — Archive is a status transition, not a removal.
+      allow delete: if false;
+    }
+
+    match /ledgerEntries/{entryId} {
+      allow read: if isSignedIn() && isFinanceOps() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isFinanceOps() && isActive() &&
+        writingSameSchool();
+
+      // Append-only, always — no application code path may ever correct
+      // an entry in place. A correction is a new, offsetting entry.
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /billingPlans/{planId} {
+      allow read: if isSignedIn() && isFinanceOps() &&
+        sameSchool(resource.data.schoolId);
+
+      allow create: if isSignedIn() && isFinanceOps() && isActive() &&
+        writingSameSchool();
+
+      allow update: if isSignedIn() && isFinanceOps() && isActive() &&
+        sameSchool(resource.data.schoolId);
+
+      allow delete: if false; // Ended, never removed — explains past invoices.
+    }
+
+    match /financeSettings/{schoolId} {
+      allow read: if isSignedIn() && isFinanceOps() && sameSchool(schoolId);
+
+      allow write: if isSignedIn() && isFinanceOps() && isActive() &&
+        sameSchool(schoolId);
+    }
+
+    match /financeAuditLogs/{logId} {
+      allow read:  if isSignedIn() && isFinanceOps() && sameSchool(resource.data.schoolId);
+      allow write: if false; // backend-only writes, same pattern as tenantAuditLogs
     }
 
     // ════════════════════════════════════════════════════════════════════

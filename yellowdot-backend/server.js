@@ -91,6 +91,10 @@ const staffAttendanceRoutes  = require("./routes/staffAttendanceRoutes");
 const leaveRoutes            = require("./routes/leaveRoutes");
 const payrollRoutes          = require("./routes/payrollRoutes");
 const performanceRoutes      = require("./routes/performanceRoutes");
+const ledgerRoutes           = require("./routes/ledgerRoutes");
+const billingPlanRoutes      = require("./routes/billingPlanRoutes");
+const familyAccountRoutes    = require("./routes/familyAccountRoutes");
+const financeSettingsRoutes  = require("./routes/financeSettingsRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -144,7 +148,15 @@ app.use(designationRoutes);    // /api/designations/*(Staff Management — Desig
 app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* (Phase 2)
 app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
-app.use(performanceRoutes);    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
+app.use(performanceRoutes);
+// Finance Foundation (Sprint 1) — new, additive, behind FINANCE_FOUNDATION_ENABLED
+// flag (see middleware/financeFoundationFlag.js). Does not touch invoice/payment
+// routes above. Disabled by default — mounting these routers has no effect on
+// the running application until the flag is explicitly turned on.
+app.use(ledgerRoutes);
+app.use(billingPlanRoutes);
+app.use(familyAccountRoutes);
+app.use(financeSettingsRoutes);    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
 app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)

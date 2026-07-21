@@ -42,6 +42,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
+    "finance-foundation",
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -51,6 +52,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
+    "finance-foundation",
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -61,6 +63,7 @@ const STATIC_ROLE_PERMS = {
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
     "families",
+    "finance-foundation",
   ],
   teacher: [
     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
@@ -70,6 +73,7 @@ const STATIC_ROLE_PERMS = {
   ],
   accountant: [
     "dashboard","fees","invoice","analytics","students","profile",
+    "finance-foundation",
   ],
   reception: [
     "dashboard","students","attendance","parent-checkin",
@@ -107,6 +111,7 @@ const MODULE_ROUTE_MAP = {
   academics:         ["academics-classes","academics-batches",
                       "academics-teacher-allocation","academics-classroom-allocation"],
   family_management: ["families"],
+  finance_foundation: ["finance-foundation"], // Student Ledger / Billing Plan / Family Account extension / Finance Settings (Sprint 1)
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
   staff_management:  ["staff-dashboard","staff-management","departments","designations"],
