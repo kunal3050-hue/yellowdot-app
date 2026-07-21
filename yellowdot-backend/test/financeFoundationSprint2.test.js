@@ -15,11 +15,48 @@ const assert = require("node:assert");
 
 // ── Mandatory Change 2 — Finance Event Publisher ───────────────────────
 
-test("financeEventPublisher: exposes exactly the four Sprint-1-review event names", () => {
+test("financeEventPublisher: exposes the five Finance Foundation event names (four from Mandatory Change 2, plus LedgerEntryCreated added when the LedgerEntryService contract was frozen)", () => {
   const { EVENTS } = require("../services/financeEventPublisher");
   assert.deepEqual(Object.values(EVENTS).sort(), [
-    "BillingPlanCreated", "FamilyAccountCreated", "FinanceSettingsChanged", "StudentLedgerCreated",
+    "BillingPlanCreated", "FamilyAccountCreated", "FinanceSettingsChanged",
+    "LedgerEntryCreated", "StudentLedgerCreated",
   ].sort());
+});
+
+test("ledgerEntryService.createEntry: publishes LedgerEntryCreated after a successful entry (db.runTransaction/audit mocked, never touches real Firestore)", async () => {
+  const { db } = require("../firebaseAdmin");
+  const auditSvc = require("../services/financeAuditService");
+  const ledgerEntrySvc = require("../services/ledgerEntryService");
+  const { financeEvents, EVENTS } = require("../services/financeEventPublisher");
+
+  const origRunTransaction = db.runTransaction;
+  const origLogAudit = auditSvc.logFinanceAudit;
+
+  db.runTransaction = async (fn) => {
+    const fakeTx = {
+      get: async () => ({ exists: true, data: () => ({ schoolId: "school-a", status: "active", currentBalance: 0 }) }),
+      set: () => {},
+      update: () => {},
+    };
+    return fn(fakeTx);
+  };
+  auditSvc.logFinanceAudit = async () => {};
+
+  let received = null;
+  financeEvents.once(EVENTS.LEDGER_ENTRY_CREATED, (payload) => { received = payload; });
+
+  const { newBalance } = await ledgerEntrySvc.createEntry(
+    "YD001", { type: "charge", amount: 500 }, { schoolId: "school-a", actorUserId: "u1" }
+  );
+
+  assert.equal(newBalance, 500);
+  assert.ok(received, "LedgerEntryCreated must be published");
+  assert.equal(received.studentLedgerId, "YD001");
+  assert.equal(received.type, "charge");
+  assert.equal(received.newBalance, 500);
+
+  db.runTransaction = origRunTransaction;
+  auditSvc.logFinanceAudit = origLogAudit;
 });
 
 test("financeEventPublisher.publish: delivers the payload (plus schoolId/eventName/emittedAt) to listeners", () => {

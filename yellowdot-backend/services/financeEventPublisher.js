@@ -29,6 +29,7 @@ const financeEvents = new EventEmitter();
 
 const EVENTS = Object.freeze({
   STUDENT_LEDGER_CREATED:   "StudentLedgerCreated",
+  LEDGER_ENTRY_CREATED:     "LedgerEntryCreated",
   BILLING_PLAN_CREATED:     "BillingPlanCreated",
   FAMILY_ACCOUNT_CREATED:   "FamilyAccountCreated",
   FINANCE_SETTINGS_CHANGED: "FinanceSettingsChanged",

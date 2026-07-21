@@ -1,9 +1,85 @@
 # KUE BOXS Care — Finance Foundation Service Contracts
 
-**Date:** 2026-07-21
-**Status:** Frozen as of this document — the stable engineering interface for `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, and `FinanceSettingsService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
+**Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass, same date)
+**Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, and `FinanceSettingsService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
 
 Each service's actual code lives at `yellowdot-backend/services/<name>.js`. This document is the interface future code (Billing Automation, Collections, Parent Portal, Reports, AI Finance) should be written against — not the implementation.
+
+**A note on honesty over completeness in this document:** where the current code doesn't yet do something the contract logically implies it should (an entry taxonomy that's smaller than the eventual canonical list, an idempotency guarantee that isn't enforced yet), this document says so explicitly rather than describing an aspirational state as if it were already true. One such gap (a missing domain event) was found and fixed while writing the LedgerEntryService contract below — see its Audit Requirements section.
+
+---
+
+## LedgerEntryService
+
+**Responsibilities.** The only service permitted to create Ledger Entries, and therefore the only service permitted to change a Student Ledger's `currentBalance` — every financial movement on the platform, from any caller, for any reason, must ultimately pass through here. No other service writes to the `ledgerEntries` collection or mutates a ledger's balance field directly. This is the foundational primitive `StudentLedgerService`'s own contract already depends on ("a ledger's currentBalance... only ever changes as a side effect of a Ledger Entry being created").
+
+**Public methods.** Named to match the actual codebase, per the instruction to keep names consistent with what already exists rather than force a naming scheme that isn't real:
+
+| Method | Inputs | Outputs | Error behavior |
+|---|---|---|---|
+| `createEntry(studentId, data, { schoolId, centerId, actorUserId })` — the codebase's real name for what a generic contract might call `appendEntry` | `studentId` required; `data.type` required (one of the Supported Entry Types below); `data.amount` required, positive finite number; `data.signedAmountOverride` required only when `data.type === "adjustment"`; `data.feeComponentId`/`description`/`sourceType`/`sourceId` optional | `{ entry, newBalance }` — the created entry and the ledger's balance immediately after it | See Error Behaviour table below |
+| `listForLedger(studentId, { schoolId, limit })` — the codebase's real name for what a generic contract might call `listEntries` | `limit` optional, default 100 | Array of entries for that ledger, newest first, empty array if no ledger exists | Never throws for a missing/foreign ledger |
+
+**Methods that do not exist today, documented honestly rather than invented:**
+- `getEntry(entryId)` — no single-entry-by-ID lookup exists. Every current consumer reads a ledger's full ordered list via `listForLedger`, not one entry in isolation. Worth adding once a Financial Timeline detail view needs to deep-link to a specific entry.
+- `getBalance(studentId)` — deliberately does not exist on this service. A ledger's balance is a property of the Student Ledger record itself (`StudentLedgerService.getLedger()`'s `currentBalance` field) — this service only ever produces the *delta* that changes it, never re-exposes the running total as its own query surface. This is an intentional separation of concerns, not an oversight.
+- `exists(entryId)` — no dedicated existence check. Use `listForLedger` (or the future `getEntry`) instead.
+
+**Supported Entry Types.**
+
+Currently enforced by the code (`ENTRY_TYPES`) — every value below is a real, validated type today:
+
+| Type | Effect on balance |
+|---|---|
+| `charge` | Increases (a fee becomes due) |
+| `lateFee` | Increases |
+| `payment` | Decreases (money received, allocated) |
+| `discount` | Decreases |
+| `scholarship` | Decreases |
+| `refund` | Decreases (money paid back out) |
+| `creditApplied` | Decreases (an existing Credit Note redeemed) |
+| `adjustment` | Either direction — the only type where the caller supplies the sign explicitly via `signedAmountOverride`, since a manual correction can go either way |
+
+**Recommended additions to the canonical taxonomy — not yet implemented:**
+- `deposit` — a Security Deposit charge is currently just an ordinary `charge`, distinguishable only via `feeComponentId`, not its own type. Worth promoting to a real type once Deposit-specific netting logic (Withdrawal settlement) is built.
+- `writeOff` — does not exist. Writing off an uncollectible balance is a distinct business event from a discount or a refund and shouldn't be forced into either.
+- `openingBalance` — does not exist. Needed specifically for the future migration/backfill work (Domain Architecture Chapter 2, Part 9) to represent a student's reconstructed starting balance without it looking like an ordinary charge.
+
+This document is the place to track that taxonomy going forward — add here first, then to the `ENTRY_TYPES` enum, in the same change.
+
+**Idempotency.** **Not yet enforced at the service level** — `createEntry` has no idempotency key today; each call creates exactly one new entry, and a genuine network retry of the same logical operation would currently create two. This is safe today only because every existing caller (Sprint 1/2's services) calls it from a context that doesn't retry. **This must be closed before any automated, retry-capable caller is allowed to call this method** (a payment gateway webhook, the future billing scheduler) — the recommended strategy is to require such callers to pass a natural key via the already-existing `sourceType`/`sourceId` fields, and have `createEntry` check for an existing entry with the same `(schoolId, sourceType, sourceId)` before creating a new one, no-op'ing (not erroring) on a detected duplicate — the same spirit as the platform's existing transaction-safe receipt-numbering counter.
+
+**Immutability.** Ledger Entries are permanently append-only, enforced at three independent layers so no single mistake can violate it:
+1. **Service layer** — no update or delete function is exported. This isn't a documented restriction on an existing capability; the capability doesn't exist as a callable operation at all.
+2. **Firestore rules layer** — the `ledgerEntries` collection rule sets `allow update, delete: if false` unconditionally, regardless of role.
+3. **Design convention** — any correction is represented as a *new* entry (typically an `adjustment` with an opposite-signed `signedAmountOverride`), never an edit to a past one.
+
+**Audit Requirements.** Every successful `createEntry()` call:
+- Writes one `financeAuditLogs` record (`financeAuditService.logFinanceAudit()`), action `ledgerEntry.create.<type>`, with `entityType: "ledgerEntry"`, the entry's own ID as `entityId`, and `meta: { studentId, amount, signedAmount, newBalance }`.
+- Publishes `LedgerEntryCreated` via the Finance Event Publisher (`services/financeEventPublisher.js`). **This was missing until this contract was written** — the Sprint 1 review's Mandatory Change 2 specified four events and did not include one for Ledger Entry itself; since this contract's own Audit Requirements section (by design) states every entry publishes an event, the gap was closed by adding `LEDGER_ENTRY_CREATED` to `EVENTS` and one `publish()` call, mirroring the exact pattern already proven for the other four events — not a new mechanism.
+- Records `actorUserId` on both the entry document (`createdBy`) and the audit log entry.
+- Records `createdAt` (ISO timestamp) on the entry. There is no `updatedAt`/`updatedBy` — the entry is never updated.
+- The immutable entry plus the audit log entry it always produces together form the permanent, non-reconstructable record of "this financial fact happened, and who/when caused it."
+
+**Domain Invariants.**
+- One Ledger Entry represents one immutable financial fact.
+- A Student Ledger's balance is derived *exclusively* from the sum of its entries' signed amounts — this service is the only writer of that field, and always writes the entry and the balance update in the same Firestore transaction, so the two can never drift apart.
+- A Ledger Entry cannot exist without a valid, `active`-status Student Ledger.
+- Every Ledger Entry is tenant-scoped from creation; a cross-tenant post attempt is rejected as "not found," never a distinguishable error.
+- A Ledger Entry's `schoolId` never changes after creation — true by construction, since no update path exists at all.
+- Every entry should reference the action that caused it via `sourceType`/`sourceId` — these fields exist and are supported today, but are not yet *enforced* as required at the API level; disciplined use by every future caller is a recommendation, not yet a guarantee this service itself makes.
+
+**Error Behaviour.**
+
+| Scenario | Behavior |
+|---|---|
+| Invalid entry type | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| Missing, zero, or negative amount | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| `adjustment` without `signedAmountOverride` | `{ code: "VALIDATION" }`, thrown before any Firestore access |
+| No Student Ledger exists for the given student | `{ code: "VALIDATION" }`, thrown inside the transaction |
+| Ledger belongs to a different school | `{ code: "NOT_FOUND" }` — hide, don't reveal, matching the platform's cross-tenant convention |
+| Ledger is `frozen` or `archived` | `{ code: "VALIDATION" }` ("cannot post new entries") |
+| Duplicate idempotency key | **Not yet enforced** (see Idempotency above) — today, a genuine retry creates a second entry. This is the top-priority hardening item before any retry-capable automated caller is connected. |
 
 ---
 
@@ -22,7 +98,7 @@ Each service's actual code lives at `yellowdot-backend/services/<name>.js`. This
 
 **Domain invariants**
 - Exactly one ledger ever exists per student, for the lifetime of that student record — enforced by `createLedger`'s idempotency, not by the caller remembering not to call it twice.
-- A ledger's `currentBalance` is never set directly through this service — it only ever changes as a side effect of a Ledger Entry being created (see Ledger Entry's contract, once documented).
+- A ledger's `currentBalance` is never set directly through this service — it only ever changes as a side effect of a Ledger Entry being created (see the `LedgerEntryService` contract above).
 - Status values: `active` (accepting new entries), `frozen` (settlement in progress — new entries rejected), `archived` (permanent, read-only). There is no path back from `archived`.
 
 ---

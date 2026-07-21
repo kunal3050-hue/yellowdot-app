@@ -19,9 +19,17 @@
  * directly to avoid a circular dependency, and because "update the ledger
  * balance" is really part of this service's own responsibility, not a
  * cross-service call.
+ *
+ * Publishes LedgerEntryCreated (financeEventPublisher.js) after every
+ * successful entry — added when the LedgerEntryService contract was
+ * frozen, to match the Audit Requirements every other Finance Foundation
+ * contract already specifies. auditSvc/eventPublisher are required as
+ * whole modules (not destructured) so their functions stay mockable in
+ * tests the same way financeTransaction.js's already are.
  */
-const { db }              = require("../firebaseAdmin");
-const { logFinanceAudit } = require("./financeAuditService");
+const { db }   = require("../firebaseAdmin");
+const auditSvc       = require("./financeAuditService");
+const eventPublisher = require("./financeEventPublisher");
 
 const SCHOOL_ID   = process.env.SCHOOL_ID || "yd-main";
 const entriesCol  = () => db.collection("ledgerEntries");
@@ -135,10 +143,15 @@ async function createEntry(studentId, data, { schoolId = SCHOOL_ID, centerId = "
     tx.update(ledgerRef, { currentBalance: newBalance, updatedAt: nowISO() });
   });
 
-  await logFinanceAudit({
+  await auditSvc.logFinanceAudit({
     schoolId, actorUserId,
     action: `ledgerEntry.create.${data.type}`, entityType: "ledgerEntry", entityId: entryId,
     meta: { studentId, amount, signedAmount, newBalance },
+  });
+
+  eventPublisher.publish(eventPublisher.EVENTS.LEDGER_ENTRY_CREATED, {
+    schoolId, centerId, studentLedgerId: studentId, entryId,
+    type: data.type, amount, signedAmount, newBalance, actorUserId,
   });
 
   return { entry: entryDoc, newBalance };
