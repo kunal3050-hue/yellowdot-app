@@ -1,4 +1,4 @@
-# KUE BOXS Care — Finance Foundation
+# KUE BOXS Care — Finance Platform
 ## Sprint 1 Review Fixes + Sprint 2 (Admission Integration)
 
 **Date:** 2026-07-21
@@ -10,7 +10,7 @@
 
 ### Mandatory Change 1 — Route registration moved out of middleware-only gating
 
-`server.js` no longer unconditionally mounts the four Finance Foundation routers and relies solely on per-request middleware to 404 disabled requests. The mounting itself is now conditional:
+`server.js` no longer unconditionally mounts the four Finance Platform routers and relies solely on per-request middleware to 404 disabled requests. The mounting itself is now conditional:
 
 ```js
 if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {

@@ -1,8 +1,8 @@
-# ADR-0001: Freeze Finance Foundation Architecture
+# ADR-0001: Freeze Finance Platform Architecture
 
 **Status:** Accepted
 **Date:** 2026-07-21
-**Deciders:** Product/Engineering (user-approved via the Finance Foundation Review milestone)
+**Deciders:** Product/Engineering (user-approved via the Finance Platform Review milestone)
 
 ## Context
 
@@ -12,7 +12,7 @@ Without a formal checkpoint, continued fast iteration risks architectural drift:
 
 ## Decision
 
-We freeze the Finance Foundation architecture as of this milestone. From this point forward:
+We freeze the Finance Platform architecture as of this milestone. From this point forward:
 
 1. No change to a frozen Service Contract's public method signature, inputs, outputs, or error behavior, and no change to a frozen Event's payload shape or trigger condition, may be made without an ADR recorded first, in this folder.
 2. New Finance functionality must extend the existing contracts (a new method, a new event, a new collection) rather than modify what's already frozen — the same "extends vs. new" discipline already used throughout the Domain Architecture and Service Contracts.

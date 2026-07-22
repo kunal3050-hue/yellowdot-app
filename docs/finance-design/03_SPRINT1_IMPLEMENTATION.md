@@ -1,4 +1,4 @@
-# KUE BOXS Care — Finance Foundation, Sprint 1
+# KUE BOXS Care — Finance Platform, Sprint 1
 ## Implementation Report
 
 **Date:** 2026-07-21

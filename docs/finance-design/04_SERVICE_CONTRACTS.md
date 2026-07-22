@@ -1,4 +1,4 @@
-# KUE BOXS Care — Finance Foundation Service Contracts
+# KUE BOXS Care — Finance Platform Service Contracts
 
 **Date:** 2026-07-21 (LedgerEntryService added in a follow-up review pass; FinanceInvoiceService, FinanceRulesEngine, and FinanceBillingEngineService added in Sprint 3, M3.2/M3.3/M3.4 — same date)
 **Status:** Frozen as of this document — the stable engineering interface for `LedgerEntryService`, `StudentLedgerService`, `BillingPlanService`, `FamilyAccountService`, `FinanceSettingsService`, `FinanceInvoiceService`, `FinanceRulesEngine`, and `FinanceBillingEngineService`. Per the Sprint 1 review's Recommended Improvement 3: implementation details (Firestore collection shapes, internal field names, transaction mechanics) are deliberately **not** part of this contract — they may change; the contract below should not, without a version note here.
@@ -171,7 +171,7 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 | Method | Inputs | Outputs | Error behavior |
 |---|---|---|---|
 | `createInvoice(data, { schoolId, centerId, actorUserId })` | `data.studentId` required; `data.lines` required, non-empty array, each line requires `feeComponentId` and a non-negative `amount` (optional `label`/`gst`/`discount`); `data.billingPlanId`/`studentLedgerId`/`studentName`/`invoiceDate`/`dueDate`/`notes`/`source`/`periodStart`/`periodEnd` all optional | The created Invoice document: legacy-compatible aggregate fields (`amount`, `gst`, `discount`, `totalAmount`, `paidAmount: 0`, `balance: totalAmount`, `status: "Pending"`) computed as the sum of the normalized `lines`, plus `invoiceId` (`FINV######`), `invoiceNumber` (`BINV-YYYYMM-#####`), and the `lines` array itself with each line's `total` computed (`amount + gst - discount`) | See Error Behaviour table below |
-| `getInvoice(invoiceId, { schoolId })` | `invoiceId: string`, `schoolId: string` | The invoice, or `null` if it doesn't exist **or** belongs to a different school (tenant mismatch is never distinguishable from "doesn't exist" — hide, don't reveal, matching every other Finance Foundation service's convention) | Never throws for a missing/foreign invoice — returns `null` |
+| `getInvoice(invoiceId, { schoolId })` | `invoiceId: string`, `schoolId: string` | The invoice, or `null` if it doesn't exist **or** belongs to a different school (tenant mismatch is never distinguishable from "doesn't exist" — hide, don't reveal, matching every other Finance Platform service's convention) | Never throws for a missing/foreign invoice — returns `null` |
 | `listForStudent(studentId, { schoolId, limit })` | `limit` optional, default 100 | Invoices for that student **created by this service specifically** (`source === "billingPlan"`), newest first. Does not include invoices created through the legacy manual flow — those remain queryable only through `invoiceService.js`'s own general-purpose readers. | Never throws for a student with no such invoices — returns `[]` |
 | `findByPlanAndPeriod(billingPlanId, periodStart, { schoolId })` — **added in Sprint 3, M3.4** as the Billing Engine's idempotency lookup | `billingPlanId: string`, `periodStart: string` | The matching invoice, or `null`. `(schoolId, billingPlanId, periodStart)` is a sufficient key since one plan generates at most one invoice per period. | Never throws — a missing `billingPlanId`/`periodStart` or no match both simply return `null` |
 
@@ -181,7 +181,7 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 - Every invoice this service creates is itemized — there is no path to create an Invoice with zero lines; the aggregate header fields are always a derived sum of `lines`, never entered independently.
 - `source` defaults to `"billingPlan"`. Nothing calls this service with `source: "manual"` today — the existing manual flow continues to go through `invoiceService.js` entirely, untouched. The field exists so a future caller (e.g., a Rules-Engine-driven auto-invoice) can distinguish itself without a schema change.
 - An Invoice document, once created, is not updated by this service — there is no `updateInvoice`/`recordPayment`/`voidInvoice` method here. Payment application and status transitions remain the legacy `invoiceService.js`'s responsibility for every invoice regardless of which service created it; this service's contract is creation only.
-- Tenant-scoped from creation; a cross-tenant read is rejected as "not found," never a distinguishable error, matching every other Finance Foundation service.
+- Tenant-scoped from creation; a cross-tenant read is rejected as "not found," never a distinguishable error, matching every other Finance Platform service.
 
 **Error Behaviour.**
 
@@ -223,7 +223,7 @@ This service does **not** post a Ledger Entry, activate a Billing Plan, or apply
 
 ## FinanceBillingEngineService
 
-**Responsibilities.** The staff-triggered "generate this Billing Plan's next invoice now" operation (Sprint 3, M3.4) — per the Sprint 3 approval: "Staff selects a Student or Billing Plan. Staff clicks Generate Invoice. System creates: Invoice, Invoice Lines, Ledger Entries, Audit Log." This is the first service in the Finance Foundation that owns no collection of its own — it orchestrates three already-frozen services (`FinanceRulesEngine` for the billing decision, `FinanceInvoiceService` for the Invoice write, `LedgerEntryService` for the matching charge) rather than writing anything directly.
+**Responsibilities.** The staff-triggered "generate this Billing Plan's next invoice now" operation (Sprint 3, M3.4) — per the Sprint 3 approval: "Staff selects a Student or Billing Plan. Staff clicks Generate Invoice. System creates: Invoice, Invoice Lines, Ledger Entries, Audit Log." This is the first service in the Finance Platform that owns no collection of its own — it orchestrates three already-frozen services (`FinanceRulesEngine` for the billing decision, `FinanceInvoiceService` for the Invoice write, `LedgerEntryService` for the matching charge) rather than writing anything directly.
 
 **Explicitly manual, not automated.** Nothing in this service fires on its own — there is no scheduler, no cron job, no `setInterval`, and it is never called except from the staff-triggered HTTP endpoint (`POST /api/finance/billing-plans/:planId/generate-invoice`, gated behind `FINANCE_FOUNDATION_ENABLED`). Recurring/automatic invoice generation is M3.5, explicitly deferred and not part of this service's scope.
 

@@ -1,4 +1,4 @@
-# KUE BOXS Care — Finance Foundation
+# KUE BOXS Care — Finance Platform
 ## Sprint 4 Plan: Payment Lifecycle
 
 **Date:** 2026-07-21
@@ -31,7 +31,7 @@ One genuinely new entity is required, plus extensions to two that already exist:
 6. **Refund and reversal workflow** — two related but distinct actions, per `02_DOMAIN_ARCHITECTURE.md`'s own Refund entity design:
    - **Refund** (money paid back out): Requested → Approved/Rejected → Processed, gated by the **already-existing** `financeSettings.refundApprovalThreshold` field (defined in Sprint 1, never enforced by any caller until now — same "field existed, no caller used it yet" story as `discountApprovalThreshold` was for M3.3 before this sprint). On approval, posts a `type: "refund"` Ledger Entry (already valid since Sprint 1) and reduces the Family Account credit balance if the refund is paid from credit, or is recorded as a straight cash-out otherwise.
    - **Reversal** (a Payment turns out to be invalid — e.g. a bounced cheque): never edits or deletes the original Payment or its Ledger Entries (matching the immutability precedent already established for both) — instead posts a new, offsetting Ledger Entry and marks the Payment's own status as `Reversed` (a new, additive status field on the Payment document, not a new collection).
-7. **Full audit coverage** — cross-cutting across every milestone below, not its own milestone: every Payment/Allocation/Refund/Reversal write calls `financeAuditService.logFinanceAudit()`, exactly as every Finance Foundation write has since Sprint 1. Once M4.1–M4.4 are built, a validation pass mirroring `08_SPRINT3_VALIDATION.md`'s realistic-scenario approach (real payment, partial payment, overpayment, refund, reversal, reconciling the audit trail against the resulting ledger state) is the natural way to prove this — recommended as a follow-up validation step once the milestones below are implemented, not prescribed here as a numbered milestone of its own.
+7. **Full audit coverage** — cross-cutting across every milestone below, not its own milestone: every Payment/Allocation/Refund/Reversal write calls `financeAuditService.logFinanceAudit()`, exactly as every Finance Platform write has since Sprint 1. Once M4.1–M4.4 are built, a validation pass mirroring `08_SPRINT3_VALIDATION.md`'s realistic-scenario approach (real payment, partial payment, overpayment, refund, reversal, reconciling the audit trail against the resulting ledger state) is the natural way to prove this — recommended as a follow-up validation step once the milestones below are implemented, not prescribed here as a numbered milestone of its own.
 
 **Explicitly out of scope for Sprint 4** (unchanged from your instruction):
 - **The recurring billing scheduler (M3.5)** — still deferred. Nothing in Sprint 4 introduces automation of any kind; every action below remains staff- or gateway-webhook-confirmed, never a background job.

@@ -1,4 +1,4 @@
-# KUE BOXS Care — Finance Foundation
+# KUE BOXS Care — Finance Platform
 ## Sprint 3 Plan: Billing Engine & Invoice Generation
 
 **Date:** 2026-07-21

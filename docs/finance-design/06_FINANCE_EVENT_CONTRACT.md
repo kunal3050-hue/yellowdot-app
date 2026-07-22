@@ -196,7 +196,7 @@ No payload carries an explicit schema-version field today — this is a real gap
 
 # Architecture Freeze — Effective This Milestone
 
-With the Finance Event Contract complete, the Finance Foundation architecture is frozen as of this document. The full set of governing artifacts:
+With the Finance Event Contract complete, the Finance Platform architecture is frozen as of this document. The full set of governing artifacts:
 
 1. **Product Vision** — `KUE_BOXS_FINANCE_PRD.md`
 2. **Business Rules** — `docs/finance-design/01_ADMISSION_ENROLLMENT_ENGINE.md`
