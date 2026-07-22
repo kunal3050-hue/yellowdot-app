@@ -1,8 +1,8 @@
 # ADR-0002: Refund Ledger Entry Sign Convention
 
-**Status:** Proposed — awaiting review and approval. **No implementation change has been made.** `ledgerEntryService.js`'s `FIXED_SIGN` map is unchanged as of this ADR.
+**Status:** Accepted.
 **Date:** 2026-07-21
-**Deciders:** Pending — this ADR is submitted for your review per your explicit instruction not to change the implementation until it is reviewed and approved.
+**Deciders:** Product/Engineering — approved: "The Finance Platform defines the Student Ledger as an outstanding balance ledger, not a cash-flow ledger... Refund should increase the amount owed again... I approve changing the Ledger Entry sign for `refund` from -1 to +1."
 
 ## Context
 

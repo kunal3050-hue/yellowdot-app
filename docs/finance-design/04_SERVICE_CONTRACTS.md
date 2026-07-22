@@ -36,7 +36,7 @@ Currently enforced by the code (`ENTRY_TYPES`) — every value below is a real, 
 | `payment` | Decreases (money received, allocated) |
 | `discount` | Decreases |
 | `scholarship` | Decreases |
-| `refund` | Decreases (money paid back out) |
+| `refund` | **Increases** (money paid back out — per [`ADR-0002`](adr/0002-refund-ledger-entry-sign-convention.md), Accepted Sprint 4: the Student Ledger is an outstanding-balance ledger, so giving money back re-opens what's owed, the same direction as `charge`. Was `-1` before ADR-0002; flipped to `+1` with zero migration cost since no refund had ever been posted to real Firestore.) |
 | `creditApplied` | Decreases (an existing Credit Note redeemed) |
 | `adjustment` | Either direction — the only type where the caller supplies the sign explicitly via `signedAmountOverride`, since a manual correction can go either way |
 

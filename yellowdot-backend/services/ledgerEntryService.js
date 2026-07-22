@@ -60,13 +60,19 @@ const ENTRY_TYPES = new Set([
 // type where the caller supplies the sign explicitly (a manual correction
 // can go either way) — every other type has a fixed, non-overridable sign
 // so a caller can never accidentally credit a "charge" or vice versa.
+//
+// "refund" is +1, not -1 — per ADR-0002 (docs/finance-design/adr/0002-
+// refund-ledger-entry-sign-convention.md). The Student Ledger is an
+// outstanding-balance ledger, not a cash-flow ledger: a refund gives
+// money back that a payment had already reduced the balance by, so it
+// must move the balance the same direction as a charge, not a payment.
 const FIXED_SIGN = {
   charge:         +1,
   lateFee:        +1,
+  refund:         +1,
   payment:        -1,
   discount:       -1,
   scholarship:    -1,
-  refund:         -1,
   creditApplied:  -1,
 };
 
