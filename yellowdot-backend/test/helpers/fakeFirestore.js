@@ -6,17 +6,23 @@
  * tx.get()/tx.set()/tx.update() supporting both a DocumentReference and a
  * (multi-)where Query as the target of tx.get().
  *
- * This exists specifically for financeBillingEngineValidation.test.js,
- * which validates cross-service integration by running the REAL,
- * unmodified service code end-to-end (not each function mocked
- * individually, unlike every other Finance Foundation test file) against
- * a realistic multi-step scenario. It is intentionally NOT a faithful
- * Firestore emulator: only "==" filters are supported (the only operator
- * any Finance Foundation query uses), and there is no real transactional
- * isolation between concurrent callers (fine for a single-threaded test
- * — every real transaction in this codebase is used for atomicity against
- * concurrent writers, not simulated here since nothing runs concurrently
- * in a test).
+ * This exists specifically for financeBillingEngineValidation.test.js and
+ * financePaymentLifecycleValidation.test.js, which validate cross-service
+ * integration by running the REAL, unmodified service code end-to-end
+ * (not each function mocked individually, unlike every other Finance
+ * Foundation test file) against a realistic multi-step scenario. It is
+ * intentionally NOT a faithful Firestore emulator: only "==" filters are
+ * supported (the only operator any Finance Foundation query uses), there
+ * is no real transactional isolation between concurrent callers (fine
+ * for a single-threaded test), but dotted-path field keys in
+ * update()/merge-set() calls (e.g. `{"financeAccount.creditBalance": 200}`,
+ * which `familyAccountService.adjustCreditBalance()` relies on) ARE
+ * honored, matching real Firestore's nested-field-update behavior — a
+ * plain flat merge would silently create a bogus literal key instead of
+ * updating the nested field, which is exactly the bug this fake caught
+ * when financePaymentLifecycleValidation.test.js first exercised
+ * adjustCreditBalance() for real (Sprint 3's validation never touched
+ * this code path at all).
  *
  * Callers install this by mutating the properties of the REAL `db`
  * singleton from `../../firebaseAdmin` (`db.collection = fake.collection`,
@@ -37,6 +43,32 @@ function createFakeFirestore() {
   function getCollectionMap(name) {
     if (!store.has(name)) store.set(name, new Map());
     return store.get(name);
+  }
+
+  /**
+   * applyDottedFields — real Firestore treats a key containing "." in an
+   * update()/merge-set() payload as a path into a nested map field (e.g.
+   * `{"financeAccount.creditBalance": 200}` updates just that nested
+   * field, leaving sibling fields under `financeAccount` untouched).
+   * `familyAccountService.adjustCreditBalance()` relies on exactly this.
+   * Plain `{...base, ...data}` spreading would instead create a bogus
+   * top-level key literally named "financeAccount.creditBalance" — this
+   * mutates `base` in place, walking/creating intermediate objects for
+   * each dotted segment, matching real Firestore's behavior.
+   */
+  function applyDottedFields(base, data) {
+    for (const [key, value] of Object.entries(data)) {
+      if (!key.includes(".")) { base[key] = value; continue; }
+      const segments = key.split(".");
+      let cursor = base;
+      for (let i = 0; i < segments.length - 1; i++) {
+        const seg = segments[i];
+        if (typeof cursor[seg] !== "object" || cursor[seg] === null) cursor[seg] = {};
+        cursor = cursor[seg];
+      }
+      cursor[segments[segments.length - 1]] = value;
+    }
+    return base;
   }
 
   function matchesFilters(data, filters) {
@@ -76,12 +108,12 @@ function createFakeFirestore() {
       get: async () => makeDocSnap(name, id),
       set: async (data, opts) => {
         const coll = getCollectionMap(name);
-        coll.set(id, opts && opts.merge && coll.has(id) ? { ...coll.get(id), ...data } : { ...data });
+        coll.set(id, opts && opts.merge && coll.has(id) ? applyDottedFields({ ...coll.get(id) }, data) : { ...data });
       },
       update: async (data) => {
         const coll = getCollectionMap(name);
         if (!coll.has(id)) throw new Error(`fakeFirestore: no document to update at ${name}/${id}`);
-        coll.set(id, { ...coll.get(id), ...data });
+        coll.set(id, applyDottedFields({ ...coll.get(id) }, data));
       },
     };
   }
@@ -107,11 +139,11 @@ function createFakeFirestore() {
       },
       set: (ref, data, opts) => {
         const coll = getCollectionMap(ref.__collection);
-        coll.set(ref.id, opts && opts.merge && coll.has(ref.id) ? { ...coll.get(ref.id), ...data } : { ...data });
+        coll.set(ref.id, opts && opts.merge && coll.has(ref.id) ? applyDottedFields({ ...coll.get(ref.id) }, data) : { ...data });
       },
       update: (ref, data) => {
         const coll = getCollectionMap(ref.__collection);
-        coll.set(ref.id, { ...(coll.get(ref.id) || {}), ...data });
+        coll.set(ref.id, applyDottedFields({ ...(coll.get(ref.id) || {}) }, data));
       },
     };
     return fn(tx);
