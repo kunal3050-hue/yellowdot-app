@@ -61,7 +61,7 @@ No other defects found. Every other scenario's numbers, states, and audit entrie
 
 The Payment Lifecycle is validated as internally consistent — payments, allocations, credit, refunds, reversal, audit trail, tenant isolation, and RBAC all behave as one coherent system, exactly as Sprint 3's Billing Engine was shown to be. **Recommend proceeding toward production rollout behind `FINANCE_FOUNDATION_ENABLED`**, conditioned on:
 
-1. **Resolve the `refund` sign-convention question via a short ADR** before any real refund is processed in production — this is a business-correctness question (what should a refund actually do to a ledger balance), not an engineering blocker, and should take a reviewer minutes, not a redesign.
+1. **Resolve the `refund` sign-convention question via a short ADR** before any real refund is processed in production — this is a business-correctness question (what should a refund actually do to a ledger balance), not an engineering blocker, and should take a reviewer minutes, not a redesign. Drafted as [`adr/0002-refund-ledger-entry-sign-convention.md`](adr/0002-refund-ledger-entry-sign-convention.md) — **Proposed**, not yet Accepted; no implementation change has been made pending review.
 2. Continue treating `discountApprovalThreshold`/`refundApprovalThreshold` and every other Finance Setting as school-configurable, not hardcoded defaults, when rollout actually begins.
 
 Per your own instruction, recurring billing (scheduler) and payment gateway integration should not begin planning until this validation — now complete — was reviewed.

@@ -25,3 +25,4 @@ Use `TEMPLATE.md` as the starting point for every new ADR.
 | ADR | Title | Status |
 |---|---|---|
 | [0001](0001-freeze-finance-foundation-architecture.md) | Freeze Finance Foundation Architecture | Accepted |
+| [0002](0002-refund-ledger-entry-sign-convention.md) | Refund Ledger Entry Sign Convention | Proposed |
