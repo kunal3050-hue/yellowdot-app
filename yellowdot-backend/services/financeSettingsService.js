@@ -21,6 +21,13 @@ const nowISO    = () => new Date().toISOString();
 
 const JOINING_POLICIES     = new Set(["fullMonth", "prorated", "nextCycle"]);
 const ALLOCATION_DEFAULTS  = new Set(["oldestDueFirst", "manual"]);
+// Recurring Billing Engine (M3.5.1) — per-school schedule, read by
+// financeBillingSchedulerService.js's hourly tick (isScheduleDueNow). Kept
+// as a curated preset enum (not a free-form cron string) so the UI stays a
+// simple Select and every stored value is guaranteed valid/safe to
+// evaluate — "do not hardcode schedules" is satisfied by this being
+// configurable per school, not by accepting arbitrary cron syntax.
+const SCHEDULER_SCHEDULES  = new Set(["daily", "monthlyFirst", "quarterlyFirst"]);
 
 function _defaults(schoolId) {
   return {
@@ -33,6 +40,8 @@ function _defaults(schoolId) {
     gracePeriodDays:           0,
     discountApprovalThreshold: 0,   // 0 = no threshold set yet; auto-apply below, require sign-off above
     refundApprovalThreshold:   0,
+    schedulerSchedule:         "daily", // "daily" | "monthlyFirst" | "quarterlyFirst"
+    schedulerHour:             1,       // 0-23, local to the school's own timezone
     createdAt:                 nowISO(),
     updatedAt:                 nowISO(),
   };
@@ -49,6 +58,9 @@ function _sanitize(existing) {
     gracePeriodDays:            Number(existing.gracePeriodDays || 0),
     discountApprovalThreshold:  Number(existing.discountApprovalThreshold || 0),
     refundApprovalThreshold:    Number(existing.refundApprovalThreshold || 0),
+    schedulerSchedule:          SCHEDULER_SCHEDULES.has(existing.schedulerSchedule) ? existing.schedulerSchedule : "daily",
+    schedulerHour:              Number.isInteger(Number(existing.schedulerHour)) && existing.schedulerHour >= 0 && existing.schedulerHour <= 23
+                                   ? Number(existing.schedulerHour) : 1,
     createdAt:                  existing.createdAt || "",
     updatedAt:                  existing.updatedAt || "",
     updatedBy:                  existing.updatedBy || "",
@@ -68,6 +80,15 @@ async function updateSettings(schoolId = SCHOOL_ID, data = {}, { actorUserId = "
   }
   if (data.defaultAllocationPolicy && !ALLOCATION_DEFAULTS.has(data.defaultAllocationPolicy)) {
     const e = new Error(`Invalid defaultAllocationPolicy "${data.defaultAllocationPolicy}".`); e.code = "VALIDATION"; throw e;
+  }
+  if (data.schedulerSchedule && !SCHEDULER_SCHEDULES.has(data.schedulerSchedule)) {
+    const e = new Error(`Invalid schedulerSchedule "${data.schedulerSchedule}".`); e.code = "VALIDATION"; throw e;
+  }
+  if (data.schedulerHour !== undefined) {
+    const h = Number(data.schedulerHour);
+    if (!Number.isInteger(h) || h < 0 || h > 23) {
+      const e = new Error(`Invalid schedulerHour "${data.schedulerHour}" — must be an integer 0-23.`); e.code = "VALIDATION"; throw e;
+    }
   }
 
   const ref     = col().doc(schoolId);
@@ -97,4 +118,4 @@ async function updateSettings(schoolId = SCHOOL_ID, data = {}, { actorUserId = "
   return updated;
 }
 
-module.exports = { getSettings, updateSettings, JOINING_POLICIES, ALLOCATION_DEFAULTS };
+module.exports = { getSettings, updateSettings, JOINING_POLICIES, ALLOCATION_DEFAULTS, SCHEDULER_SCHEDULES };

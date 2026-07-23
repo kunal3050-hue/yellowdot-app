@@ -27,9 +27,12 @@ import {
 } from "../../components/ui";
 
 const CADENCE_OPTIONS = [
-  { value: "monthly", label: "Monthly" },
-  { value: "termly",  label: "Termly" },
-  { value: "oneTime", label: "One Time" },
+  { value: "monthly",    label: "Monthly" },
+  { value: "quarterly",  label: "Quarterly" },
+  { value: "halfYearly", label: "Half-Yearly" },
+  { value: "yearly",     label: "Yearly" },
+  { value: "termly",     label: "Termly" },
+  { value: "oneTime",    label: "One Time" },
 ];
 
 const JOINING_POLICY_OPTIONS = [

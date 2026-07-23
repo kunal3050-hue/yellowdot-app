@@ -21,7 +21,12 @@ const nowISO    = () => new Date().toISOString();
 
 const STATUSES        = new Set(["draft", "active", "paused", "ended"]);
 const JOINING_POLICIES = new Set(["fullMonth", "prorated", "nextCycle"]);
-const CADENCES        = new Set(["monthly", "termly", "oneTime"]);
+// "quarterly"/"halfYearly"/"yearly" added for the Recurring Billing Engine
+// (M3.5.1) — auto-billed the same way "monthly" already is, on calendar
+// quarter/half-year/year boundaries (see financeBillingSchedulerService.js's
+// currentPeriodForCadence). "termly"/"oneTime" remain the same deliberate
+// manual-only scope boundary as before (see that file's header comment).
+const CADENCES        = new Set(["monthly", "quarterly", "halfYearly", "yearly", "termly", "oneTime"]);
 
 function docToBillingPlan(snap) {
   const d  = snap.data ? snap.data() : snap;

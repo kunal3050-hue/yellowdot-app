@@ -70,11 +70,18 @@ const STATUS_LABEL_GROUP = {
   charge: "danger", lateFee: "danger", refund: "danger",
   payment: "success", discount: "success", scholarship: "success", creditApplied: "success",
   adjustment: "neutral",
-  // Finance Platform — Recurring Billing Scheduler run status (financeBillingSchedulerService.js)
+  // Finance Platform — Recurring Billing Engine run status (financeBillingSchedulerService.js)
   running: "info", completed: "success", completed_with_errors: "warning", failed: "danger",
-  // Finance Platform — Scheduler per-plan result outcome
+  // Finance Platform — Scheduler per-plan result outcome (real run)
   generated: "success", duplicate: "neutral", requiresApproval: "warning",
   skipped: "neutral", error: "danger",
+  // Finance Platform — Scheduler per-plan result outcome (preview / dry run — same
+  // color family as their real-run counterpart, "would" prefix does the distinguishing)
+  wouldGenerate: "success", wouldSkipDuplicate: "neutral", wouldRequireApproval: "warning",
+  // Finance Platform — Recurring Billing run execution mode
+  manual: "info", scheduled: "neutral", preview: "warning",
+  // Finance Platform — Recurring Billing scheduler health (getDashboardSummary)
+  healthy: "success", degraded: "warning", attention: "danger", unknown: "neutral",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -101,6 +108,9 @@ const FRIENDLY_LABEL = {
   running: "Running", completed: "Completed", completed_with_errors: "Completed (with errors)", failed: "Failed",
   generated: "Generated", duplicate: "Duplicate", requiresApproval: "Requires Approval",
   skipped: "Skipped", error: "Error",
+  wouldGenerate: "Would Generate", wouldSkipDuplicate: "Would Skip (Duplicate)", wouldRequireApproval: "Would Require Approval",
+  manual: "Manual", scheduled: "Scheduled", preview: "Preview",
+  healthy: "Healthy", degraded: "Degraded", attention: "Needs Attention", unknown: "Unknown",
 };
 
 function _statusConfig(status) {
