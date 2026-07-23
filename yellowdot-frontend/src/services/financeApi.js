@@ -134,11 +134,17 @@ const financeApi = {
     runNow() {
       return api.post("/api/finance/scheduler/run").then(r => r.data);
     },
+    runPreview() {
+      return api.post("/api/finance/scheduler/run", { mode: "preview" }).then(r => r.data);
+    },
     listRuns(params = {}) {
       return api.get("/api/finance/scheduler/runs", { params }).then(r => r.data);
     },
     getRun(runId) {
       return api.get(`/api/finance/scheduler/runs/${runId}`).then(r => r.data);
+    },
+    getDashboard() {
+      return api.get("/api/finance/scheduler/dashboard").then(r => r.data);
     },
   },
 

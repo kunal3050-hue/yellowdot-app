@@ -29,6 +29,16 @@
  * requiring a cross-service Firestore transaction — a retry of the exact
  * same call always converges to "one Invoice, one matching Ledger Entry,"
  * never a duplicate of either.
+ *
+ * dryRun (added for the Recurring Billing Engine's "Run Now (Preview)"
+ * mode, M3.5.1): runs the EXACT SAME lookup + proration + discount +
+ * approval evaluation as a real call, then returns BEFORE either write
+ * (invoiceSvc.createInvoice / ledgerEntrySvc.createEntry) instead of
+ * performing them — so a preview can answer "what would happen" using
+ * the real rules engine, not a second, drifting copy of this logic. The
+ * two early-return points below are the ONLY difference from the
+ * existing real-write path; every existing caller that omits `dryRun`
+ * (default false) is completely unaffected.
  */
 const { db }         = require("../firebaseAdmin");
 const auditSvc       = require("./financeAuditService");
@@ -74,7 +84,7 @@ async function _getStudentInfo(studentId, schoolId) {
  * correct, itemized, idempotent Invoice + Ledger Entry pair.
  */
 async function generateInvoiceForPlan(planId, {
-  schoolId = SCHOOL_ID, centerId = "", actorUserId = "system", periodStart, periodEnd,
+  schoolId = SCHOOL_ID, centerId = "", actorUserId = "system", periodStart, periodEnd, dryRun = false,
 } = {}) {
   if (!planId) { const e = new Error("planId is required."); e.code = "VALIDATION"; throw e; }
   if (!periodStart || !periodEnd) {
@@ -92,6 +102,13 @@ async function generateInvoiceForPlan(planId, {
 
   let invoice = await invoiceSvc.findByPlanAndPeriod(planId, periodStart, { schoolId });
   const invoiceWasExisting = Boolean(invoice);
+
+  if (dryRun && invoiceWasExisting) {
+    return {
+      dryRun: true, wouldCreate: false, duplicate: true, requiresApproval: false,
+      invoice, ledgerEntry: null, newBalance: null, totalAmount: invoice.totalAmount,
+    };
+  }
 
   if (!invoice) {
     const template = await _getFeeTemplate(plan.feeTemplateId, schoolId);
@@ -116,6 +133,14 @@ async function generateInvoiceForPlan(planId, {
     });
 
     if (evaluated.requiresApproval) {
+      if (dryRun) {
+        return {
+          dryRun: true, wouldCreate: false, duplicate: false, requiresApproval: true,
+          invoice: null, ledgerEntry: null, newBalance: null,
+          totalAmount: evaluated.lines.reduce((s, l) => s + (Number(l.amount) || 0), 0),
+          discountPercent: evaluated.discountPercent,
+        };
+      }
       await auditSvc.logFinanceAudit({
         schoolId, actorUserId,
         action: "billingEngine.requiresApproval", entityType: "billingPlan", entityId: planId,
@@ -123,6 +148,15 @@ async function generateInvoiceForPlan(planId, {
       });
       const e = new Error("This invoice's discount requires manual approval before it can be generated.");
       e.code = "REQUIRES_APPROVAL"; throw e;
+    }
+
+    if (dryRun) {
+      return {
+        dryRun: true, wouldCreate: true, duplicate: false, requiresApproval: false,
+        invoice: null, ledgerEntry: null, newBalance: null,
+        totalAmount: evaluated.lines.reduce((s, l) => s + (Number(l.amount) || 0), 0),
+        lines: evaluated.lines,
+      };
     }
 
     invoice = await invoiceSvc.createInvoice({

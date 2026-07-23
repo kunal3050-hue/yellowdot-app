@@ -47,6 +47,17 @@ const LATE_FEE_TYPE_OPTIONS = [
   { value: "percentage", label: "Percentage" },
 ];
 
+const SCHEDULER_SCHEDULE_OPTIONS = [
+  { value: "daily",          label: "Every day" },
+  { value: "monthlyFirst",   label: "First day of the month" },
+  { value: "quarterlyFirst", label: "First day of the quarter (Jan/Apr/Jul/Oct)" },
+];
+
+const SCHEDULER_HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
+  value: String(h),
+  label: `${String(h).padStart(2, "0")}:00 (${h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`})`,
+}));
+
 const FEE_TYPE_OPTIONS = [
   "Tuition Fee", "Daycare Fees", "Playgroup Fees", "Nursery Fees",
   "Transport Fee", "Meal Plan", "Annual Charges", "Activity Fee",
@@ -88,6 +99,8 @@ const EMPTY_FORM = {
   discountApprovalThreshold: 0,
   refundApprovalThreshold: 0,
   gstNumber: "",
+  schedulerSchedule: "daily",
+  schedulerHour: 1,
 };
 
 function toFormState(settings) {
@@ -101,6 +114,8 @@ function toFormState(settings) {
     discountApprovalThreshold: settings?.discountApprovalThreshold ?? 0,
     refundApprovalThreshold:   settings?.refundApprovalThreshold ?? 0,
     gstNumber:                 settings?.gstNumber || "",
+    schedulerSchedule:         settings?.schedulerSchedule || "daily",
+    schedulerHour:             settings?.schedulerHour ?? 1,
   };
 }
 
@@ -272,6 +287,8 @@ export default function FinanceSettings() {
         discountApprovalThreshold:  Number(form.discountApprovalThreshold) || 0,
         refundApprovalThreshold:    Number(form.refundApprovalThreshold) || 0,
         gstNumber:                  form.gstNumber.trim(),
+        schedulerSchedule:          form.schedulerSchedule,
+        schedulerHour:              Number(form.schedulerHour),
       };
       const res = await financeApi.settings.update(payload);
       setForm(toFormState(res?.settings));
@@ -408,6 +425,25 @@ export default function FinanceSettings() {
                     type="number" min="0" step="0.01" inputMode="decimal"
                     value={form.refundApprovalThreshold}
                     onChange={(e) => set("refundApprovalThreshold", e.target.value)}
+                  />
+                </Field>
+              </FormGrid>
+            </FormSection>
+
+            <FormSection title="Recurring Billing Schedule" description="When the Recurring Billing Engine auto-generates invoices for this school's Monthly/Quarterly/Half-Yearly/Yearly Billing Plans">
+              <FormGrid cols={2}>
+                <Field label="Runs" hint="What triggers a run">
+                  <Select
+                    value={form.schedulerSchedule}
+                    onChange={(e) => set("schedulerSchedule", e.target.value)}
+                    options={SCHEDULER_SCHEDULE_OPTIONS}
+                  />
+                </Field>
+                <Field label="At" hint="School's local time">
+                  <Select
+                    value={String(form.schedulerHour)}
+                    onChange={(e) => set("schedulerHour", e.target.value)}
+                    options={SCHEDULER_HOUR_OPTIONS}
                   />
                 </Field>
               </FormGrid>

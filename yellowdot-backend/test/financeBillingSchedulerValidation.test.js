@@ -1,12 +1,12 @@
 /**
- * Finance Platform — Recurring Billing Scheduler (M3.5) Validation
+ * Finance Platform — Recurring Billing Engine (M3.5 / M3.5.1) Validation
  * ────────────────────────────────────────────────────────────────────
  * Same style and discipline as financeBillingEngineValidation.test.js
  * (Sprint 3) and financePaymentLifecycleValidation.test.js (Sprint 4):
  * runs the REAL, unmodified service code end to end — tenantService,
  * studentLedgerService, billingPlanService, financeBillingEngineService,
  * financeRulesEngine, financeInvoiceService, ledgerEntryService,
- * financeAuditService, financeSettingsService, familyService, and the
+ * financeAuditService, financeSettingsService, studentService, and the
  * scheduler service itself — wired together against one shared in-memory
  * fake Firestore, never each function mocked individually. Real Firestore
  * is never touched.
@@ -14,7 +14,7 @@
  * Scenarios, matching the requested validation checklist exactly:
  *   1. Duplicate protection (re-running for the same period never double-bills)
  *   2. Recovery after interruption (crash mid-run releases the lock via TTL;
- *      startup catch-up runs once, never twice, for the same day)
+ *      startup catch-up runs once per school, never twice for the same day)
  *   3. Billing across multiple schools (tenant isolation maintained)
  *   4. Month-end edge cases (28/29/30/31-day months)
  *   5. Leap years (Feb 29)
@@ -25,6 +25,11 @@
  *  10. Audit logging (per-school scheduler audit entry + underlying billing-engine audit)
  *  11. Performance with large datasets (100+ plans across multiple schools)
  *  12. Distributed locking (a second concurrent run is rejected)
+ *  13. Monthly / Quarterly / Half-Yearly / Yearly billing frequency
+ *  14. Archived students (Inactive/Alumni) are skipped
+ *  15. Dry Run / Preview mode writes nothing real
+ *  16. Configurable per-school schedule (different schools, different schedules)
+ *  17. Timezone / DST resilience
  */
 const test   = require("node:test");
 const assert = require("node:assert");
@@ -61,12 +66,13 @@ function nextStudentId() { studentSeq += 1; return `SCHED-STU-${studentSeq}`; }
 /** Creates a ledger + a Billing Plan in the requested status, ready for the scheduler to evaluate. */
 async function makePlan({
   schoolId, feeTemplateId, cadence = "monthly", status = "active",
-  startDate = "2020-01-01", endDate, admissionDate, siblingOrder,
+  startDate = "2020-01-01", endDate, admissionDate, siblingOrder, studentStatus,
 }) {
   const studentId = nextStudentId();
   fake.seed("students", studentId, {
     schoolId, studentId, name: `Student ${studentId}`,
     admissionDate: admissionDate || "", siblingOrder: siblingOrder || 0,
+    ...(studentStatus ? { status: studentStatus } : {}),
   });
   await studentLedgerSvc.createLedger(studentId, { schoolId, actorUserId: "staff-1" });
   const plan = await billingPlanSvc.create(
@@ -89,6 +95,10 @@ async function waitForRunCompletion(runId, { timeoutMs = 5000 } = {}) {
   throw new Error(`Run ${runId} did not complete within ${timeoutMs}ms`);
 }
 
+function runManual(overrides = {}) {
+  return schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", mode: "manual", actorUserId: "scheduler-test", ...overrides });
+}
+
 // ── Scenario 4 & 5: month-end edge cases + leap years (pure function, no run needed) ──
 
 test("currentMonthlyPeriod resolves the correct last day for 31/30/28/29-day months", () => {
@@ -109,45 +119,101 @@ test("currentMonthlyPeriod correctly resolves Feb 29 in a leap year", () => {
   assert.equal(feb2028.periodEnd,   "2028-02-29");
 });
 
-test("isPlanDueForPeriod: paused/ended/termly/oneTime plans are never eligible", () => {
+// ── Scenario 13: quarterly / half-yearly / yearly period calculation ──────
+
+test("currentPeriodForCadence: quarterly resolves calendar quarters correctly, including a leap-year Q1", () => {
+  const q1 = schedulerSvc.currentPeriodForCadence("quarterly", "Asia/Kolkata", new Date("2026-02-10T12:00:00Z"));
+  assert.deepEqual(q1, { periodStart: "2026-01-01", periodEnd: "2026-03-31" });
+
+  const q3 = schedulerSvc.currentPeriodForCadence("quarterly", "Asia/Kolkata", new Date("2026-07-20T12:00:00Z"));
+  assert.deepEqual(q3, { periodStart: "2026-07-01", periodEnd: "2026-09-30" });
+
+  const q1Leap = schedulerSvc.currentPeriodForCadence("quarterly", "Asia/Kolkata", new Date("2028-02-10T12:00:00Z"));
+  assert.deepEqual(q1Leap, { periodStart: "2028-01-01", periodEnd: "2028-03-31" }, "Q1 spans Feb 29 in a leap year but the QUARTER's own end date is unaffected (Mar 31)");
+});
+
+test("currentPeriodForCadence: halfYearly resolves Jan-Jun / Jul-Dec halves", () => {
+  const h1 = schedulerSvc.currentPeriodForCadence("halfYearly", "Asia/Kolkata", new Date("2026-03-01T12:00:00Z"));
+  assert.deepEqual(h1, { periodStart: "2026-01-01", periodEnd: "2026-06-30" });
+
+  const h2 = schedulerSvc.currentPeriodForCadence("halfYearly", "Asia/Kolkata", new Date("2026-11-01T12:00:00Z"));
+  assert.deepEqual(h2, { periodStart: "2026-07-01", periodEnd: "2026-12-31" });
+});
+
+test("currentPeriodForCadence: yearly resolves the full calendar year", () => {
+  const y = schedulerSvc.currentPeriodForCadence("yearly", "Asia/Kolkata", new Date("2026-09-15T12:00:00Z"));
+  assert.deepEqual(y, { periodStart: "2026-01-01", periodEnd: "2026-12-31" });
+});
+
+test("currentPeriodForCadence: rejects an unsupported cadence rather than silently computing a wrong window", () => {
+  assert.throws(() => schedulerSvc.currentPeriodForCadence("termly", "Asia/Kolkata"), (err) => err.code === "VALIDATION");
+  assert.throws(() => schedulerSvc.currentPeriodForCadence("oneTime", "Asia/Kolkata"), (err) => err.code === "VALIDATION");
+});
+
+test("isPlanDueForPeriod: paused/ended/termly/oneTime plans are never eligible; monthly/quarterly/halfYearly/yearly all are", () => {
   const period = { periodStart: "2026-07-01", periodEnd: "2026-07-31" };
   assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "paused", cadence: "monthly" }, period.periodStart, period.periodEnd).eligible, false);
   assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "ended", cadence: "monthly" }, period.periodStart, period.periodEnd).eligible, false);
   assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "draft", cadence: "monthly" }, period.periodStart, period.periodEnd).eligible, false);
   assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "active", cadence: "termly" }, period.periodStart, period.periodEnd).eligible, false);
   assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "active", cadence: "oneTime" }, period.periodStart, period.periodEnd).eligible, false);
-  assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "active", cadence: "monthly" }, period.periodStart, period.periodEnd).eligible, true);
+  for (const cadence of ["monthly", "quarterly", "halfYearly", "yearly"]) {
+    assert.equal(schedulerSvc.isPlanDueForPeriod({ status: "active", cadence }, period.periodStart, period.periodEnd).eligible, true, `${cadence} should be billable`);
+  }
 });
 
-// ── Scenario 3, 6, 7, 8, 10: a real multi-school run ─────────────────────
+test("isPlanDueForPeriod: an archived (non-Active) student's plan is skipped, an unknown student is treated the same as archived", () => {
+  const period = { periodStart: "2026-07-01", periodEnd: "2026-07-31" };
+  const statusById = new Map([["stu-active", "Active"], ["stu-inactive", "Inactive"], ["stu-alumni", "Alumni"]]);
+  const base = { status: "active", cadence: "monthly" };
+  assert.equal(schedulerSvc.isPlanDueForPeriod({ ...base, studentLedgerId: "stu-active" }, period.periodStart, period.periodEnd, { studentStatusById: statusById }).eligible, true);
+  const inactive = schedulerSvc.isPlanDueForPeriod({ ...base, studentLedgerId: "stu-inactive" }, period.periodStart, period.periodEnd, { studentStatusById: statusById });
+  assert.equal(inactive.eligible, false);
+  assert.equal(inactive.reason, "student_archived");
+  const alumni = schedulerSvc.isPlanDueForPeriod({ ...base, studentLedgerId: "stu-alumni" }, period.periodStart, period.periodEnd, { studentStatusById: statusById });
+  assert.equal(alumni.eligible, false);
+  assert.equal(alumni.reason, "student_archived");
+  const unknown = schedulerSvc.isPlanDueForPeriod({ ...base, studentLedgerId: "stu-does-not-exist" }, period.periodStart, period.periodEnd, { studentStatusById: statusById });
+  assert.equal(unknown.eligible, false);
+  assert.equal(unknown.reason, "student_archived");
+  // Omitting studentStatusById entirely skips the check (back-compat for direct unit tests / callers that haven't built the map).
+  assert.equal(schedulerSvc.isPlanDueForPeriod({ ...base, studentLedgerId: "stu-inactive" }, period.periodStart, period.periodEnd).eligible, true);
+});
+
+// ── Scenario 3, 6, 7, 8, 10, 13, 14: a real multi-school, multi-cadence run ─
 
 let planFull, planProrated, planSibling, planPaused, planEnded, planSuspendedSchool, planSchoolB;
-let runId1;
+let planQuarterly, planHalfYearly, planYearly, planArchivedStudent;
 
-test("Setup: multiple schools, multiple plan shapes (active/paused/ended/prorated/sibling)", async () => {
-  planFull     = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A" });
-  planProrated = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", admissionDate: "2020-01-16" }); // mid-month admission, long in the past — proration math still applies to whatever "current period" resolves to at test time
-  planSibling  = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", siblingOrder: 2 });
-  planPaused   = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", status: "paused" });
-  planEnded    = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", status: "active", endDate: "2020-06-30" }); // ended long ago
-  planSchoolB  = await makePlan({ schoolId: SCHOOL_B, feeTemplateId: "FEE-SCHED-B" });
+test("Setup: multiple schools, multiple plan shapes and cadences (active/paused/ended/prorated/sibling/archived)", async () => {
+  planFull       = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A" });
+  planProrated   = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", admissionDate: "2020-01-16" }); // mid-month admission, long in the past — proration math still applies to whatever "current period" resolves to at test time
+  planSibling    = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", siblingOrder: 2 });
+  planPaused     = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", status: "paused" });
+  planEnded      = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", status: "active", endDate: "2020-06-30" }); // ended long ago
+  planSchoolB    = await makePlan({ schoolId: SCHOOL_B, feeTemplateId: "FEE-SCHED-B" });
   planSuspendedSchool = await makePlan({ schoolId: SCHOOL_SUSPENDED, feeTemplateId: "FEE-SCHED-SUSPENDED" });
+  planQuarterly  = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", cadence: "quarterly" });
+  planHalfYearly = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", cadence: "halfYearly" });
+  planYearly     = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", cadence: "yearly" });
+  planArchivedStudent = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", studentStatus: "Inactive" });
 
   assert.ok(planFull.planId && planProrated.planId && planSibling.planId);
 });
 
-test("Scenario 3+6+7+8+10: a run bills eligible plans across schools, skips paused/ended, applies proration + sibling discount, and audits every school touched", async () => {
-  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
-  runId1 = runId;
+test("Scenario 3+6+7+8+10+13+14: a run bills eligible plans of every cadence across schools, skips paused/ended/archived, applies proration + sibling discount, and audits every school touched", async () => {
+  const { runId } = await runManual();
   const detail = await waitForRunCompletion(runId);
 
   assert.equal(detail.status, "completed", `expected clean completion, got status=${detail.status} errorSummary=${detail.errorSummary}`);
+  assert.equal(detail.mode, "manual");
+  assert.equal(typeof detail.durationMs, "number");
+  assert.ok(detail.durationMs >= 0);
 
   // Suspended-school tenant must never be touched at all (Scenario 3 — tenant isolation).
   const suspendedResult = detail.planResults.find(r => r.planId === planSuspendedSchool.planId);
   assert.equal(suspendedResult, undefined, "a plan belonging to a suspended tenant must never be evaluated");
 
-  // School A: full, prorated, and sibling plans all generated; paused/ended skipped.
   const byPlan = Object.fromEntries(detail.planResults.map(r => [r.planId, r]));
   assert.equal(byPlan[planFull.planId]?.outcome, "generated");
   assert.equal(byPlan[planProrated.planId]?.outcome, "generated");
@@ -156,6 +222,17 @@ test("Scenario 3+6+7+8+10: a run bills eligible plans across schools, skips paus
   assert.equal(byPlan[planPaused.planId]?.reason, "not_active");
   assert.equal(byPlan[planEnded.planId]?.outcome, "skipped");
   assert.equal(byPlan[planEnded.planId]?.reason, "plan_ended");
+
+  // Scenario 13 — every auto-billed cadence generates.
+  assert.equal(byPlan[planQuarterly.planId]?.outcome, "generated");
+  assert.equal(byPlan[planHalfYearly.planId]?.outcome, "generated");
+  assert.equal(byPlan[planYearly.planId]?.outcome, "generated");
+
+  // Scenario 14 — an archived (Inactive) student's plan is skipped with the right reason, never billed.
+  assert.equal(byPlan[planArchivedStudent.planId]?.outcome, "skipped");
+  assert.equal(byPlan[planArchivedStudent.planId]?.reason, "student_archived");
+  const archivedLedger = await studentLedgerSvc.getLedger(planArchivedStudent.studentId, { schoolId: SCHOOL_A });
+  assert.equal(archivedLedger.currentBalance, 0, "an archived student must never be billed");
 
   // School B billed independently, correct schoolId on its own result.
   assert.equal(byPlan[planSchoolB.planId]?.outcome, "generated");
@@ -198,17 +275,71 @@ test("Scenario 3+6+7+8+10: a run bills eligible plans across schools, skips paus
 
 // ── Scenario 1: duplicate protection ─────────────────────────────────────
 
-test("Scenario 1: re-running the scheduler for the same period never double-bills", async () => {
+test("Scenario 1: re-running the scheduler for the same period never double-bills, and is tracked as duplicatesSkipped (not invoicesGenerated)", async () => {
   const balanceBefore = (await studentLedgerSvc.getLedger(planFull.studentId, { schoolId: SCHOOL_A })).currentBalance;
 
-  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+  const { runId } = await runManual();
   const detail = await waitForRunCompletion(runId);
 
   const result = detail.planResults.find(r => r.planId === planFull.planId);
   assert.equal(result.outcome, "duplicate", "a second run for the same period must recognize the existing invoice, not generate a second one");
+  assert.ok(detail.duplicatesSkipped >= 1, "duplicate outcomes must be tracked in their own counter");
+  // Every plan in the fixture is a duplicate on this second pass (all were billed above) — none should count as newly generated.
+  assert.equal(detail.invoicesGenerated, 0, "a run where every eligible plan is already billed must show zero NEW invoices generated");
 
   const balanceAfter = (await studentLedgerSvc.getLedger(planFull.studentId, { schoolId: SCHOOL_A })).currentBalance;
   assert.equal(balanceAfter, balanceBefore, "balance must be unchanged after a duplicate-protected re-run");
+});
+
+// ── Scenario 15: Dry Run / Preview mode ───────────────────────────────────
+
+test("Scenario 15: Run Now (Preview) reports what would happen without writing any real Finance data", async () => {
+  const planPreview = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A" });
+
+  // billingPlanService.create()/setStatus() already write their OWN audit
+  // entries for this entityType+entityId (billingPlan.create, billingPlan.active)
+  // — captured here as a baseline so the post-preview assertion below can
+  // confirm the count is UNCHANGED, rather than assuming zero.
+  const auditBefore = await auditSvc.listForEntity({ schoolId: SCHOOL_A, entityType: "billingPlan", entityId: planPreview.planId });
+
+  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", mode: "preview", actorUserId: "scheduler-test" });
+  const detail = await waitForRunCompletion(runId);
+
+  assert.equal(detail.mode, "preview");
+  assert.equal(detail.status, "completed");
+
+  const newPlanResult = detail.planResults.find(r => r.planId === planPreview.planId);
+  assert.equal(newPlanResult.outcome, "wouldGenerate");
+  assert.ok(newPlanResult.totalAmount > 0);
+
+  const alreadyBilledResult = detail.planResults.find(r => r.planId === planFull.planId);
+  assert.equal(alreadyBilledResult.outcome, "wouldSkipDuplicate", "a plan already billed for this period must preview as 'would skip', not 'would generate'");
+
+  // The whole point — nothing real was written for the NEW plan.
+  const ledger = await studentLedgerSvc.getLedger(planPreview.studentId, { schoolId: SCHOOL_A });
+  assert.equal(ledger.currentBalance, 0, "a preview must never post a ledger charge");
+  const invoiceAudit = await auditSvc.listForEntity({ schoolId: SCHOOL_A, entityType: "billingPlan", entityId: planPreview.planId });
+  assert.equal(invoiceAudit.length, auditBefore.length, "a preview must add no new audit entries for this plan");
+  assert.ok(!invoiceAudit.some(a => a.action === "billingEngine.generateInvoice"), "a preview must never write the real billing-engine audit entry");
+  const schedulerAudit = await auditSvc.listForEntity({ schoolId: SCHOOL_A, entityType: "schedulerRun", entityId: runId });
+  assert.equal(schedulerAudit.length, 0, "a preview run must never write the per-school 'scheduler.run.school' audit entry — a preview is not a real action");
+});
+
+test("Scenario 15: Run Now (Preview) reports requiresApproval without ever throwing or auditing it", async () => {
+  await settingsSvc.updateSettings(SCHOOL_A, { discountApprovalThreshold: 5 }, { actorUserId: "staff-1" });
+  const planPreviewApproval = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", siblingOrder: 2 });
+
+  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", mode: "preview", actorUserId: "scheduler-test" });
+  const detail = await waitForRunCompletion(runId);
+
+  const result = detail.planResults.find(r => r.planId === planPreviewApproval.planId);
+  assert.equal(result.outcome, "wouldRequireApproval");
+  assert.equal(detail.plansFailed, 0);
+
+  const ledger = await studentLedgerSvc.getLedger(planPreviewApproval.studentId, { schoolId: SCHOOL_A });
+  assert.equal(ledger.currentBalance, 0);
+
+  await settingsSvc.updateSettings(SCHOOL_A, { discountApprovalThreshold: 0 }, { actorUserId: "staff-1" }); // restore for later tests
 });
 
 // ── Scenario 12: distributed locking ──────────────────────────────────────
@@ -224,7 +355,7 @@ test("Scenario 12: a run cannot start while another is already holding the lock"
   });
 
   await assert.rejects(
-    () => schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" }),
+    () => runManual(),
     (err) => err.code === "SCHEDULER_LOCKED"
   );
 
@@ -240,29 +371,23 @@ test("Scenario 2 (partial — crash recovery via TTL): an EXPIRED lock never blo
     released: false,
   });
 
-  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+  const { runId } = await runManual();
   const detail = await waitForRunCompletion(runId);
   assert.ok(["completed", "completed_with_errors"].includes(detail.status), "an expired lock from a crashed run must not permanently block future runs");
 });
 
 // ── Scenario 2 (recovery / catch-up after restart) ────────────────────────
 
-test("Scenario 2: maybeRunCatchUp is a no-op if a run already happened today", async () => {
+test("Scenario 2: maybeRunCatchUp is a no-op if every eligible school already ran today", async () => {
   const result = await schedulerSvc.maybeRunCatchUp(new Date());
-  assert.equal(result.skipped, true);
-  assert.equal(result.reason, "already_ran_today", "the several runs already executed above in this same test file count as 'today' for catch-up purposes");
+  assert.equal(result.skipped, true, "the several manual runs already executed above in this same test file count as 'today' for every school");
 });
 
 test("Scenario 2: maybeRunCatchUp before the scheduled hour is a no-op even with no prior run", async () => {
-  // A reference date at 00:30 local time — before the 01:00 scheduled hour.
-  const before = new Date();
-  before.setUTCHours(before.getUTCHours() - (before.getUTCHours() % 24)); // normalize, irrelevant precision beyond the hour check itself
-  const localMidnightIsh = new Date(Date.UTC(before.getUTCFullYear(), before.getUTCMonth(), before.getUTCDate(), 19, 0, 0)); // 00:30 IST = 19:00 UTC previous day
+  // A reference date at 00:30 IST — before the default 01:00 scheduled hour, on a day nothing has run yet.
+  const localMidnightIsh = new Date(Date.UTC(2031, 5, 15, 19, 0, 0)); // 00:30 IST, a date far enough in the future that "already ran today" can never apply
   const result = await schedulerSvc.maybeRunCatchUp(localMidnightIsh);
-  // Either "already_ran_today" (if that UTC-shifted date still lands on the
-  // same local day as today's completed runs) or "before_scheduled_hour" —
-  // both are valid no-op outcomes; what must NEVER happen is a new run starting.
-  assert.ok(["already_ran_today", "before_scheduled_hour"].includes(result.reason || ""), `unexpected catch-up result: ${JSON.stringify(result)}`);
+  assert.equal(result.skipped, true, "catch-up before the scheduled hour must never start a run");
 });
 
 // ── Scenario 9: retry handling ────────────────────────────────────────────
@@ -271,7 +396,7 @@ test("Scenario 9: REQUIRES_APPROVAL is never retried and does not count as a fai
   await settingsSvc.updateSettings(SCHOOL_A, { discountApprovalThreshold: 5 }, { actorUserId: "staff-1" }); // 5% — the 10% sibling discount now requires approval
   const planNeedsApproval = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A", siblingOrder: 2 });
 
-  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+  const { runId } = await runManual();
   const detail = await waitForRunCompletion(runId);
 
   const result = detail.planResults.find(r => r.planId === planNeedsApproval.planId);
@@ -291,10 +416,9 @@ test("Scenario 9: a transient (uncoded) error is retried and eventually recorded
   const planTransient = await makePlan({ schoolId: SCHOOL_A, feeTemplateId: "FEE-SCHED-A" });
   let callCount = 0;
   // Fault injection scoped to ONLY this one plan — every other plan already
-  // in the fixture (Setup's 7 + the requiresApproval plan) must resolve
-  // normally (instant "duplicate"), not also be forced through 3 retries
-  // each, which would make the run take far longer than any reasonable
-  // test timeout and is not what this scenario is testing.
+  // in the fixture must resolve normally (instant "duplicate"), not also be
+  // forced through 3 retries each, which would make the run take far longer
+  // than any reasonable test timeout and is not what this scenario is testing.
   billingEngineSvc.generateInvoiceForPlan = async (planId, ctx) => {
     if (planId !== planTransient.planId) return original(planId, ctx);
     callCount += 1;
@@ -302,7 +426,7 @@ test("Scenario 9: a transient (uncoded) error is retried and eventually recorded
   };
 
   try {
-    const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+    const { runId } = await runManual();
     const detail = await waitForRunCompletion(runId, { timeoutMs: 15000 });
 
     const result = detail.planResults.find(r => r.planId === planTransient.planId);
@@ -328,7 +452,7 @@ test("Scenario 9: a transient error that succeeds on a later attempt is NOT reco
   };
 
   try {
-    const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+    const { runId } = await runManual();
     const detail = await waitForRunCompletion(runId, { timeoutMs: 15000 });
 
     const result = detail.planResults.find(r => r.planId === planFlaky.planId);
@@ -337,6 +461,107 @@ test("Scenario 9: a transient error that succeeds on a later attempt is NOT reco
   } finally {
     billingEngineSvc.generateInvoiceForPlan = original;
   }
+});
+
+// ── Scenario 16: configurable per-school schedule ─────────────────────────
+
+test("isScheduleDueNow: daily/monthlyFirst/quarterlyFirst all correctly gate on hour, and monthly/quarterly additionally gate on day", () => {
+  const tz = "Asia/Kolkata";
+  const hour1OnJan1 = new Date("2025-12-31T19:30:00Z"); // 01:00 IST Jan 1 (IST = UTC+5:30)
+  const hour1OnJan2 = new Date("2026-01-01T19:30:00Z"); // 01:00 IST Jan 2
+  const hour5OnJan1 = new Date("2025-12-31T23:30:00Z"); // 05:00 IST Jan 1
+  const hour1OnApr1 = new Date("2026-03-31T19:30:00Z"); // 01:00 IST Apr 1
+
+  assert.equal(schedulerSvc.isScheduleDueNow("daily", 1, tz, hour1OnJan1), true);
+  assert.equal(schedulerSvc.isScheduleDueNow("daily", 1, tz, hour1OnJan2), true, "daily fires every day at the configured hour");
+  assert.equal(schedulerSvc.isScheduleDueNow("daily", 5, tz, hour1OnJan1), false, "wrong hour never fires");
+
+  assert.equal(schedulerSvc.isScheduleDueNow("monthlyFirst", 1, tz, hour1OnJan1), true, "Jan 1 at the configured hour is the 1st of the month");
+  assert.equal(schedulerSvc.isScheduleDueNow("monthlyFirst", 1, tz, hour1OnJan2), false, "Jan 2 is not the 1st");
+  assert.equal(schedulerSvc.isScheduleDueNow("monthlyFirst", 5, tz, hour5OnJan1), true);
+
+  assert.equal(schedulerSvc.isScheduleDueNow("quarterlyFirst", 1, tz, hour1OnJan1), true, "Jan 1 is a quarter start");
+  assert.equal(schedulerSvc.isScheduleDueNow("quarterlyFirst", 1, tz, hour1OnApr1), true, "Apr 1 is a quarter start");
+  assert.equal(schedulerSvc.isScheduleDueNow("monthlyFirst", 1, tz, hour1OnApr1), true, "Apr 1 is also the 1st of its month");
+  const hour1OnFeb1 = new Date("2026-01-31T19:30:00Z"); // 01:00 IST Feb 1 — 1st of the month, NOT a quarter start
+  assert.equal(schedulerSvc.isScheduleDueNow("quarterlyFirst", 1, tz, hour1OnFeb1), false, "Feb 1 is the 1st of a month but not the 1st of a quarter");
+  assert.equal(schedulerSvc.isScheduleDueNow("monthlyFirst", 1, tz, hour1OnFeb1), true);
+});
+
+test("computeNextDue: resolves the next matching hour/day forward from a reference point", () => {
+  const tz = "Asia/Kolkata";
+  const ref = new Date("2026-01-01T20:00:00Z"); // just after 01:00 IST Jan 1 (daily @1 already passed for today)
+  const nextDaily = schedulerSvc.computeNextDue("daily", 1, tz, ref);
+  assert.equal(new Date(nextDaily).toISOString().slice(0, 10), "2026-01-02", "the next daily run after today's already passed should be tomorrow");
+
+  const nextQuarterly = schedulerSvc.computeNextDue("quarterlyFirst", 1, tz, ref);
+  assert.equal(schedulerSvc.localDateString(tz, new Date(nextQuarterly)), "2026-04-01", "from Jan 1 (already past the quarter boundary), the next quarterly run is Apr 1");
+});
+
+test("Scenario 16: runScheduledTick only runs the school(s) whose own configured schedule is due right now, leaving others untouched", async () => {
+  const SCHOOL_TICK_A = "sched-tick-a";
+  const SCHOOL_TICK_B = "sched-tick-b";
+  fake.seed("tenants", SCHOOL_TICK_A, { tenantId: SCHOOL_TICK_A, schoolName: "Tick School A", status: "active", timezone: "Asia/Kolkata", createdAt: "2026-01-01T00:00:00Z" });
+  fake.seed("tenants", SCHOOL_TICK_B, { tenantId: SCHOOL_TICK_B, schoolName: "Tick School B", status: "active", timezone: "Asia/Kolkata", createdAt: "2026-01-01T00:00:00Z" });
+  fake.seed("feeTemplates", "FEE-TICK-A", { schoolId: SCHOOL_TICK_A, templateName: "Tick Tuition A", amount: 1000 });
+  fake.seed("feeTemplates", "FEE-TICK-B", { schoolId: SCHOOL_TICK_B, templateName: "Tick Tuition B", amount: 1000 });
+
+  // School A: daily @ 1am (due at the reference instant below). School B: monthlyFirst @ 1am, and the reference date is NOT the 1st, so B must not run.
+  await settingsSvc.updateSettings(SCHOOL_TICK_A, { schedulerSchedule: "daily", schedulerHour: 1 }, { actorUserId: "staff-1" });
+  await settingsSvc.updateSettings(SCHOOL_TICK_B, { schedulerSchedule: "monthlyFirst", schedulerHour: 1 }, { actorUserId: "staff-1" });
+
+  const planTickA = await makePlan({ schoolId: SCHOOL_TICK_A, feeTemplateId: "FEE-TICK-A" });
+  const planTickB = await makePlan({ schoolId: SCHOOL_TICK_B, feeTemplateId: "FEE-TICK-B" });
+
+  const referenceDate = new Date("2026-06-15T19:30:00Z"); // 01:00 IST, June 15 — daily-due for A, not the 1st so not due for B
+  const result = await schedulerSvc.runScheduledTick(referenceDate);
+  assert.ok(result.runId, "a run should have started since at least one school was due");
+
+  const detail = await waitForRunCompletion(result.runId);
+  assert.equal(detail.mode, "scheduled");
+  assert.ok(detail.schoolIds.includes(SCHOOL_TICK_A));
+  assert.ok(!detail.schoolIds.includes(SCHOOL_TICK_B), "a school whose configured schedule isn't due yet must not be included in the tick's run");
+
+  const byPlan = Object.fromEntries(detail.planResults.map(r => [r.planId, r]));
+  assert.equal(byPlan[planTickA.planId]?.outcome, "generated");
+  assert.equal(byPlan[planTickB.planId], undefined, "School B's plan must not even be evaluated — its school wasn't processed this tick");
+
+  // A second tick at the SAME reference instant must be a no-op — School A already ran today.
+  const secondTick = await schedulerSvc.runScheduledTick(referenceDate);
+  assert.equal(secondTick.skipped, true, "a school that already ran today must not run again for the same day's tick");
+});
+
+// ── Scenario 17: timezone / DST resilience ────────────────────────────────
+
+test("Scenario 17: local date/hour math is correct across a US DST transition (America/New_York observes DST, unlike this platform's real Asia/Kolkata tenants)", () => {
+  const tz = "America/New_York";
+  // 2026-03-08 02:00 local time does not exist (clocks spring forward from
+  // 2:00 to 3:00) — pick instants either side of the transition and confirm
+  // Intl-based localHour/localDateString still read correct LOCAL wall-clock
+  // values (this is exactly why Intl.DateTimeFormat is used instead of
+  // manual UTC-offset arithmetic, which would silently be off by an hour
+  // across this exact transition).
+  const beforeSpringForward = new Date("2026-03-08T06:00:00Z"); // 01:00 EST (UTC-5) on Mar 8
+  const afterSpringForward  = new Date("2026-03-08T08:00:00Z"); // 04:00 EDT (UTC-4) on Mar 8, after springing forward
+  assert.equal(schedulerSvc.localHour(tz, beforeSpringForward), 1);
+  assert.equal(schedulerSvc.localDateString(tz, beforeSpringForward), "2026-03-08");
+  assert.equal(schedulerSvc.localHour(tz, afterSpringForward), 4);
+  assert.equal(schedulerSvc.localDateString(tz, afterSpringForward), "2026-03-08");
+
+  // Fall back: 2026-11-01 01:00 local occurs TWICE (clocks fall back from
+  // 2:00 to 1:00) — both the pre- and post-fallback UTC instants must still
+  // resolve to the same correct local hour/date, not drift.
+  const beforeFallBack = new Date("2026-11-01T05:30:00Z"); // 01:30 EDT (UTC-4)
+  const afterFallBack  = new Date("2026-11-01T06:30:00Z"); // 01:30 EST (UTC-5), the "repeated" hour
+  assert.equal(schedulerSvc.localHour(tz, beforeFallBack), 1);
+  assert.equal(schedulerSvc.localHour(tz, afterFallBack), 1);
+  assert.equal(schedulerSvc.localDateString(tz, beforeFallBack), "2026-11-01");
+  assert.equal(schedulerSvc.localDateString(tz, afterFallBack), "2026-11-01");
+
+  // A daily schedule at hour 1 must still resolve sensibly around the
+  // transition — matching in both cases above, never silently skipping the day.
+  assert.equal(schedulerSvc.isScheduleDueNow("daily", 1, tz, beforeSpringForward), true);
+  assert.equal(schedulerSvc.isScheduleDueNow("daily", 1, tz, beforeFallBack), true);
 });
 
 // ── Scenario 11: performance with a large dataset ─────────────────────────
@@ -351,7 +576,7 @@ test("Scenario 11: a run correctly processes 120 plans across multiple schools",
   }
 
   const startedAt = Date.now();
-  const { runId } = await schedulerSvc.runSchedulerOnce({ triggeredBy: "manual", actorUserId: "scheduler-test" });
+  const { runId } = await runManual();
   const detail = await waitForRunCompletion(runId, { timeoutMs: 30000 });
   const elapsedMs = Date.now() - startedAt;
 
@@ -361,4 +586,15 @@ test("Scenario 11: a run correctly processes 120 plans across multiple schools",
   assert.equal(generatedCount, LARGE_COUNT, "every one of the 120 newly-created plans must have been billed exactly once");
 
   console.log(`[perf] ${LARGE_COUNT} plans across 2 schools processed in ${elapsedMs}ms (fake in-memory Firestore)`);
+});
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+
+test("getDashboardSummary: reports the last successful run, total invoices generated, and a health status derived from real run history", async () => {
+  const summary = await schedulerSvc.getDashboardSummary();
+  assert.ok(summary.lastSuccessfulRun, "several successful runs happened above in this file");
+  assert.ok(summary.totalInvoicesGenerated > 0);
+  assert.ok(["healthy", "degraded", "attention", "unknown"].includes(summary.health));
+  // nextScheduledRun is computed from configured schedules across every eligible tenant — just confirm it's a parseable future-ish ISO string, not asserting an exact value (real-clock dependent).
+  if (summary.nextScheduledRun) assert.ok(!Number.isNaN(new Date(summary.nextScheduledRun).getTime()));
 });

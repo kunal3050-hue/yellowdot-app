@@ -1,9 +1,10 @@
 /**
- * financeSchedulerRoutes.js — Recurring Billing Scheduler REST API (M3.5)
+ * financeSchedulerRoutes.js — Recurring Billing Engine REST API (M3.5 / M3.5.1)
  * ────────────────────────────────────────────────────────────────────
- * POST /api/finance/scheduler/run              Manually trigger a run (async — returns runId immediately)
+ * POST /api/finance/scheduler/run              Trigger a run — body {mode:"preview"} for a dry run, omitted/anything else for a real manual run (async — returns runId immediately)
  * GET  /api/finance/scheduler/runs              List recent runs
  * GET  /api/finance/scheduler/runs/:runId       Run detail + per-plan results
+ * GET  /api/finance/scheduler/dashboard         Last successful run / next scheduled run / total invoices generated / last failure / scheduler health
  *
  * RBAC: bypass roles only (developer/super_admin) — `authorize()` with no
  * role list, NOT the regular `authorizeRoute("finance-foundation")` every
@@ -31,5 +32,6 @@ const guard = [requireFinanceFoundationFlag, authenticate, authorize()];
 router.post("/api/finance/scheduler/run",             ...guard, ctrl.runNow);
 router.get("/api/finance/scheduler/runs",              ...guard, ctrl.listRuns);
 router.get("/api/finance/scheduler/runs/:runId",       ...guard, ctrl.getRun);
+router.get("/api/finance/scheduler/dashboard",         ...guard, ctrl.getDashboard);
 
 module.exports = router;
