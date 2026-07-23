@@ -27,6 +27,7 @@ const guard         = [requireFinanceFoundationFlag, authenticate, staffOnly, au
 const approvalGuard = [requireFinanceFoundationFlag, authenticate, staffOnly, authorizeRoute(APPROVAL_KEY)];
 
 router.post("/api/finance/refunds",                       ...guard,         ctrl.requestRefund);
+router.get("/api/finance/refunds",                         ...guard,         ctrl.list);
 router.get("/api/finance/refunds/:refundId",               ...guard,         ctrl.getOne);
 router.post("/api/finance/refunds/:refundId/approve",      ...approvalGuard, ctrl.approveRefund);
 router.post("/api/finance/refunds/:refundId/reject",       ...guard,         ctrl.rejectRefund);

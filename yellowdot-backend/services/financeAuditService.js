@@ -47,4 +47,30 @@ async function listForEntity({ schoolId, entityType, entityId }) {
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
-module.exports = { logFinanceAudit, listForEntity };
+/**
+ * listForSchool({ schoolId, actorUserId?, entityType?, entityId?, action?,
+ *   dateFrom?, dateTo?, limit? })
+ * Single-field equality query on schoolId only (the one index Firestore
+ * creates automatically) — every other filter is applied in-memory, same
+ * approach listForEntity already uses. Fine at pilot-school data volumes;
+ * revisit with a composite index if a school's audit log ever grows large
+ * enough for this to matter.
+ */
+async function listForSchool({
+  schoolId, actorUserId, entityType, entityId, action, dateFrom, dateTo, limit = 200,
+}) {
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  let rows = snap.docs.map(d => ({ logId: d.id, ...d.data() }));
+
+  if (actorUserId) rows = rows.filter(r => r.actorUserId === actorUserId);
+  if (entityType)  rows = rows.filter(r => r.entityType === entityType);
+  if (entityId)    rows = rows.filter(r => r.entityId === entityId);
+  if (action)      rows = rows.filter(r => r.action === action);
+  if (dateFrom)    rows = rows.filter(r => (r.createdAt || "") >= dateFrom);
+  if (dateTo)      rows = rows.filter(r => (r.createdAt || "") <= dateTo);
+
+  rows.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return rows.slice(0, Number(limit) || 200);
+}
+
+module.exports = { logFinanceAudit, listForEntity, listForSchool };

@@ -1,0 +1,64 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FINANCE PLATFORM — module-level styling
+   Reuses tokens.css + existing components (Tabs, PageShell, DataTable,
+   KpiCard, StatusBadge) throughout. Only what those don't already cover
+   lives here — see docs/finance-design/13_FINANCE_UI_DESIGN_SYSTEM.md.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Finance module accent — reuses the green already assigned to "Finance"
+   in Control Center (pages/quickNavigation/modules.js ACCENT.finance),
+   not a new color introduced for this module. */
+:root {
+  --yd-finance-accent: #16A34A;
+  --yd-finance-accent-soft: #F0FDF4;
+}
+
+/* FinanceSubNav wrapper — sits directly under PageHeader on every screen */
+.yd-finance-subnav {
+  margin: 0 0 var(--yd-space-5) 0;
+}
+
+.yd-finance-subnav .yd-tab.active {
+  color: var(--yd-finance-accent);
+  border-color: var(--yd-finance-accent);
+  background: var(--yd-finance-accent-soft);
+}
+
+/* Money columns / values — right-aligned, tabular figures, everywhere in
+   the Finance module (design doc §5). */
+.yd-fin-money {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.yd-fin-money--owed   { color: var(--yd-danger); }
+.yd-fin-money--credit { color: var(--yd-success); }
+
+/* Single large balance card (Student Ledger / Family Account) — a bigger
+   variant of KpiCard's own layout for the one-card-not-a-row case. */
+.yd-fin-balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yd-space-2);
+  padding: var(--yd-space-6);
+  background: var(--yd-surface);
+  border: 1px solid var(--yd-border);
+  border-radius: var(--yd-radius-card);
+  box-shadow: var(--yd-shadow-card);
+}
+
+.yd-fin-balance-card .yd-fin-balance-label {
+  font-size: var(--yd-font-size-sm);
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-text-soft);
+  text-transform: uppercase;
+  letter-spacing: var(--yd-tracking-wide);
+}
+
+.yd-fin-balance-card .yd-fin-balance-value {
+  font-size: var(--yd-font-size-4xl);
+  font-weight: var(--yd-weight-extra);
+  line-height: var(--yd-leading-tight);
+  font-variant-numeric: tabular-nums;
+}

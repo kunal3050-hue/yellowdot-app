@@ -18,6 +18,7 @@ const { requireFinanceFoundationFlag } = require("../middleware/financeFoundatio
 const KEY = "finance-foundation";
 const guard = [requireFinanceFoundationFlag, authenticate, staffOnly, authorizeRoute(KEY)];
 
+router.get("/api/finance/family-accounts",                       ...guard, ctrl.list);
 router.get("/api/finance/family-accounts/:familyId",             ...guard, ctrl.getOne);
 router.post("/api/finance/family-accounts/:familyId",            ...guard, ctrl.ensure);
 router.post("/api/finance/family-accounts/:familyId/credit",     ...guard, ctrl.adjustCredit);

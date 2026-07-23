@@ -21,6 +21,14 @@ async function getOne(req, res) {
   } catch (err) { _err(res, "GET /api/finance/family-accounts/:familyId", err); }
 }
 
+async function list(req, res) {
+  try {
+    const { schoolId } = resolveContext(req);
+    const accounts = await familyAccountSvc.listWithCredit({ schoolId });
+    res.json({ success: true, accounts, total: accounts.length });
+  } catch (err) { _err(res, "GET /api/finance/family-accounts", err); }
+}
+
 async function ensure(req, res) {
   try {
     const { schoolId, actorUserId } = resolveContext(req);
@@ -38,4 +46,4 @@ async function adjustCredit(req, res) {
   } catch (err) { _err(res, "POST /api/finance/family-accounts/:familyId/credit", err); }
 }
 
-module.exports = { getOne, ensure, adjustCredit };
+module.exports = { getOne, list, ensure, adjustCredit };

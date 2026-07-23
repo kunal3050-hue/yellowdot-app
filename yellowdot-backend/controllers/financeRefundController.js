@@ -47,6 +47,15 @@ async function getOne(req, res) {
   } catch (err) { _err(res, "GET /api/finance/refunds/:refundId", err); }
 }
 
+async function list(req, res) {
+  try {
+    const { schoolId } = resolveContext(req);
+    const { status, familyId, studentId } = req.query;
+    const refunds = await refundSvc.listForSchool({ schoolId, status, familyId, studentId });
+    res.json({ success: true, refunds, total: refunds.length });
+  } catch (err) { _err(res, "GET /api/finance/refunds", err); }
+}
+
 async function reversePayment(req, res) {
   try {
     const { schoolId, centerId, actorUserId } = resolveContext(req);
@@ -55,4 +64,4 @@ async function reversePayment(req, res) {
   } catch (err) { _err(res, "POST /api/finance/payments/:paymentId/reverse", err); }
 }
 
-module.exports = { requestRefund, approveRefund, rejectRefund, getOne, reversePayment };
+module.exports = { requestRefund, approveRefund, rejectRefund, getOne, list, reversePayment };

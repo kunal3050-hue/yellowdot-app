@@ -190,6 +190,22 @@ async function listForFamily(familyId, { schoolId = SCHOOL_ID, limit = 100 } = {
 }
 
 /**
+ * listForSchool — school-wide browse, additive alongside listForFamily
+ * (untouched). Needed for a staff-facing Payments list screen. Single-field
+ * equality query on schoolId; `status` filtered in-memory.
+ */
+async function listForSchool({ schoolId = SCHOOL_ID, status, limit = 200 } = {}) {
+  const snap = await col()
+    .where("schoolId", "==", schoolId)
+    .where("source",   "==", "financeFoundation")
+    .get();
+  let payments = snap.docs.map(docToFinancePayment);
+  if (status) payments = payments.filter(p => p.status === status);
+  payments.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return payments.slice(0, Number(limit) || 200);
+}
+
+/**
  * transitionStatus — the ONLY way a Payment's status ever changes after
  * creation. Not part of the "record a new payment" public surface on its
  * own, but exported since M4.2 (Allocation), M4.5 (Refund/Reversal), and
@@ -276,4 +292,4 @@ async function appendRefund(paymentId, refundAmountThisCall, { schoolId = SCHOOL
   return docToFinancePayment(updatedData);
 }
 
-module.exports = { recordPayment, getPayment, listForFamily, transitionStatus, appendAllocations, appendRefund, PAYMENT_MODES };
+module.exports = { recordPayment, getPayment, listForFamily, listForSchool, transitionStatus, appendAllocations, appendRefund, PAYMENT_MODES };

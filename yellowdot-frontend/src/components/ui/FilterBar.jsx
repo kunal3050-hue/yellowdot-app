@@ -18,6 +18,7 @@ import SearchBar from "./SearchBar";
  *       { key: "status", label: "Status", type: "select", value: status, options: ["Active","Inactive"], onChange: setStatus },
  *       { key: "tags",   label: "Tags",   type: "chips",  value: tags,   options: ["VIP","New"],          onChange: setTags   },
  *       { key: "range",  label: "Date",   type: "dateRange", value: range, onChange: setRange },
+ *       { key: "actor",  label: "User",   type: "text",   value: actor,  onChange: setActor, placeholder: "User ID…" },
  *     ]}
  *     savedViewsKey="yd_students_views"
  *     actions={<Button variant="primary">+ Add</Button>}
@@ -26,7 +27,7 @@ import SearchBar from "./SearchBar";
  * @prop {string}   search
  * @prop {function} onSearch          (value: string) => void
  * @prop {string}   placeholder
- * @prop {Array}    filters           [{key, label, type: "select"|"chips"|"dateRange", value, options, onChange, width?}]
+ * @prop {Array}    filters           [{key, label, type: "select"|"chips"|"dateRange"|"text", value, options, onChange, width?, placeholder?}]
  * @prop {string}   savedViewsKey     localStorage key; enables the Saved Views popover when provided
  * @prop {ReactNode} actions          right-side action buttons (e.g. an ActionBar)
  * @prop {string}   className
@@ -181,15 +182,34 @@ function FilterField({ field: f }) {
     );
   }
 
-  // "select" (default)
+  if (f.type === "text") {
+    return (
+      <div className="yd-filterbar-field">
+        {f.label && <span className="yd-filterbar-field-label">{f.label}</span>}
+        <input
+          type="text"
+          className="yd-filterbar-mini-input"
+          style={{ width: f.width ?? "auto" }}
+          placeholder={f.placeholder || f.label || ""}
+          value={f.value ?? ""}
+          onChange={e => f.onChange?.(e.target.value)}
+        />
+      </div>
+    );
+  }
+
+  // "select" (default) — options may be tuples ([val,label]), {value,label}
+  // objects (the shape used everywhere else in this design system, e.g.
+  // Select.jsx / DataTable column filterOptions), or flat primitives.
   return (
     <div className="yd-filterbar-field">
       {f.label && <span className="yd-filterbar-field-label">{f.label}</span>}
       <select className="yd-filterbar-select" value={f.value ?? "All"} onChange={e => f.onChange?.(e.target.value)} style={{ width: f.width ?? "auto" }}>
-        {Array.isArray(f.options[0])
-          ? f.options.map(([val, label]) => <option key={val} value={val}>{label}</option>)
-          : f.options.map(o => <option key={o} value={o}>{o}</option>)
-        }
+        {f.options.map(o => {
+          if (Array.isArray(o)) return <option key={o[0]} value={o[0]}>{o[1]}</option>;
+          if (o && typeof o === "object") return <option key={o.value} value={o.value}>{o.label}</option>;
+          return <option key={o} value={o}>{o}</option>;
+        })}
       </select>
     </div>
   );

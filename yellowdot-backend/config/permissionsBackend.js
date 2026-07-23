@@ -9,6 +9,14 @@ function isBypassRole(role) {
   return BYPASS_ROLES.has(role);
 }
 
+// Finance Platform UI routeKeys — frontend-only page-gating keys (see the
+// matching comment in services/roleService.js's STATIC_ROLE_PERMS).
+const FINANCE_UI_ROUTE_KEYS = [
+  "finance-dashboard", "finance-ledger", "finance-billing-plans",
+  "finance-invoices", "finance-payments", "finance-family-account",
+  "finance-refunds", "finance-settings", "finance-audit",
+];
+
 const ROLE_PERMISSIONS = {
   developer:    ["*"],
   super_admin:  ["*"],
@@ -29,7 +37,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation", "finance-refund-approval",
+    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
 
   center_owner: [
@@ -48,7 +56,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation", "finance-refund-approval",
+    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
 
   center_admin: [
@@ -67,7 +75,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation",
+    "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
   ],
 
   teacher: [
@@ -83,7 +91,7 @@ const ROLE_PERMISSIONS = {
 
   accountant: [
     "dashboard", "fees", "invoice", "analytics", "students", "profile",
-    "finance-foundation", "finance-refund-approval",
+    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
 
   reception: [

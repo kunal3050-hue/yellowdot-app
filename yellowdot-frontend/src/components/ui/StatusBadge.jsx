@@ -55,6 +55,21 @@ const STATUS_LABEL_GROUP = {
   pending: "warning", approved: "success", rejected: "danger", cancelled: "neutral",
   // Payroll run status (payrollService.RUN_STATUS_META)
   processed: "success", locked: "warning", reversed: "danger",
+
+  // Finance Platform — Billing Plan status (billingPlanService.js)
+  Draft: "neutral", Paused: "warning", Ended: "neutral",
+  // Finance Platform — Payment state machine (financePaymentStateMachine.js)
+  Recorded: "info", Allocated: "success", PartiallyAllocated: "warning",
+  Refunded: "danger", PartiallyRefunded: "warning", Reversed: "danger",
+  // Finance Platform — Refund status (financeRefundReversalService.js)
+  Requested: "warning", Processed: "success",
+  // Finance Platform — Ledger Entry type (ledgerEntryService.ENTRY_TYPES).
+  // Color encodes ADR-0002's sign convention directly: entries that INCREASE
+  // what's owed get the "attention" family, entries that DECREASE it get the
+  // "resolved" family — more meaningful on a ledger than an arbitrary choice.
+  charge: "danger", lateFee: "danger", refund: "danger",
+  payment: "success", discount: "success", scholarship: "success", creditApplied: "success",
+  adjustment: "neutral",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -70,6 +85,14 @@ const FRIENDLY_LABEL = {
   holiday: "Holiday", wfh: "WFH", weekend: "Weekend",
   pending: "Pending", approved: "Approved", rejected: "Rejected", cancelled: "Cancelled",
   processed: "Processed", locked: "Locked", reversed: "Reversed",
+  // Finance Platform
+  Draft: "Draft", Paused: "Paused", Ended: "Ended",
+  Recorded: "Recorded", Allocated: "Allocated", PartiallyAllocated: "Partially Allocated",
+  Refunded: "Refunded", PartiallyRefunded: "Partially Refunded",
+  Requested: "Requested", Processed: "Processed",
+  charge: "Charge", lateFee: "Late Fee", refund: "Refund", payment: "Payment",
+  discount: "Discount", scholarship: "Scholarship", creditApplied: "Credit Applied",
+  adjustment: "Adjustment",
 };
 
 function _statusConfig(status) {

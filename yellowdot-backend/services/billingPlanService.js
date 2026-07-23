@@ -84,6 +84,22 @@ async function listForStudent(studentId, { schoolId = SCHOOL_ID } = {}) {
 }
 
 /**
+ * listForSchool — school-wide browse, additive alongside listForStudent
+ * (untouched). Needed for a staff-facing Billing Plans list screen, which
+ * has no natural single studentId to scope by. Single-field equality query
+ * on schoolId (the one index Firestore creates automatically); `status`
+ * filtered in-memory, same approach financeAuditService.listForSchool
+ * already uses.
+ */
+async function listForSchool({ schoolId = SCHOOL_ID, status, limit = 200 } = {}) {
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  let plans = snap.docs.map(docToBillingPlan);
+  if (status) plans = plans.filter(p => p.status === status);
+  plans.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return plans.slice(0, Number(limit) || 200);
+}
+
+/**
  * create() requires an existing, active ledger for the student — a
  * Billing Plan without a ledger to post against is a data-integrity
  * failure, per Domain Architecture Part 1's "system invariant" framing.
@@ -145,4 +161,4 @@ async function setStatus(planId, status, { schoolId = SCHOOL_ID, actorUserId = "
   return { ...plan, status };
 }
 
-module.exports = { getPlan, listForStudent, create, setStatus, STATUSES, JOINING_POLICIES, CADENCES };
+module.exports = { getPlan, listForStudent, listForSchool, create, setStatus, STATUSES, JOINING_POLICIES, CADENCES };

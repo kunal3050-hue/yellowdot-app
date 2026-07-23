@@ -35,7 +35,12 @@ async function getOne(req, res) {
 async function listForFamily(req, res) {
   try {
     const { schoolId } = resolveContext(req);
-    const payments = await paymentSvc.listForFamily(req.query.familyId, { schoolId });
+    const { familyId, status } = req.query;
+    // familyId provided -> existing, frozen listForFamily contract, unchanged.
+    // familyId omitted -> new listForSchool (additive) for a staff browse screen.
+    const payments = familyId
+      ? await paymentSvc.listForFamily(familyId, { schoolId })
+      : await paymentSvc.listForSchool({ schoolId, status });
     res.json({ success: true, payments, total: payments.length });
   } catch (err) { _err(res, "GET /api/finance/payments", err); }
 }

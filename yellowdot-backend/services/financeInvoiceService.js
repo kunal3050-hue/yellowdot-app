@@ -202,6 +202,22 @@ async function listForStudent(studentId, { schoolId = SCHOOL_ID, limit = 100 } =
 }
 
 /**
+ * listForSchool — school-wide browse, additive alongside listForStudent
+ * (untouched). Needed for a staff-facing Invoices list screen. Single-field
+ * equality query on schoolId; `status` filtered in-memory.
+ */
+async function listForSchool({ schoolId = SCHOOL_ID, status, limit = 200 } = {}) {
+  const snap = await col()
+    .where("schoolId", "==", schoolId)
+    .where("source",   "==", "billingPlan")
+    .get();
+  let invoices = snap.docs.map(docToFinanceInvoice);
+  if (status) invoices = invoices.filter(i => i.status === status);
+  invoices.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return invoices.slice(0, Number(limit) || 200);
+}
+
+/**
  * findByPlanAndPeriod — the natural idempotency lookup for the Billing
  * Engine (Sprint 3, M3.4): "has this Billing Plan already been invoiced
  * for this period?" `(schoolId, billingPlanId, periodStart)` is a
@@ -221,4 +237,4 @@ async function findByPlanAndPeriod(billingPlanId, periodStart, { schoolId = SCHO
   return docToFinanceInvoice(snap.docs[0]);
 }
 
-module.exports = { createInvoice, getInvoice, listForStudent, findByPlanAndPeriod, STATUSES };
+module.exports = { createInvoice, getInvoice, listForStudent, listForSchool, findByPlanAndPeriod, STATUSES };

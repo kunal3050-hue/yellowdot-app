@@ -335,6 +335,83 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Finance Platform ─────────────────────────────────────────────────────────
+  // New Finance Foundation UI — additive, sits alongside the legacy Finance
+  // group above (untouched). Gated by FINANCE_FOUNDATION_ENABLED server-side;
+  // frontend routeKeys mirror backend's "finance-foundation" role grant
+  // (admin/center_admin/center_owner/accountant), see permissions.js.
+  {
+    id:          "finance_platform",
+    label:       "Finance Platform",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      {
+        id:       "finance_dashboard",
+        label:    "Finance Dashboard",
+        path:     "/finance/dashboard",
+        routeKey: ROUTES.FINANCE_DASHBOARD,
+        icon:     "LayoutDashboard",
+      },
+      {
+        id:       "finance_ledger",
+        label:    "Student Ledger",
+        path:     "/finance/ledger",
+        routeKey: ROUTES.FINANCE_LEDGER,
+        icon:     "BookOpen",
+      },
+      {
+        id:       "finance_billing_plans",
+        label:    "Billing Plans",
+        path:     "/finance/billing-plans",
+        routeKey: ROUTES.FINANCE_BILLING_PLANS,
+        icon:     "Repeat",
+      },
+      {
+        id:       "finance_invoices",
+        label:    "Invoices",
+        path:     "/finance/invoices",
+        routeKey: ROUTES.FINANCE_INVOICES,
+        icon:     "FileText",
+      },
+      {
+        id:       "finance_payments",
+        label:    "Payments",
+        path:     "/finance/payments",
+        routeKey: ROUTES.FINANCE_PAYMENTS,
+        icon:     "Wallet",
+      },
+      {
+        id:       "finance_family_account",
+        label:    "Family Account",
+        path:     "/finance/family-account",
+        routeKey: ROUTES.FINANCE_FAMILY_ACCOUNT,
+        icon:     "Users",
+      },
+      {
+        id:       "finance_refunds",
+        label:    "Refunds",
+        path:     "/finance/refunds",
+        routeKey: ROUTES.FINANCE_REFUNDS,
+        icon:     "Undo2",
+      },
+      {
+        id:       "finance_settings",
+        label:    "Finance Settings",
+        path:     "/finance/settings",
+        routeKey: ROUTES.FINANCE_SETTINGS,
+        icon:     "Settings2",
+      },
+      {
+        id:       "finance_audit",
+        label:    "Finance Audit Log",
+        path:     "/finance/audit-log",
+        routeKey: ROUTES.FINANCE_AUDIT,
+        icon:     "ScrollText",
+      },
+    ],
+  },
+
   // ── Daily Ops ──────────────────────────────────────────────────────────────
   {
     id:          "daily_ops",

@@ -32,7 +32,12 @@ async function getOne(req, res) {
 async function listForStudent(req, res) {
   try {
     const { schoolId } = resolveContext(req);
-    const plans = await billingPlanSvc.listForStudent(req.query.studentId, { schoolId });
+    const { studentId, status } = req.query;
+    // studentId provided -> existing, frozen listForStudent contract, unchanged.
+    // studentId omitted -> new listForSchool (additive) for a staff browse screen.
+    const plans = studentId
+      ? await billingPlanSvc.listForStudent(studentId, { schoolId })
+      : await billingPlanSvc.listForSchool({ schoolId, status });
     res.json({ success: true, plans, total: plans.length });
   } catch (err) { _err(res, "GET /api/finance/billing-plans", err); }
 }

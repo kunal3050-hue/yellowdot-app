@@ -31,6 +31,20 @@ const nowISO = () => new Date().toISOString();
 
 // ── Static fallback permissions (mirrors permissionsBackend.js) ───────────────
 // Used when the Firestore doc is absent (legacy / bypass roles).
+//
+// Finance Platform UI routeKeys (finance-dashboard/-ledger/-billing-plans/
+// -invoices/-payments/-family-account/-refunds/-settings/-audit): these are
+// FRONTEND-ONLY page-gating keys (like "dashboard"/"profile" elsewhere in
+// this list) — no backend API route checks them, `authorizeRoute` still only
+// ever checks "finance-foundation"/"finance-refund-approval" on the actual
+// /api/finance/* endpoints. They must still be listed here because this is
+// what populates /api/auth/me's `permissions` array, which the frontend's
+// `can(routeKey)` checks against for a real (non-bypass) session.
+const FINANCE_UI_ROUTE_KEYS = [
+  "finance-dashboard", "finance-ledger", "finance-billing-plans",
+  "finance-invoices", "finance-payments", "finance-family-account",
+  "finance-refunds", "finance-settings", "finance-audit",
+];
 const STATIC_ROLE_PERMS = {
   developer:    ["*"],
   super_admin:  ["*"],
@@ -42,7 +56,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation","finance-refund-approval",
+    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -52,7 +66,7 @@ const STATIC_ROLE_PERMS = {
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation","finance-refund-approval",
+    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -63,7 +77,7 @@ const STATIC_ROLE_PERMS = {
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
     "families",
-    "finance-foundation",
+    "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
   ],
   teacher: [
     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
@@ -73,7 +87,7 @@ const STATIC_ROLE_PERMS = {
   ],
   accountant: [
     "dashboard","fees","invoice","analytics","students","profile",
-    "finance-foundation","finance-refund-approval",
+    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
   ],
   reception: [
     "dashboard","students","attendance","parent-checkin",

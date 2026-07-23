@@ -57,6 +57,22 @@ async function getFinanceAccount(familyId, { schoolId = SCHOOL_ID } = {}) {
 }
 
 /**
+ * listWithCredit — school-wide browse of every family that has an
+ * initialized finance facet, for the Dashboard's "Family Credits" KPI and
+ * the Family Account screen. Additive: does not touch getFinanceAccount's
+ * frozen single-family contract. Single-field equality query on schoolId
+ * (the one index Firestore creates automatically); families with no
+ * financeAccount sub-object at all are filtered out in-memory.
+ */
+async function listWithCredit({ schoolId = SCHOOL_ID } = {}) {
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  return snap.docs
+    .map(d => ({ familyId: d.id, family: d.data() }))
+    .filter(({ family }) => Boolean(family.financeAccount))
+    .map(({ familyId, family }) => ({ familyId, ..._toFinanceAccount(family), studentIds: family.studentIds || [] }));
+}
+
+/**
  * ensureFinanceAccount — idempotent: adds the financeAccount sub-object
  * to an existing family doc if it doesn't have one yet. Never overwrites
  * an existing financeAccount (matches StudentAdmitted's "reuse, never
@@ -128,4 +144,4 @@ async function adjustCreditBalance(familyId, delta, { schoolId = SCHOOL_ID, acto
   return { familyId, creditBalance: newBalance };
 }
 
-module.exports = { getFinanceAccount, ensureFinanceAccount, adjustCreditBalance, ALLOCATION_PREFS };
+module.exports = { getFinanceAccount, listWithCredit, ensureFinanceAccount, adjustCreditBalance, ALLOCATION_PREFS };

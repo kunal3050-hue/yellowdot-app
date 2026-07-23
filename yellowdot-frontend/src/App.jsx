@@ -47,6 +47,18 @@ const RecordPayment       = lazy(() => import("./pages/RecordPayment"));
 const InvoiceView         = lazy(() => import("./pages/InvoiceView"));
 const ReceiptView         = lazy(() => import("./pages/ReceiptView"));
 
+// ── Finance Platform (new, additive — gated behind FINANCE_FOUNDATION_ENABLED
+//    server-side; frontend routeKeys mirror backend RBAC) ───────────────────
+const FinanceDashboard     = lazy(() => import("./pages/finance/FinanceDashboard"));
+const FinanceLedger        = lazy(() => import("./pages/finance/FinanceLedger"));
+const FinanceBillingPlans  = lazy(() => import("./pages/finance/FinanceBillingPlans"));
+const FinanceInvoices      = lazy(() => import("./pages/finance/FinanceInvoices"));
+const FinancePayments      = lazy(() => import("./pages/finance/FinancePayments"));
+const FinanceFamilyAccount = lazy(() => import("./pages/finance/FinanceFamilyAccount"));
+const FinanceRefunds       = lazy(() => import("./pages/finance/FinanceRefunds"));
+const FinanceSettings      = lazy(() => import("./pages/finance/FinanceSettings"));
+const FinanceAuditLog      = lazy(() => import("./pages/finance/FinanceAuditLog"));
+
 
 // Parent screens are defined in src/modules/parent (see parentRoutes).
 // (Self check-in is staff-only via the backend; not exposed in the parent app.)
@@ -414,6 +426,80 @@ function App() {
               element={
                 <ProtectedRoute routeKey="fees">
                   <RecordPayment />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Finance Platform (new, additive; disabled feature flag server-side) ── */}
+            <Route
+              path="/finance/dashboard"
+              element={
+                <ProtectedRoute routeKey="finance-dashboard">
+                  <MainLayout><FinanceDashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/ledger"
+              element={
+                <ProtectedRoute routeKey="finance-ledger">
+                  <MainLayout><FinanceLedger /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/billing-plans"
+              element={
+                <ProtectedRoute routeKey="finance-billing-plans">
+                  <MainLayout><FinanceBillingPlans /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/invoices"
+              element={
+                <ProtectedRoute routeKey="finance-invoices">
+                  <MainLayout><FinanceInvoices /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/payments"
+              element={
+                <ProtectedRoute routeKey="finance-payments">
+                  <MainLayout><FinancePayments /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/family-account"
+              element={
+                <ProtectedRoute routeKey="finance-family-account">
+                  <MainLayout><FinanceFamilyAccount /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/refunds"
+              element={
+                <ProtectedRoute routeKey="finance-refunds">
+                  <MainLayout><FinanceRefunds /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/settings"
+              element={
+                <ProtectedRoute routeKey="finance-settings">
+                  <MainLayout><FinanceSettings /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/audit-log"
+              element={
+                <ProtectedRoute routeKey="finance-audit">
+                  <MainLayout><FinanceAuditLog /></MainLayout>
                 </ProtectedRoute>
               }
             />

@@ -85,6 +85,23 @@ async function getRefund(refundId, { schoolId = SCHOOL_ID } = {}) {
 }
 
 /**
+ * listForSchool — school-wide browse. Refund never had a list endpoint at
+ * all (only get-by-id) — this is new, additive read surface for a staff-
+ * facing Refunds screen (Requests / History tabs) and the Dashboard's
+ * "Pending Refund Approvals" KPI. Single-field equality query on schoolId;
+ * `status`/`familyId`/`studentId` filtered in-memory.
+ */
+async function listForSchool({ schoolId = SCHOOL_ID, status, familyId, studentId, limit = 200 } = {}) {
+  const snap = await col().where("schoolId", "==", schoolId).get();
+  let refunds = snap.docs.map(docToRefund);
+  if (status)    refunds = refunds.filter(r => r.status === status);
+  if (familyId)  refunds = refunds.filter(r => r.familyId === familyId);
+  if (studentId) refunds = refunds.filter(r => r.studentId === studentId);
+  refunds.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return refunds.slice(0, Number(limit) || 200);
+}
+
+/**
  * requestRefund — creates a Refund request against an already-Allocated
  * (or previously PartiallyRefunded) Payment. Auto-approves and
  * immediately processes when the amount is below
@@ -282,4 +299,4 @@ async function reversePayment(paymentId, { schoolId = SCHOOL_ID, centerId = "", 
   return updated;
 }
 
-module.exports = { requestRefund, approveRefund, rejectRefund, getRefund, reversePayment, REFUND_STATUSES };
+module.exports = { requestRefund, approveRefund, rejectRefund, getRefund, listForSchool, reversePayment, REFUND_STATUSES };
