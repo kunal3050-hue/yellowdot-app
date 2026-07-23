@@ -22,6 +22,13 @@
 import { api } from "./authService";
 
 const financeApi = {
+  // ── Platform status (always available, even while disabled) ─────────
+  platform: {
+    status() {
+      return api.get("/api/finance/status").then(r => r.data);
+    },
+  },
+
   // ── Student Ledger ───────────────────────────────────────────────────
   ledger: {
     create(studentId, familyId) {

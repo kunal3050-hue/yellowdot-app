@@ -10,6 +10,8 @@ import { useCallback, useEffect, useState } from "react";
 import { FilePlus2 } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Input, Drawer,
 } from "../../components/ui";
@@ -27,6 +29,7 @@ function currentPeriod() {
 }
 
 export default function FinanceInvoices() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,6 +41,8 @@ export default function FinanceInvoices() {
   const [genSuccess, setGenSuccess] = useState("");
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -48,8 +53,9 @@ export default function FinanceInvoices() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function handleGenerate() {
@@ -98,38 +104,44 @@ export default function FinanceInvoices() {
         <PageHeader
           title="Invoices"
           subtitle={`${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`}
-          primaryAction={{ label: "Generate Invoice", icon: <FilePlus2 size={14} strokeWidth={2} />, onClick: () => setGenerateOpen(true) }}
+          primaryAction={financeEnabled === false ? undefined : { label: "Generate Invoice", icon: <FilePlus2 size={14} strokeWidth={2} />, onClick: () => setGenerateOpen(true) }}
         />
       }
     >
       <FinanceSubNav active="invoices" />
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-      {genSuccess && (
-        <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {genSuccess}
-        </div>
-      )}
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+          {genSuccess && (
+            <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {genSuccess}
+            </div>
+          )}
 
-      <DataTable
-        tableId="finance-invoices"
-        columns={columns}
-        data={invoices}
-        loading={loading}
-        entityLabel="invoices"
-        searchPlaceholder="Search invoice number, student…"
-        exportFilename="finance-invoices"
-        exportTitle="Invoices"
-        empty={{
-          title: "No invoices generated yet",
-          description: "Generate one from an active billing plan.",
-          action: { label: "Generate Invoice", onClick: () => setGenerateOpen(true) },
-        }}
-      />
+          <DataTable
+            tableId="finance-invoices"
+            columns={columns}
+            data={invoices}
+            loading={loading}
+            entityLabel="invoices"
+            searchPlaceholder="Search invoice number, student…"
+            exportFilename="finance-invoices"
+            exportTitle="Invoices"
+            empty={{
+              title: "No invoices generated yet",
+              description: "Generate one from an active billing plan.",
+              action: { label: "Generate Invoice", onClick: () => setGenerateOpen(true) },
+            }}
+          />
+        </>
+      )}
 
       <Drawer
         isOpen={generateOpen}

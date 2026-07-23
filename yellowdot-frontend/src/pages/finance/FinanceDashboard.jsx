@@ -13,8 +13,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES } from "../../config/permissions";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
-  PageShell, PageHeader, KpiRow, KpiCard, DataTable, StatusBadge, QuickActionCard,
+  PageShell, PageHeader, KpiRow, KpiCard, DataTable, QuickActionCard,
 } from "../../components/ui";
 
 function formatMoney(n) {
@@ -38,6 +40,7 @@ export default function FinanceDashboard() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const canApproveRefunds = can(ROUTES.FINANCE_REFUND_APPROVAL);
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
 
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -47,6 +50,8 @@ export default function FinanceDashboard() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -67,8 +72,9 @@ export default function FinanceDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [canApproveRefunds]);
+  }, [financeEnabled, canApproveRefunds]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   const kpis = useMemo(() => {
@@ -110,65 +116,73 @@ export default function FinanceDashboard() {
     <PageShell
       header={<PageHeader title="Finance Dashboard" subtitle="An overview of billing, payments and refunds across the school" />}
       kpis={
-        <KpiRow>
-          <KpiCard label="Outstanding Receivables" value={formatMoney(kpis.outstandingReceivables)} icon={<Wallet size={18} />} loading={loading} />
-          <KpiCard label="Collected Today" value={formatMoney(kpis.collectedToday)} icon={<Wallet size={18} />} loading={loading} />
-          <KpiCard label="Collected This Month" value={formatMoney(kpis.collectedThisMonth)} icon={<Wallet size={18} />} loading={loading} />
-          <KpiCard
-            label="Overdue Invoices"
-            value={kpis.overdueCount}
-            trendLabel={kpis.overdueCount > 0 ? `${formatMoney(kpis.overdueAmount)} overdue` : "None overdue"}
-            icon={<FileText size={18} />}
-            loading={loading}
-          />
-          {canApproveRefunds && (
-            <KpiCard label="Pending Refund Approvals" value={refunds.length} icon={<BookOpen size={18} />} loading={loading} onClick={() => navigate("/finance/refunds")} />
-          )}
-          <KpiCard label="Family Credits" value={formatMoney(kpis.familyCredits)} icon={<Wallet size={18} />} loading={loading} />
-        </KpiRow>
+        financeEnabled === false ? undefined : (
+          <KpiRow>
+            <KpiCard label="Outstanding Receivables" value={formatMoney(kpis.outstandingReceivables)} icon={<Wallet size={18} />} loading={loading} />
+            <KpiCard label="Collected Today" value={formatMoney(kpis.collectedToday)} icon={<Wallet size={18} />} loading={loading} />
+            <KpiCard label="Collected This Month" value={formatMoney(kpis.collectedThisMonth)} icon={<Wallet size={18} />} loading={loading} />
+            <KpiCard
+              label="Overdue Invoices"
+              value={kpis.overdueCount}
+              trendLabel={kpis.overdueCount > 0 ? `${formatMoney(kpis.overdueAmount)} overdue` : "None overdue"}
+              icon={<FileText size={18} />}
+              loading={loading}
+            />
+            {canApproveRefunds && (
+              <KpiCard label="Pending Refund Approvals" value={refunds.length} icon={<BookOpen size={18} />} loading={loading} onClick={() => navigate("/finance/refunds")} />
+            )}
+            <KpiCard label="Family Credits" value={formatMoney(kpis.familyCredits)} icon={<Wallet size={18} />} loading={loading} />
+          </KpiRow>
+        )
       }
     >
       <FinanceSubNav active="dashboard" />
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
+            <QuickActionCard title="Generate Invoice" icon={<FileText size={20} />} onClick={() => navigate("/finance/invoices")} />
+            <QuickActionCard title="Record Payment" icon={<Wallet size={20} />} onClick={() => navigate("/finance/payments")} />
+            <QuickActionCard title="View Ledger" icon={<BookOpen size={20} />} onClick={() => navigate("/finance/ledger")} />
+            <QuickActionCard title="Create Billing Plan" icon={<Repeat size={20} />} onClick={() => navigate("/finance/billing-plans")} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Recent Payments</h3>
+              <DataTable
+                tableId="finance-dashboard-recent-payments"
+                columns={paymentColumns}
+                data={recentPayments}
+                loading={loading}
+                entityLabel="payments"
+                showToolbar={false}
+                empty={{ title: "No recent payments" }}
+              />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Recent Invoices</h3>
+              <DataTable
+                tableId="finance-dashboard-recent-invoices"
+                columns={invoiceColumns}
+                data={recentInvoices}
+                loading={loading}
+                entityLabel="invoices"
+                showToolbar={false}
+                empty={{ title: "No recent invoices" }}
+              />
+            </div>
+          </div>
+        </>
       )}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <QuickActionCard title="Generate Invoice" icon={<FileText size={20} />} onClick={() => navigate("/finance/invoices")} />
-        <QuickActionCard title="Record Payment" icon={<Wallet size={20} />} onClick={() => navigate("/finance/payments")} />
-        <QuickActionCard title="View Ledger" icon={<BookOpen size={20} />} onClick={() => navigate("/finance/ledger")} />
-        <QuickActionCard title="Create Billing Plan" icon={<Repeat size={20} />} onClick={() => navigate("/finance/billing-plans")} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Recent Payments</h3>
-          <DataTable
-            tableId="finance-dashboard-recent-payments"
-            columns={paymentColumns}
-            data={recentPayments}
-            loading={loading}
-            entityLabel="payments"
-            showToolbar={false}
-            empty={{ title: "No recent payments" }}
-          />
-        </div>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Recent Invoices</h3>
-          <DataTable
-            tableId="finance-dashboard-recent-invoices"
-            columns={invoiceColumns}
-            data={recentInvoices}
-            loading={loading}
-            entityLabel="invoices"
-            showToolbar={false}
-            empty={{ title: "No recent invoices" }}
-          />
-        </div>
-      </div>
     </PageShell>
   );
 }

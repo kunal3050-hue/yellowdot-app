@@ -32,6 +32,8 @@ import {
   PageShell, PageHeader, FilterBar, DataTable, Button, Drawer,
 } from "../../components/ui";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 
 const ENTITY_TYPE_OPTIONS = [
   { value: "studentLedger",   label: "Student Ledger" },
@@ -45,6 +47,7 @@ const ENTITY_TYPE_OPTIONS = [
 ];
 
 export default function FinanceAuditLog() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,6 +60,8 @@ export default function FinanceAuditLog() {
   const [selectedEntry, setSelectedEntry] = useState(null);
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -74,7 +79,7 @@ export default function FinanceAuditLog() {
     } finally {
       setLoading(false);
     }
-  }, [actorUserId, entityType, action, dateRange]);
+  }, [financeEnabled, actorUserId, entityType, action, dateRange]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -106,40 +111,48 @@ export default function FinanceAuditLog() {
       filters={
         <>
           <FinanceSubNav active="audit-log" />
-          <FilterBar
-            filters={[
-              { key: "actorUserId", label: "User",   type: "text",      value: actorUserId, onChange: setActorUserId },
-              { key: "entityType",  label: "Entity",  type: "select",    value: entityType || "All", options: [{ value: "All", label: "All Entities" }, ...ENTITY_TYPE_OPTIONS], onChange: (v) => setEntityType(v === "All" ? "" : v) },
-              { key: "action",      label: "Action",  type: "text",      value: action, onChange: setAction },
-              { key: "dateRange",   label: "Date",    type: "dateRange", value: dateRange, onChange: setDateRange },
-            ]}
-          />
+          {financeEnabled !== false && (
+            <FilterBar
+              filters={[
+                { key: "actorUserId", label: "User",   type: "text",      value: actorUserId, onChange: setActorUserId },
+                { key: "entityType",  label: "Entity",  type: "select",    value: entityType || "All", options: [{ value: "All", label: "All Entities" }, ...ENTITY_TYPE_OPTIONS], onChange: (v) => setEntityType(v === "All" ? "" : v) },
+                { key: "action",      label: "Action",  type: "text",      value: action, onChange: setAction },
+                { key: "dateRange",   label: "Date",    type: "dateRange", value: dateRange, onChange: setDateRange },
+              ]}
+            />
+          )}
         </>
       }
     >
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
 
-      <DataTable
-        tableId="finance-audit-log"
-        columns={columns}
-        data={entries}
-        loading={loading}
-        showToolbar={false}
-        entityLabel="audit entries"
-        exportFilename="finance-audit-log"
-        exportTitle="Finance Audit Log"
-        exportFormats={["csv"]}
-        empty={
-          filtersActive
-            ? { title: "No matching audit entries", description: "Try adjusting your filters." }
-            : { title: "No audit entries yet", description: "Every write made through the Finance Platform will be logged here." }
-        }
-        emptyIllustration={filtersActive ? "🔍" : "📋"}
-      />
+          <DataTable
+            tableId="finance-audit-log"
+            columns={columns}
+            data={entries}
+            loading={loading}
+            showToolbar={false}
+            entityLabel="audit entries"
+            exportFilename="finance-audit-log"
+            exportTitle="Finance Audit Log"
+            exportFormats={["csv"]}
+            empty={
+              filtersActive
+                ? { title: "No matching audit entries", description: "Try adjusting your filters." }
+                : { title: "No audit entries yet", description: "Every write made through the Finance Platform will be logged here." }
+            }
+            emptyIllustration={filtersActive ? "🔍" : "📋"}
+          />
+        </>
+      )}
 
       <Drawer
         isOpen={!!selectedEntry}

@@ -15,6 +15,8 @@ import { useCallback, useEffect, useState } from "react";
 import { PlayCircle } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Drawer,
 } from "../../components/ui";
@@ -32,6 +34,7 @@ const OUTCOME_FILTER_OPTIONS = [
 ];
 
 export default function FinanceScheduler() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,6 +47,8 @@ export default function FinanceScheduler() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -54,7 +59,7 @@ export default function FinanceScheduler() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -128,48 +133,54 @@ export default function FinanceScheduler() {
           title="Billing Scheduler"
           tag="Finance Platform"
           subtitle="Recurring invoice generation across every school — platform-wide, developer/super_admin only"
-          primaryAction={{ label: "Run Now", icon: <PlayCircle size={14} strokeWidth={2} />, onClick: handleRunNow, disabled: running }}
+          primaryAction={financeEnabled === false ? undefined : { label: "Run Now", icon: <PlayCircle size={14} strokeWidth={2} />, onClick: handleRunNow, disabled: running }}
         />
       }
     >
       <FinanceSubNav active="scheduler" />
 
-      <div style={{ background: "var(--yd-info-soft)", color: "var(--yd-info)", border: "1px solid var(--yd-info-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, lineHeight: 1.6 }}>
-        Runs automatically once daily at 01:00 (Asia/Kolkata) for every active Billing Plan with <strong>Monthly</strong> cadence.
-        Termly and one-time plans are always generated manually from the Billing Plans screen — the scheduler does not touch them.
-        A crashed or interrupted run recovers automatically the next time the server starts, and never runs twice for the same day.
-      </div>
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          <div style={{ background: "var(--yd-info-soft)", color: "var(--yd-info)", border: "1px solid var(--yd-info-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, lineHeight: 1.6 }}>
+            Runs automatically once daily at 01:00 (Asia/Kolkata) for every active Billing Plan with <strong>Monthly</strong> cadence.
+            Termly and one-time plans are always generated manually from the Billing Plans screen — the scheduler does not touch them.
+            A crashed or interrupted run recovers automatically the next time the server starts, and never runs twice for the same day.
+          </div>
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-      {runError && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {runError}
-        </div>
-      )}
-      {runSuccess && (
-        <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {runSuccess}
-        </div>
-      )}
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+          {runError && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {runError}
+            </div>
+          )}
+          {runSuccess && (
+            <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {runSuccess}
+            </div>
+          )}
 
-      <DataTable
-        tableId="finance-scheduler-runs"
-        columns={runColumns}
-        data={runs}
-        loading={loading}
-        entityLabel="runs"
-        searchPlaceholder="Search run ID…"
-        exportFilename="finance-scheduler-runs"
-        exportTitle="Billing Scheduler Runs"
-        empty={{
-          title: "No scheduler runs yet",
-          description: "Runs will appear here once the daily cron trigger fires, or you can start one manually with Run Now.",
-        }}
-      />
+          <DataTable
+            tableId="finance-scheduler-runs"
+            columns={runColumns}
+            data={runs}
+            loading={loading}
+            entityLabel="runs"
+            searchPlaceholder="Search run ID…"
+            exportFilename="finance-scheduler-runs"
+            exportTitle="Billing Scheduler Runs"
+            empty={{
+              title: "No scheduler runs yet",
+              description: "Runs will appear here once the daily cron trigger fires, or you can start one manually with Run Now.",
+            }}
+          />
+        </>
+      )}
 
       <Drawer
         isOpen={!!selectedRunId}

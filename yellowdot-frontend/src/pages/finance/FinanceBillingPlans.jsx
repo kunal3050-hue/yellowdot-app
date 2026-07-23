@@ -19,6 +19,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Drawer, Modal,
   Input, Select, Field, FormGrid,
@@ -79,6 +81,7 @@ const EMPTY_FORM = {
 };
 
 export default function FinanceBillingPlans() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -110,6 +113,8 @@ export default function FinanceBillingPlans() {
   }, []);
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -120,7 +125,7 @@ export default function FinanceBillingPlans() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -275,39 +280,45 @@ export default function FinanceBillingPlans() {
           title="Billing Plans"
           tag="Finance Platform"
           subtitle={`${plans.length} billing plan${plans.length === 1 ? "" : "s"}`}
-          primaryAction={{ label: "Create Billing Plan", icon: <Plus size={14} strokeWidth={2} />, onClick: openCreate }}
+          primaryAction={financeEnabled === false ? undefined : { label: "Create Billing Plan", icon: <Plus size={14} strokeWidth={2} />, onClick: openCreate }}
         />
       }
     >
       <FinanceSubNav active="billing-plans" />
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-      {success && (
-        <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {success}
-        </div>
-      )}
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div style={{ background: "var(--yd-success-soft)", color: "var(--yd-success)", border: "1px solid var(--yd-success-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {success}
+            </div>
+          )}
 
-      <DataTable
-        tableId="finance-billing-plans"
-        columns={columns}
-        data={plans}
-        loading={loading}
-        entityLabel="billing plans"
-        searchPlaceholder="Search student ID, fee template…"
-        exportFilename="finance-billing-plans"
-        exportTitle="Billing Plans"
-        exportFormats={["csv", "excel", "print"]}
-        empty={{
-          title: "No billing plans yet",
-          description: "Create one to start generating invoices for a student.",
-          action: { label: "Create Billing Plan", onClick: openCreate },
-        }}
-      />
+          <DataTable
+            tableId="finance-billing-plans"
+            columns={columns}
+            data={plans}
+            loading={loading}
+            entityLabel="billing plans"
+            searchPlaceholder="Search student ID, fee template…"
+            exportFilename="finance-billing-plans"
+            exportTitle="Billing Plans"
+            exportFormats={["csv", "excel", "print"]}
+            empty={{
+              title: "No billing plans yet",
+              description: "Create one to start generating invoices for a student.",
+              action: { label: "Create Billing Plan", onClick: openCreate },
+            }}
+          />
+        </>
+      )}
 
       {/* Create Billing Plan */}
       <Drawer

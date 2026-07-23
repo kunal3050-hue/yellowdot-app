@@ -10,6 +10,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Input, Select, Drawer,
 } from "../../components/ui";
@@ -30,6 +32,7 @@ const PAYMENT_MODE_OPTIONS = [
 const EMPTY_RECORD_FORM = { familyId: "", studentId: "", studentName: "", amount: "", paymentMode: "Cash", transactionId: "", notes: "" };
 
 export default function FinancePayments() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,6 +46,8 @@ export default function FinancePayments() {
   const [actionError, setActionError] = useState("");
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -53,8 +58,9 @@ export default function FinancePayments() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function handleRecord() {
@@ -136,33 +142,39 @@ export default function FinancePayments() {
         <PageHeader
           title="Payments"
           subtitle={`${payments.length} payment${payments.length === 1 ? "" : "s"}`}
-          primaryAction={{ label: "Record Payment", icon: <Plus size={14} strokeWidth={2} />, onClick: () => setRecordOpen(true) }}
+          primaryAction={financeEnabled === false ? undefined : { label: "Record Payment", icon: <Plus size={14} strokeWidth={2} />, onClick: () => setRecordOpen(true) }}
         />
       }
     >
       <FinanceSubNav active="payments" />
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
 
-      <DataTable
-        tableId="finance-payments"
-        columns={columns}
-        data={payments}
-        loading={loading}
-        entityLabel="payments"
-        searchPlaceholder="Search receipt number, family, student…"
-        exportFilename="finance-payments"
-        exportTitle="Payments"
-        empty={{
-          title: "No payments recorded yet",
-          description: "Record the family's first payment to begin.",
-          action: { label: "Record Payment", onClick: () => setRecordOpen(true) },
-        }}
-      />
+          <DataTable
+            tableId="finance-payments"
+            columns={columns}
+            data={payments}
+            loading={loading}
+            entityLabel="payments"
+            searchPlaceholder="Search receipt number, family, student…"
+            exportFilename="finance-payments"
+            exportTitle="Payments"
+            empty={{
+              title: "No payments recorded yet",
+              description: "Record the family's first payment to begin.",
+              action: { label: "Record Payment", onClick: () => setRecordOpen(true) },
+            }}
+          />
+        </>
+      )}
 
       <Drawer
         isOpen={recordOpen}

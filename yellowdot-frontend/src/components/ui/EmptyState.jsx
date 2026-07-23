@@ -6,7 +6,7 @@
  * @prop {string}           description
  * @prop {object}           action           { label, onClick, variant?, leftIcon? }
  * @prop {object}           secondaryAction  { label, onClick }
- * @prop {string}           variant          "default" | "filtered" | "error" | "first-time"
+ * @prop {string}           variant          "default" | "filtered" | "error" | "first-time" | "disabled"
  * @prop {string}           size             "sm" | "md" | "lg" (default: "md")
  * @prop {string}           className
  */
@@ -17,6 +17,7 @@ const DEFAULTS = {
   filtered:   { icon: "🔍", title: "No results",             description: "Try adjusting your search or filters." },
   error:      { icon: "⚠️", title: "Something went wrong",   description: "Please try again or contact support." },
   "first-time":{ icon: "🚀", title: "Get started",           description: "Add your first record to begin." },
+  disabled:   { icon: "🔌", title: "Not enabled",             description: "This feature isn't turned on yet." },
 };
 
 const SIZE_STYLES = {

@@ -14,6 +14,8 @@ import financeApi from "../../services/financeApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES } from "../../config/permissions";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Input, Drawer, Tabs,
 } from "../../components/ui";
@@ -27,6 +29,7 @@ const EMPTY_REQUEST_FORM = { paymentId: "", amount: "", reason: "" };
 export default function FinanceRefunds() {
   const { can } = useAuth();
   const canApprove = can(ROUTES.FINANCE_REFUND_APPROVAL);
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
 
   const [tab, setTab] = useState("refunds");
   const [refunds, setRefunds] = useState([]);
@@ -42,6 +45,8 @@ export default function FinanceRefunds() {
   const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
@@ -56,8 +61,9 @@ export default function FinanceRefunds() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function handleRequest() {
@@ -139,56 +145,62 @@ export default function FinanceRefunds() {
         <PageHeader
           title="Refunds & Reversals"
           subtitle={`${refunds.length} refund${refunds.length === 1 ? "" : "s"} · ${reversedPayments.length} reversed payment${reversedPayments.length === 1 ? "" : "s"}`}
-          primaryAction={{ label: "Request Refund", icon: <Undo2 size={14} strokeWidth={2} />, onClick: () => setRequestOpen(true) }}
+          primaryAction={financeEnabled === false ? undefined : { label: "Request Refund", icon: <Undo2 size={14} strokeWidth={2} />, onClick: () => setRequestOpen(true) }}
         />
       }
     >
       <FinanceSubNav active="refunds" />
 
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
+        <>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
+          <Tabs
+            tabs={[
+              { id: "refunds", label: "Refund Requests", count: refunds.length },
+              { id: "reversed", label: "Reversal History", count: reversedPayments.length },
+            ]}
+            activeTab={tab}
+            onChange={setTab}
+          />
+
+          <div style={{ marginTop: 16 }}>
+            {tab === "refunds" ? (
+              <DataTable
+                tableId="finance-refunds"
+                columns={refundColumns}
+                data={refunds}
+                loading={loading}
+                entityLabel="refunds"
+                searchPlaceholder="Search refund ID, payment, family…"
+                exportFilename="finance-refunds"
+                exportTitle="Refunds"
+                empty={{
+                  title: "No refund requests",
+                  description: "Refund requests will appear here once submitted.",
+                  action: { label: "Request Refund", onClick: () => setRequestOpen(true) },
+                }}
+              />
+            ) : (
+              <DataTable
+                tableId="finance-reversed-payments"
+                columns={reversedColumns}
+                data={reversedPayments}
+                loading={loading}
+                entityLabel="reversed payments"
+                searchPlaceholder="Search receipt number, family…"
+                empty={{ title: "No reversed payments", description: "Payments that are reversed will appear here." }}
+              />
+            )}
+          </div>
+        </>
       )}
-
-      <Tabs
-        tabs={[
-          { id: "refunds", label: "Refund Requests", count: refunds.length },
-          { id: "reversed", label: "Reversal History", count: reversedPayments.length },
-        ]}
-        activeTab={tab}
-        onChange={setTab}
-      />
-
-      <div style={{ marginTop: 16 }}>
-        {tab === "refunds" ? (
-          <DataTable
-            tableId="finance-refunds"
-            columns={refundColumns}
-            data={refunds}
-            loading={loading}
-            entityLabel="refunds"
-            searchPlaceholder="Search refund ID, payment, family…"
-            exportFilename="finance-refunds"
-            exportTitle="Refunds"
-            empty={{
-              title: "No refund requests",
-              description: "Refund requests will appear here once submitted.",
-              action: { label: "Request Refund", onClick: () => setRequestOpen(true) },
-            }}
-          />
-        ) : (
-          <DataTable
-            tableId="finance-reversed-payments"
-            columns={reversedColumns}
-            data={reversedPayments}
-            loading={loading}
-            entityLabel="reversed payments"
-            searchPlaceholder="Search receipt number, family…"
-            empty={{ title: "No reversed payments", description: "Payments that are reversed will appear here." }}
-          />
-        )}
-      </div>
 
       <Drawer
         isOpen={requestOpen}

@@ -38,6 +38,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, PiggyBank } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, Button, Drawer,
   Input, Select, Field, EmptyState,
@@ -48,6 +50,7 @@ function formatMoney(n) {
 }
 
 export default function FinanceFamilyAccount() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [familyIdInput, setFamilyIdInput] = useState("");
   const [familyId, setFamilyId] = useState("");
   const [account, setAccount] = useState(null);
@@ -69,16 +72,17 @@ export default function FinanceFamilyAccount() {
   const [creditSuccess, setCreditSuccess] = useState("");
 
   useEffect(() => {
+    if (!financeEnabled) return; // false while checking or disabled — skip the optional quick-pick fetch
     let cancelled = false;
     financeApi.familyAccount.list()
       .then(res => { if (!cancelled && res?.success) setFamilyOptions(res.accounts || []); })
       .catch(() => { /* optional quick-pick only -- search box remains the primary path */ });
     return () => { cancelled = true; };
-  }, []);
+  }, [financeEnabled]);
 
   const load = useCallback(async (idOverride) => {
     const targetId = (idOverride ?? familyIdInput).trim();
-    if (!targetId) return;
+    if (!targetId || !financeEnabled) return;
     setLoading(true);
     setError("");
     try {
@@ -101,7 +105,7 @@ export default function FinanceFamilyAccount() {
     } finally {
       setLoading(false);
     }
-  }, [familyIdInput]);
+  }, [familyIdInput, financeEnabled]);
 
   // Best-effort studentId -> studentName map, built only from already-fetched
   // payment history -- no new lookup endpoint invented for this page.
@@ -167,94 +171,100 @@ export default function FinanceFamilyAccount() {
     >
       <FinanceSubNav active="family-account" />
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap", maxWidth: 640 }}>
-        <div style={{ minWidth: 220 }}>
-          <Input
-            label="Family ID"
-            placeholder="Enter family ID…"
-            value={familyIdInput}
-            onChange={(e) => setFamilyIdInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") load(); }}
-            leftIcon={<Search size={14} strokeWidth={2} />}
-          />
-        </div>
-        <Button variant="primary" onClick={() => load()} loading={loading} disabled={!familyIdInput.trim()}>
-          Load
-        </Button>
-        {familySelectOptions.length > 0 && (
-          <div style={{ minWidth: 240 }}>
-            <Select
-              label="Or choose an existing family"
-              placeholder="Select a family…"
-              options={familySelectOptions}
-              value=""
-              onChange={(e) => { if (e.target.value) load(e.target.value); }}
-            />
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-
-      {!loaded && !loading && (
-        <EmptyState
-          variant="first-time"
-          title="Look up a family"
-          description="Enter a family ID above to view its credit balance and payment history."
-        />
-      )}
-
-      {loaded && !account && !loading && !error && (
-        <EmptyState
-          variant="default"
-          title="Family not found"
-          description="No family account exists for that ID in this school."
-        />
-      )}
-
-      {account && (
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
         <>
-          <div className="yd-fin-balance-card" style={{ marginBottom: 20, maxWidth: 420 }}>
-            <div className="yd-fin-balance-label">Credit Balance</div>
-            <div className={`yd-fin-balance-value ${creditBalance > 0 ? "yd-fin-money--credit" : ""}`}>
-              {formatMoney(creditBalance)}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap", maxWidth: 640 }}>
+            <div style={{ minWidth: 220 }}>
+              <Input
+                label="Family ID"
+                placeholder="Enter family ID…"
+                value={familyIdInput}
+                onChange={(e) => setFamilyIdInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") load(); }}
+                leftIcon={<Search size={14} strokeWidth={2} />}
+              />
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, gap: 12 }}>
-              {linkedStudents.length > 0 ? (
-                <span style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
-                  {linkedStudents.length} linked student{linkedStudents.length === 1 ? "" : "s"}:{" "}
-                  {linkedStudents.map(sid => studentNameById[sid] || sid).join(", ")}
-                </span>
-              ) : <span />}
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<PiggyBank size={13} strokeWidth={2} />}
-                onClick={() => setCreditDrawerOpen(true)}
-              >
-                Apply Credit Adjustment
-              </Button>
-            </div>
+            <Button variant="primary" onClick={() => load()} loading={loading} disabled={!familyIdInput.trim()}>
+              Load
+            </Button>
+            {familySelectOptions.length > 0 && (
+              <div style={{ minWidth: 240 }}>
+                <Select
+                  label="Or choose an existing family"
+                  placeholder="Select a family…"
+                  options={familySelectOptions}
+                  value=""
+                  onChange={(e) => { if (e.target.value) load(e.target.value); }}
+                />
+              </div>
+            )}
           </div>
 
-          <DataTable
-            tableId="finance-family-payments"
-            columns={columns}
-            data={payments}
-            loading={loading}
-            entityLabel="payments"
-            searchPlaceholder="Search receipt number, student, mode…"
-            exportFilename={`family-${familyId}-payments`}
-            exportTitle="Family Payment History"
-            empty={{
-              title: "No payments recorded yet",
-              description: "Record the family's first payment to begin.",
-            }}
-          />
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
+          {!loaded && !loading && (
+            <EmptyState
+              variant="first-time"
+              title="Look up a family"
+              description="Enter a family ID above to view its credit balance and payment history."
+            />
+          )}
+
+          {loaded && !account && !loading && !error && (
+            <EmptyState
+              variant="default"
+              title="Family not found"
+              description="No family account exists for that ID in this school."
+            />
+          )}
+
+          {account && (
+            <>
+              <div className="yd-fin-balance-card" style={{ marginBottom: 20, maxWidth: 420 }}>
+                <div className="yd-fin-balance-label">Credit Balance</div>
+                <div className={`yd-fin-balance-value ${creditBalance > 0 ? "yd-fin-money--credit" : ""}`}>
+                  {formatMoney(creditBalance)}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, gap: 12 }}>
+                  {linkedStudents.length > 0 ? (
+                    <span style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+                      {linkedStudents.length} linked student{linkedStudents.length === 1 ? "" : "s"}:{" "}
+                      {linkedStudents.map(sid => studentNameById[sid] || sid).join(", ")}
+                    </span>
+                  ) : <span />}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<PiggyBank size={13} strokeWidth={2} />}
+                    onClick={() => setCreditDrawerOpen(true)}
+                  >
+                    Apply Credit Adjustment
+                  </Button>
+                </div>
+              </div>
+
+              <DataTable
+                tableId="finance-family-payments"
+                columns={columns}
+                data={payments}
+                loading={loading}
+                entityLabel="payments"
+                searchPlaceholder="Search receipt number, student, mode…"
+                exportFilename={`family-${familyId}-payments`}
+                exportTitle="Family Payment History"
+                empty={{
+                  title: "No payments recorded yet",
+                  description: "Record the family's first payment to begin.",
+                }}
+              />
+            </>
+          )}
         </>
       )}
 

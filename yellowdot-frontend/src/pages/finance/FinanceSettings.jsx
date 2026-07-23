@@ -11,6 +11,8 @@
 import { useCallback, useEffect, useState } from "react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, FormSection, Field, FormGrid, Input, Select,
   Button, LoadingPage, PageError,
@@ -61,6 +63,7 @@ function toFormState(settings) {
 }
 
 export default function FinanceSettings() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -69,6 +72,8 @@ export default function FinanceSettings() {
   const [saveSuccess, setSaveSuccess] = useState("");
 
   const load = useCallback(async () => {
+    if (financeEnabled === null) return; // still checking platform status
+    if (financeEnabled === false) { setLoading(false); return; }
     setLoading(true);
     setLoadError("");
     try {
@@ -79,7 +84,7 @@ export default function FinanceSettings() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -118,6 +123,16 @@ export default function FinanceSettings() {
     }
   }
 
+  if (financeEnabled === false) {
+    return (
+      <PageShell
+        header={<PageHeader title="Finance Settings" tag="Finance Platform" subtitle="Defaults, late fees and approval thresholds for this school" />}
+      >
+        <FinanceSubNav active="settings" />
+        <FinancePlatformDisabled />
+      </PageShell>
+    );
+  }
   if (loading) return <LoadingPage message="Loading finance settings…" />;
   if (loadError) return <PageError message={loadError} onRetry={load} />;
 

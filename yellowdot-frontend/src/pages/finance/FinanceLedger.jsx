@@ -12,6 +12,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import financeApi from "../../services/financeApi";
 import FinanceSubNav from "./components/FinanceSubNav";
+import FinancePlatformDisabled from "./components/FinancePlatformDisabled";
+import useFinancePlatformStatus from "./hooks/useFinancePlatformStatus";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Button, Input, Drawer, EmptyState,
 } from "../../components/ui";
@@ -33,6 +35,7 @@ const ENTRY_TYPE_OPTIONS = [
 ];
 
 export default function FinanceLedger() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [studentIdInput, setStudentIdInput] = useState("");
   const [studentId, setStudentId] = useState("");
   const [ledger, setLedger] = useState(null);
@@ -44,7 +47,7 @@ export default function FinanceLedger() {
   const [selectedEntry, setSelectedEntry] = useState(null);
 
   const load = useCallback(async (id) => {
-    if (!id) return;
+    if (!id || !financeEnabled) return; // financeEnabled is false while checking or disabled
     setLoading(true);
     setError("");
     try {
@@ -61,8 +64,9 @@ export default function FinanceLedger() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [financeEnabled]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (studentId) load(studentId); }, [studentId, load]);
 
   function handleLoadStudent() {
@@ -105,67 +109,73 @@ export default function FinanceLedger() {
     >
       <FinanceSubNav active="ledger" />
 
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 20, maxWidth: 420 }}>
-        <Input
-          label="Student ID"
-          placeholder="e.g. YD019"
-          value={studentIdInput}
-          onChange={(e) => setStudentIdInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleLoadStudent(); }}
-        />
-        <Button variant="primary" leftIcon={<Search size={14} strokeWidth={2} />} onClick={handleLoadStudent}>
-          Load
-        </Button>
-      </div>
-
-      {error && (
-        <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-
-      {!studentId && !loading && (
-        <EmptyState
-          variant="first-time"
-          title="Enter a student ID to view their ledger"
-          description="The Student Ledger shows the running balance, every charge, payment, credit, refund and adjustment for one student."
-        />
-      )}
-
-      {studentId && ledger && (
+      {financeEnabled === false ? (
+        <FinancePlatformDisabled />
+      ) : (
         <>
-          <div className="yd-fin-balance-card" style={{ marginBottom: 20, maxWidth: 320 }}>
-            <div className="yd-fin-balance-label">Current Balance</div>
-            <div
-              className="yd-fin-balance-value"
-              style={{ color: ledger.currentBalance > 0 ? "var(--yd-danger)" : "var(--yd-success)" }}
-            >
-              {ledger.currentBalance > 0 ? formatMoney(ledger.currentBalance) : formatMoney(ledger.currentBalance)}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
-              {ledger.currentBalance > 0 ? "Amount owed" : ledger.currentBalance < 0 ? "Credit balance" : "Settled"}
-            </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 20, maxWidth: 420 }}>
+            <Input
+              label="Student ID"
+              placeholder="e.g. YD019"
+              value={studentIdInput}
+              onChange={(e) => setStudentIdInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleLoadStudent(); }}
+            />
+            <Button variant="primary" leftIcon={<Search size={14} strokeWidth={2} />} onClick={handleLoadStudent}>
+              Load
+            </Button>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-            <Input type="date" label="From" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            <Input type="date" label="To" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
+          {error && (
+            <div style={{ background: "var(--yd-danger-soft)", color: "var(--yd-danger)", border: "1px solid var(--yd-danger-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
 
-          <DataTable
-            tableId="finance-ledger-entries"
-            columns={columns}
-            data={filteredEntries}
-            loading={loading}
-            entityLabel="ledger entries"
-            searchPlaceholder="Search description…"
-            exportFilename={`ledger-${studentId}`}
-            exportTitle="Student Ledger"
-            empty={{
-              title: "No ledger entries yet",
-              description: "Charges will appear here once a billing plan generates an invoice.",
-            }}
-          />
+          {!studentId && !loading && (
+            <EmptyState
+              variant="first-time"
+              title="Enter a student ID to view their ledger"
+              description="The Student Ledger shows the running balance, every charge, payment, credit, refund and adjustment for one student."
+            />
+          )}
+
+          {studentId && ledger && (
+            <>
+              <div className="yd-fin-balance-card" style={{ marginBottom: 20, maxWidth: 320 }}>
+                <div className="yd-fin-balance-label">Current Balance</div>
+                <div
+                  className="yd-fin-balance-value"
+                  style={{ color: ledger.currentBalance > 0 ? "var(--yd-danger)" : "var(--yd-success)" }}
+                >
+                  {ledger.currentBalance > 0 ? formatMoney(ledger.currentBalance) : formatMoney(ledger.currentBalance)}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+                  {ledger.currentBalance > 0 ? "Amount owed" : ledger.currentBalance < 0 ? "Credit balance" : "Settled"}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+                <Input type="date" label="From" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                <Input type="date" label="To" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+
+              <DataTable
+                tableId="finance-ledger-entries"
+                columns={columns}
+                data={filteredEntries}
+                loading={loading}
+                entityLabel="ledger entries"
+                searchPlaceholder="Search description…"
+                exportFilename={`ledger-${studentId}`}
+                exportTitle="Student Ledger"
+                empty={{
+                  title: "No ledger entries yet",
+                  description: "Charges will appear here once a billing plan generates an invoice.",
+                }}
+              />
+            </>
+          )}
         </>
       )}
 

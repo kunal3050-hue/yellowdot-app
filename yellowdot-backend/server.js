@@ -102,6 +102,7 @@ const financeAuditRoutes     = require("./routes/financeAuditRoutes");
 const financeInvoiceRoutes   = require("./routes/financeInvoiceRoutes");
 const financeSchedulerRoutes = require("./routes/financeSchedulerRoutes");
 const financeSchedulerSvc    = require("./services/financeBillingSchedulerService"); // M3.5 — Recurring Billing Scheduler
+const financeStatusRoutes    = require("./routes/financeStatusRoutes"); // registered unconditionally — see below
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -157,6 +158,11 @@ app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* 
 app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
 app.use(performanceRoutes);
+// GET /api/finance/status — deliberately OUTSIDE the flag block below, so
+// the frontend can always ask "is Finance on?" instead of inferring it from
+// a 404 on a route that may not even be registered. This is the one Finance
+// route that must survive the module being disabled.
+app.use(financeStatusRoutes);
 // Finance Foundation (Sprint 1, patched per Sprint 1 review) — new, additive.
 // Does not touch invoice/payment routes above. The flag now gates ROUTE
 // REGISTRATION itself, not just per-request middleware: when disabled, these
