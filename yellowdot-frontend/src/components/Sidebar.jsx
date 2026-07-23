@@ -40,7 +40,7 @@ import {
   ChevronDown, LogOut, User, X, Settings, Briefcase, Shield, CalendarDays,
   AlertTriangle, UsersRound, CalendarCheck, CalendarOff, Bell, Megaphone,
   Grid, BookOpen, Layers, UserCheck, QrCode, Heart, Building2, ScrollText,
-  LayoutDashboard, Repeat, Wallet, Undo2, Settings2,
+  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock,
 } from "lucide-react";
 
 const IC = { size: 16, strokeWidth: 1.75 };
@@ -51,7 +51,7 @@ const LUCIDE_ICONS = {
   LogOut, User, Settings, Briefcase, Shield, CalendarDays,
   AlertTriangle, UsersRound, CalendarCheck, CalendarOff, Bell, Megaphone,
   Grid, BookOpen, Layers, UserCheck, QrCode, Heart, Building2, ScrollText,
-  LayoutDashboard, Repeat, Wallet, Undo2, Settings2,
+  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock,
 };
 
 const ICONS = Object.fromEntries(

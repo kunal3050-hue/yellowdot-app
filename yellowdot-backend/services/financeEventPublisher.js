@@ -38,6 +38,8 @@ const EVENTS = Object.freeze({
   PAYMENT_ALLOCATED:        "PaymentAllocated",
   REFUND_PROCESSED:         "RefundProcessed",
   PAYMENT_REVERSED:         "PaymentReversed",
+  SCHEDULER_RUN_COMPLETED:  "SchedulerRunCompleted",
+  SCHEDULER_RUN_FAILED:     "SchedulerRunFailed",
 });
 
 /** publish(eventName, payload) — payload should always include schoolId. */

@@ -78,21 +78,30 @@ function createFakeFirestore() {
     });
   }
 
-  function runQuery(name, filters, limitN) {
+  function runQuery(name, filters, limitN, orderBy) {
     const coll = getCollectionMap(name);
-    let docs = [...coll.entries()]
-      .filter(([, data]) => matchesFilters(data, filters))
-      .map(([id, data]) => ({ id, data: () => ({ ...data }) }));
+    let entries = [...coll.entries()].filter(([, data]) => matchesFilters(data, filters));
+    if (orderBy) {
+      const { field, direction } = orderBy;
+      entries = entries.sort(([, a], [, b]) => {
+        const av = a[field], bv = b[field];
+        if (av === bv) return 0;
+        const cmp = av < bv ? -1 : 1;
+        return direction === "desc" ? -cmp : cmp;
+      });
+    }
+    let docs = entries.map(([id, data]) => ({ id, data: () => ({ ...data }) }));
     if (limitN != null) docs = docs.slice(0, limitN);
     return { empty: docs.length === 0, docs };
   }
 
-  function makeQuery(name, filters, limitN) {
+  function makeQuery(name, filters, limitN, orderBy) {
     return {
       __type: "query", __collection: name, __filters: filters, __limit: limitN,
-      where(field, op, value) { return makeQuery(name, [...filters, [field, op, value]], limitN); },
-      limit(n) { return makeQuery(name, filters, n); },
-      get: async () => runQuery(name, filters, limitN),
+      where(field, op, value) { return makeQuery(name, [...filters, [field, op, value]], limitN, orderBy); },
+      limit(n) { return makeQuery(name, filters, n, orderBy); },
+      orderBy(field, direction = "asc") { return makeQuery(name, filters, limitN, { field, direction }); },
+      get: async () => runQuery(name, filters, limitN, orderBy),
     };
   }
 
@@ -122,6 +131,12 @@ function createFakeFirestore() {
     return {
       doc: (id) => makeDocRef(name, id),
       where: (field, op, value) => makeQuery(name, [[field, op, value]], null),
+      orderBy: (field, direction = "asc") => makeQuery(name, [], null, { field, direction }),
+      // Bare collection.get() — real Firestore supports fetching an entire
+      // collection with no filter; added for financeSchedulerRuns, the one
+      // Finance collection with no natural schoolId to scope a .where() by
+      // (a scheduler run spans every school).
+      get: async () => runQuery(name, [], null),
       add: async (data) => {
         const id = `auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         getCollectionMap(name).set(id, { ...data });

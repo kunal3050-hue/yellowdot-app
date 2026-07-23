@@ -122,6 +122,19 @@ const financeApi = {
     },
   },
 
+  // ── Recurring Billing Scheduler (M3.5) — platform-wide, bypass-role-only ──
+  scheduler: {
+    runNow() {
+      return api.post("/api/finance/scheduler/run").then(r => r.data);
+    },
+    listRuns(params = {}) {
+      return api.get("/api/finance/scheduler/runs", { params }).then(r => r.data);
+    },
+    getRun(runId) {
+      return api.get(`/api/finance/scheduler/runs/${runId}`).then(r => r.data);
+    },
+  },
+
   // ── Invoices (Finance Foundation, source: "billingPlan") ─────────────
   invoices: {
     listForStudent(studentId) {
