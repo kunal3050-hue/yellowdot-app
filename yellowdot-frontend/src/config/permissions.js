@@ -95,6 +95,13 @@ export const ROUTES = {
   FINANCE_REFUND_APPROVAL:       "finance-refund-approval",
   FINANCE_SETTINGS:              "finance-settings",
   FINANCE_AUDIT:                 "finance-audit",
+  // Recurring Billing Scheduler (M3.5) — deliberately NOT added to any
+  // role's grant list below (see FINANCE_FOUNDATION_ROUTES). Bypass roles
+  // (developer/super_admin) reach it via their existing "*" wildcard;
+  // every other role's can("finance-scheduler") is false by construction,
+  // matching the backend's bypass-only route guard exactly — this is a
+  // platform-wide, cross-school operation, not a per-school Finance screen.
+  FINANCE_SCHEDULER:             "finance-scheduler",
 };
 
 // Finance Platform routeKeys granted to admin/center_admin/center_owner/accountant

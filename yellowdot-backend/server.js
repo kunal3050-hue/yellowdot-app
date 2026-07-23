@@ -100,6 +100,8 @@ const financePaymentRoutes   = require("./routes/financePaymentRoutes");
 const financeRefundRoutes    = require("./routes/financeRefundRoutes");
 const financeAuditRoutes     = require("./routes/financeAuditRoutes");
 const financeInvoiceRoutes   = require("./routes/financeInvoiceRoutes");
+const financeSchedulerRoutes = require("./routes/financeSchedulerRoutes");
+const financeSchedulerSvc    = require("./services/financeBillingSchedulerService"); // M3.5 — Recurring Billing Scheduler
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -174,6 +176,7 @@ if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
   app.use(financeRefundRoutes);
   app.use(financeAuditRoutes);
   app.use(financeInvoiceRoutes);
+  app.use(financeSchedulerRoutes);
 }    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
 app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
 app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
@@ -851,12 +854,28 @@ function runStartupDiagnostics() {
 }
 
 // When run directly (`node server.js` or `npm start`) → start HTTP server.
-// When imported by index.js (Cloud Functions) → just export the Express app.
+// When imported by index.js (Cloud Functions) or a test file (supertest
+// against the exported `app`) → just export the Express app, no side effects.
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n🚀  Server Running On Port ${PORT}`);
     runStartupDiagnostics();
   });
+
+  // Recurring Billing Scheduler (M3.5) — cron registration + startup catch-up
+  // only ever run on the real, persistent server process (never merely from
+  // `require("./server")`, which route-wiring tests and the Cloud Functions
+  // wrapper both do). `cron.schedule()` is never even called while the flag
+  // is off, matching the route-registration gating above, per the explicit
+  // "must not execute in production while the feature flag is disabled"
+  // requirement. Cloud Functions instances are ephemeral, so an in-process
+  // cron there would be unreliable anyway — the VPS process is the intended
+  // home for this.
+  if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
+    financeSchedulerSvc.registerCronJob();
+    financeSchedulerSvc.maybeRunCatchUp()
+      .catch(err => console.error("[financeBillingScheduler] startup catch-up check failed:", err.message));
+  }
 }
 
 module.exports = app;

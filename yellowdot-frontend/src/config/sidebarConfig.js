@@ -409,6 +409,13 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.FINANCE_AUDIT,
         icon:     "ScrollText",
       },
+      {
+        id:       "finance_scheduler",
+        label:    "Billing Scheduler",
+        path:     "/finance/scheduler",
+        routeKey: ROUTES.FINANCE_SCHEDULER,
+        icon:     "Clock",
+      },
     ],
   },
 

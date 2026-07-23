@@ -70,6 +70,11 @@ const STATUS_LABEL_GROUP = {
   charge: "danger", lateFee: "danger", refund: "danger",
   payment: "success", discount: "success", scholarship: "success", creditApplied: "success",
   adjustment: "neutral",
+  // Finance Platform — Recurring Billing Scheduler run status (financeBillingSchedulerService.js)
+  running: "info", completed: "success", completed_with_errors: "warning", failed: "danger",
+  // Finance Platform — Scheduler per-plan result outcome
+  generated: "success", duplicate: "neutral", requiresApproval: "warning",
+  skipped: "neutral", error: "danger",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —
@@ -93,6 +98,9 @@ const FRIENDLY_LABEL = {
   charge: "Charge", lateFee: "Late Fee", refund: "Refund", payment: "Payment",
   discount: "Discount", scholarship: "Scholarship", creditApplied: "Credit Applied",
   adjustment: "Adjustment",
+  running: "Running", completed: "Completed", completed_with_errors: "Completed (with errors)", failed: "Failed",
+  generated: "Generated", duplicate: "Duplicate", requiresApproval: "Requires Approval",
+  skipped: "Skipped", error: "Error",
 };
 
 function _statusConfig(status) {

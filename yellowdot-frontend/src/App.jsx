@@ -58,6 +58,7 @@ const FinanceFamilyAccount = lazy(() => import("./pages/finance/FinanceFamilyAcc
 const FinanceRefunds       = lazy(() => import("./pages/finance/FinanceRefunds"));
 const FinanceSettings      = lazy(() => import("./pages/finance/FinanceSettings"));
 const FinanceAuditLog      = lazy(() => import("./pages/finance/FinanceAuditLog"));
+const FinanceScheduler     = lazy(() => import("./pages/finance/FinanceScheduler"));
 
 
 // Parent screens are defined in src/modules/parent (see parentRoutes).
@@ -500,6 +501,14 @@ function App() {
               element={
                 <ProtectedRoute routeKey="finance-audit">
                   <MainLayout><FinanceAuditLog /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/scheduler"
+              element={
+                <ProtectedRoute routeKey="finance-scheduler">
+                  <MainLayout><FinanceScheduler /></MainLayout>
                 </ProtectedRoute>
               }
             />

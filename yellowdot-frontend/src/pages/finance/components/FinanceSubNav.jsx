@@ -27,6 +27,7 @@ const TAB_DEFS = [
   { id: "refunds",         label: "Refunds",        path: "/finance/refunds",         routeKey: ROUTES.FINANCE_REFUNDS },
   { id: "settings",        label: "Settings",       path: "/finance/settings",        routeKey: ROUTES.FINANCE_SETTINGS },
   { id: "audit-log",       label: "Audit Log",      path: "/finance/audit-log",       routeKey: ROUTES.FINANCE_AUDIT },
+  { id: "scheduler",       label: "Scheduler",      path: "/finance/scheduler",       routeKey: ROUTES.FINANCE_SCHEDULER },
 ];
 
 export default function FinanceSubNav({ active }) {
