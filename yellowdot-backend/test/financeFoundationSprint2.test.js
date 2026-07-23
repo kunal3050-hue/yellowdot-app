@@ -253,40 +253,49 @@ test("Route registration: the four Finance Foundation routers are only mounted w
 
 // ── Sprint 2 — Admission Integration ────────────────────────────────────
 
-test("admissionFinanceService.onStudentAdmitted: always creates the ledger; family/plan steps are conditional", async () => {
+test("admissionFinanceService.onStudentAdmitted: always creates the ledger; family/plan steps are conditional; a plan is auto-created AND auto-activated", async () => {
   const admissionSvc  = require("../services/admissionFinanceService");
   const ledgerSvc     = require("../services/studentLedgerService");
   const familyAcctSvc = require("../services/familyAccountService");
   const planSvc       = require("../services/billingPlanService");
 
-  const origCreateLedger = ledgerSvc.createLedger;
-  const origEnsure       = familyAcctSvc.ensureFinanceAccount;
-  const origPlanCreate   = planSvc.create;
+  const origCreateLedger  = ledgerSvc.createLedger;
+  const origEnsure        = familyAcctSvc.ensureFinanceAccount;
+  const origPlanCreate    = planSvc.create;
+  const origListForStudent = planSvc.listForStudent;
+  const origSetStatus     = planSvc.setStatus;
 
-  let ledgerCalled = false, familyCalled = false, planCalled = false;
+  let ledgerCalled = false, familyCalled = false, planCalled = false, activateCalled = false;
   ledgerSvc.createLedger   = async () => { ledgerCalled = true; return { studentId: "YD001" }; };
   familyAcctSvc.ensureFinanceAccount = async () => { familyCalled = true; return { familyId: "FAM001" }; };
-  planSvc.create           = async () => { planCalled = true; return { planId: "BPL000001" }; };
+  planSvc.listForStudent   = async () => []; // no pre-existing plan — M3.6 idempotency check
+  planSvc.create           = async () => { planCalled = true; return { planId: "BPL000001", status: "draft" }; };
+  planSvc.setStatus        = async (planId, status) => { activateCalled = true; return { planId, status }; };
 
   // No familyId, no feeTemplateId — only the ledger step should run.
   await admissionSvc.onStudentAdmitted({ studentId: "YD001", schoolId: "school-a" });
   assert.equal(ledgerCalled, true);
   assert.equal(familyCalled, false);
   assert.equal(planCalled, false);
+  assert.equal(activateCalled, false);
 
-  ledgerCalled = familyCalled = planCalled = false;
+  ledgerCalled = familyCalled = planCalled = activateCalled = false;
 
-  // Both provided — all three steps should run.
-  await admissionSvc.onStudentAdmitted({
-    studentId: "YD002", schoolId: "school-a", familyId: "FAM001", feeTemplateId: "TPL1",
+  // Both provided — all steps should run, including auto-activation (M3.6).
+  const outcome = await admissionSvc.onStudentAdmitted({
+    studentId: "YD002", schoolId: "school-a", familyId: "FAM001", feeTemplateId: "TPL1", admissionDate: "2026-07-15",
   });
   assert.equal(ledgerCalled, true);
   assert.equal(familyCalled, true);
   assert.equal(planCalled, true);
+  assert.equal(activateCalled, true, "a newly-created plan must be auto-activated — no additional staff action required");
+  assert.equal(outcome.billingPlan.status, "active");
 
   ledgerSvc.createLedger = origCreateLedger;
   familyAcctSvc.ensureFinanceAccount = origEnsure;
   planSvc.create = origPlanCreate;
+  planSvc.listForStudent = origListForStudent;
+  planSvc.setStatus = origSetStatus;
 });
 
 test("admissionFinanceService.onStudentAdmitted: a family-account failure never throws, and does not block the billing-plan step", async () => {
@@ -295,14 +304,18 @@ test("admissionFinanceService.onStudentAdmitted: a family-account failure never 
   const familyAcctSvc = require("../services/familyAccountService");
   const planSvc       = require("../services/billingPlanService");
 
-  const origCreateLedger = ledgerSvc.createLedger;
-  const origEnsure       = familyAcctSvc.ensureFinanceAccount;
-  const origPlanCreate   = planSvc.create;
+  const origCreateLedger  = ledgerSvc.createLedger;
+  const origEnsure        = familyAcctSvc.ensureFinanceAccount;
+  const origPlanCreate    = planSvc.create;
+  const origListForStudent = planSvc.listForStudent;
+  const origSetStatus     = planSvc.setStatus;
 
   ledgerSvc.createLedger = async () => ({ studentId: "YD003" });
   familyAcctSvc.ensureFinanceAccount = async () => { throw new Error("boom"); };
   let planCalled = false;
-  planSvc.create = async () => { planCalled = true; return { planId: "BPL000002" }; };
+  planSvc.listForStudent = async () => [];
+  planSvc.create = async () => { planCalled = true; return { planId: "BPL000002", status: "draft" }; };
+  planSvc.setStatus = async (planId, status) => ({ planId, status });
 
   const outcome = await admissionSvc.onStudentAdmitted({
     studentId: "YD003", schoolId: "school-a", familyId: "FAM002", feeTemplateId: "TPL1",
@@ -311,10 +324,55 @@ test("admissionFinanceService.onStudentAdmitted: a family-account failure never 
   assert.equal(outcome.ledger.studentId, "YD003");
   assert.equal(outcome.familyAccount, null); // failed, but caught
   assert.equal(planCalled, true);            // unaffected by the family-account failure
+  assert.equal(outcome.billingPlan.status, "active");
 
   ledgerSvc.createLedger = origCreateLedger;
   familyAcctSvc.ensureFinanceAccount = origEnsure;
   planSvc.create = origPlanCreate;
+  planSvc.listForStudent = origListForStudent;
+  planSvc.setStatus = origSetStatus;
+});
+
+test("admissionFinanceService.onStudentAdmitted: idempotent — a retried call for the same student never creates a second plan, and self-heals a prior create-without-activate", async () => {
+  const admissionSvc  = require("../services/admissionFinanceService");
+  const ledgerSvc     = require("../services/studentLedgerService");
+  const planSvc       = require("../services/billingPlanService");
+
+  const origCreateLedger  = ledgerSvc.createLedger;
+  const origPlanCreate    = planSvc.create;
+  const origListForStudent = planSvc.listForStudent;
+  const origSetStatus     = planSvc.setStatus;
+
+  ledgerSvc.createLedger = async () => ({ studentId: "YD006" });
+
+  // Simulates a prior call that created the plan but crashed before activating.
+  let createCalls = 0, activateCalls = 0;
+  planSvc.listForStudent = async () => [{ planId: "BPL-EXISTING", status: "draft" }];
+  planSvc.create    = async () => { createCalls += 1; return { planId: "BPL-SHOULD-NOT-EXIST", status: "draft" }; };
+  planSvc.setStatus = async (planId, status) => { activateCalls += 1; return { planId, status }; };
+
+  const outcome = await admissionSvc.onStudentAdmitted({
+    studentId: "YD006", schoolId: "school-a", feeTemplateId: "TPL1",
+  });
+
+  assert.equal(createCalls, 0, "an existing plan must never be re-created");
+  assert.equal(activateCalls, 1, "the existing draft plan must still be activated (self-heals the prior partial failure)");
+  assert.equal(outcome.billingPlan.planId, "BPL-EXISTING");
+  assert.equal(outcome.billingPlan.status, "active");
+
+  // A second retry, now that the plan is already active — must be a pure no-op.
+  planSvc.listForStudent = async () => [{ planId: "BPL-EXISTING", status: "active" }];
+  activateCalls = 0;
+  const outcome2 = await admissionSvc.onStudentAdmitted({
+    studentId: "YD006", schoolId: "school-a", feeTemplateId: "TPL1",
+  });
+  assert.equal(activateCalls, 0, "an already-active plan must never be re-activated");
+  assert.equal(outcome2.billingPlan.planId, "BPL-EXISTING");
+
+  ledgerSvc.createLedger = origCreateLedger;
+  planSvc.create = origPlanCreate;
+  planSvc.listForStudent = origListForStudent;
+  planSvc.setStatus = origSetStatus;
 });
 
 test("admissionFinanceService.onStudentAdmitted: a ledger-creation failure short-circuits (no ledger to attach anything to), never throws", async () => {

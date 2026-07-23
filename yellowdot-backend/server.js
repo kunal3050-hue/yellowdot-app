@@ -326,18 +326,24 @@ app.post("/add-student", authenticate, authorize("admin","center_admin","recepti
       });
     }
 
-    // ── Finance Foundation admission hook (Sprint 2) ─────────────────
+    // ── Finance Foundation admission hook (Sprint 2 + M3.6) ───────────
     // Feature-flagged, same "don't fail the caller" contract as the
     // pickup-auth block above — a Finance-layer failure must never break
     // student admission itself. Creates a Student Ledger (and, only if
-    // this payload ever carries a familyId/feeTemplateId, a Family Account
-    // facet / draft Billing Plan) — no invoice, no automation.
+    // this payload carries a familyId, a Family Account facet); if a fee
+    // template was selected in the admission wizard, also creates AND
+    // activates a Billing Plan (M3.6 — "no additional staff actions"),
+    // so the student is immediately eligible for the Recurring Billing
+    // Engine. No invoice is generated here — that only ever happens later,
+    // via the Manual Billing Engine or the scheduler, exactly as for any
+    // other active Billing Plan.
     if (studentId && process.env.FINANCE_FOUNDATION_ENABLED === "true") {
       admissionFinanceSvc
         .onStudentAdmitted({
           studentId, schoolId, centerId,
           familyId:      body.familyId      || body.family_id      || "",
           feeTemplateId: body.feeTemplateId || body.fee_template_id || "",
+          admissionDate: body.join_date     || body.joinDate        || "",
           actorUserId,
         })
         .catch(err => console.error("[add-student] Finance Foundation hook failed:", err.message));

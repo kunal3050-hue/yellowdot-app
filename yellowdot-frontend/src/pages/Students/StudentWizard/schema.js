@@ -16,13 +16,9 @@ export const GENDERS  = ["Male", "Female", "Other"];
 export const CENTERS  = ["Seawoods", "Vashi", "Kharghar", "Belapur"];
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 export const RELATIONS = ["Father", "Mother", "Guardian", "Grandparent", "Uncle", "Aunt", "Sibling", "Other"];
-export const FEE_TEMPLATES = [
-  { id: "full-day",  label: "Full Day Programme",   amount: "₹8,500 / month" },
-  { id: "half-day",  label: "Half Day Programme",   amount: "₹5,500 / month" },
-  { id: "playgroup", label: "Playgroup Package",    amount: "₹4,000 / month" },
-  { id: "daycare",   label: "Daycare (extended)",   amount: "₹10,000 / month" },
-  { id: "custom",    label: "Custom / No Template", amount: "Set manually later" },
-];
+// Fee Template options are now fetched live from financeApi.feeTemplates.list()
+// in StepFees (steps.jsx) — see that component's own header comment — rather
+// than a hardcoded placeholder list here.
 export const DOC_ROWS = [
   { key: "birthCertUpload",       label: "Birth Certificate",         hint: "PDF or image accepted" },
   { key: "addressProofUpload",    label: "Address Proof",             hint: "Aadhaar, utility bill, etc." },

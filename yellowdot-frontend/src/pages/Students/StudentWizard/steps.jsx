@@ -10,7 +10,8 @@ import { Camera, Plus, X, Search } from "lucide-react";
 import { Field, Input, Select, Button, Card } from "../../../components/ui";
 import { compressImage } from "../shared";
 import familyService from "../../../services/familyService";
-import { CLASSES, GENDERS, CENTERS, BLOOD_GROUPS, RELATIONS, FEE_TEMPLATES, DOC_ROWS } from "./schema";
+import financeApi from "../../../services/financeApi";
+import { CLASSES, GENDERS, CENTERS, BLOOD_GROUPS, RELATIONS, DOC_ROWS } from "./schema";
 
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 };
 
@@ -305,28 +306,77 @@ export function StepPickup({ watch, setValue }) {
 }
 StepPickup.fields = [];
 
-/* ── Step: Fees (optional, UI-only — matches original: not persisted) ─── */
+/* ── Step: Fees ────────────────────────────────────────────────────────
+ * Real Fee Templates (financeApi.feeTemplates.list — the same
+ * Finance Settings collection Billing Plans reference), not a hardcoded
+ * placeholder list. Selecting one here and completing admission
+ * automatically creates AND activates a Billing Plan for the student —
+ * no separate visit to the Billing Plans screen needed (M3.6). Leaving
+ * "No Fee Template" selected admits the student normally, with no
+ * Billing Plan created — staff can still add one manually later. */
 export function StepFees({ watch, setValue, register }) {
   const feeTemplate = watch("feeTemplate");
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    financeApi.feeTemplates.list()
+      .then(res => {
+        if (cancelled) return;
+        const active = (res?.templates || []).filter(t => t.active !== false);
+        setTemplates(active);
+      })
+      .catch(() => { if (!cancelled) setError("Couldn't load fee templates — you can still admit the student and set up billing later from Finance Settings."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <Card>
       <p style={{ fontSize: 12, fontWeight: 800, marginBottom: 4 }}>Fee Template</p>
-      <p style={{ fontSize: 12, color: "var(--yd-text-muted)", marginBottom: 12 }}>Select a fee package. You can change this later from the Fees module.</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {FEE_TEMPLATES.map(t => (
-          <label key={t.id} style={{
+      <p style={{ fontSize: 12, color: "var(--yd-text-muted)", marginBottom: 12 }}>
+        Select a fee package to automatically set up recurring billing for this student. You can change this later from Finance Settings.
+      </p>
+
+      {loading && <p style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>Loading fee templates…</p>}
+      {error && <p style={{ fontSize: 12, color: "var(--yd-danger)" }}>{error}</p>}
+
+      {!loading && !error && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, cursor: "pointer",
-            border: `2px solid ${feeTemplate === t.id ? "var(--yd-yellow)" : "var(--yd-border)"}`,
-            background: feeTemplate === t.id ? "var(--yd-yellow-light)" : "var(--yd-surface)",
+            border: `2px solid ${!feeTemplate ? "var(--yd-yellow)" : "var(--yd-border)"}`,
+            background: !feeTemplate ? "var(--yd-yellow-light)" : "var(--yd-surface)",
           }}>
-            <input type="radio" name="feeTemplate" checked={feeTemplate === t.id} onChange={() => setValue("feeTemplate", t.id)} style={{ accentColor: "var(--yd-yellow-dark)" }} />
+            <input type="radio" name="feeTemplate" checked={!feeTemplate} onChange={() => setValue("feeTemplate", "")} style={{ accentColor: "var(--yd-yellow-dark)" }} />
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700 }}>{t.label}</p>
-              <p style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>{t.amount}</p>
+              <p style={{ fontSize: 12, fontWeight: 700 }}>No Fee Template</p>
+              <p style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>Set up billing manually later</p>
             </div>
           </label>
-        ))}
-      </div>
+          {templates.map(t => (
+            <label key={t.templateId} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, cursor: "pointer",
+              border: `2px solid ${feeTemplate === t.templateId ? "var(--yd-yellow)" : "var(--yd-border)"}`,
+              background: feeTemplate === t.templateId ? "var(--yd-yellow-light)" : "var(--yd-surface)",
+            }}>
+              <input type="radio" name="feeTemplate" checked={feeTemplate === t.templateId} onChange={() => setValue("feeTemplate", t.templateId)} style={{ accentColor: "var(--yd-yellow-dark)" }} />
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700 }}>{t.templateName}</p>
+                <p style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>₹{Number(t.amount || 0).toLocaleString("en-IN")} / {(t.billingCycle || "Monthly").toLowerCase()}</p>
+              </div>
+            </label>
+          ))}
+          {templates.length === 0 && (
+            <p style={{ fontSize: 12, color: "var(--yd-text-muted)" }}>
+              No fee templates set up yet — create one from Finance Settings, or admit this student and add billing later.
+            </p>
+          )}
+        </div>
+      )}
+
       <Field label="Fee Notes" style={{ marginTop: 12 }}>
         <textarea {...register("feeNotes")} rows={2} className="yd-input" style={{ resize: "none" }} placeholder="Any special fee arrangements, discounts, or notes…" />
       </Field>
