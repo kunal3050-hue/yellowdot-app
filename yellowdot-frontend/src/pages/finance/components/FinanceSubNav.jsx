@@ -17,17 +17,23 @@ import { ROUTES } from "../../../config/permissions";
 import Tabs from "../../../components/ui/Tabs";
 import financePendingRefundsBadge from "../hooks/useFinancePendingRefundsBadge";
 
+// Order mirrors the consolidated FINANCE sidebar group (sidebarConfig.js) —
+// Collections and Reports are the legacy Collections.jsx/Analytics.jsx
+// screens pulled in unchanged (see the consolidation note at the top of each
+// file), reusing their existing routeKey so RBAC stays exactly as it was.
 const TAB_DEFS = [
-  { id: "dashboard",       label: "Dashboard",      path: "/finance/dashboard",       routeKey: ROUTES.FINANCE_DASHBOARD },
-  { id: "ledger",          label: "Student Ledger", path: "/finance/ledger",          routeKey: ROUTES.FINANCE_LEDGER },
-  { id: "billing-plans",   label: "Billing Plans",  path: "/finance/billing-plans",   routeKey: ROUTES.FINANCE_BILLING_PLANS },
-  { id: "invoices",        label: "Invoices",       path: "/finance/invoices",        routeKey: ROUTES.FINANCE_INVOICES },
-  { id: "payments",        label: "Payments",       path: "/finance/payments",        routeKey: ROUTES.FINANCE_PAYMENTS },
-  { id: "family-account",  label: "Family Account", path: "/finance/family-account",  routeKey: ROUTES.FINANCE_FAMILY_ACCOUNT },
-  { id: "refunds",         label: "Refunds",        path: "/finance/refunds",         routeKey: ROUTES.FINANCE_REFUNDS },
-  { id: "settings",        label: "Settings",       path: "/finance/settings",        routeKey: ROUTES.FINANCE_SETTINGS },
-  { id: "audit-log",       label: "Audit Log",      path: "/finance/audit-log",       routeKey: ROUTES.FINANCE_AUDIT },
-  { id: "scheduler",       label: "Scheduler",      path: "/finance/scheduler",       routeKey: ROUTES.FINANCE_SCHEDULER },
+  { id: "dashboard",       label: "Dashboard",         path: "/finance/dashboard",       routeKey: ROUTES.FINANCE_DASHBOARD },
+  { id: "ledger",          label: "Student Ledger",    path: "/finance/ledger",          routeKey: ROUTES.FINANCE_LEDGER },
+  { id: "billing-plans",   label: "Billing Plans",     path: "/finance/billing-plans",   routeKey: ROUTES.FINANCE_BILLING_PLANS },
+  { id: "invoices",        label: "Invoices",          path: "/finance/invoices",        routeKey: ROUTES.FINANCE_INVOICES },
+  { id: "payments",        label: "Payments",          path: "/finance/payments",        routeKey: ROUTES.FINANCE_PAYMENTS },
+  { id: "collections",     label: "Collections",       path: "/collections",             routeKey: ROUTES.FEES },
+  { id: "family-account",  label: "Family Accounts",   path: "/finance/family-account",  routeKey: ROUTES.FINANCE_FAMILY_ACCOUNT },
+  { id: "refunds",         label: "Refunds",           path: "/finance/refunds",         routeKey: ROUTES.FINANCE_REFUNDS },
+  { id: "reports",         label: "Reports",           path: "/analytics",               routeKey: ROUTES.ANALYTICS },
+  { id: "scheduler",       label: "Recurring Billing", path: "/finance/scheduler",       routeKey: ROUTES.FINANCE_SCHEDULER },
+  { id: "settings",        label: "Settings",          path: "/finance/settings",        routeKey: ROUTES.FINANCE_SETTINGS },
+  { id: "audit-log",       label: "Audit Log",         path: "/finance/audit-log",       routeKey: ROUTES.FINANCE_AUDIT },
 ];
 
 export default function FinanceSubNav({ active }) {

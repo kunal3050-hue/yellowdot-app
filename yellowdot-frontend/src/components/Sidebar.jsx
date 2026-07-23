@@ -17,6 +17,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { PLATFORM_NAME } from "../config/environment";
+import useFinancePlatformStatus from "../pages/finance/hooks/useFinancePlatformStatus";
 import {
   ROLE_LABELS, ROLE_HIERARCHY,
   isBypassRole,
@@ -40,7 +41,7 @@ import {
   ChevronDown, LogOut, User, X, Settings, Briefcase, Shield, CalendarDays,
   AlertTriangle, UsersRound, CalendarCheck, CalendarOff, Bell, Megaphone,
   Grid, BookOpen, Layers, UserCheck, QrCode, Heart, Building2, ScrollText,
-  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock,
+  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock, TrendingUp,
 } from "lucide-react";
 
 const IC = { size: 16, strokeWidth: 1.75 };
@@ -51,7 +52,7 @@ const LUCIDE_ICONS = {
   LogOut, User, Settings, Briefcase, Shield, CalendarDays,
   AlertTriangle, UsersRound, CalendarCheck, CalendarOff, Bell, Megaphone,
   Grid, BookOpen, Layers, UserCheck, QrCode, Heart, Building2, ScrollText,
-  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock,
+  LayoutDashboard, Repeat, Wallet, Undo2, Settings2, Clock, TrendingUp,
 };
 
 const ICONS = Object.fromEntries(
@@ -330,6 +331,11 @@ function Avatar({ user, size = 30 }) {
 export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   const navigate    = useNavigate();
   const { user, role, permissions, can, logout, isDeveloper, setDevRole, devRole } = useAuth();
+  // While disabled (or still checking), show the legacy "finance" group only —
+  // the two Finance nav groups must never both be visible at once. Defaults to
+  // legacy during the brief status-check window since that matches today's
+  // actual production state (flag off) far more often than not.
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
 
   const [devPanelOpen,     setDevPanelOpen]     = useState(false);
   const [devSectionOpen,   setDevSectionOpen]   = useState(true); // developer nav group open state
@@ -351,6 +357,11 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
   // superAdminOnly groups only visible to super_admin / developer bypass roles
   const regularGroups = SIDEBAR_GROUPS
     .filter(group => !group.devOnly && (!group.superAdminOnly || effectiveRole === "super_admin" || isBypass))
+    .filter(group => {
+      if (group.id === "finance")          return financeEnabled !== true;
+      if (group.id === "finance_platform") return financeEnabled === true;
+      return true;
+    })
     .map(group => ({
       ...group,
       visibleItems: group.items.filter(item => {

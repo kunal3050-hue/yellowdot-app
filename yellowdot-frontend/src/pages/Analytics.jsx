@@ -3,6 +3,12 @@
  * ─────────────────────────────────────────────────────────────────
  * Uses yd design system. Fetches from new /api/invoices + /api/payments.
  * Wrapped in MainLayout (provides sidebar).
+ *
+ * Consolidation note: unchanged data/charts — now ALSO reachable from the
+ * consolidated Finance Platform nav as "Reports" (sidebarConfig.js's
+ * "finance_reports" item, shown once FINANCE_FOUNDATION_ENABLED is on).
+ * `<FinanceSubNav active="reports" />` is rendered ONLY while the flag is
+ * on, so the legacy "Analytics" experience stays unchanged while off.
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -12,6 +18,8 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { api } from "../services/authService";
+import FinanceSubNav from "./finance/components/FinanceSubNav";
+import useFinancePlatformStatus from "./finance/hooks/useFinancePlatformStatus";
 
 const get = url => api.get(url).then(r => r.data);
 const INR = n => `₹${(Number(n) || 0).toLocaleString("en-IN")}`;
@@ -49,6 +57,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function Analytics() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -153,6 +162,13 @@ export default function Analytics() {
         <h1 className="yd-title-page" style={{ fontSize: 32 }}>Analytics</h1>
         <p className="yd-text-secondary mt-1">Financial performance overview — {invoices.length} invoices · {payments.length} payments</p>
       </div>
+
+      {/* Finance Platform tab strip — only once the module is consolidated */}
+      {financeEnabled === true && (
+        <div className="mb-6">
+          <FinanceSubNav active="reports" />
+        </div>
+      )}
 
       {/* ── KPI stats ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">

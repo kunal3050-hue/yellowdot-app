@@ -3,6 +3,16 @@
  * ─────────────────────────────────────────────────────────────────
  * Finance → Collections. School-wide fee-collection command center.
  *
+ * Consolidation note: this screen is unchanged (same route, same data
+ * fetching, same charts/tables) — it is now ALSO reachable from the
+ * consolidated Finance Platform nav (sidebarConfig.js's "finance_collections"
+ * item, shown once FINANCE_FOUNDATION_ENABLED is on). `<FinanceSubNav
+ * active="collections" />` is rendered ONLY while the flag is on
+ * (useFinancePlatformStatus) — the legacy, flag-off experience stays
+ * byte-for-byte unchanged, since RBAC alone (can(routeKey)) is NOT
+ * flag-aware and would otherwise leak Finance Platform tabs into this
+ * page even with the module disabled.
+ *
  *   Cards   : Today · This Week · This Month · Academic Year ·
  *             Outstanding · Overdue
  *   Charts  : Monthly Collection Trend · Class-wise Collection ·
@@ -31,6 +41,8 @@ import { INR, parseCurrency, sumAmounts } from "../utils/currency";
 import { fetchAllInvoices } from "../services/invoiceService";
 import { fetchAllPayments } from "../services/paymentService";
 import { downloadCSV, downloadExcel } from "../services/financeService";
+import FinanceSubNav from "./finance/components/FinanceSubNav";
+import useFinancePlatformStatus from "./finance/hooks/useFinancePlatformStatus";
 
 const CLASSES = ["All", "Daycare", "Playgroup", "Nursery", "LKG", "UKG",
                  "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
@@ -112,6 +124,7 @@ const STATUS_BADGE = {
 
 // ════════════════════════════════════════════════════════════════════
 export default function Collections() {
+  const { enabled: financeEnabled } = useFinancePlatformStatus();
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -349,6 +362,13 @@ export default function Collections() {
             <button onClick={printDashboard} className="btn btn-primary btn-sm" disabled={loading}>🖨 Print</button>
           </div>
         </div>
+
+        {/* Finance Platform tab strip — only once the module is consolidated */}
+        {financeEnabled === true && (
+          <div style={{ padding: "0 16px" }}>
+            <FinanceSubNav active="collections" />
+          </div>
+        )}
 
         {/* KPI cards */}
         <div className="flex-shrink-0 px-4 pt-3 pb-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">

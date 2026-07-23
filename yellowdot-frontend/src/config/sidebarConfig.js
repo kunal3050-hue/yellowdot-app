@@ -296,7 +296,12 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
-  // ── Finance ────────────────────────────────────────────────────────────────
+  // ── Finance (legacy) ─────────────────────────────────────────────────────────
+  // Shown ONLY while FINANCE_FOUNDATION_ENABLED is off (see Sidebar.jsx's
+  // financeEnabled filter) — the pre-Finance-Platform experience, untouched.
+  // Once the flag is on, this whole group disappears and "Finance Platform"
+  // below (relabeled "Finance") takes over as the single finance experience —
+  // never both at once, per the consolidation requirement.
   {
     id:          "finance",
     label:       "Finance",
@@ -335,20 +340,23 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
-  // ── Finance Platform ─────────────────────────────────────────────────────────
-  // New Finance Foundation UI — additive, sits alongside the legacy Finance
-  // group above (untouched). Gated by FINANCE_FOUNDATION_ENABLED server-side;
-  // frontend routeKeys mirror backend's "finance-foundation" role grant
-  // (admin/center_admin/center_owner/accountant), see permissions.js.
+  // ── Finance Platform (shown as "Finance" once enabled) ───────────────────────
+  // Replaces the legacy Finance group above when FINANCE_FOUNDATION_ENABLED is
+  // on (see Sidebar.jsx's financeEnabled filter) — never shown alongside it.
+  // Collections and Reports/Analytics are the legacy Collections.jsx/Analytics.jsx
+  // screens pulled into this group unchanged (same path/routeKey/component —
+  // see the consolidation note in each file); "Fees" has no primary nav slot
+  // here at all — fee template/component management lives inside Finance
+  // Settings instead (see FinanceSettings.jsx's "Fee Templates" tab).
   {
     id:          "finance_platform",
-    label:       "Finance Platform",
+    label:       "Finance",
     collapsible: true,
-    defaultOpen: false,
+    defaultOpen: true,
     items: [
       {
         id:       "finance_dashboard",
-        label:    "Finance Dashboard",
+        label:    "Dashboard",
         path:     "/finance/dashboard",
         routeKey: ROUTES.FINANCE_DASHBOARD,
         icon:     "LayoutDashboard",
@@ -382,8 +390,15 @@ export const SIDEBAR_GROUPS = [
         icon:     "Wallet",
       },
       {
+        id:       "finance_collections",
+        label:    "Collections",
+        path:     "/collections",
+        routeKey: ROUTES.FEES,   // reuses Fees permission, same as the legacy item
+        icon:     "TrendingUp",
+      },
+      {
         id:       "finance_family_account",
-        label:    "Family Account",
+        label:    "Family Accounts",
         path:     "/finance/family-account",
         routeKey: ROUTES.FINANCE_FAMILY_ACCOUNT,
         icon:     "Users",
@@ -396,6 +411,20 @@ export const SIDEBAR_GROUPS = [
         icon:     "Undo2",
       },
       {
+        id:       "finance_reports",
+        label:    "Reports",
+        path:     "/analytics",
+        routeKey: ROUTES.ANALYTICS,
+        icon:     "BarChart2",
+      },
+      {
+        id:       "finance_scheduler",
+        label:    "Recurring Billing",
+        path:     "/finance/scheduler",
+        routeKey: ROUTES.FINANCE_SCHEDULER,
+        icon:     "Clock",
+      },
+      {
         id:       "finance_settings",
         label:    "Finance Settings",
         path:     "/finance/settings",
@@ -404,17 +433,10 @@ export const SIDEBAR_GROUPS = [
       },
       {
         id:       "finance_audit",
-        label:    "Finance Audit Log",
+        label:    "Audit Log",
         path:     "/finance/audit-log",
         routeKey: ROUTES.FINANCE_AUDIT,
         icon:     "ScrollText",
-      },
-      {
-        id:       "finance_scheduler",
-        label:    "Billing Scheduler",
-        path:     "/finance/scheduler",
-        routeKey: ROUTES.FINANCE_SCHEDULER,
-        icon:     "Clock",
       },
     ],
   },

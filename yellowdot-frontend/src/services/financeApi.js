@@ -166,6 +166,29 @@ const financeApi = {
     },
   },
 
+  // ── Fee Templates / Fee Components ───────────────────────────────────
+  // Not a Finance Foundation route (registered unconditionally in
+  // server.js, pre-dates the flag) — the same /api/fee-templates surface
+  // the legacy Invoice module's FeeTemplates.jsx already uses, and the
+  // exact `feeTemplates` collection financeBillingEngineService.js reads
+  // `feeTemplateId` from for Billing Plans. Surfaced here so admins can
+  // create/manage them from Finance Settings instead of only via the
+  // legacy /invoice/templates screen.
+  feeTemplates: {
+    list() {
+      return api.get("/api/fee-templates").then(r => r.data);
+    },
+    create(data) {
+      return api.post("/api/fee-templates", data).then(r => r.data);
+    },
+    update(templateId, data) {
+      return api.put(`/api/fee-templates/${templateId}`, data).then(r => r.data);
+    },
+    remove(templateId) {
+      return api.delete(`/api/fee-templates/${templateId}`).then(r => r.data);
+    },
+  },
+
   // ── Audit Log (read-only) ────────────────────────────────────────────
   auditLog: {
     list(params = {}) {

@@ -130,7 +130,7 @@ export default function FinanceScheduler() {
     <PageShell
       header={
         <PageHeader
-          title="Billing Scheduler"
+          title="Recurring Billing"
           tag="Finance Platform"
           subtitle="Recurring invoice generation across every school — platform-wide, developer/super_admin only"
           primaryAction={financeEnabled === false ? undefined : { label: "Run Now", icon: <PlayCircle size={14} strokeWidth={2} />, onClick: handleRunNow, disabled: running }}
@@ -173,7 +173,7 @@ export default function FinanceScheduler() {
             entityLabel="runs"
             searchPlaceholder="Search run ID…"
             exportFilename="finance-scheduler-runs"
-            exportTitle="Billing Scheduler Runs"
+            exportTitle="Recurring Billing Runs"
             empty={{
               title: "No scheduler runs yet",
               description: "Runs will appear here once the daily cron trigger fires, or you can start one manually with Run Now.",

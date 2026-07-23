@@ -167,7 +167,7 @@ export default function FinanceFamilyAccount() {
 
   return (
     <PageShell
-      header={<PageHeader title="Family Account" subtitle={account ? `Family ${account.familyId}` : "Look up a family to view its finance account"} />}
+      header={<PageHeader title="Family Accounts" subtitle={account ? `Family ${account.familyId}` : "Look up a family to view its finance account"} />}
     >
       <FinanceSubNav active="family-account" />
 
