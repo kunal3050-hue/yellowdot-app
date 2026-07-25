@@ -54,6 +54,12 @@ export function AuthProvider({ children }) {
   const [user,           setUser]          = useState(null);
   const [permissions,    setPermissions]   = useState([]);
   const [roleMatrix,     setRoleMatrix]    = useState({});  // granular { moduleId: { action: bool } }
+  // PLATFORM ARCHITECTURE §2c.1 / §2c.2 — server-resolved, added in Phase 2.
+  // `null` means "the server did not send it", which is distinct from "sent
+  // and empty": consumers fall back to build-time flags / client-derived scope
+  // only in the null case, so an older backend keeps working unchanged.
+  const [features,       setFeatures]      = useState(null);
+  const [serverScope,    setServerScope]   = useState(null);
   const [loading,        setLoading]       = useState(true);  // always starts loading (SplashScreen needs true→false)
   const [devRole,        setDevRoleState]  = useState(null);
   const [profileMissing, setProfileMissing] = useState(false);
@@ -82,11 +88,15 @@ export function AuthProvider({ children }) {
             setUser(data.user || null);
             setPermissions([]);
             setRoleMatrix({});
+            setFeatures(null);
+            setServerScope(null);
             setProfileMissing(true);
           } else {
             setUser(data.user);
             setPermissions(data.permissions || []);
             setRoleMatrix(data.roleMatrix || {});
+            setFeatures(data.features ?? null);
+            setServerScope(data.scope ?? null);
             setProfileMissing(false);
           }
         } catch (err) {
@@ -96,6 +106,8 @@ export function AuthProvider({ children }) {
           setUser(null);
           setPermissions([]);
           setRoleMatrix({});
+          setFeatures(null);
+          setServerScope(null);
           setProfileMissing(false);
         }
       } else {
@@ -103,6 +115,8 @@ export function AuthProvider({ children }) {
         setUser(null);
         setPermissions([]);
         setRoleMatrix({});
+        setFeatures(null);
+        setServerScope(null);
         setDevRoleState(null);
         setProfileMissing(false);
       }
@@ -178,6 +192,8 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     setPermissions(data.permissions || []);
     setRoleMatrix(data.roleMatrix || {});
+    setFeatures(data.features ?? null);
+    setServerScope(data.scope ?? null);
     return data;
   }
 
@@ -187,6 +203,8 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     setPermissions(data.permissions || []);
     setRoleMatrix(data.roleMatrix || {});
+    setFeatures(data.features ?? null);
+    setServerScope(data.scope ?? null);
     return data;
   }
 
@@ -311,6 +329,8 @@ export function AuthProvider({ children }) {
     role:            effectiveRole,
     permissions,
     roleMatrix,
+    features,      // §2c.2 server-resolved flags, or null if the backend is older
+    serverScope,   // §2c.1 hierarchical scope, or null
     loading,
     isAuthenticated: !!user,
     profileMissing,

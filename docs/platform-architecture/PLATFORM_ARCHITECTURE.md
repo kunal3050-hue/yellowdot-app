@@ -8,6 +8,7 @@
 
 | Rev | Date | Change |
 |---|---|---|
+| 1.2 | 2026-07-26 | **§2c.1 generalised to a hierarchical scope ladder** — `self · team · classroom · department · branch · school · tenant · platform` — replacing rev 1.1's three-rung `self/team/all`, so the model extends without another migration. **New §2c.2: three-layer feature flags** — platform defaults → subscription plan → tenant overrides, with an incident kill switch above all three. Both are the substance of §12 Phase 2. Duplicate permission map deletion is now formally tied to the registry being proven the single source of truth (§12 Phase 11), not to Phase 1. |
 | 1.1 | 2026-07-26 | **§2c amended — capability scope levels `self` / `team` / `all`.** Driven by Phase 1's finding that the HR suite is unreachable: the obvious fix (grant `staff-payroll` to `teacher`) would hand every teacher the whole payroll module, when what is intended is "a teacher may see *their own* payslip." A binary capability cannot express that. Access to HR, Payroll and Performance is **blocked pending this model** — see §2c.1 and `PHASE1_ACCESS_DIFF.md`. No other section changes. |
 | 1.0 | 2026-07-25 | Approved. Five refinements incorporated: **R1** Service Registry (§5A) — widgets and task providers consume services, never `api` directly. **R2** Event Bus (§5B) — modules publish events; Dashboard, Care, notifications and audit react without coupling. **R3** AI promoted to a platform-level AI Engine (§5E), not a widget. **R4** Notification (§5C) and Audit (§5D) Engines — modules never notify or write audit rows directly. **R5** Per-user widget customization confirmed **out of v1**; role-based layouts only (closes open question 5). |
 
@@ -197,14 +198,28 @@ So the matrix value changes from a boolean to a level:
 { staff_payroll: { view: true } }  { staff_payroll: { view: "all" } }
 ```
 
-| Level | Means | Resolves through |
-|---|---|---|
-| `none` | No access. Equivalent to the old `false`. | — |
-| `self` | Only rows about **me**. | `user.userId` / the caller's own staff record |
-| `team` | Rows about **my direct reports**, plus my own. | `staff.reportingManagerId` — *already exists*, confirmed in the Backend Capability Audit |
-| `all` | Every row in scope. Equivalent to the old `true`. | bounded by the branch/class gate below |
+**The ladder** *(rev 1.2 — generalised from rev 1.1's `self`/`team`/`all`)*. Each rung contains the ones below it, so a single ordered comparison answers every check:
 
-**Backward compatible by construction:** `true` → `all`, `false` → `none`. Every existing role document keeps its exact current meaning with no migration, and `canDo(m, a)` keeps returning a boolean (`level !== "none"`), so the eight screens using it today are unaffected.
+| Rank | Level | Means | Resolves through | Exists today? |
+|---|---|---|---|---|
+| 0 | `none` | No access. The old `false`. | — | ✅ |
+| 1 | `self` | Only rows about **me**. | `user.userId` | ✅ |
+| 2 | `team` | My **direct reports**, plus me. | `staff.reportingManagerId` | ✅ field exists |
+| 3 | `classroom` | One class/batch. | academics class + batch allocation | ✅ |
+| 4 | `department` | One department. | `staff.departmentId` | ✅ |
+| 5 | `branch` | One centre. | `user.centerId` / `centers[]`, `tenants.branches[]` | ✅ |
+| 6 | `school` | Everything for this school. **The old `true`.** | `user.schoolId` | ✅ |
+| 7 | `tenant` | Every school under one tenant. | `tenants/{tenantId}` | ⚠️ see below |
+| 8 | `platform` | Across all tenants. | bypass roles only | ✅ via `_bypass` |
+
+**Backward compatible by construction:** `true` → `school`, `false` → `none`. `school` is the correct landing rung because that is exactly what `true` means today — every backend query is already scoped by `schoolId`, and the finer rungs are *narrowing* options that must be opted into. **No existing role document changes meaning, and no rung below `school` is ever applied unless someone sets it.** `canDo(m, a)` keeps returning a boolean (`level !== "none"`), so the screens using it are unaffected.
+
+**Two honest caveats, stated rather than glossed:**
+
+1. **`school` and `tenant` resolve identically today.** One tenant currently means one school (`schoolId` ≈ `tenantId`; `tenants.branches[]` holds the sub-units). Both rungs are kept because the distinction is the one an enterprise customer with several schools under one contract will need, and adding a rung later would renumber the ladder. Until that customer exists, `tenant` is reachable but equivalent to `school`.
+2. **`team` is the one non-structural rung.** Every other level is containment — a classroom sits inside a department sits inside a branch. `team` is a *graph relation* (who reports to me), and a manager's reports can in principle span departments. It is placed at rank 2 because in this domain reports almost always sit within the manager's own unit, so treating it as a narrow rung is safe and useful. If that assumption ever breaks, `team` becomes a modifier rather than a rung — the resolver isolates it in one function so that change stays local.
+
+**Ordering is the whole point.** `levelAtLeast(actual, required)` is a rank comparison, so a `branch`-scoped user automatically satisfies a `classroom` requirement, and a new rung can be inserted without touching a single call site.
 
 **This is a different axis from the branch/class gate.** They compose, and conflating them is the mistake to avoid:
 
@@ -219,14 +234,66 @@ A principal with `staff_leave.approve: "team"` in branch `seawoods` sees leave r
 |---|---|---|---|---|
 | Teacher | `self` | `self` | `none` | `self` |
 | Principal / Center Admin | `team` | `team` | `team` | `team` |
-| Center Owner | `all` | `all` | `all` | `all` |
+| Branch Head *(future)* | `branch` | `branch` | `branch` | `branch` |
+| Center Owner | `school` | `school` | `school` | `school` |
 | Accountant | `none` | `none` | `none` | `none` |
 
-Compare with what the current maps would have granted a teacher: `all`, on every column. That gap is precisely why the access-widening diff is held for review rather than applied.
+Compare with what the current maps would have granted a teacher: `school`, on every column. That gap is precisely why the access-widening diff is held for review rather than applied. Note that the "Branch Head" row needs **no new code** — it is a role document with different rung values, which is the test this ladder has to pass.
 
 **Enforcement is server-side, always.** The level travels in `roleMatrix`, and the frontend uses it to choose what to render and which query to issue — but the API must independently resolve `self`/`team` from the authenticated user, never from a client-supplied parameter. A `self`-scoped client asking for someone else's payslip must get a 403 from the server, not merely an absent button. This is the same boundary as §10's security note, and it is why the HR access change waits for the model rather than shipping on frontend gating alone.
 
 **Cost, stated honestly:** every HR endpoint that today returns "all rows for the school" needs a scope-aware `WHERE`. That is real backend work — the reason this is a prerequisite for the HR access change rather than something bolted on afterwards. Modules with no self/team distinction (Attendance, Finance, Communication) simply declare `all` and are unaffected.
+
+### 2c.2 Feature flags — three layers plus a kill switch *(rev 1.2)*
+
+Flags are build-time constants today (`featureFlags.js` resolves from `isPreProduction`; the backend reads `process.env.FINANCE_FOUNDATION_ENABLED`). Two tenants on one deployment cannot differ, which blocks licensing, staged rollout, and per-customer enablement alike (§0.3 gap 3).
+
+**Four inputs, resolved in strict precedence order:**
+
+```
+resolve(flag, tenant) =
+  1. kill switch      →  platform says OFF, unconditionally      (incident response)
+  2. tenant override  →  explicit true/false on this tenant      (support, beta, enterprise)
+  3. plan grant       →  does their subscription include it      (licensing)
+  4. platform default →  the flag's own default                  (staged rollout)
+```
+
+| Layer | Lives in | Owned by | Answers |
+|---|---|---|---|
+| **Platform default** | `platform/features/catalog.js` | Engineering | "Is this built, and is it on by default?" |
+| **Subscription plan** | `platform/features/plans.js` | Product / commercial | "Does this plan include it?" |
+| **Tenant override** | `tenants/{id}.features` | Support / Super Admin | "Does *this* customer get it, regardless of plan?" |
+| **Kill switch** | `catalog.killed` | Engineering, incident-time | "Turn it off everywhere, now." |
+
+**Flag descriptor:**
+
+```js
+{
+  key:         "FINANCE_FOUNDATION",
+  label:       "Finance Platform",
+  stage:       "ga",          // internal → alpha → beta → ga → deprecated
+  default:     true,          // platform default when no plan/override applies
+  killed:      false,         // incident kill switch — beats everything
+  minPlan:     "standard",    // cheapest plan that includes it; null = not plan-gated
+  modules:     ["finance_dashboard", "finance_ledger", …],  // registry ids this flag gates
+}
+```
+
+**Why an explicit `null`/`undefined` distinction matters:** a tenant override of `false` must survive a plan that grants the feature — that is exactly the "turn it off for this customer" case. So the resolver tests *presence*, never truthiness. `features: { FINANCE_FOUNDATION: false }` is a deliberate deny, not an absent key.
+
+**How each named use case is served:**
+
+| Use case | Mechanism |
+|---|---|
+| Licensing | `minPlan` + the plan's feature list |
+| Staged rollout | `default: false`, enabled per tenant via overrides, then flipped to `default: true` |
+| Beta programme | `stage: "beta"` + overrides for opted-in tenants; the stage drives UI labelling, not access |
+| Enterprise one-offs | tenant override above the plan |
+| Incident | `killed: true` — one edit, every tenant, no per-tenant cleanup |
+
+**Migration is defaults-preserving.** Every flag's `default` is seeded to exactly its current resolved value, and `minPlan` is `null` for all of them at cutover, so **on day one every tenant resolves precisely what it resolves today**. Plan gating is turned on per flag afterwards, deliberately. `FINANCE_FOUNDATION` additionally keeps reading its env var as a fallback until the tenant data is populated — belt and braces, since it is live in production.
+
+**Where it is enforced:** the resolved flag set is computed server-side and returned by `/api/auth/me` alongside `scope`. The frontend consumes it as gate 1; the backend consults the same resolver in route middleware. A flag is not a security boundary on its own — a disabled module's endpoints must still reject on capability, exactly as `financeFoundationFlag.js` does today.
 
 ### 2c. The three-gate resolution — permission is necessary, not sufficient
 
@@ -249,14 +316,21 @@ Collapsing these is the mistake to avoid. They answer different questions, fail 
 **Scope is a first-class object, not a permission:**
 
 ```js
+// One member per rung of the ladder (§2c.1) — so resolving a capability's
+// level to a concrete filter is a lookup, never a switch statement.
 scope = {
-  tenantId:  "kueboxs",
-  schoolId:  "ydseawoods",
-  branchIds: ["seawoods"],        // from user.centers[] — today's centerId
-  classIds:  ["butterfly-room"],  // from teacher allocation; [] = all in branch
-  self:      "staff_1042",        // for self-service views (own leave, own payslip)
+  platform:   true,                    // bypass roles only
+  tenantId:   "kueboxs",
+  schoolId:   "ydseawoods",
+  branchIds:  ["seawoods"],            // user.centerId / centers[]
+  departmentIds: ["academic"],         // staff.departmentId
+  classIds:   ["butterfly-room"],      // class + batch allocation; [] = all in branch
+  teamIds:    ["staff_1077", "staff_1078"],   // direct reports (reportingManagerId)
+  self:       "staff_1042",
 }
 ```
+
+**The contract that keeps this honest:** `scopeFor(level, scope)` returns the filter for a rung, and every list endpoint applies it. A `classroom`-level user asking for a `branch`-level query gets the classroom filter, server-side, resolved from their token — **never from a client-supplied parameter.** That is the difference between this being access control and being a UI convenience.
 
 Widgets and task providers receive `scope` and **must** parameterise their fetches with it. A widget that ignores scope is a bug, not a feature — but the backend remains the enforcement point (this is why §12 pairs every frontend phase with backend verification, and why the Backend Capability Audit's IDOR findings remain open work independent of this refactor).
 
@@ -900,10 +974,10 @@ Ship `usePermissions()`; teach `can()` to accept capabilities with legacy fallba
 **Verify:** every role's resolved route keys are byte-identical before/after, all 9 roles. **Revert:** single commit.
 *Closes two shipped bugs — a school genuinely cannot restrict Finance per-role today.*
 
-### Phase 2 — Backend: tenant features + scope
+### Phase 2 — Backend: hierarchical scope + three-layer feature flags
 
-`tenants.features` map, `scope` on `/api/auth/me`, `isEnabled()` reading tenant config with the env var as fallback (§10 items 1–2).
-**Verify:** existing tenants default to current flag values — no behaviour change on day one. **Revert:** flags fall back to env.
+The feature catalogue, plan matrix and `tenants.features` overrides (§2c.2); the scope resolver producing every rung of the ladder (§2c.1); both returned by `/api/auth/me`; `isEnabled()` reading the resolver with the env var as fallback.
+**Verify:** a resolution harness proves **every flag resolves to its current value for every plan**, and that scope resolution grants no rung the caller's data does not already support. No behaviour change on day one. **Revert:** flags fall back to env, scope is additive and ignored by existing code.
 
 ### Phase 3 — Service Registry *(R1)*
 
@@ -952,8 +1026,11 @@ Extract `ParentLayout`'s tab bar to a shared `AppShell`; staff mobile gets Dashb
 
 ### Phase 11 — Cleanup
 
-Delete `quickNavigation/`, the legacy `can(routeKey)` path, the stale-permission auto-refresh workaround (`AuthContext.jsx:132-151`), the duplicated `MODULE_ROUTE_MAP`, and — only now — the legacy audit writes, after repointing the Finance Audit screen (§5D.4).
-**Verify:** no dead imports; full regression across all 9 roles; Finance Audit screen reads unified records.
+Delete `quickNavigation/`, the legacy `can(routeKey)` path, the stale-permission auto-refresh workaround (`AuthContext.jsx:132-151`), and — only now — the legacy audit writes, after repointing the Finance Audit screen (§5D.4).
+
+**The duplicated permission maps are deleted here and nowhere earlier.** All three (`roleService.STATIC_ROLE_PERMS`, `permissionsBackend.ROLE_PERMISSIONS`, frontend `permissions.js ROLE_PERMISSIONS`) come out only once the registry is *proven* to be the single source of truth — meaning navigation, routes and the permission matrix all derive from it and `verify:registry` plus `verify:permissions` have been green across a full release cycle. Until then `permissions-divergence.json` freezes the duplication so it cannot grow, and the maps stay as the evidence base for the access diff.
+
+**Verify:** no dead imports; full regression across all 9 roles; Finance Audit screen reads unified records; permission resolution byte-identical to the baseline with every legacy map deleted.
 
 ### Phase 12 — AI Engine *(R3 — v2, not scheduled)*
 

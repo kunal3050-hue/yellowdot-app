@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "verify:registry": "node --import ./registry-register.mjs verify-registry.mjs",
     "verify:permissions": "node --import ./registry-register.mjs verify-permissions.mjs",
+    "verify:features": "node verify-features.mjs",
+    "verify:all": "npm run verify:registry && npm run verify:permissions && npm run verify:features",
     "preview": "vite preview"
   },
   "dependencies": {

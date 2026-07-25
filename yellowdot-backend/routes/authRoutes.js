@@ -16,6 +16,44 @@ const { authenticate } = require("../middleware/authMiddleware");
 const { ROLE_HOME, ROLE_PERMISSIONS, isBypassRole } = require("../config/permissionsBackend");
 const roleSvc = require("../services/roleService");
 const { buildSyncUserResponse } = require("../services/authSyncService");
+const tenantSvc  = require("../services/tenantService");
+const { resolveAll } = require("../platform/features/resolveFeatures");
+const { buildScope } = require("../platform/scope/resolveScope");
+
+// ── Tenant feature resolution (PLATFORM ARCHITECTURE §2c.2) ───────────────────
+// 60 s in-process cache, matching roleService's cadence, so adding feature
+// resolution to /api/auth/me does not add a Firestore read per sign-in.
+const _tenantCache = new Map();   // schoolId → { tenant, exp }
+
+async function _loadTenant(schoolId) {
+  if (!schoolId) return null;
+  const hit = _tenantCache.get(schoolId);
+  if (hit && Date.now() < hit.exp) return hit.tenant;
+
+  let tenant = null;
+  try {
+    // schoolId doubles as tenantId today — see §2c.1 caveat 1.
+    tenant = await tenantSvc.getById(schoolId);
+  } catch (err) {
+    console.warn(`[AUTH /me] tenant lookup failed for '${schoolId}': ${err.message}`);
+  }
+  _tenantCache.set(schoolId, { tenant, exp: Date.now() + 60_000 });
+  return tenant;
+}
+
+/**
+ * Never allowed to break sign-in. A missing or unreadable tenant resolves to
+ * platform defaults, which are seeded to today's values — so the failure mode
+ * is "exactly current behaviour", not a locked-out school.
+ */
+async function resolveFeaturesForUser(user) {
+  try {
+    return resolveAll(await _loadTenant(user?.schoolId));
+  } catch (err) {
+    console.warn(`[AUTH /me] feature resolution failed: ${err.message} — using platform defaults`);
+    return resolveAll(null);
+  }
+}
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 // Verifies the Firebase ID token and returns the user's profile + permissions.
@@ -75,6 +113,13 @@ router.get("/api/auth/me", authenticate, async (req, res) => {
       roleMatrix,   // granular { moduleId: { action: bool } } for button-level UI enforcement
       homeRoute,
       requiresCenterSelect: centers?.length > 1 && !center,
+      // ── PLATFORM ARCHITECTURE §2c.1 / §2c.2 (Phase 2) ────────────────────
+      // Both fields are ADDITIVE. Existing clients ignore them; the frontend
+      // prefers `features` over its build-time flags only when present, and
+      // the catalogue's defaults are seeded to today's resolved values, so
+      // nothing changes for anyone on the day this ships.
+      features: await resolveFeaturesForUser(req.user),
+      scope:    buildScope(req.user, { isBypass: isBypassRole(role) }),
     };
 
     return res.json(response);

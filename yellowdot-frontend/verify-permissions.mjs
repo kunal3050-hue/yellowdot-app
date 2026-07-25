@@ -36,6 +36,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { extractLiteral } from "./verify-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BACKEND   = join(__dirname, "../yellowdot-backend");
@@ -49,40 +50,6 @@ const pass = (m, x = "") => console.log(`${PASS} ${m}${x ? `  →  ${x}` : ""}`)
 const fail = (m, x = "") => { console.error(`${FAIL} ${m}${x ? `  →  ${x}` : ""}`); failures++; };
 const warn = (m, x = "") => { console.log(`${WARN} ${m}${x ? `  →  ${x}` : ""}`); warnings++; };
 const section = t => console.log(`\n── ${t} ${"─".repeat(Math.max(0, 62 - t.length))}`);
-
-/**
- * Slice a balanced `{...}` or `[...]` literal that follows `marker` and
- * evaluate it. `scope` supplies any identifiers the literal spreads in.
- */
-function extractLiteral(src, marker, scope = {}) {
-  const start = src.indexOf(marker);
-  if (start === -1) throw new Error(`marker not found: ${marker}`);
-  // Skip whitespace after the marker and take whichever bracket opens first.
-  let openIdx = start + marker.length;
-  while (openIdx < src.length && /\s/.test(src[openIdx])) openIdx++;
-  const open = src[openIdx];
-  if (open !== "{" && open !== "[") {
-    throw new Error(`expected { or [ after "${marker}", found "${open}"`);
-  }
-  const close = open === "{" ? "}" : "]";
-
-  let depth = 0, end = -1, inStr = null, inComment = null;
-  for (let i = openIdx; i < src.length; i++) {
-    const c = src[i], next = src[i + 1];
-    if (inComment === "line")  { if (c === "\n") inComment = null; continue; }
-    if (inComment === "block") { if (c === "*" && next === "/") { inComment = null; i++; } continue; }
-    if (inStr) { if (c === "\\") i++; else if (c === inStr) inStr = null; continue; }
-    if (c === "/" && next === "/") { inComment = "line"; i++; continue; }
-    if (c === "/" && next === "*") { inComment = "block"; i++; continue; }
-    if (c === '"' || c === "'" || c === "`") { inStr = c; continue; }
-    if (c === open) depth++;
-    else if (c === close && --depth === 0) { end = i + 1; break; }
-  }
-  if (end === -1) throw new Error(`unbalanced literal after: ${marker}`);
-
-  const names = Object.keys(scope);
-  return new Function(...names, `return (${src.slice(openIdx, end)});`)(...names.map(n => scope[n]));
-}
 
 const sortUniq = arr => [...new Set(arr)].sort();
 

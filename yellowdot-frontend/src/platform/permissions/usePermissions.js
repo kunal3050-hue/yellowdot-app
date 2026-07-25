@@ -38,8 +38,13 @@ import { checkCapability, resolveLevel, MIN_GRANTED } from "./capabilities.js";
  * `classIds` is present but always empty: the frozen decision (Q4) is
  * branch-level scope in v1, with class-level deferred until a module needs it.
  */
+const EMPTY_SCOPE = {
+  platform: false, tenantId: null, schoolId: null,
+  branchIds: [], departmentIds: [], classIds: [], teamIds: null, self: null,
+};
+
 function deriveScope(user) {
-  if (!user) return { tenantId: null, schoolId: null, branchIds: [], classIds: [], self: null };
+  if (!user) return EMPTY_SCOPE;
 
   const branchIds = user.activeCenter
     ? [user.activeCenter]
@@ -48,16 +53,16 @@ function deriveScope(user) {
         : (user.center ? [user.center] : []));
 
   return {
-    tenantId:  user.tenantId ?? null,     // not yet issued by the backend — Phase 2
-    schoolId:  user.schoolId ?? null,
+    ...EMPTY_SCOPE,
+    tenantId: user.tenantId ?? user.schoolId ?? null,
+    schoolId: user.schoolId ?? null,
     branchIds,
-    classIds:  [],                        // Q4: branch-level in v1
-    self:      user.userId ?? null,
+    self:     user.userId ?? null,
   };
 }
 
 export function usePermissions() {
-  const { user, roleMatrix, can: legacyCan, permissions } = useAuth();
+  const { user, roleMatrix, can: legacyCan, permissions, features, serverScope } = useAuth();
 
   return useMemo(() => {
     const matrix = roleMatrix || {};
@@ -91,17 +96,36 @@ export function usePermissions() {
 
     const level = capability => resolveLevel(matrix, capability);
 
+    /**
+     * Feature-flag gate (§2c.2).
+     *
+     * Prefers the server's four-layer resolution, which is the only thing that
+     * knows about this tenant's plan and overrides. Falls back to the
+     * build-time flag ONLY when the server did not send a value for the key —
+     * an older backend, or a flag the catalogue does not list yet. Since the
+     * catalogue's defaults are seeded to today's build-time values, the two
+     * agree flag-for-flag at cutover (asserted by verify:features).
+     */
+    const isEnabled = (flag) => {
+      if (features && Object.prototype.hasOwnProperty.call(features, flag)) {
+        return Boolean(features[flag]);
+      }
+      return isFlagEnabled(flag);
+    };
+
     return {
       can,
       level,
-      scope: deriveScope(user),
-      /** Feature-flag gate. Phase 2 layers per-tenant features over this. */
-      isEnabled: isFlagEnabled,
+      /** Server-resolved when available; client-derived otherwise (§2c.1). */
+      scope: serverScope ?? deriveScope(user),
+      isEnabled,
+      /** True when the flag set came from the server rather than the bundle. */
+      featuresFromServer: Boolean(features),
       roleMatrix: matrix,
       /** Escape hatch for the few places still reasoning about routeKeys. */
       routeKeys: permissions,
     };
-  }, [user, roleMatrix, permissions, legacyCan]);
+  }, [user, roleMatrix, permissions, legacyCan, features, serverScope]);
 }
 
 export default usePermissions;
