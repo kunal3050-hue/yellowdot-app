@@ -13,6 +13,50 @@
  * build. Removing an entry here after fixing it is part of that fix.
  */
 
+/**
+ * ⛔ UNREACHABLE MODULES — the largest defect found so far, surfaced by
+ * verify-permissions.mjs in §12 Phase 1.
+ *
+ * 17 routeKeys gating ~40 shipped screens cannot be granted to ANY non-bypass
+ * role. This is not a configuration problem and no Firestore edit can fix it:
+ *
+ *   effective(role) = deriveRouteKeys(roleDoc.permissions) ∪ STATIC_ROLE_PERMS[role]
+ *
+ * `deriveRouteKeys` can only ever emit keys that appear as VALUES in
+ * roleService.js's MODULE_ROUTE_MAP. These 17 appear in neither that map nor
+ * in STATIC_ROLE_PERMS, so both terms of the union exclude them — for every
+ * role, under every possible role document.
+ *
+ * Meanwhile ProtectedRoute sends can(routeKey)===false straight to
+ * /unauthorized, and the sidebar hides the item. Developer and super_admin are
+ * unaffected because isBypassRole() short-circuits every check before it — the
+ * most likely reason this survived: the modules work perfectly when tested as
+ * a developer, and only fail for real staff.
+ *
+ * Both non-authoritative maps (backend config/permissionsBackend.js and
+ * frontend config/permissions.js) DO grant these keys per role, so intent is
+ * well evidenced — roleService.js's copy is simply stale, missing whole
+ * modules shipped after it was written.
+ *
+ * Closing this is the substance of §12 Phase 1. It WIDENS access, so it is a
+ * reviewed change, not a silent one.
+ */
+export const UNREACHABLE_ROUTEKEYS = [
+  "care-hygiene", "child-journey", "events", "incidents", "ptm",
+  "qr-management", "staff-checkout", "academics-student-allocation",
+  "staff-attendance", "staff-shifts", "staff-leave", "staff-leave-types",
+  "staff-payroll", "staff-payroll-process",
+  "staff-performance", "staff-performance-manage",
+  "tenant-management",   // super-admin only in practice, and they bypass — lowest impact
+  "dev-tools",           // developer only, and they bypass — no user impact
+  "finance-scheduler",   // bypass-only BY DESIGN (see permissions.js) — not a defect
+];
+
+/** Of the above, the ones with genuine user impact (excludes bypass-only keys). */
+export const UNREACHABLE_WITH_IMPACT = UNREACHABLE_ROUTEKEYS.filter(
+  k => !["finance-scheduler", "dev-tools", "tenant-management"].includes(k)
+);
+
 /** Nav targets and granted routeKeys that have no <Route> anywhere. */
 export const KNOWN_ORPHANS = [
   {
