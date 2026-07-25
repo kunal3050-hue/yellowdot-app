@@ -30,6 +30,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import authService from "../services/authService";
 import { checkPermission, isBypassRole, getPermissionsForRole } from "../config/permissions";
+import { checkCapability, resolveLevel, isCapability } from "../platform/permissions/capabilities.js";
 
 const AuthContext = createContext(null);
 
@@ -225,15 +226,36 @@ export function AuthProvider({ children }) {
   // PERMISSION CHECK
   // ════════════════════════════════════════════════════════════════════════
 
-  function can(routeKey) {
+  /**
+   * Route-level OR capability-level permission check.
+   *
+   * A capability contains a dot ("attendance.view"); a legacy routeKey does
+   * not ("attendance"). The routeKey path below is unchanged — same order,
+   * same result for every existing call site. Capability strings are the new
+   * form (PLATFORM ARCHITECTURE §2b) and resolve against roleMatrix.
+   *
+   * Prefer usePermissions() in new code; this overload exists so the two
+   * namespaces can coexist while call sites migrate (§12 Phase 11 removes the
+   * routeKey path).
+   */
+  function can(routeKeyOrCapability) {
     const effectiveRole = devRole || user?.role;
+
+    // Capability form — delegate to the shared resolver so level semantics
+    // (none/self/team/all, §2c.1) are applied in exactly one place.
+    if (isCapability(routeKeyOrCapability)) {
+      if (isBypassRole(effectiveRole)) return true;
+      return checkCapability(roleMatrix, routeKeyOrCapability);
+    }
+
+    // ── Legacy routeKey path — behaviour preserved exactly ──────────────
     if (isBypassRole(effectiveRole)) return true;
     if (devRole) {
       const devPerms = getPermissionsForRole(devRole);
       if (devPerms.includes("*")) return true;
-      return devPerms.includes(routeKey);
+      return devPerms.includes(routeKeyOrCapability);
     }
-    return checkPermission(effectiveRole, permissions, routeKey);
+    return checkPermission(effectiveRole, permissions, routeKeyOrCapability);
   }
 
   /**
@@ -251,7 +273,22 @@ export function AuthProvider({ children }) {
     if (isBypassRole(effectiveRole)) return true;
     // If roleMatrix has _bypass flag (wildcard roles) — allow all
     if (roleMatrix?._bypass) return true;
-    return Boolean(roleMatrix?.[moduleId]?.[action]);
+    // Resolved through the level model rather than Boolean(): identical for
+    // the legacy true/false values stored today, but correct once a matrix
+    // holds "none"/"self"/"team"/"all" (§2c.1) — Boolean("none") is true,
+    // which would silently grant access.
+    return checkCapability(roleMatrix, `${moduleId}.${action}`);
+  }
+
+  /**
+   * Scope level for a capability — "none" | "self" | "team" | "all" (§2c.1).
+   * Screens that must render differently for self vs team vs all use this;
+   * everything else keeps using the boolean can()/canDo().
+   */
+  function levelOf(capability) {
+    const effectiveRole = devRole || user?.role;
+    if (isBypassRole(effectiveRole)) return "all";
+    return resolveLevel(roleMatrix, capability);
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -290,8 +327,9 @@ export function AuthProvider({ children }) {
     refreshPermissions,
 
     // Permission helpers
-    can,    // route-level:  can("students")
-    canDo,  // action-level: canDo("students", "delete")
+    can,      // routeKey: can("students") — or capability: can("students.view")
+    canDo,    // action-level: canDo("students", "delete")
+    levelOf,  // scope level: levelOf("staff_payroll.view") → "none"|"self"|"team"|"all"
 
     // Dev tools
     setDevRole,

@@ -114,6 +114,41 @@ function run() {
   const ROLES = ["developer", "super_admin", "admin", "center_admin", "center_owner",
                  "teacher", "accountant", "reception", "parent"];
 
+  // ── 0. Capability model — backward compatibility ───────────────────────────
+  // canDo() switched from Boolean(matrix[m][a]) to the level resolver (§2c.1).
+  // These assertions prove the two agree on every value shape stored today.
+  section("0. Capability level model (§2c.1)");
+
+  const cap = _capabilities;
+  const cases = [
+    // [matrix, capability, expectedLevel, expectedBoolean, note]
+    [{ attendance: { view: true } },    "attendance.view", "all",  true,  "legacy true → all"],
+    [{ attendance: { view: false } },   "attendance.view", "none", false, "legacy false → none"],
+    [{ attendance: {} },                "attendance.view", "none", false, "missing action"],
+    [{},                                "attendance.view", "none", false, "missing module"],
+    [{ _bypass: true },                 "attendance.view", "all",  true,  "bypass grants all"],
+    [{ staff_payroll: { view: "self" } }, "staff_payroll.view", "self", true, "self grants access"],
+    [{ staff_payroll: { view: "team" } }, "staff_payroll.view", "team", true, "team grants access"],
+    [{ staff_payroll: { view: "none" } }, "staff_payroll.view", "none", false,
+      "string 'none' must be FALSE — Boolean('none') would have been true"],
+    [{ staff_payroll: { view: "bogus" } }, "staff_payroll.view", "none", false, "unknown value fails closed"],
+    [{ fees: { view: false, edit: true } }, "fees.*", "all", true, "wildcard takes strongest"],
+  ];
+
+  let modelFails = 0;
+  for (const [matrix, capability, expLevel, expBool, note] of cases) {
+    const gotLevel = cap.resolveLevel(matrix, capability);
+    const gotBool  = cap.checkCapability(matrix, capability);
+    if (gotLevel !== expLevel || gotBool !== expBool) {
+      fail(`level model: ${note}`, `got ${gotLevel}/${gotBool}, expected ${expLevel}/${expBool}`);
+      modelFails++;
+    }
+  }
+  // Ordering: "all" must satisfy a "team" requirement, "self" must not.
+  if (!cap.levelAtLeast("all", "team"))  { fail("level ordering: all should satisfy team"); modelFails++; }
+  if (cap.levelAtLeast("self", "team"))  { fail("level ordering: self must not satisfy team"); modelFails++; }
+  if (!modelFails) pass("Level model correct and backward compatible", `${cases.length} cases + ordering`);
+
   // ── 1. Effective permissions per role ──────────────────────────────────────
   section("1. Effective permissions per role (authoritative path)");
 
@@ -206,18 +241,51 @@ function run() {
   // ── 5. Three-copy divergence ───────────────────────────────────────────────
   section("5. Divergence across the three role→routeKey maps");
 
+  // The three maps cannot be collapsed yet: permissionsBackend.ROLE_PERMISSIONS
+  // is still a defensive fallback at authRoutes.js:57 and is read by
+  // scripts/validatePhase1.js and two finance tests, and the frontend copy
+  // drives the developer role switcher. Until the access diff is reviewed and
+  // applied, the divergence is *evidence of intent* and must not be deleted.
+  //
+  // What we can do meanwhile is freeze it: this snapshot fails the build if the
+  // duplication grows, so the problem cannot get worse while it waits.
+  const divergence = {};
   for (const role of ROLES) {
     if (role === "developer" || role === "super_admin") continue;
     const authoritative = new Set(STATIC_ROLE_PERMS[role] || []);
     const mirrored      = new Set(BE_ROLE_PERMISSIONS[role] || []);
-    const onlyMirror = [...mirrored].filter(k => !authoritative.has(k));
-    const onlyAuth   = [...authoritative].filter(k => !mirrored.has(k));
-    if (onlyMirror.length || onlyAuth.length) {
-      warn(`${role}: permissionsBackend vs roleService differ`,
-           `+${onlyMirror.length} / -${onlyAuth.length}`);
+    divergence[role] = {
+      onlyInMirror: [...mirrored].filter(k => !authoritative.has(k)).sort(),
+      onlyInAuthoritative: [...authoritative].filter(k => !mirrored.has(k)).sort(),
+    };
+  }
+
+  const DIV_FILE = join(__dirname, "permissions-divergence.json");
+  if (UPDATE || !existsSync(DIV_FILE)) {
+    writeFileSync(DIV_FILE, JSON.stringify(divergence, null, 2) + "\n");
+    warn("Divergence snapshot written — review in git before committing");
+  } else {
+    const prev = JSON.parse(readFileSync(DIV_FILE, "utf8"));
+    let grew = 0;
+    for (const role of Object.keys(divergence)) {
+      for (const side of ["onlyInMirror", "onlyInAuthoritative"]) {
+        const before = new Set(prev[role]?.[side] || []);
+        const added = divergence[role][side].filter(k => !before.has(k));
+        if (added.length) {
+          fail(`${role}.${side}: duplication GREW — the three maps drifted further apart`,
+               added.join(", "));
+          grew++;
+        }
+      }
+    }
+    if (!grew) {
+      pass("Map duplication did not grow", "frozen until the access diff is applied");
+      const total = Object.values(divergence)
+        .reduce((n, d) => n + d.onlyInMirror.length + d.onlyInAuthoritative.length, 0);
+      warn(`${total} keys still diverge across the three maps`,
+           "see docs/platform-architecture/review/PHASE1_ACCESS_DIFF.md");
     }
   }
-  if (!warnings) pass("The two backend maps agree for every role");
 
   // ── Summary ────────────────────────────────────────────────────────────────
   section("Summary");
@@ -235,10 +303,12 @@ function run() {
 // The registry is ESM with extensionless-free imports, so a plain dynamic
 // import works; it is loaded synchronously-ish via top-level await in main().
 let _registry = null;
+let _capabilities = null;
 const requireRegistrySync = () => _registry;
 
 const main = async () => {
-  _registry = await import("./src/platform/registry/index.js");
+  _registry     = await import("./src/platform/registry/index.js");
+  _capabilities = await import("./src/platform/permissions/capabilities.js");
   run();
 };
 

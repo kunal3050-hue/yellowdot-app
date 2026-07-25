@@ -25,7 +25,7 @@
  */
 
 const { auth, db }       = require("../firebaseAdmin");
-const { isBypassRole, ROLE_PERMISSIONS } = require("../config/permissionsBackend");
+const { isBypassRole } = require("../config/permissionsBackend");
 const roleSvc            = require("../services/roleService");
 
 const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
@@ -269,10 +269,6 @@ function authorizeRoute(routeKey) {
     }
     next();
   };
-}
-
-function getPermissions(role) {
-  return ROLE_PERMISSIONS[role] || [];
 }
 
 // ── Security guards ────────────────────────────────────────────────

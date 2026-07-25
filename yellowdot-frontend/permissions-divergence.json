@@ -1,0 +1,109 @@
+{
+  "admin": {
+    "onlyInMirror": [
+      "academics-student-allocation",
+      "care-hygiene",
+      "cctv",
+      "child-journey",
+      "departments",
+      "designations",
+      "families",
+      "qr-management",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-checkout",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": []
+  },
+  "center_admin": {
+    "onlyInMirror": [
+      "academics-student-allocation",
+      "care-hygiene",
+      "child-journey",
+      "departments",
+      "designations",
+      "qr-management",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-checkout",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": []
+  },
+  "center_owner": {
+    "onlyInMirror": [
+      "academics-student-allocation",
+      "care-hygiene",
+      "cctv",
+      "child-journey",
+      "departments",
+      "designations",
+      "families",
+      "qr-management",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-checkout",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": []
+  },
+  "teacher": {
+    "onlyInMirror": [
+      "academics-student-allocation",
+      "care-hygiene",
+      "cctv",
+      "child-journey",
+      "staff-attendance",
+      "staff-checkout",
+      "staff-leave",
+      "staff-payroll",
+      "staff-performance"
+    ],
+    "onlyInAuthoritative": []
+  },
+  "accountant": {
+    "onlyInMirror": [],
+    "onlyInAuthoritative": []
+  },
+  "reception": {
+    "onlyInMirror": [
+      "staff-checkout"
+    ],
+    "onlyInAuthoritative": []
+  },
+  "parent": {
+    "onlyInMirror": [],
+    "onlyInAuthoritative": [
+      "parent-checkin",
+      "pickup-history"
+    ]
+  }
+}

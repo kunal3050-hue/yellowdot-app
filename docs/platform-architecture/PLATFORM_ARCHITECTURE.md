@@ -8,6 +8,7 @@
 
 | Rev | Date | Change |
 |---|---|---|
+| 1.1 | 2026-07-26 | **§2c amended — capability scope levels `self` / `team` / `all`.** Driven by Phase 1's finding that the HR suite is unreachable: the obvious fix (grant `staff-payroll` to `teacher`) would hand every teacher the whole payroll module, when what is intended is "a teacher may see *their own* payslip." A binary capability cannot express that. Access to HR, Payroll and Performance is **blocked pending this model** — see §2c.1 and `PHASE1_ACCESS_DIFF.md`. No other section changes. |
 | 1.0 | 2026-07-25 | Approved. Five refinements incorporated: **R1** Service Registry (§5A) — widgets and task providers consume services, never `api` directly. **R2** Event Bus (§5B) — modules publish events; Dashboard, Care, notifications and audit react without coupling. **R3** AI promoted to a platform-level AI Engine (§5E), not a widget. **R4** Notification (§5C) and Audit (§5D) Engines — modules never notify or write audit rows directly. **R5** Per-user widget customization confirmed **out of v1**; role-based layouts only (closes open question 5). |
 
 **Interpretation of the approval:** the four remaining open questions from v0 are treated as **accepted as recommended** — capability format `module.action` (Q1), shared FE/BE registry artifact with a CI drift check (Q2), route `/dashboard` (Q3), and branch-level scope in v1 with class-level deferred (Q4). Each is flagged at its point of use; say the word on any and it changes before that phase ships.
@@ -169,14 +170,63 @@ Today: `can(routeKey)` (route-level) and `canDo(moduleId, action)` (action-level
 Target: **one function.**
 
 ```js
-const { can, scope, isEnabled } = usePermissions();
+const { can, level, scope, isEnabled } = usePermissions();
 
-can("attendance.view")                 // capability
+can("attendance.view")                 // capability → boolean (level !== "none")
 can("attendance.*")                    // any action on the module
 can(["fees.view", "invoices.view"])    // any-of
+
+level("staff_payroll.view")            // "none" | "self" | "team" | "all"  (rev 1.1, §2c.1)
+can("staff_payroll.view", "team")      // true only at "team" OR "all" — levels are ordered
 ```
 
+`can()` stays boolean so existing call sites are unaffected; `level()` is the new capability for screens that must render differently for self vs team vs all. Levels are ordered `none < self < team < all`, so a `"team"` requirement is satisfied by `"all"`.
+
 Migration is non-breaking because the two namespaces are distinguishable: a capability contains a dot, a legacy route key does not. `can()` routes bare strings to the legacy list during Phase 1–3 of §12 and logs a deprecation warning in dev builds, so the 18 files using `can(routeKey)` keep working untouched while they are converted.
+
+### 2c.1 Capability scope levels — `self` / `team` / `all` *(rev 1.1)*
+
+**A capability is not a boolean. It is a level.**
+
+Phase 1 found the HR suite unreachable for every non-bypass role. The mechanical fix — grant `staff-payroll` to `teacher`, as two of the three existing role maps already say — is wrong, because that key is all-or-nothing: it would give every teacher the payroll module for the whole school when the intent is "a teacher may open *their own* payslip." The same is true of leave (mine vs my reports' vs everyone's) and performance reviews.
+
+So the matrix value changes from a boolean to a level:
+
+```js
+// before                          // after
+{ staff_payroll: { view: true } }  { staff_payroll: { view: "all" } }
+```
+
+| Level | Means | Resolves through |
+|---|---|---|
+| `none` | No access. Equivalent to the old `false`. | — |
+| `self` | Only rows about **me**. | `user.userId` / the caller's own staff record |
+| `team` | Rows about **my direct reports**, plus my own. | `staff.reportingManagerId` — *already exists*, confirmed in the Backend Capability Audit |
+| `all` | Every row in scope. Equivalent to the old `true`. | bounded by the branch/class gate below |
+
+**Backward compatible by construction:** `true` → `all`, `false` → `none`. Every existing role document keeps its exact current meaning with no migration, and `canDo(m, a)` keeps returning a boolean (`level !== "none"`), so the eight screens using it today are unaffected.
+
+**This is a different axis from the branch/class gate.** They compose, and conflating them is the mistake to avoid:
+
+- **Scope level** answers *whose* records — mine, my team's, everyone's.
+- **Data scope** (gate 3 below) answers *where* — which branch, which class.
+
+A principal with `staff_leave.approve: "team"` in branch `seawoods` sees leave requests from their direct reports at Seawoods — the intersection, never the union.
+
+**Worked example — what the HR keys should actually grant:**
+
+| Role | `staff_payroll.view` | `staff_leave.view` | `staff_leave.approve` | `staff_performance.view` |
+|---|---|---|---|---|
+| Teacher | `self` | `self` | `none` | `self` |
+| Principal / Center Admin | `team` | `team` | `team` | `team` |
+| Center Owner | `all` | `all` | `all` | `all` |
+| Accountant | `none` | `none` | `none` | `none` |
+
+Compare with what the current maps would have granted a teacher: `all`, on every column. That gap is precisely why the access-widening diff is held for review rather than applied.
+
+**Enforcement is server-side, always.** The level travels in `roleMatrix`, and the frontend uses it to choose what to render and which query to issue — but the API must independently resolve `self`/`team` from the authenticated user, never from a client-supplied parameter. A `self`-scoped client asking for someone else's payslip must get a 403 from the server, not merely an absent button. This is the same boundary as §10's security note, and it is why the HR access change waits for the model rather than shipping on frontend gating alone.
+
+**Cost, stated honestly:** every HR endpoint that today returns "all rows for the school" needs a scope-aware `WHERE`. That is real backend work — the reason this is a prerequisite for the HR access change rather than something bolted on afterwards. Modules with no self/team distinction (Attendance, Finance, Communication) simply declare `all` and are unaffected.
 
 ### 2c. The three-gate resolution — permission is necessary, not sufficient
 
