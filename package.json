@@ -1,0 +1,13 @@
+{
+  "name": "kueboxs-care",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "KUE BOXS Care — repo-root scripts. The apps live in yellowdot-frontend and yellowdot-backend.",
+  "scripts": {
+    "dev:local": "node scripts/dev-local.mjs",
+    "dev:local:seed": "node scripts/dev-local.mjs --seed-only",
+    "dev:local:noseed": "node scripts/dev-local.mjs --no-seed",
+    "verify:all": "npm --prefix yellowdot-frontend run verify:all"
+  }
+}

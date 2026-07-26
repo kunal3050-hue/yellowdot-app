@@ -15,6 +15,14 @@
  */
 
 const admin = require("firebase-admin");
+const { isEmulator, emulatorStatus, assertDevNotPointedAtProduction } =
+  require("./platform/devEnv/emulatorGuard");
+
+// Startup interlock. Refuses to initialise when APP_ENV=development but the
+// process is wired to a real Firebase project — the configuration this repo
+// shipped with, where local dev silently read and wrote live production data.
+// Only fires for APP_ENV=development; production and staging are untouched.
+assertDevNotPointedAtProduction();
 
 if (!admin.apps.length) {
   const svcEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -28,7 +36,18 @@ if (!admin.apps.length) {
     process.env.GOOGLE_CLOUD_PROJECT // GCP managed env
   );
 
-  if (svcEnv) {
+  // ── Emulator branch — evaluated FIRST, before any credential path ────────
+  // A demo project needs no credentials: the SDK talks only to the local
+  // emulator and will not contact Google for a `demo-` prefixed project.
+  if (isEmulator()) {
+    const s = emulatorStatus();
+    admin.initializeApp({ projectId: s.projectId });
+    console.log(
+      `[firebase-admin] 🧪 EMULATOR MODE — project=${s.projectId} ` +
+      `firestore=${s.firestoreHost} auth=${s.authHost}\n` +
+      "                 No production service can be reached from this process.",
+    );
+  } else if (svcEnv) {
     // Explicit JSON string — used on Railway / Render
     try {
       const serviceAccount = JSON.parse(svcEnv);
