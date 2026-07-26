@@ -21,6 +21,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePermissions } from "../permissions/usePermissions.js";
 import { callRead } from "../services/index.js";
 import WIDGETS from "./widgets.js";
+import { resolveWidgets } from "./resolve.js";
+
+// Re-exported, not reimplemented: resolve.js is the single source and is what
+// verify-roles.mjs exercises directly.
+export { resolveWidgets };
 
 export const WIDGETS_BY_ID = Object.fromEntries(WIDGETS.map(w => [w.id, w]));
 
@@ -30,21 +35,6 @@ export const WIDGETS_BY_ID = Object.fromEntries(WIDGETS.map(w => [w.id, w]));
     if (seen.has(w.id)) throw new Error(`Widget registry: duplicate widget id "${w.id}"`);
     seen.add(w.id);
   }
-}
-
-/**
- * Which widgets this user may see, in order.
- * Pure — no fetching — so it can be unit-checked without a network.
- */
-export function resolveWidgets({ can, isEnabled, role }) {
-  return WIDGETS
-    .filter(w => (w.featureFlag ? isEnabled(w.featureFlag) : true))
-    .filter(w => can(w.capability))
-    .sort((a, b) => {
-      const ao = a.displayOrder?.[role] ?? a.priority;
-      const bo = b.displayOrder?.[role] ?? b.priority;
-      return ao - bo || a.id.localeCompare(b.id);
-    });
 }
 
 /** Resolve a widget's declared reads → { key: payload }, failures isolated. */

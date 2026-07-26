@@ -20,9 +20,12 @@ import { usePermissions } from "../permissions/usePermissions.js";
 import { callRead } from "../services/index.js";
 import { MODULES_BY_ID } from "../registry/index.js";
 import PROVIDERS from "./providers.js";
+import { resolveProviders, resolveCareModules } from "./resolve.js";
 import { computePriority, compareTasks, normalizeTask } from "./defineTaskProvider.js";
 
 export * from "./defineTaskProvider.js";
+// Re-exported, not reimplemented — resolve.js is the single source.
+export { resolveProviders, resolveCareModules };
 
 // ── Integrity: a provider must belong to a registered module ─────────────────
 // This is what keeps §4's "providers are part of module registration" true even
@@ -39,13 +42,6 @@ export * from "./defineTaskProvider.js";
       );
     }
   }
-}
-
-/** Providers this user may see. Pure — checkable without a network. */
-export function resolveProviders({ can, isEnabled }) {
-  return PROVIDERS
-    .filter(p => (p.featureFlag ? isEnabled(p.featureFlag) : true))
-    .filter(p => can(p.capability));
 }
 
 /** Run one provider: fetch its reads, map to tasks. Never throws. */
@@ -167,22 +163,7 @@ export function useTaskFeed() {
 export function useCareModules() {
   const { can, isEnabled } = usePermissions();
   const { role } = useAuth();
-
-  return useMemo(() => {
-    return Object.values(MODULES_BY_ID)
-      .filter(m => m.surfaces?.care)
-      .filter(m => (m.featureFlag ? isEnabled(m.featureFlag) : true))
-      .filter(m => can(m.capability))
-      .map(m => ({
-        id: m.id,
-        label: m.label,
-        icon: m.icon,
-        category: m.category,
-        path: m.routes.find(r => r.nav?.length)?.path ?? m.routes[0]?.path,
-        order: m.surfaces.care.roles?.[role] ?? m.surfaces.care.order ?? 500,
-      }))
-      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
-  }, [can, isEnabled, role]);
+  return useMemo(() => resolveCareModules({ can, isEnabled, role }), [can, isEnabled, role]);
 }
 
 export { PROVIDERS };

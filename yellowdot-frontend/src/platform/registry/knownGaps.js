@@ -57,6 +57,46 @@ export const UNREACHABLE_WITH_IMPACT = UNREACHABLE_ROUTEKEYS.filter(
   k => !["finance-scheduler", "dev-tools", "tenant-management"].includes(k)
 );
 
+/**
+ * ⛔ ROLES WHOSE CAPABILITY-GATED SURFACES COME UP EMPTY
+ *
+ * Found by verify-roles.mjs during integration validation (2026-07-26).
+ *
+ * This is a NEW class of problem created by capability-gated surfaces, and it
+ * is why Dashboard and Care must not become the default landing page yet:
+ *
+ *   - existing screens gate on can(routeKey), which resolves from
+ *     STATIC_ROLE_PERMS and therefore works for every role
+ *   - Dashboard and Care gate on capabilities, which resolve ONLY from the
+ *     Firestore role document's permission matrix
+ *
+ * A role with no seeded role document has routeKeys but an EMPTY matrix, so
+ * navigation works while the new surfaces render completely blank.
+ *
+ * roleService.js SYSTEM_ROLES seeds: admin, center_admin, teacher, accountant,
+ * reception. It does NOT seed center_owner, even though that role exists in
+ * permissions.js, permissionsBackend.js, STATIC_ROLE_PERMS and ROLE_LABELS.
+ *
+ * Fixing this WIDENS capabilities, so it is held for review alongside the
+ * Phase 1 access diff rather than applied unilaterally.
+ */
+export const ROLES_WITHOUT_MATRIX = ["center_owner"];
+
+/**
+ * Capabilities no real (non-bypass) staff role currently holds, so the
+ * surfaces that depend on them are visible only to developer/super_admin.
+ *
+ * Same root cause as UNREACHABLE_ROUTEKEYS: these modules have no entry in
+ * rbacConfig PERMISSION_CATEGORIES, so no role document can grant them. The
+ * consequence for the new surfaces is that Incidents never appears on a real
+ * teacher's or principal's Dashboard or Care feed.
+ */
+export const CAPABILITIES_NO_STAFF_ROLE_HOLDS = [
+  "incidents.view",
+  "care_hygiene.view",
+  "observations.view",   // Child Journey
+];
+
 /** Nav targets and granted routeKeys that have no <Route> anywhere. */
 export const KNOWN_ORPHANS = [
   {
