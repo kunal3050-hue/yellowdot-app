@@ -64,6 +64,26 @@ function deriveScope(user) {
 export function usePermissions() {
   const { user, roleMatrix, can: legacyCan, permissions, features, serverScope } = useAuth();
 
+  /**
+   * `scope` is memoised separately, on PRIMITIVES.
+   *
+   * AuthContext declares `can` as a plain function in the component body, so it
+   * has a new identity on every render — which means the combined memo below
+   * recomputes every render too. That is harmless for the function members, but
+   * a fresh `scope` OBJECT each render would invalidate every downstream
+   * useMemo/useEffect keyed on it (useService, widget fetches), turning a
+   * dependency array into a refetch loop. Keying on stable primitives makes the
+   * object identity stable regardless of how often the outer memo re-runs.
+   */
+  const branchKey = Array.isArray(user?.centers) ? user.centers.join(",") : (user?.center ?? "");
+  const scope = useMemo(
+    () => serverScope ?? deriveScope(user),
+    // `user` is intentionally absent: it is a fresh object on every /me
+    // refresh, and the primitives below are the only parts scope reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverScope, user?.userId, user?.schoolId, user?.activeCenter, branchKey],
+  );
+
   return useMemo(() => {
     const matrix = roleMatrix || {};
 
@@ -117,7 +137,7 @@ export function usePermissions() {
       can,
       level,
       /** Server-resolved when available; client-derived otherwise (§2c.1). */
-      scope: serverScope ?? deriveScope(user),
+      scope,
       isEnabled,
       /** True when the flag set came from the server rather than the bundle. */
       featuresFromServer: Boolean(features),
@@ -125,7 +145,7 @@ export function usePermissions() {
       /** Escape hatch for the few places still reasoning about routeKeys. */
       routeKeys: permissions,
     };
-  }, [user, roleMatrix, permissions, legacyCan, features, serverScope]);
+  }, [roleMatrix, permissions, legacyCan, features, scope]);
 }
 
 export default usePermissions;

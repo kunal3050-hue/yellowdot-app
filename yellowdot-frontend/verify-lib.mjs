@@ -51,6 +51,35 @@ export function extractLiteral(src, marker, scope = {}) {
   return new Function(...names, `return (${src.slice(i, end)});`)(...names.map(n => scope[n]));
 }
 
+/**
+ * Remove comments from JS source, leaving string literals intact.
+ *
+ * Needed because these modules document the endpoints they wrap in their
+ * header comments — a naive `src.includes("/api/invoices")` cannot tell a
+ * docstring from a call, and would flag every well-documented file.
+ * String-aware so a "https://…" inside a literal is not mistaken for a comment.
+ */
+export function stripComments(src) {
+  let out = "";
+  let inStr = null, inComment = null;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i], next = src[i + 1];
+    if (inComment === "line")  { if (c === "\n") { inComment = null; out += c; } continue; }
+    if (inComment === "block") { if (c === "*" && next === "/") { inComment = null; i++; } continue; }
+    if (inStr) {
+      out += c;
+      if (c === "\\") { out += next ?? ""; i++; }
+      else if (c === inStr) inStr = null;
+      continue;
+    }
+    if (c === "/" && next === "/") { inComment = "line"; i++; continue; }
+    if (c === "/" && next === "*") { inComment = "block"; i++; continue; }
+    if (c === '"' || c === "'" || c === "`") { inStr = c; }
+    out += c;
+  }
+  return out;
+}
+
 /** Console helpers shared by the verify scripts. */
 export function makeReporter() {
   const state = { failures: 0, warnings: 0 };

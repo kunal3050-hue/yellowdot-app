@@ -12,9 +12,8 @@
  * parse) — not a new API call, just a filter over data already in hand.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../../services/authService";
+import { callRead } from "../../platform/services";
 
-const get = (url) => api.get(url).then(r => r.data);
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 function parseDOB(dob) {
@@ -34,11 +33,15 @@ export default function useDashboardStats() {
 
   const fetchAll = useCallback(async () => {
     const d = todayISO();
+    // Registry reads (§5A) — same four endpoints, same query strings, now
+    // resolved through registered services instead of raw api.get. The *Raw
+    // variants are used deliberately: the envelope is what lets a failed
+    // request render "—" rather than a misleading 0.
     const [stuRes, sumRes, pickupRes, invRes] = await Promise.allSettled([
-      get("/students"),
-      get(`/api/attendance/summary?date=${d}`),
-      get("/api/pickup-requests?status=pending"),
-      get("/api/invoices"),
+      callRead("students",   "listRaw"),
+      callRead("attendance", "summary",  { date: d }),
+      callRead("pickup_auth", "requests", { status: "pending" }),
+      callRead("invoices",   "listRaw"),
     ]);
     if (!mountedRef.current) return;
 

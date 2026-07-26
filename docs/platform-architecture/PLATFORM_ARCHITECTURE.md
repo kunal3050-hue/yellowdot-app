@@ -4,6 +4,19 @@
 **Approved:** 2026-07-25. Changes to §1–§5E require an explicit revision entry below, not a silent edit.
 **Date:** 2026-07-25 (frozen with refinements R1–R5 incorporated)
 
+### 🔒 Architecture freeze — implementation governance (2026-07-26)
+
+The core architecture is **closed to additions**. §1–§5E and §2c.1/§2c.2 are the complete set of platform layers; **no new engine, registry or abstraction may be introduced during implementation.** Everything from here is delivery against the plan in §12, under these standing rules:
+
+1. **Extend, don't add.** A new capability belongs inside an existing layer. If it appears to need a new one, that is a signal to stop, not to build.
+2. **Configuration over code.** New behaviour arrives as registry data, not as branches in engine code.
+3. **Reuse existing services and APIs.** New endpoints require the justification in §10.
+4. **Every module integrates through the Module Registry (§5).** No parallel lists.
+5. **Every phase independently testable and reversible.** One concern, one commit.
+6. **Verification gates before every merge.** `npm run verify:all` — registry, permissions, features.
+
+**If implementation exposes a genuine structural limitation, stop and present the trade-offs before changing the architecture.** A limitation means the frozen design cannot express something real — not that a workaround is slightly awkward. Any such finding is recorded in the revision log below with the evidence that forced it.
+
 ### Revision log
 
 | Rev | Date | Change |
