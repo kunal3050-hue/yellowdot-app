@@ -22,6 +22,7 @@ const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"))
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
+const Dashboard           = lazy(() => import("./pages/Dashboard"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -205,6 +206,18 @@ function App() {
             <Route path="/" element={<RootRedirect />} />
 
             {/* ── Dashboard & analytics ────────────────────────────────────── */}
+            {/* PLATFORM ARCHITECTURE §6 — the Widget Engine dashboard. Added
+                alongside /live-dashboard rather than replacing it: swapping the
+                landing page is a separate, riskier change, and LIVE_DASHBOARD
+                is still pre-production only (§12 Phase 8). */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><Dashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/live-dashboard"
               element={

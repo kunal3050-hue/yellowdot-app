@@ -50,6 +50,12 @@ export const dashboardModule = defineModule({
   keywords: ["dashboard", "home", "overview", "today", "stats", "kpi"],
   routes: [
     {
+      // §6 — the Widget Engine dashboard. Deliberately NOT in `nav` yet: it
+      // ships alongside /live-dashboard so it can be verified against real
+      // data before it replaces anything (§12 Phase 8).
+      path: "/dashboard", routeKey: "dashboard", label: "Dashboard", icon: "Home",
+    },
+    {
       path: "/live-dashboard", routeKey: "dashboard", label: "Live Dashboard", icon: "Home",
       nav: [{ category: "overview", order: 10 }],
       grid: { section: "dashboard", label: "Live Dashboard", icon: "LayoutDashboard",

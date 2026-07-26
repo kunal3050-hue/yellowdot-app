@@ -25,6 +25,7 @@
 import { useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { isEnabled as isFlagEnabled } from "../../config/featureFlags";
+import { isBypassRole } from "../../config/permissions";
 import { checkCapability, resolveLevel, MIN_GRANTED } from "./capabilities.js";
 
 /**
@@ -62,7 +63,8 @@ function deriveScope(user) {
 }
 
 export function usePermissions() {
-  const { user, roleMatrix, can: legacyCan, permissions, features, serverScope } = useAuth();
+  const { user, role, roleMatrix, can: legacyCan, permissions, features, serverScope } = useAuth();
+  const bypass = isBypassRole(role);
 
   /**
    * `scope` is memoised separately, on PRIMITIVES.
@@ -102,6 +104,13 @@ export function usePermissions() {
       }
       if (typeof capabilityOrRouteKey !== "string") return false;
 
+      // Bypass roles are granted before anything else, matching AuthContext.can()
+      // and ProtectedRoute step 2. Without this, developer/super_admin resolve
+      // capabilities against a roleMatrix that legitimately carries no entries
+      // (the backend sends `{_bypass:true}`, and the DEV login bypass sends `{}`)
+      // and every capability-gated surface silently renders empty.
+      if (bypass) return true;
+
       if (!capabilityOrRouteKey.includes(".")) {
         if (import.meta.env.DEV) {
           console.warn(
@@ -114,7 +123,7 @@ export function usePermissions() {
       return checkCapability(matrix, capabilityOrRouteKey, required);
     };
 
-    const level = capability => resolveLevel(matrix, capability);
+    const level = capability => (bypass ? "all" : resolveLevel(matrix, capability));
 
     /**
      * Feature-flag gate (§2c.2).
@@ -145,7 +154,7 @@ export function usePermissions() {
       /** Escape hatch for the few places still reasoning about routeKeys. */
       routeKeys: permissions,
     };
-  }, [roleMatrix, permissions, legacyCan, features, scope]);
+  }, [roleMatrix, permissions, legacyCan, features, scope, bypass]);
 }
 
 export default usePermissions;

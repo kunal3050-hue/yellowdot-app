@@ -21,6 +21,7 @@ The core architecture is **closed to additions**. §1–§5E and §2c.1/§2c.2 a
 
 | Rev | Date | Change |
 |---|---|---|
+| 1.3 | 2026-07-26 | **Event Bus (§5B) deferred — not built, not deleted from the design.** No evidence yet justifies the infrastructure. Consequence, stated so it is not discovered later: cache invalidation reverts to the poll + focus-refetch model already specified in §3f, and the Notification (§5C) and Audit (§5D) engines stay unbuilt since both were designed as bus subscribers — the 16 imperative notification call sites and the three fragmented audit implementations remain as they are. §5B/§5C/§5D are retained as designs to adopt *if* evidence appears; the trigger conditions are listed in §5B.5. **Phases re-sequenced**: platform construction stops here, Dashboard and Care move next. |
 | 1.2 | 2026-07-26 | **§2c.1 generalised to a hierarchical scope ladder** — `self · team · classroom · department · branch · school · tenant · platform` — replacing rev 1.1's three-rung `self/team/all`, so the model extends without another migration. **New §2c.2: three-layer feature flags** — platform defaults → subscription plan → tenant overrides, with an incident kill switch above all three. Both are the substance of §12 Phase 2. Duplicate permission map deletion is now formally tied to the registry being proven the single source of truth (§12 Phase 11), not to Phase 1. |
 | 1.1 | 2026-07-26 | **§2c amended — capability scope levels `self` / `team` / `all`.** Driven by Phase 1's finding that the HR suite is unreachable: the obvious fix (grant `staff-payroll` to `teacher`) would hand every teacher the whole payroll module, when what is intended is "a teacher may see *their own* payslip." A binary capability cannot express that. Access to HR, Payroll and Performance is **blocked pending this model** — see §2c.1 and `PHASE1_ACCESS_DIFF.md`. No other section changes. |
 | 1.0 | 2026-07-25 | Approved. Five refinements incorporated: **R1** Service Registry (§5A) — widgets and task providers consume services, never `api` directly. **R2** Event Bus (§5B) — modules publish events; Dashboard, Care, notifications and audit react without coupling. **R3** AI promoted to a platform-level AI Engine (§5E), not a widget. **R4** Notification (§5C) and Audit (§5D) Engines — modules never notify or write audit rows directly. **R5** Per-user widget customization confirmed **out of v1**; role-based layouts only (closes open question 5). |
@@ -645,6 +646,28 @@ flowchart LR
 
 This replaces §9's "returning from a deep link invalidates" heuristic with something precise: a pickup approval invalidates exactly the reads that depend on pickups, immediately, whether or not the user navigated back.
 
+### 5B.5 DEFERRED — what would justify building this *(rev 1.3)*
+
+**Status: designed, not built.** The decision (2026-07-26) is to avoid the infrastructure until evidence demands it. What is used instead, today:
+
+| Instead of | We do |
+|---|---|
+| Bus-driven cache invalidation | Poll + refetch on focus/mount (§3f) — already the app's model |
+| Notification Engine (§5C) as a subscriber | The existing 16 imperative `notif.*` call sites, unchanged |
+| Audit Engine (§5D) as a subscriber | The three existing audit implementations, unchanged |
+
+**The cost of waiting is bounded and known**: a task can linger for up to one poll interval after the user acts in the owning module, unless the surface regains focus first — which, on a deep-link-and-back journey, it does. That is the entire practical difference.
+
+**Adopt the bus when any of these becomes true** — written down now so the call is evidence-based rather than architectural taste:
+
+1. **Staleness is observed, not theorised** — users report acting on an item that stays in the queue, and focus-refetch demonstrably does not cover it.
+2. **A third surface needs the same invalidation.** Two consumers (Dashboard, Care) can be refreshed directly; a third makes the coupling combinatorial.
+3. **Notification copy needs to change without touching controllers** — i.e. the 16 call sites become an actual maintenance problem, not a theoretical one.
+4. **An audit gap causes a real incident** — a compliance question that cannot be answered because the three implementations do not share a query surface.
+5. **Cross-module reactions appear** — a module needing to act when another module's entity changes. This is the strongest signal: it is the case that has no clean workaround.
+
+Until then, treat direct invalidation between Dashboard/Care and the modules they read as acceptable, and keep it shallow enough to lift into the bus later.
+
 ### 5B.4 Failure semantics — the part that matters
 
 - **Subscribers never break publishers.** Each subscriber runs in its own `try/catch`; a thrown error is logged and swallowed. Approving a pickup must not fail because a push notification failed. This is the existing `notif.notifyAsync()` fire-and-forget discipline (`careController.js:47`), generalised.
@@ -998,19 +1021,21 @@ The feature catalogue, plan matrix and `tenants.features` overrides (§2c.2); th
 **Verify:** identical network traffic before/after (same endpoints, same counts); lint rule fails on a deliberately planted violation. **Revert:** single commit.
 *Mostly mechanical. The lint rule is the durable part — without it this decays.*
 
-### Phase 4 — Event Bus *(R2)*
+> **Re-sequenced 2026-07-26 (rev 1.3).** Platform construction stops after Phase 3. Phases 4-6 are **deferred, not cancelled** — see §5B.5 for the conditions that would revive them. Delivery order from here: **Phase 7 (navigation) → Phase 8 (Dashboard) → Phase 9 (Care) → Phase 10 (mobile) → Phase 11 (cleanup)**, with Phase 7 folded into 8 where a route is all that is needed. Phases 8 and 9 lose nothing structural by skipping the bus: both refresh on poll + focus per §3f.
+
+### Phase 4 — Event Bus *(R2)* — ⏸ DEFERRED
 
 Client bus in `AppShell`; server `EventEmitter`; event catalogue declared in registry entries. **Publishers only — no subscribers yet.** Events are emitted and logged in dev; nothing consumes them.
 **Verify:** events fire with correct shape on each mutation; zero behaviour change. **Revert:** single commit.
 *Splitting publish from subscribe means a bad subscriber can never be blamed on the bus itself.*
 
-### Phase 5 — Audit Engine *(R4)*
+### Phase 5 — Audit Engine *(R4)* — ⏸ DEFERRED
 
 Canonical audit record derived from events; **write-through** — new engine writes alongside `financeAuditService` and `tenantService._logAudit`, which keep working (§5D.4). Unified query endpoint.
 **Verify:** every legacy audit row still written and readable; Finance Audit screen untouched and passing. **Revert:** stop the new subscriber; legacy path unaffected.
 *Legacy writes and the Finance Audit screen's reads are removed in Phase 11, not here.*
 
-### Phase 6 — Notification Engine *(R4)*
+### Phase 6 — Notification Engine *(R4)* — ⏸ DEFERRED
 
 `defineNotifications()`; migrate the 16 imperative call sites **one module per commit**, per the stabilisation rules.
 **Verify:** per module, notification count and content unchanged before/after. **Revert:** per module.
