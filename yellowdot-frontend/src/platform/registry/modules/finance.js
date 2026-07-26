@@ -29,6 +29,7 @@ export const feesModule = defineModule({
   featureFlag: "FEES",
   actions: ["view", "create", "edit", "delete", "approve"],
   keywords: ["fees", "dues", "fee structure", "outstanding", "balance"],
+  surfaces: { care: { order: 75, roles: { accountant: 20 } } },
   routes: [
     {
       path: "/fees", routeKey: "fees", label: "Fees", icon: "CreditCard",
@@ -59,6 +60,7 @@ export const invoicesModule = defineModule({
   featureFlag: "INVOICES",
   actions: ["view", "create", "edit", "delete", "approve"],
   keywords: ["invoice", "bill", "billing", "receipt", "statement"],
+  surfaces: { care: { order: 70, roles: { accountant: 10 } } },
   routes: [
     {
       path: "/invoice", routeKey: "invoice", label: "Invoices", icon: "FileText",
@@ -79,7 +81,7 @@ export const invoicesModule = defineModule({
 // One module per screen, mirroring the per-screen routeKey convention in
 // permissions.js (FINANCE_DASHBOARD … FINANCE_AUDIT).
 
-const financePlatformScreen = ({ id, label, path, routeKey, icon, order, capability, keywords }) =>
+const financePlatformScreen = ({ id, label, path, routeKey, icon, order, capability, keywords, surfaces }) =>
   defineModule({
     id, label, icon,
     category: "finance_platform",
@@ -87,6 +89,7 @@ const financePlatformScreen = ({ id, label, path, routeKey, icon, order, capabil
     featureFlag: "FINANCE_FOUNDATION",
     actions: ["view"],
     keywords,
+    ...(surfaces ? { surfaces } : {}),
     routes: [
       { path, routeKey, label, icon, capability,
         nav: [{ category: "finance_platform", order }] },
@@ -97,6 +100,7 @@ export const financeDashboardModule = financePlatformScreen({
   id: "finance_dashboard", label: "Dashboard", path: "/finance/dashboard",
   routeKey: "finance-dashboard", icon: "LayoutDashboard", order: 10,
   capability: "finance.view", keywords: ["finance dashboard", "revenue", "collection"],
+  surfaces: { care: { order: 65, roles: { center_owner: 10, accountant: 5 } } },
 });
 
 export const financeLedgerModule = financePlatformScreen({

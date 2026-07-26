@@ -14,10 +14,14 @@
  * registered as their consumers migrate (Phases 8-9), rather than in one
  * unverifiable sweep.
  *
- * Reads receive `{ ...args, scope }`. Most existing endpoints are already
- * school-scoped server-side and take no branch parameter, so `scope` is
- * accepted and ignored — deliberately, and noted per entry. It becomes load
+ * Reads receive `(args, { scope })` — scope is a SEPARATE argument, never part
+ * of args, so forwarding args to axios cannot leak it into a query string.
+ * Most existing endpoints are already school-scoped server-side and take no
+ * branch parameter, so none of these reads use scope yet. It becomes load
  * bearing when endpoints gain scope-aware filters (§2c.1).
+ *
+ * Still destructure explicitly rather than forwarding a bare `params` object:
+ * it keeps each read's real API surface visible at a glance.
  */
 import { defineService } from "./defineService.js";
 
@@ -72,8 +76,8 @@ export const incidents = defineService({
   id: "incidents",
   capability: "incidents.view",
   reads: {
-    dashboard: ()               => incidentSvc.getDashboard(),
-    list:      (params = {})    => incidentSvc.getIncidents(params),
+    dashboard: ()                        => incidentSvc.getDashboard(),
+    list:      ({ status, from, to } = {}) => incidentSvc.getIncidents({ status, from, to }),
   },
 });
 

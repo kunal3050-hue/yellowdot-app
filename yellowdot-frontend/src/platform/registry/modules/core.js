@@ -56,6 +56,12 @@ export const dashboardModule = defineModule({
       path: "/dashboard", routeKey: "dashboard", label: "Dashboard", icon: "Home",
     },
     {
+      // §7 — Care. Also not in `nav` yet: it ships alongside the existing
+      // surfaces so the full Staff experience can be reviewed before either
+      // replaces anything (§12 Phase 9).
+      path: "/care", routeKey: "dashboard", label: "Care", icon: "Heart",
+    },
+    {
       path: "/live-dashboard", routeKey: "dashboard", label: "Live Dashboard", icon: "Home",
       nav: [{ category: "overview", order: 10 }],
       grid: { section: "dashboard", label: "Live Dashboard", icon: "LayoutDashboard",
@@ -78,6 +84,7 @@ export const analyticsModule = defineModule({
   capability: "analytics.view",
   actions: ["view", "export"],
   keywords: ["analytics", "reports", "trends", "revenue", "enrolment"],
+  surfaces: { care: { order: 80, roles: { admin: 30, center_owner: 30 } } },
   routes: [
     {
       path: "/analytics", routeKey: "analytics", label: "Analytics", icon: "BarChart2",
@@ -115,6 +122,7 @@ export const settingsModule = defineModule({
   capability: "settings.view",
   actions: ["view", "edit"],
   keywords: ["settings", "configuration", "branding", "preferences", "school details"],
+  surfaces: { care: { order: 200, roles: { center_owner: 50 } } },
   routes: [
     {
       path: "/settings", routeKey: "settings", label: "Settings", icon: "Settings",

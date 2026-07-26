@@ -16,6 +16,7 @@ export const academicsClassesModule = defineModule({
   capability: "classes_batches.view",
   actions: ["view"],
   keywords: ["class", "classes", "section", "academic structure"],
+  surfaces: { care: { order: 60, roles: { admin: 20 } } },
   routes: [
     {
       path: "/academics/classes", routeKey: "academics-classes", label: "Classes", icon: "BookOpen",
@@ -115,6 +116,7 @@ export const childJourneyModule = defineModule({
   featureFlag: "CHILD_JOURNEY",
   actions: ["view", "create", "edit", "delete"],
   keywords: ["journey", "milestone", "observation", "artwork", "memories", "portfolio"],
+  surfaces: { care: { order: 30, roles: { teacher: 30 } } },
   routes: [
     {
       path: "/child-journey", routeKey: "child-journey", label: "Child Journey", icon: "BookOpen",

@@ -72,8 +72,17 @@ export function callRead(serviceId, readName, args = {}, scope = null) {
   const key = dedupKey(serviceId, readName, { ...args, __scope: scope?.branchIds ?? null });
   if (_inflight.has(key)) return _inflight.get(key);
 
+  // scope is a SECOND argument, never merged into args.
+  //
+  // It used to be spread in as `read({ ...args, scope })`, and a read that
+  // forwarded its params straight to axios then serialised the whole scope
+  // object into the query string:
+  //   /api/incidents?status=open&scope[tenantId]=…&scope[branchIds][0]=…
+  // Passing it separately makes that leak structurally impossible: a
+  // pass-through read can only ever forward the caller's own args, and a read
+  // that genuinely needs scope has to reach for it deliberately.
   const promise = Promise.resolve()
-    .then(() => read({ ...args, scope }))
+    .then(() => read(args, { scope }))
     .catch(err => { throw ServiceError.from(err); })
     .finally(() => { _inflight.delete(key); });
 

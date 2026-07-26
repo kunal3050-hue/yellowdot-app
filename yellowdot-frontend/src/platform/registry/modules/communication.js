@@ -88,6 +88,7 @@ export const ptmModule = defineModule({
   capability: "notifications.view",
   actions: ["view", "create", "edit"],
   keywords: ["ptm", "parent teacher meeting", "conference", "appointment"],
+  surfaces: { care: { order: 100, roles: { admin: 40 } } },
   routes: [
     {
       path: "/ptm", routeKey: "ptm", label: "PTM", icon: "UsersRound",

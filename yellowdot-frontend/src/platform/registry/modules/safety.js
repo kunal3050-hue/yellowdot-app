@@ -12,6 +12,7 @@ export const incidentsModule = defineModule({
   capability: "incidents.view",
   actions: ["view", "create", "edit", "approve"],
   keywords: ["incident", "accident", "injury", "report", "safety", "escalation"],
+  surfaces: { care: { order: 50, roles: { teacher: 50, admin: 50 } } },
   routes: [
     {
       path: "/incidents", routeKey: "incidents", label: "Incident Reports", icon: "AlertTriangle",
@@ -31,6 +32,7 @@ export const pickupAuthorizationModule = defineModule({
   featureFlag: "PICKUP_REQUEST",
   actions: ["view", "create", "edit", "approve"],
   keywords: ["pickup", "authorization", "guardian", "collect", "approval"],
+  surfaces: { care: { order: 40, roles: { teacher: 40, reception: 40 } } },
   routes: [
     {
       path: "/pickup-authorization", routeKey: "pickup-authorization",

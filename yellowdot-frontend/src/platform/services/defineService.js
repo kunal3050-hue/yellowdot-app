@@ -53,7 +53,10 @@ export class ServiceError extends Error {
  * @param {object} def
  * @param {string} def.id          registry id, matches the Module Registry module id
  * @param {string} def.capability  baseline capability (§2a)
- * @param {object} def.reads       { name: (args) => Promise } — args include `scope`
+ * @param {object} def.reads   { name: (args, ctx) => Promise } — `ctx.scope` is
+ *                             the caller's scope (§2c.1), passed SEPARATELY so
+ *                             a read that forwards its args to axios can never
+ *                             leak the scope object into a query string
  * @param {object} [def.writes]    { name: { capability?, fn } }
  */
 export function defineService(def) {

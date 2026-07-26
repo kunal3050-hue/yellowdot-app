@@ -25,6 +25,7 @@ export const staffDashboardModule = defineModule({
   capability: "staff_management.view",
   actions: ["view"],
   keywords: ["staff dashboard", "hr", "team overview"],
+  surfaces: { care: { order: 90, roles: { admin: 10 } } },
   routes: [
     {
       path: "/staff/dashboard", routeKey: "staff-dashboard", label: "Dashboard", icon: "Home",

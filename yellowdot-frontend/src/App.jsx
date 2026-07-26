@@ -23,6 +23,7 @@ const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
 const Dashboard           = lazy(() => import("./pages/Dashboard"));
+const Care                = lazy(() => import("./pages/Care"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -215,6 +216,17 @@ function App() {
               element={
                 <ProtectedRoute routeKey="dashboard">
                   <MainLayout><Dashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* PLATFORM ARCHITECTURE §7 — Care. Gated on the same "dashboard"
+                routeKey as the surfaces it replaces: Care shows only what the
+                user's own capabilities already allow, so it grants nothing new. */}
+            <Route
+              path="/care"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><Care /></MainLayout>
                 </ProtectedRoute>
               }
             />

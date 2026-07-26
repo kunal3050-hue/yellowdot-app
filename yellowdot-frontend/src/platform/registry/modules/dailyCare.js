@@ -22,6 +22,7 @@ export const attendanceModule = defineModule({
   featureFlag: "ATTENDANCE",
   actions: ["view", "mark", "edit", "export"],
   keywords: ["attendance", "present", "absent", "roll call", "check in", "gate", "register"],
+  surfaces: { care: { order: 10, roles: { teacher: 10, reception: 30 } } },
   routes: [
     {
       path: "/attendance", routeKey: "attendance", label: "Student Attendance", icon: "CalendarCheck",
@@ -116,6 +117,7 @@ export const careHygieneModule = defineModule({
   featureFlag: "DAILY_CARE",
   actions: ["view", "mark", "edit"],
   keywords: ["care", "hygiene", "diaper", "nappy", "water", "cleanliness"],
+  surfaces: { care: { order: 20, roles: { teacher: 20 } } },
   routes: [
     {
       path: "/care-hygiene", routeKey: "care-hygiene", label: "Care & Hygiene", icon: "Heart",

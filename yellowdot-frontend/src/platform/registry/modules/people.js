@@ -13,6 +13,7 @@ export const studentsModule = defineModule({
   featureFlag: "STUDENTS",
   actions: ["view", "create", "edit", "delete", "export"],
   keywords: ["students", "children", "admission", "enrol", "enroll", "profile", "roster"],
+  surfaces: { care: { order: 15, roles: { reception: 20 } } },
   routes: [
     {
       path: "/students", routeKey: "students", label: "Students", icon: "Users",

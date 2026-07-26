@@ -16,6 +16,7 @@ export const tenantManagementModule = defineModule({
   capability: "tenant_management.view",
   actions: ["view", "create", "edit", "manage"],
   keywords: ["tenant", "preschool", "school", "onboarding", "subscription", "branch"],
+  surfaces: { care: { order: 300, roles: { super_admin: 10 } } },
   routes: [
     { path: "/super-admin/tenants", routeKey: "tenant-management", label: "Preschools", icon: "Building2",
       nav: [{ category: "super_admin", order: 10, matchPaths: ["/super-admin/tenants/"] }] },

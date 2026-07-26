@@ -142,6 +142,31 @@ function run() {
     pass("Every registered read resolves", `${Object.keys(imports).length} service modules`);
   }
 
+  // ── 4. Reads must destructure, not forward a bare params object ────────────
+  // A read written as `(params = {}) => svc.call(params)` forwards whatever it
+  // is given straight to axios. That is how the scope object once ended up
+  // serialised into a query string:
+  //   /api/incidents?status=open&scope[tenantId]=…&scope[branchIds][0]=…
+  // scope is now a separate argument so it cannot leak, but a pass-through read
+  // is still a loaded gun aimed at the next thing added to args.
+  section("4. Reads destructure their arguments");
+
+  const passthrough = [];
+  for (const m of stripComments(regSrc).matchAll(/^\s*(\w+):\s*\(([^)]*)\)\s*=>/gm)) {
+    const [, readName, params] = m;
+    const first = params.trim();
+    if (!first) continue;                       // no args — fine
+    if (first.startsWith("{")) continue;        // destructured — fine
+    passthrough.push(`${readName}(${first})`);
+  }
+  if (passthrough.length) {
+    for (const p of passthrough) {
+      fail("read forwards a bare params object instead of destructuring", p);
+    }
+  } else {
+    pass("Every read destructures its arguments", "no pass-through forwarding");
+  }
+
   // ── Remaining debt ─────────────────────────────────────────────────────────
   section("Remaining direct-api debt (informational)");
 

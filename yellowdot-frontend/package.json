@@ -14,7 +14,8 @@
     "verify:permissions": "node --import ./registry-register.mjs verify-permissions.mjs",
     "verify:features": "node verify-features.mjs",
     "verify:services": "node verify-services.mjs",
-    "verify:all": "npm run verify:registry && npm run verify:permissions && npm run verify:features && npm run verify:services",
+    "verify:tasks": "node --import ./registry-register.mjs verify-tasks.mjs",
+    "verify:all": "npm run verify:registry && npm run verify:permissions && npm run verify:features && npm run verify:services && npm run verify:tasks",
     "preview": "vite preview"
   },
   "dependencies": {
