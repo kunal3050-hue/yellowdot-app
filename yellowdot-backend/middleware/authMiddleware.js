@@ -16,6 +16,12 @@
  *   2. students collection                 → parent (fatherEmail / motherEmail)
  *   3. No match                            → role = "unknown", profileMissing = true
  *
+ * A user document does not carry the parent↔child link — that lives only in the
+ * students collection. So whenever paths 1 or 1b resolve role="parent", the link
+ * is looked up and attached too (_attachLinkedStudent). Without it a parent who
+ * happens to have a users doc authenticates fine but every child-scoped endpoint
+ * denies them, because req.user.student is what those endpoints read.
+ *
  * schoolId resolution:
  *   1. User doc has schoolId field   → use it
  *   2. SCHOOL_ID env var             → use it
@@ -74,6 +80,71 @@ async function _buildUserFromDoc(uid, docData, decoded) {
   };
 }
 
+/**
+ * Find the student record linked to a parent's email address.
+ * fatherEmail first, then motherEmail — the order parent resolution has always
+ * used. Returns the student document data, or null when no student carries it.
+ *
+ * This is the ONLY copy of the parent↔child lookup. Every path that can resolve
+ * a parent goes through it, so a parent's child link cannot depend on which
+ * branch happened to resolve their profile.
+ */
+async function _findLinkedStudent(email) {
+  if (!email) return null;
+
+  const fatherSnap = await db.collection("students")
+    .where("fatherEmail", "==", email)
+    .limit(1)
+    .get();
+
+  if (!fatherSnap.empty) {
+    const doc = fatherSnap.docs[0].data();
+    console.log(`[AUTH-DEBUG] Parent match via fatherEmail — studentId=${doc.studentId}`);
+    return doc;
+  }
+
+  const motherSnap = await db.collection("students")
+    .where("motherEmail", "==", email)
+    .limit(1)
+    .get();
+
+  if (!motherSnap.empty) {
+    const doc = motherSnap.docs[0].data();
+    console.log(`[AUTH-DEBUG] Parent match via motherEmail — studentId=${doc.studentId}`);
+    return doc;
+  }
+
+  return null;
+}
+
+/**
+ * Attach the child link to a parent whose profile came from a users document.
+ *
+ * Only ever ADDS `student`, and only for role="parent" — schoolId, centerId and
+ * centers stay exactly what the user document said, because that document is
+ * authoritative for tenant scoping on this path and always has been. A parent
+ * with no matching student keeps student=undefined, so child-scoped endpoints
+ * still fail closed.
+ */
+async function _attachLinkedStudent(user, email) {
+  if (user.role !== "parent" || user.student) return;
+
+  const studentDoc = await _findLinkedStudent(email);
+  if (!studentDoc) {
+    console.warn(
+      `[AUTH-DEBUG] Parent profile users/${user.userId} has NO student linked to` +
+      ` email=${email || "(none)"} — child-scoped endpoints will deny.`,
+    );
+    return;
+  }
+
+  user.student = {
+    studentId:   studentDoc.studentId,
+    studentName: studentDoc.studentName,
+  };
+  console.log(`[AUTH-DEBUG] Child link attached — studentId=${studentDoc.studentId}`);
+}
+
 // ── Middleware ─────────────────────────────────────────────────────
 
 async function authenticate(req, res, next) {
@@ -100,6 +171,7 @@ async function authenticate(req, res, next) {
       // AUTH STEP 3 — build user from UID match
       console.log(`[AUTH-DEBUG] AUTH STEP 3 — building user from UID doc`);
       req.user = await _buildUserFromDoc(uid, userDoc.data(), decoded);
+      await _attachLinkedStudent(req.user, email);
       console.log(`[AUTH-DEBUG] AUTH STEP 3 complete — role=${req.user.role} schoolId=${req.user.schoolId}`);
       return next();
     }
@@ -130,6 +202,7 @@ async function authenticate(req, res, next) {
 
         // Build req.user using the matched profile data but the CURRENT uid
         req.user = await _buildUserFromDoc(uid, matchedData, decoded);
+        await _attachLinkedStudent(req.user, email);
 
         // Fire-and-forget: create a Firestore doc for the Google UID so future
         // sign-ins hit the direct UID lookup (path 1) instead of this fallback.
@@ -157,26 +230,7 @@ async function authenticate(req, res, next) {
     if (email) {
       // AUTH STEP 4 — parent lookup
       console.log(`[AUTH-DEBUG] AUTH STEP 4 — parent lookup for email=${email}`);
-      let studentDoc = null;
-
-      const fatherSnap = await db.collection("students")
-        .where("fatherEmail", "==", email)
-        .limit(1)
-        .get();
-
-      if (!fatherSnap.empty) {
-        studentDoc = fatherSnap.docs[0].data();
-        console.log(`[AUTH-DEBUG] Parent match via fatherEmail — studentId=${studentDoc.studentId}`);
-      } else {
-        const motherSnap = await db.collection("students")
-          .where("motherEmail", "==", email)
-          .limit(1)
-          .get();
-        if (!motherSnap.empty) {
-          studentDoc = motherSnap.docs[0].data();
-          console.log(`[AUTH-DEBUG] Parent match via motherEmail — studentId=${studentDoc.studentId}`);
-        }
-      }
+      const studentDoc = await _findLinkedStudent(email);
 
       if (studentDoc) {
         const resolvedCenter = studentDoc.centerId || studentDoc.center || "";
