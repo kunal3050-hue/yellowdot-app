@@ -1,17 +1,10 @@
 {
   "admin": {
     "onlyInMirror": [
-      "academics-student-allocation",
-      "care-hygiene",
-      "cctv",
-      "child-journey",
       "departments",
       "designations",
-      "families",
-      "qr-management",
       "staff-attendance",
       "staff-attendance-manage",
-      "staff-checkout",
       "staff-dashboard",
       "staff-leave",
       "staff-leave-approve",
@@ -23,19 +16,18 @@
       "staff-performance-manage",
       "staff-shifts"
     ],
-    "onlyInAuthoritative": []
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
   },
   "center_admin": {
     "onlyInMirror": [
-      "academics-student-allocation",
-      "care-hygiene",
-      "child-journey",
       "departments",
       "designations",
-      "qr-management",
       "staff-attendance",
       "staff-attendance-manage",
-      "staff-checkout",
       "staff-dashboard",
       "staff-leave",
       "staff-leave-approve",
@@ -47,21 +39,18 @@
       "staff-performance-manage",
       "staff-shifts"
     ],
-    "onlyInAuthoritative": []
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
   },
   "center_owner": {
     "onlyInMirror": [
-      "academics-student-allocation",
-      "care-hygiene",
-      "cctv",
-      "child-journey",
       "departments",
       "designations",
-      "families",
-      "qr-management",
       "staff-attendance",
       "staff-attendance-manage",
-      "staff-checkout",
       "staff-dashboard",
       "staff-leave",
       "staff-leave-approve",
@@ -73,30 +62,31 @@
       "staff-performance-manage",
       "staff-shifts"
     ],
-    "onlyInAuthoritative": []
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
   },
   "teacher": {
     "onlyInMirror": [
-      "academics-student-allocation",
-      "care-hygiene",
-      "cctv",
-      "child-journey",
       "staff-attendance",
-      "staff-checkout",
       "staff-leave",
       "staff-payroll",
       "staff-performance"
     ],
-    "onlyInAuthoritative": []
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
   },
   "accountant": {
     "onlyInMirror": [],
     "onlyInAuthoritative": []
   },
   "reception": {
-    "onlyInMirror": [
-      "staff-checkout"
-    ],
+    "onlyInMirror": [],
     "onlyInAuthoritative": []
   },
   "parent": {

@@ -58,11 +58,15 @@ async function run() {
   const results = {};
   for (const role of ROLES) {
     const matrix = role.bypass ? { _bypass: true } : (matrixByRole[role.id] || {});
-    const can = cap => (role.bypass ? true : caps.checkCapability(matrix, cap));
+    const can   = cap => (role.bypass ? true : caps.checkCapability(matrix, cap));
+    // N1 fix: exercises the same level-aware gate resolveCareModules applies
+    // in the real app, so a self-scoped grant is resolved here exactly as it
+    // would be for a signed-in user, not just via the boolean can().
+    const level = cap => (role.bypass ? "all" : caps.resolveLevel(matrix, cap));
 
     const widgets  = resolveWidgets({ can, isEnabled, role: role.id }).map(w => w.id);
     const tasks    = resolveProviders({ can, isEnabled }).map(p => p.id);
-    const modules  = resolveCareModules({ can, isEnabled, role: role.id }).map(m => m.label);
+    const modules  = resolveCareModules({ can, isEnabled, level, role: role.id }).map(m => m.label);
 
     results[role.label] = { widgets, tasks, modules, seeded: Boolean(matrixByRole[role.id]) };
 
@@ -140,6 +144,38 @@ async function run() {
   const nonBypass = ROLES.filter(r => !r.bypass).map(r => results[r.label]);
   if (nonBypass.every(r => r.widgets.length === WIDGETS.length)) {
     fail("every non-bypass role sees every widget", "capability gate is not gating");
+  }
+
+  // N1 regression guard — SYNTHETIC fixture, not the real seeded teacher.
+  //
+  // Production's teacher matrix deliberately grants NO staff_management at all
+  // (PHASE1_ACCESS_DIFF.md §4: HR/Payroll/Performance stay capability-"none"
+  // until the backend has scope-aware endpoints), so resolveLevel(teacher,
+  // "staff_management.view") is "none" today — which would make this guard
+  // pass for the WRONG reason (can() already excludes it, before the level
+  // check ever runs). A synthetic matrix isolates the actual claim: a "self"
+  // grant must be excluded, and a "team" grant must be included — proving the
+  // filter discriminates rather than always denying.
+  const selfOnly = resolveCareModules({
+    can: () => true,
+    isEnabled: () => true,
+    level: cap => (cap === "staff_management.view" ? "self" : "all"),
+    role: "teacher",
+  }).map(m => m.label);
+  const teamLevel = resolveCareModules({
+    can: () => true,
+    isEnabled: () => true,
+    level: cap => (cap === "staff_management.view" ? "team" : "all"),
+    role: "admin",
+  }).map(m => m.label);
+
+  if (selfOnly.includes("Staff Dashboard")) {
+    fail("N1 regression: a SELF-level grant produced the Staff Dashboard card");
+  } else if (!teamLevel.includes("Staff Dashboard")) {
+    fail("N1 regression: a TEAM-level grant should show the Staff Dashboard card but does not");
+  } else {
+    pass("N1: minLevel gate discriminates correctly",
+         "self excluded, team included");
   }
 
   if (!state.failures) pass("No blocking discrepancies", `${ROLES.length} roles checked`);

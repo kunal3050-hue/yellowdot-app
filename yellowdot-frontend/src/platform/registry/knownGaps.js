@@ -17,33 +17,34 @@
  * ⛔ UNREACHABLE MODULES — the largest defect found so far, surfaced by
  * verify-permissions.mjs in §12 Phase 1.
  *
- * 17 routeKeys gating ~40 shipped screens cannot be granted to ANY non-bypass
- * role. This is not a configuration problem and no Firestore edit can fix it:
+ * ── UPDATE (2026-07-29): the non-HR portion of this list is FIXED ──────────
+ * `care-hygiene`, `child-journey`, `events`, `incidents`, `ptm`,
+ * `qr-management`, `staff-checkout`, `academics-student-allocation` and
+ * `families` were restored by applying the reviewed
+ * `review/phase1-safe-access.patch` to STATIC_ROLE_PERMS, and by adding
+ * `incidents`/`care_hygiene`/`observations` to MODULE_ROUTE_MAP (both
+ * copies) and to rbacConfig PERMISSION_CATEGORIES, so a role document can
+ * now express these capabilities too. Removed from the list below.
  *
- *   effective(role) = deriveRouteKeys(roleDoc.permissions) ∪ STATIC_ROLE_PERMS[role]
+ * What remains is EVERY HR/Payroll/Performance key, held back deliberately
+ * (architecture §2c.1): both existing maps grant `teacher` `staff-payroll`
+ * and `staff-performance` meaning "see my own", but the keys are all-or-
+ * nothing — applying them as written would hand every teacher the whole
+ * module school-wide. That needs the self/team/all scope model AND
+ * scope-aware backend endpoints before it is safe, which has not happened
+ * yet. See PHASE1_ACCESS_DIFF.md §4.
  *
- * `deriveRouteKeys` can only ever emit keys that appear as VALUES in
- * roleService.js's MODULE_ROUTE_MAP. These 17 appear in neither that map nor
- * in STATIC_ROLE_PERMS, so both terms of the union exclude them — for every
- * role, under every possible role document.
+ * `effective(role) = deriveRouteKeys(roleDoc.permissions) ∪ STATIC_ROLE_PERMS[role]`
+ * — `deriveRouteKeys` can only ever emit keys that appear as VALUES in
+ * roleService.js's MODULE_ROUTE_MAP, so a key missing from both terms is
+ * unreachable for every role under every possible role document, not a
+ * configuration problem a Firestore edit could fix.
  *
- * Meanwhile ProtectedRoute sends can(routeKey)===false straight to
- * /unauthorized, and the sidebar hides the item. Developer and super_admin are
- * unaffected because isBypassRole() short-circuits every check before it — the
- * most likely reason this survived: the modules work perfectly when tested as
- * a developer, and only fail for real staff.
- *
- * Both non-authoritative maps (backend config/permissionsBackend.js and
- * frontend config/permissions.js) DO grant these keys per role, so intent is
- * well evidenced — roleService.js's copy is simply stale, missing whole
- * modules shipped after it was written.
- *
- * Closing this is the substance of §12 Phase 1. It WIDENS access, so it is a
- * reviewed change, not a silent one.
+ * Developer and super_admin were never affected — `isBypassRole()` short-
+ * circuits every check before it, which is almost certainly why this
+ * survived: the modules worked when tested as a developer.
  */
 export const UNREACHABLE_ROUTEKEYS = [
-  "care-hygiene", "child-journey", "events", "incidents", "ptm",
-  "qr-management", "staff-checkout", "academics-student-allocation",
   "staff-attendance", "staff-shifts", "staff-leave", "staff-leave-types",
   "staff-payroll", "staff-payroll-process",
   "staff-performance", "staff-performance-manage",
@@ -60,42 +61,34 @@ export const UNREACHABLE_WITH_IMPACT = UNREACHABLE_ROUTEKEYS.filter(
 /**
  * ⛔ ROLES WHOSE CAPABILITY-GATED SURFACES COME UP EMPTY
  *
- * Found by verify-roles.mjs during integration validation (2026-07-26).
+ * ── FIXED 2026-07-29 ────────────────────────────────────────────────────
+ * `center_owner` is now seeded in roleService.js SYSTEM_ROLES, mirroring
+ * `admin` exactly (see the inline comment on that entry for why). Kept as an
+ * empty array, not deleted, so the shape survives if a future role is added
+ * to permissions.js without a matching seed — the exact mistake this caught.
  *
- * This is a NEW class of problem created by capability-gated surfaces, and it
- * is why Dashboard and Care must not become the default landing page yet:
- *
- *   - existing screens gate on can(routeKey), which resolves from
- *     STATIC_ROLE_PERMS and therefore works for every role
- *   - Dashboard and Care gate on capabilities, which resolve ONLY from the
- *     Firestore role document's permission matrix
- *
- * A role with no seeded role document has routeKeys but an EMPTY matrix, so
- * navigation works while the new surfaces render completely blank.
- *
- * roleService.js SYSTEM_ROLES seeds: admin, center_admin, teacher, accountant,
- * reception. It does NOT seed center_owner, even though that role exists in
- * permissions.js, permissionsBackend.js, STATIC_ROLE_PERMS and ROLE_LABELS.
- *
- * Fixing this WIDENS capabilities, so it is held for review alongside the
- * Phase 1 access diff rather than applied unilaterally.
+ * Original finding, for context: this was a NEW class of problem created by
+ * capability-gated surfaces — existing screens gate on can(routeKey), which
+ * resolves from STATIC_ROLE_PERMS and works for every role; Dashboard and
+ * Care gate on capabilities, which resolve ONLY from the Firestore role
+ * document's permission matrix. A role with no seeded document has routeKeys
+ * but an EMPTY matrix, so navigation worked while the new surfaces rendered
+ * completely blank.
  */
-export const ROLES_WITHOUT_MATRIX = ["center_owner"];
+export const ROLES_WITHOUT_MATRIX = [];
 
 /**
- * Capabilities no real (non-bypass) staff role currently holds, so the
- * surfaces that depend on them are visible only to developer/super_admin.
+ * Capabilities no real (non-bypass) staff role held, so the surfaces that
+ * depend on them were visible only to developer/super_admin.
  *
- * Same root cause as UNREACHABLE_ROUTEKEYS: these modules have no entry in
- * rbacConfig PERMISSION_CATEGORIES, so no role document can grant them. The
- * consequence for the new surfaces is that Incidents never appears on a real
- * teacher's or principal's Dashboard or Care feed.
+ * ── FIXED 2026-07-29 ────────────────────────────────────────────────────
+ * All three now have a PERMISSION_CATEGORIES entry (rbacConfig.js) and are
+ * granted in SYSTEM_ROLES to teacher/admin/center_admin/center_owner (the
+ * same role set the reviewed routeKey-level patch already used, kept
+ * consistent on purpose). Kept as an empty array for the same reason as
+ * ROLES_WITHOUT_MATRIX above — it is the gate's memory of this failure mode.
  */
-export const CAPABILITIES_NO_STAFF_ROLE_HOLDS = [
-  "incidents.view",
-  "care_hygiene.view",
-  "observations.view",   // Child Journey
-];
+export const CAPABILITIES_NO_STAFF_ROLE_HOLDS = [];
 
 /** Nav targets and granted routeKeys that have no <Route> anywhere. */
 export const KNOWN_ORPHANS = [

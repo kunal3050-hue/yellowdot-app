@@ -25,7 +25,13 @@ export const staffDashboardModule = defineModule({
   capability: "staff_management.view",
   actions: ["view"],
   keywords: ["staff dashboard", "hr", "team overview"],
-  surfaces: { care: { order: 90, roles: { admin: 10 } } },
+  // minLevel: "team" — N1 fix (INTEGRATION_VALIDATION.md). This is a
+  // manager-facing directory/dashboard, not a self-service destination, and
+  // there is no separate self-service registry entry yet. A Teacher holding
+  // only staff_management:{view:"self"} must not see this card — it would
+  // read as an invitation to the HR screen, which is neither what "self"
+  // grants nor (per §2c.1) even scope-enforced by its endpoint today.
+  surfaces: { care: { order: 90, minLevel: "team", roles: { admin: 10 } } },
   routes: [
     {
       path: "/staff/dashboard", routeKey: "staff-dashboard", label: "Dashboard", icon: "Home",

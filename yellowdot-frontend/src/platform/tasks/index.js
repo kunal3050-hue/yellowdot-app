@@ -161,9 +161,9 @@ export function useTaskFeed() {
  * is the real gate, so granting a Teacher Finance access makes Finance appear.
  */
 export function useCareModules() {
-  const { can, isEnabled } = usePermissions();
+  const { can, isEnabled, level } = usePermissions();
   const { role } = useAuth();
-  return useMemo(() => resolveCareModules({ can, isEnabled, role }), [can, isEnabled, role]);
+  return useMemo(() => resolveCareModules({ can, isEnabled, level, role }), [can, isEnabled, level, role]);
 }
 
 export { PROVIDERS };

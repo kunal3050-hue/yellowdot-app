@@ -94,6 +94,7 @@ export const PERMISSION_CATEGORIES = [
       { id: "pickup_auth",  label: "Pickup Auth",      actions: ["view", "create", "edit", "approve"] },
       { id: "medical",      label: "Medical Records",  actions: ["view", "edit"] },
       { id: "food_menu",    label: "Food & Menu",      actions: ["view", "create", "edit", "delete"] },
+      { id: "care_hygiene", label: "Care & Hygiene",   actions: ["view", "mark", "edit"] },
     ],
   },
   {
@@ -147,6 +148,17 @@ export const PERMISSION_CATEGORIES = [
     ],
   },
   {
+    // Added to close the access-diff gap (PHASE1_ACCESS_DIFF.md / D2): this
+    // module had no PERMISSION_CATEGORIES entry at all, so no role document —
+    // seeded or custom, via the Roles UI or otherwise — could ever grant it.
+    id:    "safety",
+    label: "Safety & Compliance",
+    icon:  "🚨",
+    modules: [
+      { id: "incidents", label: "Incidents", actions: ["view", "create", "edit", "approve"] },
+    ],
+  },
+  {
     id:    "child_journey",
     label: "Child Journey",
     icon:  "📖",
@@ -178,6 +190,8 @@ const MODULE_ROUTE_MAP = {
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
   cctv:              ["cctv"],
+  incidents:         ["incidents"],
+  care_hygiene:      ["care-hygiene"],
   classes_batches:   ["academics-classes", "academics-batches",
                       "academics-teacher-allocation", "academics-classroom-allocation"],
   student_enrollment: ["academics-student-allocation"],
@@ -400,6 +414,17 @@ export const PERMISSION_DESCRIPTIONS = {
     create: "Send notifications to parents and staff",
     manage: "Manage notification templates and settings",
   },
+  incidents: {
+    view:    "View reported safety incidents",
+    create:  "Report a new incident",
+    edit:    "Update incident details and status",
+    approve: "Acknowledge or close incident reports",
+  },
+  care_hygiene: {
+    view: "View diaper change and hygiene logs",
+    mark: "Log a hygiene or care routine",
+    edit: "Correct hygiene log entries",
+  },
   parent_app: {
     view:   "Access parent-facing app features",
     manage: "Configure parent app settings and content",
@@ -421,6 +446,7 @@ export const RISK_LEVELS = {
   "fees.approve":             "sensitive",
   "invoices.approve":         "sensitive",
   "pickup_auth.approve":      "sensitive",
+  "incidents.approve":        "sensitive",
   "admissions.approve":       "sensitive",
   "payments.create":          "sensitive",
   "students.export":          "sensitive",

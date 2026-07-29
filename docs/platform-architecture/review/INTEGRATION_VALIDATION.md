@@ -1,15 +1,51 @@
 # Staff experience — integration validation
 
-**Status: ALL FOUR ITEMS COMPLETE.** Run against the Firebase Emulator Suite with seeded data, 2026-07-29.
-**Date:** 2026-07-26, updated 2026-07-29 with live-backend results.
+**Status: ALL FOUR ITEMS COMPLETE. Access diff and N1 FIXED and re-verified live.**
+**Date:** 2026-07-26, updated 2026-07-29 (live-backend results), updated again 2026-07-29 (access diff + N1 fix).
 **Gate:** these must all be resolved before `/dashboard` becomes the default landing page.
 
 | # | Validation | Status |
 |---|---|---|
-| 1 | Dashboard against a live backend, all widgets populate | ✅ **Complete** — 5/5 populate; **2 defects found and fixed** |
-| 2 | Care against a live backend: generation, prioritisation, escalation | ✅ **Complete** — 6 tasks, escalation confirmed on real data; **1 defect found and fixed** |
+| 1 | Dashboard against a live backend, all widgets populate | ✅ **Complete** — 5/5 populate; 2 defects found and fixed |
+| 2 | Care against a live backend: generation, prioritisation, escalation | ✅ **Complete** — 6 tasks, escalation confirmed on real data; 1 defect found and fixed |
 | 3 | Per-role validation across all staff roles | ✅ **Complete** — static matrix + live per-role sign-in |
-| 4 | Document discrepancies and fix before routing changes | ✅ **3 fixed, 3 outstanding** (§0) |
+| 4 | Document discrepancies and fix before routing changes | ✅ **Access diff and N1 fixed** (§0.1); N2/N3 remain, both cosmetic (§0) |
+
+---
+
+## §0.1 Access diff and N1 — fixed 2026-07-29
+
+### What was applied
+
+1. **rbacConfig.js (frontend) + roleService.js (backend) `MODULE_ROUTE_MAP`** — added `incidents` and `care_hygiene` as first-class permission modules (new "Safety & Compliance" category on the frontend), and fixed `observations` (Child Journey) being present in the frontend map but **entirely absent from the backend copy** — a divergence nobody had caught.
+2. **`docs/platform-architecture/review/phase1-safe-access.patch` applied as-is** — the routeKey-level fix prepared and reviewed earlier. Purely additive; `verify:permissions` confirms zero role lost anything.
+3. **`SYSTEM_ROLES` (roleService.js) granted the matching granular capabilities** — `incidents`/`care_hygiene`/`observations` added to `admin`, `center_admin`, and `teacher`'s seeded matrices (the same role set the routeKey patch already used, kept consistent on purpose).
+4. **A new `center_owner` entry added to `SYSTEM_ROLES`**, mirroring `admin` exactly — this is the actual D1 fix. `getRoleMatrix()` reads only the Firestore role document, never `STATIC_ROLE_PERMS`, so no amount of routeKey-level patching could have fixed D1 — only a role document does.
+5. **N1 fix** — `resolveCareModules` now accepts a `level` function and a per-module `surfaces.care.minLevel` (default `"self"`, so nothing changes for the common boolean case). `staff_dashboard`'s registry entry declares `minLevel: "team"`, since it's a manager-facing screen with no separate self-service destination yet.
+
+### What this does NOT fix, and why that's correct
+
+**HR/Payroll/Performance capabilities remain ungranted to `teacher` in `SYSTEM_ROLES`.** This is deliberate, not a leftover: those endpoints are not yet scope-aware server-side (§2c.1), so granting even `self`-level would let the frontend hide a button while the endpoint stayed wide open. That work is still pending and is exactly what made N1 worth catching — a `self` grant with no scope-aware backend is misleading at best.
+
+### Re-verified — all six gates green, then live in the emulator
+
+`npm run verify:all` — registry / permissions / features / services / tasks / roles, all passing. `verify:permissions` confirms the widened access is exactly the reviewed set (gains only, matching PHASE1_ACCESS_DIFF.md §3) and that the divergence-freeze guard's new state was a deliberate re-baseline, not silent drift — `events`/`incidents`/`ptm` were already flagged "frontend-only evidence" in the original review, so `permissionsBackend.js` never had them to begin with; there was nothing to keep in sync.
+
+`verify:roles`' N1 assertion is a **synthetic fixture**, not the real seeded teacher — production's `teacher` grants no `staff_management` capability at all today (level `"none"`, by design per the paragraph above), so asserting against the real seed would have passed for the wrong reason. The synthetic check proves the filter actually **discriminates**: a `self`-level grant excludes the Staff Dashboard card, a `team`-level grant includes it.
+
+**Reseeded the emulator and signed in as each role again:**
+
+| Role | Before this fix | After |
+|---|---|---|
+| Teacher — Care modules | Attendance, Students, Pickup Authorization *(3)* | **Attendance, Students, Care & Hygiene, Child Journey, Pickup Authorization, Incident Reports, Classes** *(7)* — **no Staff Dashboard card** |
+| Teacher — widgets | 3 (no incidents) | **4** — Open Incidents now included |
+| Teacher — tasks | 2 | **3** — `open-incidents` now included |
+| Principal (admin) — Care modules | 8 | **9**, still correctly showing **Staff Dashboard** (level `all` ≥ `team`) |
+| Centre Owner — Dashboard | 5/5 (already fixed by seed) | 5/5, unchanged — confirms no regression |
+
+D2 and D3 from earlier in this document are **closed**: Incidents is now reachable for real staff, and Teacher's Care grid matches the agreed hub (Attendance, Daily Care, Child Journey, Pickup, Incidents, Classroom — Classes stands in for "Classroom").
+
+**One thing this does not close:** these fixes are in `SYSTEM_ROLES`, the seed template for *new* schools. The real production school (`ydseawoods`) has its own Firestore role documents already, seeded before these capabilities existed, and `seedDefaultRoles()` only creates documents that don't already exist — it will not retroactively add `incidents`/`care_hygiene`/`observations` to an existing `teacher` document, or backfill a missing `center_owner` document unless one is truly absent. Applying this in production is a data operation (calling the already-idempotent `POST /api/roles/seed`, or an equivalent one-time backfill for existing docs), not a code deploy, and is **not something this session has done** — it needs a deliberate action against the real project, which stays outside what an agent should do unprompted.
 
 ---
 

@@ -57,6 +57,10 @@ const STATIC_ROLE_PERMS = {
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
     "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
+    // Phase 1 (§12) — restores access to shipped modules that no role could
+    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
+    // union in _fetchAndCache() excluded them for every role document.
+    "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_owner: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -67,6 +71,10 @@ const STATIC_ROLE_PERMS = {
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
     "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
+    // Phase 1 (§12) — restores access to shipped modules that no role could
+    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
+    // union in _fetchAndCache() excluded them for every role document.
+    "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_admin: [
     "dashboard","students","attendance","fees","invoice","analytics",
@@ -78,12 +86,20 @@ const STATIC_ROLE_PERMS = {
     "academics-teacher-allocation","academics-classroom-allocation",
     "families",
     "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
+    // Phase 1 (§12) — restores access to shipped modules that no role could
+    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
+    // union in _fetchAndCache() excluded them for every role document.
+    "academics-student-allocation","care-hygiene","child-journey","events","incidents","ptm","qr-management","staff-checkout",
   ],
   teacher: [
     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
     "students","parent-checkin","profile",
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
+    // Phase 1 (§12) — restores access to shipped modules that no role could
+    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
+    // union in _fetchAndCache() excluded them for every role document.
+    "academics-student-allocation","care-hygiene","cctv","child-journey","events","incidents","ptm","staff-checkout",
   ],
   accountant: [
     "dashboard","fees","invoice","analytics","students","profile",
@@ -92,6 +108,10 @@ const STATIC_ROLE_PERMS = {
   reception: [
     "dashboard","students","attendance","parent-checkin",
     "pickup-authorization","pickup-history","profile",
+    // Phase 1 (§12) — restores access to shipped modules that no role could
+    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
+    // union in _fetchAndCache() excluded them for every role document.
+    "staff-checkout",
   ],
   parent: [
     "dashboard","parent-checkin","pickup-history","fees","profile",
@@ -125,6 +145,14 @@ const MODULE_ROUTE_MAP = {
   academics:         ["academics-classes","academics-batches",
                       "academics-teacher-allocation","academics-classroom-allocation"],
   family_management: ["families"],
+  // Closes the access-diff gap: these three modules were entirely absent from
+  // this map, so deriveRouteKeys() could never emit their routeKeys for ANY
+  // Firestore role document, no matter what the matrix said. `observations`
+  // also fixes a frontend/backend divergence — rbacConfig.js (frontend) has
+  // always had this entry; this backend copy simply never did.
+  incidents:          ["incidents"],
+  care_hygiene:       ["care-hygiene"],
+  observations:       ["child-journey"],
   finance_foundation: ["finance-foundation"], // Student Ledger / Billing Plan / Family Account extension / Finance Settings (Sprint 1)
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
@@ -256,6 +284,54 @@ const SYSTEM_ROLES = [
       parent_app:        { view: true, manage: true },
       documents:         { view: true, create: true, delete: true, export: true },
       communications:    { view: true, create: true, edit: true, delete: true },
+      // Added to close the access-diff / D2-D3 gap (INTEGRATION_VALIDATION.md):
+      // these three modules had no PERMISSION_CATEGORIES entry at all, so no
+      // role document — seeded or custom — could ever grant them, regardless
+      // of what STATIC_ROLE_PERMS or the sidebar said.
+      incidents:         { view: true, create: true, edit: true, approve: true },
+      care_hygiene:      { view: true, mark: true, edit: true },
+      observations:      { view: true, create: true, edit: true, delete: true },
+    },
+  },
+  {
+    roleId:      "center_owner",
+    name:        "Center Owner",
+    description: "Ownership-level access, equivalent to Admin for their school",
+    color:       "#0f172a",
+    isSystem:    true,
+    homeRoute:   "/",
+    // D1 (INTEGRATION_VALIDATION.md): this role existed in permissions.js,
+    // permissionsBackend.js, STATIC_ROLE_PERMS and ROLE_LABELS, but had no
+    // entry here — so getRoleMatrix() returned {} for every center_owner
+    // and every capability-gated surface (Dashboard, Care) rendered blank,
+    // even though routeKey-gated screens worked via STATIC_ROLE_PERMS.
+    // Mirrors "admin" exactly: the two roles are documented elsewhere as
+    // carrying the same privilege, just a different home-route history.
+    permissions: {
+      dashboard:         { view: true },
+      students:          { view: true, create: true, edit: true, delete: true, export: true },
+      admissions:        { view: true, create: true, edit: true, approve: true },
+      attendance:        { view: true, mark: true, edit: true, export: true },
+      nap_tracking:      { view: true, mark: true, edit: true },
+      pickup_auth:       { view: true, create: true, edit: true, approve: true },
+      medical:           { view: true, edit: true },
+      food_menu:         { view: true, create: true, edit: true, delete: true },
+      fees:              { view: true, create: true, edit: true, delete: true, approve: true },
+      invoices:          { view: true, create: true, edit: true, delete: true, approve: true },
+      payments:          { view: true, create: true, delete: true },
+      receipts:          { view: true, create: true, export: true },
+      analytics:         { view: true, export: true },
+      staff:             { view: true, create: true, edit: true, delete: true },
+      roles_permissions: { view: true, manage: true },
+      settings:          { view: true, edit: true },
+      cctv:              { view: true, manage: true },
+      notifications:     { view: true, create: true, manage: true },
+      parent_app:        { view: true, manage: true },
+      documents:         { view: true, create: true, delete: true, export: true },
+      communications:    { view: true, create: true, edit: true, delete: true },
+      incidents:         { view: true, create: true, edit: true, approve: true },
+      care_hygiene:      { view: true, mark: true, edit: true },
+      observations:      { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -287,6 +363,9 @@ const SYSTEM_ROLES = [
       parent_app:        { view: true, manage: false },
       documents:         { view: true, create: true, delete: false, export: true },
       communications:    { view: true, create: true, edit: true, delete: false },
+      incidents:         { view: true, create: true, edit: true, approve: true },
+      care_hygiene:      { view: true, mark: true, edit: true },
+      observations:      { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -306,6 +385,12 @@ const SYSTEM_ROLES = [
       food_menu:         { view: true, create: false, edit: false, delete: false },
       documents:         { view: true, create: false, delete: false, export: false },
       communications:    { view: true, create: false, edit: false, delete: false },
+      // Matches the Teacher Care hub agreed in ACTION_CENTER_ARCHITECTURE_PLAN
+      // §2a (Attendance, Daily Care, Child Journey, Pickup, Incidents,
+      // Classroom) — these three were the ones with nowhere to be granted.
+      incidents:         { view: true, create: true },
+      care_hygiene:      { view: true, mark: true, edit: true },
+      observations:      { view: true, create: true, edit: true },
     },
   },
   {

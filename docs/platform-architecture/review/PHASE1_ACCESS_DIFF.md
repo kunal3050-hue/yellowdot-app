@@ -1,6 +1,10 @@
 # Phase 1 — access restoration diff, for review
 
-**Status: NOT APPLIED. NOT MERGED.** Nothing in this document has been committed to the permission plumbing. The accompanying patch is a proposal.
+**Status: ✅ APPLIED 2026-07-29.** The patch below was applied as-is, plus the additional granular-capability and `center_owner` fixes described in [INTEGRATION_VALIDATION.md §0.1](INTEGRATION_VALIDATION.md#01-access-diff-and-n1--fixed-2026-07-29), which supersedes this document as the record of what shipped. Kept for the original evidence and open-questions record.
+
+**Still true from the original review, unchanged:** every HR/Payroll/Performance key remains excluded, for the reason in §4 below.
+
+**Not yet done: production data.** `SYSTEM_ROLES` is the seed template for *new* schools. The real `ydseawoods` school has its own Firestore role documents, predating these capabilities, and `seedDefaultRoles()` only creates documents that don't already exist — it will not retroactively add these capabilities to `ydseawoods`'s existing role docs. That is a deliberate, separate production action, not part of this code change.
 
 **Patch:** [`phase1-safe-access.patch`](phase1-safe-access.patch) — one file, `yellowdot-backend/services/roleService.js`.
 
