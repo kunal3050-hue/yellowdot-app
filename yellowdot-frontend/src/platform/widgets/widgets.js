@@ -173,7 +173,11 @@ export const incidentsOpen = defineWidget({
     dashboard: { service: "incidents", read: "dashboard" },
   },
   select: ({ dashboard }) => {
-    const d = dashboard?.dashboard ?? dashboard;
+    // GET /api/incidents/dashboard returns { stats: { total, open,
+    // highSeverity, awaitingAck, resolvedThisMonth } }. The earlier guess of
+    // `{ dashboard: { open } }` made this tile read "—" against real data —
+    // the shape was never verified until the first emulator run.
+    const d = dashboard?.stats ?? dashboard?.dashboard ?? dashboard;
     const open = d?.open ?? d?.openCount ?? null;
     if (open == null) return { value: "—", sub: "Not available" };
     return {

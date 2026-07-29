@@ -255,8 +255,15 @@ function buildStudents() {
       : new Date(TODAY.getFullYear() - 3 - (i % 3), (TODAY.getMonth() + i) % 12, ((i * 7) % 27) + 1);
     students.push({
       id: `stu-${String(i + 1).padStart(3, "0")}`,
+      // CANONICAL Firestore field names. studentService reads `studentName`
+      // and `dob` (lowercase) and PROJECTS them to Student_Name / DOB in the
+      // API response — writing `name`/`DOB` here produced records the API
+      // returned with empty names and no birthdays. Caught by the first
+      // emulator integration run.
+      studentName: `${FIRST[i]} ${LAST[i % LAST.length]}`,
+      dob: ddmmyyyy(dob),
+      // Kept for any consumer reading the document directly rather than the API.
       name: `${FIRST[i]} ${LAST[i % LAST.length]}`,
-      DOB: ddmmyyyy(dob),
       class: cls.name, classId: cls.id, batch: cls.batch,
       schoolId: SCHOOL_ID, centerId: CENTER_ID,
       admissionDate: iso(daysAgo(200 + i)),

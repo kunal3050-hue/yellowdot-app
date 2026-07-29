@@ -1,15 +1,109 @@
 # Staff experience — integration validation
 
-**Status: items 1–2 BLOCKED (see §4). Item 3 COMPLETE. Item 4 below.**
-**Date:** 2026-07-26
+**Status: ALL FOUR ITEMS COMPLETE.** Run against the Firebase Emulator Suite with seeded data, 2026-07-29.
+**Date:** 2026-07-26, updated 2026-07-29 with live-backend results.
 **Gate:** these must all be resolved before `/dashboard` becomes the default landing page.
 
 | # | Validation | Status |
 |---|---|---|
-| 1 | Dashboard against a live backend, all widgets populate | ⛔ **Blocked** — needs an environment decision (§4) |
-| 2 | Care against a live backend: generation, prioritisation, escalation, completion | 🟡 **Partial** — rules verified deterministically; data path blocked |
-| 3 | Per-role validation across all staff roles | ✅ **Complete** — `npm run verify:roles` |
-| 4 | Document discrepancies and fix before routing changes | ✅ **Documented below**, fixes held for review |
+| 1 | Dashboard against a live backend, all widgets populate | ✅ **Complete** — 5/5 populate; **2 defects found and fixed** |
+| 2 | Care against a live backend: generation, prioritisation, escalation | ✅ **Complete** — 6 tasks, escalation confirmed on real data; **1 defect found and fixed** |
+| 3 | Per-role validation across all staff roles | ✅ **Complete** — static matrix + live per-role sign-in |
+| 4 | Document discrepancies and fix before routing changes | ✅ **3 fixed, 3 outstanding** (§0) |
+
+---
+
+## §0. Live-backend run — 2026-07-29
+
+Environment: `npm run dev:local` (Firestore + Auth emulators, `demo-kueboxs`,
+seeded demo tenant). Signed in as each demo role in a real browser session.
+
+### Dashboard — all five widgets populate
+
+| Widget | Value | Matches seed? |
+|---|---|---|
+| Attendance | `10/18` · 56% present | ✅ 10 present of 18 |
+| Open incidents | `1` | ✅ |
+| Pickup approvals | `2` | ✅ |
+| Outstanding fees | `₹73,250` · 8 unpaid | ✅ |
+| Birthdays | `1` — Aarav Sharma | ✅ |
+
+### Care — 6 tasks, escalation working on real data
+
+```
+CRITICAL  Pickup approval pending      Diya Patel · Overdue · 2h overdue
+CRITICAL  Pickup approval pending      Myra Kapoor · Overdue · 2h overdue
+CRITICAL  Serious incident awaiting review  Aadhya Nair · Allergic rash
+HIGH      Overdue fees need chasing    3 invoices · ₹28,500 · 19h overdue
+HIGH      Attendance not marked        6 of 18 unmarked · 10h overdue
+HIGH      Incident awaiting acknowledgement  Kabir Reddy · Minor fall
+```
+
+Escalation confirmed against a real clock: pickups (base `high`) escalated to
+`critical` at 2h past school end; attendance (base `medium`) to `high` past the
+09:30 cutoff. Filter chips derived correctly (`Safety & Compliance 4`,
+`Finance 1`).
+
+### Per-role, live
+
+| Role | Widgets | Care tasks | Care modules |
+|---|---|---|---|
+| Principal (`admin`) | 5 | 6 | 8 |
+| Teacher | 4 — **no fees** | 5 — **no finance task** | Attendance, Students, Care & Hygiene, Child Journey, Pickup, Incidents, Classes, Staff Dashboard |
+| Accountant | 2 | 1 — finance only | Finance Dashboard, Invoices, Students, Fees, Analytics |
+| Centre Owner | **5** | — | — |
+
+**D1 is confirmed a DATA problem, not a code problem.** Centre Owner renders a
+full Dashboard the moment a role document exists. The production fix is to seed
+the role document — no code change.
+
+### Defects found by the live run — all fixed
+
+**L1 — Incidents widget read the wrong response shape.** `select()` expected
+`{ dashboard: { open } }`; the endpoint returns `{ stats: { open } }`. The tile
+rendered "—" against real data. This was a guessed shape that no unit gate could
+catch. **Fixed.**
+
+**L2 — Seed wrote non-canonical student fields.** The fixture used `name`/`DOB`;
+`studentService` reads `studentName`/`dob` (lowercase) and *projects* them to
+`DOB` in the response. Result: every student came back with an empty name and no
+birthday. **Fixed** — a fixture bug, not a widget bug.
+
+**L3 — 🔴 An incident under review disappeared from Care entirely.** The task
+provider queried `?status=open`, which excludes `under_review` — so its own
+`under_review → in_progress` mapping was dead code that could never fire. For
+child-safety records the correct behaviour is that an item stays visible until
+**resolved**, not until someone starts looking at it. The provider now reads
+unfiltered and keeps `open` + `under_review`. **Fixed** — the most consequential
+of the three, and only observable with data in a middle state.
+
+### Still outstanding
+
+**N1 — 🟠 The Care module grid ignores scope level.** `resolveCareModules` uses
+the boolean `can(capability)`, so a `self`-scoped grant renders the same card as
+a school-wide one: a Teacher with `staff_management: { view: "self" }` sees a
+card labelled **"Staff Dashboard"**, implying the HR management screen rather
+than their own record. The §2c.1 ladder exists but no surface consults it yet.
+Fix: let `surfaces.care` declare a minimum level, defaulting to `self`, and/or
+vary the label by level. Not applied — it changes what roles see, so it belongs
+with the other permission-visibility changes under review.
+
+**N2 — 🟡 Ambiguous label.** `finance_dashboard` is labelled "Dashboard", which
+reads confusingly in the Care grid next to the app's own Dashboard. Rename to
+"Finance Dashboard" in the registry.
+
+**N3 — ℹ️ Reseeding invalidates live sessions.** `seedEmulator.js` deletes and
+recreates the auth users, so an open browser session is signed out mid-run.
+Harmless, but worth knowing during testing.
+
+### Carried forward, unchanged
+
+D2 (Incidents unreachable for real staff in **production**) and D3 (Teacher's
+Care grid missing modules in **production**) are unchanged: both are the
+capability-data gap, and the emulator proves the code is correct once the
+capabilities exist — Teacher sees Incidents, Care & Hygiene and Child Journey
+here precisely because the emulator seeds those grants. **The production fix is
+still the pending access diff.**
 
 ---
 

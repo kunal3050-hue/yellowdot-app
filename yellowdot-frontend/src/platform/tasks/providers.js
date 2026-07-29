@@ -73,10 +73,17 @@ export const openIncidents = defineTaskProvider({
   basePriority: "high",
   deepLink: "/incidents",
   reads: {
-    incidents: { service: "incidents", read: "list", args: () => ({ status: "open" }) },
+    // Deliberately UNFILTERED. Querying `?status=open` excluded `under_review`
+    // entirely, so an incident someone was actively working on vanished from
+    // Care — and this provider's own `under_review → in_progress` mapping
+    // below could never fire. For child-safety records the correct behaviour
+    // is that the item stays visible until it is RESOLVED, not until someone
+    // starts looking at it. Found on the first live-backend run.
+    incidents: { service: "incidents", read: "list" },
   },
   toTasks: ({ incidents }) => {
-    const list = incidents?.incidents || incidents?.data || (Array.isArray(incidents) ? incidents : []);
+    const all = incidents?.incidents || incidents?.data || (Array.isArray(incidents) ? incidents : []);
+    const list = all.filter(i => i.status === "open" || i.status === "under_review");
     return list.map(i => ({
       id: `incident:${i.id ?? i.incidentId}`,
       title: i.severity === "high" ? "Serious incident awaiting review" : "Incident awaiting acknowledgement",

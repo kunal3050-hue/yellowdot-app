@@ -19,8 +19,9 @@
  * `concurrently` for four spawns.
  */
 
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { createConnection } from "net";
+import { existsSync, readdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -69,6 +70,36 @@ const EMULATOR_ENV = {
 
 const children = [];
 const isWin = process.platform === "win32";
+
+/**
+ * Locate a JRE for the Firestore emulator.
+ *
+ * The Auth emulator is pure Node, but Firestore needs Java. A freshly installed
+ * JRE is on the SYSTEM path yet absent from any shell started before the
+ * install, which produces a confusing "Java is not installed" error on a
+ * machine where it plainly is. So: check PATH first, then the standard install
+ * locations, and inject what we find into the emulator's environment.
+ */
+function findJavaBin() {
+  const probe = spawnSync(isWin ? "where" : "which", ["java"], { encoding: "utf8", shell: isWin });
+  if (probe.status === 0 && probe.stdout.trim()) return null;   // already on PATH
+
+  const roots = isWin
+    ? ["C:\\Program Files\\Eclipse Adoptium", "C:\\Program Files\\Java",
+       "C:\\Program Files\\Microsoft\\jdk", "C:\\Program Files\\Amazon Corretto"]
+    : ["/usr/lib/jvm", "/Library/Java/JavaVirtualMachines"];
+
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const entry of readdirSync(root)) {
+      for (const rel of ["bin", join("Contents", "Home", "bin")]) {
+        const bin = join(root, entry, rel);
+        if (existsSync(join(bin, isWin ? "java.exe" : "java"))) return bin;
+      }
+    }
+  }
+  return undefined;   // not on PATH and not found
+}
 
 function run(name, cmd, cmdArgs, cwd) {
   const child = spawn(cmd, cmdArgs, {
@@ -132,15 +163,49 @@ async function main() {
 `);
 
   if (!SEED_ONLY) {
+    // Pre-flight: a port already in use is almost always a leftover emulator
+    // from an earlier run. Without this check, waitForPort() below sees the
+    // STALE listener, reports "emulators up", and the seed then fails against
+    // a half-dead environment with a confusing ECONNREFUSED.
+    for (const [port, label] of [[FIRESTORE_PORT, "Firestore"], [AUTH_PORT, "Auth"], [WEB_PORT, "web"]]) {
+      if (await portOpen(port)) {
+        throw new Error(
+          `Port ${port} is already in use (${label}).\n` +
+          "   A previous run is probably still alive. Stop it, then re-run:\n" +
+          (isWin
+            ? `     powershell "Get-NetTCPConnection -LocalPort ${port} | %{ Stop-Process -Id $_.OwningProcess -Force }"`
+            : `     lsof -ti:${port} | xargs kill -9`),
+        );
+      }
+    }
+
+    const javaBin = findJavaBin();
+    if (javaBin === undefined) {
+      throw new Error(
+        "The Firestore emulator needs a JRE and none was found.\n" +
+        "   Install one, then re-run:\n" +
+        "     winget install EclipseAdoptium.Temurin.21.JRE   (Windows)\n" +
+        "     brew install --cask temurin                      (macOS)",
+      );
+    }
+    if (javaBin) {
+      // Found off-PATH — typically a JRE installed since this shell started.
+      EMULATOR_ENV.PATH = `${EMULATOR_ENV.PATH || ""}${isWin ? ";" : ":"}${javaBin}`;
+      EMULATOR_ENV.Path = EMULATOR_ENV.PATH;   // Windows env keys are case-sensitive in spawn
+      console.log(`☕ using JRE at ${javaBin}`);
+    }
+
     run("emulators", "npx", [
       "firebase", "emulators:start",
       "--project", PROJECT_ID,
       "--only", "auth,firestore",
     ], ".");
 
-    console.log("⏳ waiting for Firestore + Auth emulators…");
-    await waitForPort(FIRESTORE_PORT, "Firestore emulator");
-    await waitForPort(AUTH_PORT, "Auth emulator");
+    // Generous: the first run downloads the Firestore emulator JAR (~60 MB),
+    // which can easily outlast a normal startup budget on a cold machine.
+    console.log("⏳ waiting for Firestore + Auth emulators (first run downloads the emulator JAR)…");
+    await waitForPort(FIRESTORE_PORT, "Firestore emulator", 300_000);
+    await waitForPort(AUTH_PORT, "Auth emulator", 60_000);
     console.log("✅ emulators up\n");
   } else if (!(await portOpen(FIRESTORE_PORT))) {
     throw new Error("--seed-only needs the emulators already running (npm run dev:local)");
