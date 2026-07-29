@@ -16,16 +16,29 @@ import { colors, spacing, radius, shadows, typography } from "../theme";
 const REFRESH_INTERVAL_MS = 90_000; // token refresh (30 s before 120 s TTL)
 const RETRY_BASE_MS       = 5_000;  // first retry delay
 const RETRY_MAX_MS        = 30_000; // cap on retry delay
+const MAX_RETRIES         = 6;      // ~2 min of backoff, then stop and show why
 
-// Reasons that require user/admin action — no point auto-retrying these
-const NO_RETRY_REASONS = new Set([
-  "parent-cctv-disabled", "master-switch-off",
-  "outside-hours", "outside-school-hours", "not-school-hours",
-  "child-not-present", "not-checked-in",
-  "child-checked-out",
-  "no-camera-in-classroom", "no-camera",
-  "not-linked", "child-missing",
-]);
+/**
+ * Should this failure be retried?
+ *
+ * Retry ONLY genuinely transient conditions. This used to be the other way
+ * round — an allow-list of "permanent" reasons, everything else retried — which
+ * meant any reason the list didn't know about (and any response with no `reason`
+ * at all) span forever behind "Reconnecting…" with its message discarded. The
+ * server's reason vocabulary is larger than any list kept in sync by hand, so
+ * the DEFAULT has to be "stop and show", not "retry".
+ *
+ * Every 4xx is a decision — authorization, presence, scheduling, configuration —
+ * that will not change inside a 2-minute retry window. A 503 here means the
+ * streaming engine isn't deployed, which needs a release, not a retry.
+ */
+function isRetryable(err) {
+  const status = err?.response?.status;
+  if (status == null) return true;   // no response — offline / DNS / dropped connection
+  if (status === 429) return true;   // rate-limited — backoff is exactly the fix
+  if (status === 503) return false;  // ENGINE_NOT_PROVISIONED — needs a deploy
+  return status >= 500;              // 500 / 502 / 504 — transient server or proxy
+}
 
 // ── Error reason → friendly message ─────────────────────────────────
 function friendlyError(err) {
@@ -39,9 +52,17 @@ function friendlyError(err) {
   if (r === "child-checked-out")                                  return "Your child has checked out for today.";
   if (r === "no-camera-in-classroom" || r === "no-camera")        return "No camera is set up for your child's classroom.";
   if (r === "no-active-slot")                                      return "No session is scheduled for this camera right now.";
-  if (r === "not-linked")                                         return "No student is linked to your account. Contact the school.";
+  if (r === "not-linked" || r === "no-linked-child")              return "No student is linked to your account. Contact the school.";
   if (r === "child-missing")                                      return "Student record not found. Contact the school.";
-  if (m.includes("ENGINE_NOT_PROVISIONED"))                       return "Live streaming is not enabled yet.";
+  // Reasons the resolver can return that previously had no message at all —
+  // they reached the retry branch and were never rendered.
+  if (r === "not-child-classroom")                                return "This camera isn't covering your child's classroom right now.";
+  if (r === "different-center" || r === "different-school")        return "This camera is not available for your child.";
+  if (r === "camera-unavailable")                                 return "This camera is currently unavailable.";
+  if (r === "not-parent")                                         return "This account cannot view live cameras.";
+  if (r === "engine-not-provisioned" || m.includes("ENGINE_NOT_PROVISIONED")) return "Live streaming is not enabled yet.";
+  // Never surface a raw server exception to a parent.
+  if (r === "server-error")                                       return "Something went wrong on our end. Please try again.";
   if (m) return m;
   return "Live view is not available right now.";
 }
@@ -149,18 +170,18 @@ export default function LiveView() {
       );
     } catch (e) {
       const info = e?.response?.data || { message: "Could not load live stream." };
-      const reason = info.reason || "";
 
-      if (NO_RETRY_REASONS.has(reason)) {
-        // Permanent — stop retrying, show error
+      if (isRetryable(e) && retryCount.current < MAX_RETRIES) {
+        // Transient — keep retrying, but hold on to `info` so that if we do give
+        // up, the final error state can still explain what went wrong.
+        setStatus("reconnecting");
+        setErrInfo(info);
+        scheduleRetry(camId || activeCamRef.current?.cameraId || null);
+      } else {
+        // Permanent, or we've exhausted the retry budget — stop and say why.
         destroyPlayer();
         setStatus("error");
         setErrInfo(info);
-      } else {
-        // Transient (network hiccup, token race, etc.) — keep retrying
-        setStatus("reconnecting");
-        setErrInfo(null);
-        scheduleRetry(camId || activeCamRef.current?.cameraId || null);
       }
     }
   }, [attachHls, destroyPlayer, scheduleRetry, classroom]);
