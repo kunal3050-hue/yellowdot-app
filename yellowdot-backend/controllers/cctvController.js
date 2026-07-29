@@ -433,15 +433,18 @@ async function parentLiveToken(req, res) {
   const nowMs = Date.now();
   const nowISO = new Date(nowMs).toISOString();
   const user = req.user || {};
+  // `reason` is what makes a denial diagnosable after the fact — without it the
+  // audit trail records that access was refused but never why.
   const auditDeny = (reason, childId) => session.audit("LIVE_VIEW_DENIED", {
     userId: user.userId, userName: user.name || "", userEmail: user.email || "",
-    role: "parent", kind: "parent", cameraId: req.body?.cameraId || "",
+    role: "parent", kind: "parent", reason: reason || "unspecified",
+    cameraId: req.body?.cameraId || "",
     childId: childId || "", ip: req.ip,
   }, nowISO);
 
   try {
     if (user.role !== "parent") {
-      return res.status(403).json({ success: false, error: "Parent endpoint only." });
+      return res.status(403).json({ success: false, error: "Parent endpoint only.", reason: "not-parent" });
     }
     const linkedId = user.student?.studentId;
     if (!linkedId) { await auditDeny("not-linked"); return res.status(403).json({ success: false, error: "No student linked to this account.", reason: "not-linked" }); }
@@ -455,7 +458,7 @@ async function parentLiveToken(req, res) {
 
     // Resolve child + presence
     const child = await studentSvc.getOne(linkedId);
-    if (!child) { await auditDeny("child-missing", linkedId); return res.status(404).json({ success: false, error: "Linked student not found." }); }
+    if (!child) { await auditDeny("child-missing", linkedId); return res.status(404).json({ success: false, error: "Linked student not found.", reason: "child-missing" }); }
     const childCtx = { studentId: linkedId, classroom: child.class || child.Class || "", centerId: child.centerId || child.center || "", schoolId: child.schoolId };
     const presence = await securitySvc.getChildStatus(linkedId, { schoolId: child.schoolId, centerId: childCtx.centerId });
 
@@ -480,7 +483,7 @@ async function parentLiveToken(req, res) {
         return (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes(childRoom);
       });
     }
-    if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId); return res.status(404).json({ success: false, error: "No camera available for your child's classroom." }); }
+    if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId); return res.status(404).json({ success: false, error: "No camera available for your child's classroom.", reason: "no-camera" }); }
 
     const decision = resolver.canParentViewCamera(childCtx, presence, cam, { schoolHoursOpen: window.open, now });
     if (!decision.allowed) {
@@ -493,7 +496,13 @@ async function parentLiveToken(req, res) {
     }
 
     const engine = process.env.CCTV_STREAM_ENGINE_URL;
-    if (!engine) return res.status(503).json({ success: false, error: "ENGINE_NOT_PROVISIONED", message: "Live streaming is not enabled yet." });
+    if (!engine) {
+      await auditDeny("engine-not-provisioned", linkedId);
+      return res.status(503).json({
+        success: false, error: "ENGINE_NOT_PROVISIONED",
+        message: "Live streaming is not enabled yet.", reason: "engine-not-provisioned",
+      });
+    }
 
     const t = session.issueToken({
       subjectId: user.userId, kind: "parent", cameraId: cam.cameraId,
@@ -513,7 +522,7 @@ async function parentLiveToken(req, res) {
     });
   } catch (e) {
     logErr("POST /api/cctv/parent/live-token", e);
-    res.status(500).json({ success: false, error: e.message });
+    res.status(500).json({ success: false, error: e.message, reason: "server-error" });
   }
 }
 
