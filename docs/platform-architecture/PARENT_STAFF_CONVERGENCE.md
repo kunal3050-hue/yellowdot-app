@@ -1,3 +1,16 @@
+> **Decision (2026-07-29):** confirmed and simplified. One shared backend, one
+> shared Module Registry, one shared Design System. **Navigation, dashboard
+> composition, and wording stay independent per frontend** — Parent and Staff
+> are two frontends, not one frontend with a mode switch. This resolves C4 and
+> C6 below as **out of scope**: no shared `AppShell` component, and Parent's
+> `HomeFeed` is not re-expressed as Widget Engine descriptors. Both would have
+> forced a staff-shaped abstraction onto a screen with a genuinely different
+> product intent (retrospective feed vs. prospective task queue) for no
+> shipped benefit. C1, C2, C3 and C5 stand as proposed — they consolidate
+> infrastructure (routing visibility, service-layer guarantees, design tokens)
+> without touching either frontend's experience layer. Do not revisit C4/C6
+> without a shipped feature that actually needs them.
+
 # Can Parent and Staff run on one platform?
 
 **Short answer: yes for four of the five layers — and the backend already does.
