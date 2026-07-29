@@ -91,13 +91,30 @@ async function wipe(collections) {
   }
 }
 
+/**
+ * N3 fix (INTEGRATION_VALIDATION.md): update-in-place instead of delete +
+ * recreate. Deleting a user immediately invalidates every ID/refresh token
+ * tied to that UID, so any browser session signed in as a demo account was
+ * signed out mid-reseed — annoying during exactly the kind of iterative
+ * testing this environment exists for.
+ *
+ * `updateUser()` on an existing UID does NOT invalidate live sessions (the
+ * Auth emulator only revokes on deleteUser() or an explicit
+ * revokeRefreshTokens() call, neither of which happens here) — so a session
+ * that was active before a reseed is still active after it. Deliberately
+ * NOT resetting the password on update: it is a fixed constant that never
+ * legitimately drifts, and re-setting it on every run would be pure
+ * downside (a further, unnecessary write) for zero benefit.
+ */
 async function seedAuthUsers() {
   for (const u of DEMO_USERS) {
-    try { await auth.deleteUser(u.uid); } catch { /* not present */ }
-    await auth.createUser({
-      uid: u.uid, email: u.email, password: DEMO_PASSWORD,
-      displayName: u.name, emailVerified: true,
-    });
+    const patch = { email: u.email, displayName: u.name, emailVerified: true };
+    try {
+      await auth.getUser(u.uid);
+      await auth.updateUser(u.uid, patch);           // exists — update, keep sessions alive
+    } catch {
+      await auth.createUser({ uid: u.uid, password: DEMO_PASSWORD, ...patch });
+    }
   }
   return DEMO_USERS.length;
 }

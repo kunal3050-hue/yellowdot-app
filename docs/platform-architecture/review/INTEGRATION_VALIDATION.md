@@ -1,7 +1,7 @@
 # Staff experience — integration validation
 
-**Status: ALL FOUR ITEMS COMPLETE. Access diff and N1 FIXED and re-verified live.**
-**Date:** 2026-07-26, updated 2026-07-29 (live-backend results), updated again 2026-07-29 (access diff + N1 fix).
+**Status: ALL FOUR ITEMS COMPLETE. Every discrepancy raised in this document — D1–D3 and N1–N3 — is now fixed and re-verified live.**
+**Date:** 2026-07-26, updated 2026-07-29 (live-backend results), updated again 2026-07-29 (access diff + N1), updated again 2026-07-29 (N2 + N3, plus one new defect N2 surfaced).
 **Gate:** these must all be resolved before `/dashboard` becomes the default landing page.
 
 | # | Validation | Status |
@@ -9,7 +9,7 @@
 | 1 | Dashboard against a live backend, all widgets populate | ✅ **Complete** — 5/5 populate; 2 defects found and fixed |
 | 2 | Care against a live backend: generation, prioritisation, escalation | ✅ **Complete** — 6 tasks, escalation confirmed on real data; 1 defect found and fixed |
 | 3 | Per-role validation across all staff roles | ✅ **Complete** — static matrix + live per-role sign-in |
-| 4 | Document discrepancies and fix before routing changes | ✅ **Access diff and N1 fixed** (§0.1); N2/N3 remain, both cosmetic (§0) |
+| 4 | Document discrepancies and fix before routing changes | ✅ **All six (D1–D3, N1–N3) fixed** (§0.1, §0.2) |
 
 ---
 
@@ -46,6 +46,30 @@
 D2 and D3 from earlier in this document are **closed**: Incidents is now reachable for real staff, and Teacher's Care grid matches the agreed hub (Attendance, Daily Care, Child Journey, Pickup, Incidents, Classroom — Classes stands in for "Classroom").
 
 **One thing this does not close:** these fixes are in `SYSTEM_ROLES`, the seed template for *new* schools. The real production school (`ydseawoods`) has its own Firestore role documents already, seeded before these capabilities existed, and `seedDefaultRoles()` only creates documents that don't already exist — it will not retroactively add `incidents`/`care_hygiene`/`observations` to an existing `teacher` document, or backfill a missing `center_owner` document unless one is truly absent. Applying this in production is a data operation (calling the already-idempotent `POST /api/roles/seed`, or an equivalent one-time backfill for existing docs), not a code deploy, and is **not something this session has done** — it needs a deliberate action against the real project, which stays outside what an agent should do unprompted.
+
+---
+
+## §0.2 N2 and N3 — fixed 2026-07-29
+
+### N2 — ambiguous "Dashboard" label in the Care grid
+
+`financeDashboardModule` is built directly with `defineModule` now, rather than via the shared `financePlatformScreen` helper (the same way `financeRefundsModule` already was an exception) — the module's own `label` is **"Finance Dashboard"**, while an explicit `nav.label: "Dashboard"` override keeps the **sidebar wording completely unchanged**: "Dashboard" under the "FINANCE" group heading already disambiguated it there, so nothing about the sidebar needed to move. This is the same per-placement `nav.label` override the `analytics` module already uses for its two different sidebar homes — not a new registry concept.
+
+**A second, more consequential defect surfaced while verifying this one:** the card did not render for *any* role, before or after the label change. Its `capability` field was `"finance.view"` — a permission module id that has **never existed** in `PERMISSION_CATEGORIES` (only a `finance` *category*, grouping fees/invoices/payments/receipts/analytics, exists — no module inside it is named `finance`). No role document, seeded or custom, could ever hold it. Same defect class as D2/D3, just undiscovered until the card's *visibility* was checked rather than only its label.
+
+Fixed by pointing the capability at `invoices.view` instead of inventing a new permission module: the underlying `/finance/dashboard` page is already gated by the `finance-dashboard` routeKey, granted via `FINANCE_UI_ROUTE_KEYS` to exactly `admin`/`center_owner`/`center_admin`/`accountant` — the same four roles that already hold `invoices.view` in `SYSTEM_ROLES`. So this reuses an existing, correctly-granted capability rather than widening anything: the card becomes visible to precisely the audience that could already reach the page it links to.
+
+**Verified live** (Centre Owner, after the fix): the Care grid shows **"Finance Dashboard"** with no bare "Dashboard" card, and the sidebar under **FINANCE** still reads **`Dashboard → Student Ledger → Billing Plans → …`**, byte-for-byte unchanged.
+
+### N3 — reseeding invalidated live browser sessions
+
+`seedAuthUsers()` used to `deleteUser()` then `createUser()` on every reseed. Deleting a Firebase Auth user immediately invalidates every ID/refresh token tied to that UID, so any browser signed in as a demo account was silently logged out mid-reseed.
+
+Fixed by checking existence first (`auth.getUser(uid)`) and calling `updateUser()` in place when the account already exists — the Auth emulator only revokes live sessions on `deleteUser()` or an explicit `revokeRefreshTokens()` call, neither of which this path exercises anymore. The password is deliberately **not** reset on the update path: it is a fixed constant that never legitimately drifts, so resetting it on every run would be a further unnecessary write for no benefit — only newly created accounts receive an explicit password.
+
+**Verified empirically, not just by reading the SDK docs:** signed in as Reception, ran a full reseed, then — *without re-authenticating* — called `getIdToken()` and hit an authenticated API endpoint: `200`, no re-login required. Confirmed again through the actual app: navigated to `/dashboard` post-reseed and stayed there (no redirect to `/login`).
+
+**Aside, not fixed, out of scope for this pass:** Reception's *emulator-only* fixture already granted `incidents.view` from the original seed script (predating the access-diff review, which did not include Reception in that grant for production). Harmless — it only affects local test data — but noted here rather than silently left unexplained, since it produces one more Dashboard tile for Reception in the emulator than the static per-role harness expects.
 
 ---
 

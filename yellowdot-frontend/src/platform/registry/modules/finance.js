@@ -96,11 +96,45 @@ const financePlatformScreen = ({ id, label, path, routeKey, icon, order, capabil
     ],
   });
 
-export const financeDashboardModule = financePlatformScreen({
-  id: "finance_dashboard", label: "Dashboard", path: "/finance/dashboard",
-  routeKey: "finance-dashboard", icon: "LayoutDashboard", order: 10,
-  capability: "finance.view", keywords: ["finance dashboard", "revenue", "collection"],
+/**
+ * Not built via financePlatformScreen (like financeRefundsModule below) —
+ * N2 fix (INTEGRATION_VALIDATION.md): the module's own label is "Finance
+ * Dashboard" so the Care grid, Ctrl+K search and the Roles UI don't show a
+ * bare "Dashboard" card sitting next to the app's own Dashboard. The
+ * `nav.label` override below keeps the SIDEBAR wording exactly as it was —
+ * "Dashboard" under the "Finance" group heading already disambiguates it,
+ * so nothing there needed to change. Same per-placement `nav.label` override
+ * the `analytics` module (core.js) already uses for its two sidebar homes.
+ */
+/**
+ * ⚠️ Discovered while verifying N2, unrelated to the label fix above: this
+ * module's `capability` was "finance.view" — a permission module id that has
+ * NEVER existed in rbacConfig PERMISSION_CATEGORIES (only a "finance"
+ * CATEGORY grouping fees/invoices/payments/receipts/analytics does). No role
+ * document, seeded or custom, could ever hold it — the same unreachable-
+ * capability defect as D2/D3, just undiscovered until this card was actually
+ * checked for visibility rather than only for its label.
+ *
+ * Fixed by pointing at `invoices.view` instead of inventing a new "finance"
+ * permission module: the underlying page (`/finance/dashboard`) is already
+ * gated by the "finance-dashboard" routeKey, granted via FINANCE_UI_ROUTE_KEYS
+ * to exactly admin/center_owner/center_admin/accountant — the same four roles
+ * that already hold `invoices.view` in SYSTEM_ROLES. So this reuses an
+ * existing, correctly-granted capability rather than widening anything: the
+ * card becomes visible to precisely the audience that could already reach
+ * the page it links to.
+ */
+export const financeDashboardModule = defineModule({
+  id: "finance_dashboard", label: "Finance Dashboard", icon: "LayoutDashboard",
+  category: "finance_platform", capability: "invoices.view",
+  featureFlag: "FINANCE_FOUNDATION", actions: ["view"],
+  keywords: ["finance dashboard", "revenue", "collection"],
   surfaces: { care: { order: 65, roles: { center_owner: 10, accountant: 5 } } },
+  routes: [
+    { path: "/finance/dashboard", routeKey: "finance-dashboard",
+      label: "Finance Dashboard", icon: "LayoutDashboard", capability: "invoices.view",
+      nav: [{ category: "finance_platform", order: 10, label: "Dashboard" }] },
+  ],
 });
 
 export const financeLedgerModule = financePlatformScreen({
