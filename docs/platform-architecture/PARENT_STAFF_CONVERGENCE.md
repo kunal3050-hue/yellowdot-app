@@ -10,6 +10,19 @@
 > infrastructure (routing visibility, service-layer guarantees, design tokens)
 > without touching either frontend's experience layer. Do not revisit C4/C6
 > without a shipped feature that actually needs them.
+>
+> **Superseding freeze (2026-07-29):** the Parent module is declared **complete
+> and stable**. No redesign, migration, or rebuild — including C4 and C6 above,
+> which are now permanently withdrawn rather than merely deferred, and
+> including **C5** (migrating Parent's inline styles onto design-system
+> primitives): any visual/DOM change to Parent, even a "pure" refactor with
+> pixel parity as the gate, is now out of bounds unless it is an explicit bug
+> fix, a performance fix, or a named new parent-facing feature. **C1 and C2
+> remain in scope** — registering Parent's existing routes and services is
+> infrastructure visibility, not a Parent-facing change; nothing a parent sees
+> or does is touched. All product work from here targets Staff. Read this
+> paragraph before proposing *any* Parent-adjacent change, including one that
+> looks purely internal.
 
 # Can Parent and Staff run on one platform?
 
