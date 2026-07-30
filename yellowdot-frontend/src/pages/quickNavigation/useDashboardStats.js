@@ -10,6 +10,11 @@
  * Birthdays are derived client-side from the already-fetched student
  * list's DOB field (same format LiveDashboard/PersonalInfo already
  * parse) — not a new API call, just a filter over data already in hand.
+ *
+ * Admissions-this-week is derived the same way, from each student's
+ * Admission_Date (studentService.js's PascalCase projection of the raw
+ * `admissionDate` field) — replacing what was a hardcoded "3" with no
+ * backend source at all (staff review finding C1, 2026-07-30).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { callRead } from "../../platform/services";
@@ -23,10 +28,14 @@ function parseDOB(dob) {
   return isNaN(d) ? null : d;
 }
 
+// Admission_Date has been observed as either ISO (YYYY-MM-DD) or DD/MM/YYYY —
+// same ambiguity as DOB, so it gets the same slash-aware parse.
+const parseAdmissionDate = parseDOB;
+
 export default function useDashboardStats() {
   const [stats, setStats] = useState({
     attendancePct: null, presentToday: null, pendingPickups: null,
-    outstandingFees: null, birthdaysToday: null,
+    outstandingFees: null, birthdaysToday: null, admissionsThisWeek: null,
   });
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -76,7 +85,17 @@ export default function useDashboardStats() {
       return dob && dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
     }).length;
 
-    setStats({ attendancePct, presentToday: present, pendingPickups, outstandingFees, birthdaysToday });
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const admissionsThisWeek = students.length ? students.filter(s => {
+      const admitted = parseAdmissionDate(s.Admission_Date);
+      return admitted && admitted >= sevenDaysAgo && admitted <= today;
+    }).length : null;
+
+    setStats({
+      attendancePct, presentToday: present, pendingPickups, outstandingFees,
+      birthdaysToday, admissionsThisWeek,
+    });
     setLoading(false);
   }, []);
 
