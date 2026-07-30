@@ -902,5 +902,18 @@ function RootRedirect() {
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
+  // Item 6 of the approved staff-review priority list (S1, 2026-07-30): a
+  // Super Admin's job is platform health across every tenant school, not one
+  // school's day-to-day operations — landing them on the single-school
+  // Control Center buried their actual tools (Preschools, Platform
+  // Analytics, Audit Logs) at the bottom of an unrelated 13-group sidebar.
+  // Platform Analytics already existed as a real, working platform-level
+  // overview (total schools, plan/status breakdown, recent preschools) — no
+  // new page needed, just pointing the front door at it.
+  //
+  // `role` is the *effective* role (devRole-aware, see AuthContext), so a
+  // Super Admin using the Role Switcher to preview as another role still
+  // lands on that role's normal experience for testing, exactly as before.
+  if (role === "super_admin") return <Navigate to="/super-admin/analytics" replace />;
   return <Navigate to="/quick-navigation" replace />;
 }
