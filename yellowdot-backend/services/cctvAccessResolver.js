@@ -34,17 +34,50 @@ function cameraClassrooms(camera) {
   return camera.classroom ? [camera.classroom] : [];
 }
 
+// Every camera timeline in production today is authored in the school's local
+// wall-clock time (India). There is no per-tenant timezone field yet, so this
+// is a deliberate, named default rather than an implicit assumption -- see
+// getActiveTimelineEntry() for why it can't be left to the server's ambient
+// clock.
+const SCHOOL_TIMEZONE = "Asia/Kolkata";
+
+const _weekdayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Resolve a Date to { day, mins } (0=Sun..6=Sat, minutes since midnight) IN
+ * the school's timezone, regardless of the server process's own local time.
+ *
+ * A container with no TZ env var defaults to UTC. Comparing UTC-derived
+ * getDay()/getHours() against a timeline authored in IST silently denies
+ * access for the first ~5.5h of the real school day and grants it ~5.5h past
+ * the real cutoff every night -- wrong in both directions, and it never
+ * throws or logs, so it looks like normal "outside hours" behaviour. Always
+ * go through Intl with an explicit timeZone so this can't depend on how the
+ * host/container happens to be configured.
+ */
+function _dayAndMinutesIn(now, timezone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(now);
+  const get = type => parts.find(p => p.type === type).value;
+  return {
+    day:  _weekdayIndex[get("weekday")],
+    mins: parseInt(get("hour"), 10) * 60 + parseInt(get("minute"), 10),
+  };
+}
+
 /**
  * Returns the timeline entry that is active right now for this camera, or null.
  * A camera without a timeline[] falls back to the static classrooms[] model.
  * @param {{ timeline?: Array }} camera
  * @param {Date} [now]
+ * @param {string} [timezone] IANA zone the timeline was authored in — defaults
+ *   to SCHOOL_TIMEZONE; only ever overridden by tests.
  * @returns {{ id, classroom, days, startTime, endTime } | null}
  */
-function getActiveTimelineEntry(camera, now = new Date()) {
+function getActiveTimelineEntry(camera, now = new Date(), timezone = SCHOOL_TIMEZONE) {
   if (!Array.isArray(camera.timeline) || !camera.timeline.length) return null;
-  const day  = now.getDay();                                  // 0=Sun … 6=Sat
-  const mins = now.getHours() * 60 + now.getMinutes();
+  const { day, mins } = _dayAndMinutesIn(now, timezone);
   return camera.timeline.find(e => {
     if (!Array.isArray(e.days) || !e.days.includes(day)) return false;
     const [sh, sm] = (e.startTime || "00:00").split(":").map(Number);
@@ -186,6 +219,7 @@ module.exports = {
   filterViewableCameras,
   describeScope,
   getActiveTimelineEntry,
+  SCHOOL_TIMEZONE,
   BYPASS_ROLES,
   CENTER_WIDE_ROLES,
   CLASSROOM_SCOPED,
