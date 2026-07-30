@@ -130,12 +130,28 @@ export default function LiveView() {
       const hls = new Hls({ lowLatencyMode: true, backBufferLength: 10 });
       hls.loadSource(url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play?.().catch(() => {}));
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Genuine playback success, not just "the token fetch worked" -- reset
+        // the retry budget here, not in startStream(). A camera whose stream is
+        // unstable (segment-duration drift, dropped RTP packets from the source)
+        // can fail at THIS layer over and over while every token fetch keeps
+        // succeeding; resetting on token-fetch success alone meant the retry
+        // count for a real, ongoing stream problem never accumulated past the
+        // very first attempt, so the fatal-error handler below span forever.
+        retryCount.current = 0;
+        video.play?.().catch(() => {});
+      });
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (data?.fatal) {
           if (hlsRef.current) { try { hlsRef.current.destroy(); } catch {} hlsRef.current = null; }
-          setStatus("reconnecting");
-          scheduleRetry(camId);
+          if (retryCount.current < MAX_RETRIES) {
+            setStatus("reconnecting");
+            scheduleRetry(camId);
+          } else {
+            destroyPlayer();
+            setStatus("error");
+            setErrInfo({ message: "The camera stream keeps dropping. Please try again in a moment." });
+          }
         }
       });
       hlsRef.current = hls;
@@ -146,7 +162,7 @@ export default function LiveView() {
       setStatus("error");
       setErrInfo({ message: "Your browser cannot play this stream." });
     }
-  }, [scheduleRetry]);
+  }, [scheduleRetry, destroyPlayer]);
 
   // ── Fetch token + start/refresh stream ───────────────────────────
   const startStream = useCallback(async (camId) => {
@@ -156,8 +172,13 @@ export default function LiveView() {
       sessionRef.current = r.sessionId;
       if (r.classroom && !classroom) setClassroom(r.classroom);
 
-      // Successful connect — reset retry backoff
-      retryCount.current = 0;
+      // NOTE: retryCount is deliberately NOT reset here. A successful token
+      // fetch only proves auth/scheduling succeeded, not that the stream is
+      // actually playing -- resetting on this signal wiped out the retry
+      // budget on every cycle of an ongoing stream-level failure, before the
+      // fatal-error handler in attachHls() could ever accumulate toward its
+      // cap. The real "we're actually playing" signal is Hls.Events.MANIFEST_PARSED,
+      // which is where the reset now happens.
 
       const url = `${r.hlsUrl}${r.hlsUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(r.token)}`;
       attachHls(url, camId || r.cameraId);
