@@ -35,8 +35,11 @@ export const pickupAuthorizationModule = defineModule({
   surfaces: { care: { order: 40, roles: { teacher: 40, reception: 40 } } },
   routes: [
     {
+      // Staff review C4/C5 (2026-07-30): Reception's highest-frequency
+      // screen, no sidebar entry, no MainLayout wrapper (fixed in App.jsx).
       path: "/pickup-authorization", routeKey: "pickup-authorization",
       label: "Pickup Authorization", icon: "Car",
+      nav: [{ category: "presence_safety", order: 25 }],
       grid: { section: "security", label: "Pickup Authorization", icon: "Car",
               description: "Manage the people authorised to pick up each child." },
     },

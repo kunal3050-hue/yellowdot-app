@@ -198,7 +198,7 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
       {/* Brand */}
       <div className="p-5 border-b border-gray-100 flex-shrink-0">
         <Link to="/" className="block">
-          <h1 className="text-3xl font-black text-[var(--yd-yellow)] leading-none">Yellow<br/>Dot</h1>
+          <h1 className="text-2xl font-black text-[var(--yd-yellow)] leading-none">KUE BOXS<br/>Care</h1>
           <p className="text-gray-400 text-[10px] font-medium mt-1 uppercase tracking-wider">Attendance</p>
         </Link>
       </div>

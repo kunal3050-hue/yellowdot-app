@@ -560,12 +560,36 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.INCIDENTS,
         icon:     "AlertTriangle",
       },
+      // Staff review findings C4/C5/T1 (2026-07-30): this was the single
+      // most-used screen for a Teacher and had NO sidebar entry at all —
+      // reachable only via the Control Center grid, direct URL, or search.
+      // Placed directly beside Gate Register on purpose: the review found a
+      // real risk that a new teacher opens Gate Register expecting the
+      // attendance-marking screen and doesn't find it — adjacency with a
+      // clearly different label ("Student Attendance" vs "Gate Register")
+      // is the fix, not a folder a new hire has to already know to look in.
+      {
+        id:       "attendance",
+        label:    "Student Attendance",
+        path:     "/attendance",
+        routeKey: ROUTES.ATTENDANCE,
+        icon:     "CalendarCheck",
+      },
       {
         id:       "child_presence",
         label:    "Gate Register",
         path:     "/child-presence",
         routeKey: ROUTES.ATTENDANCE,
         icon:     "UserCheck",
+      },
+      // Same finding, second instance: Reception's highest-frequency screen,
+      // previously reachable only via the Control Center grid.
+      {
+        id:       "pickup_authorization",
+        label:    "Pickup Authorization",
+        path:     "/pickup-authorization",
+        routeKey: ROUTES.PICKUP_AUTHORIZATION,
+        icon:     "Car",
       },
     ],
   },

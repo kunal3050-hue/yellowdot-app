@@ -345,7 +345,7 @@ function App() {
               path="/attendance"
               element={
                 <ProtectedRoute routeKey="attendance">
-                  <Attendance />
+                  <MainLayout><Attendance /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -573,7 +573,7 @@ function App() {
               path="/pickup-authorization"
               element={
                 <ProtectedRoute routeKey="pickup-authorization">
-                  <PickupAuthorization />
+                  <MainLayout><PickupAuthorization /></MainLayout>
                 </ProtectedRoute>
               }
             />

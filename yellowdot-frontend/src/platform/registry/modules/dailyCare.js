@@ -7,11 +7,10 @@ import { defineModule } from "../defineModule.js";
 /**
  * Student attendance, including the Gate Register.
  *
- * Note for later phases: /attendance has NO sidebar entry today — it is
- * reachable only via the Control Center grid and deep links, while
- * /child-presence (same routeKey) sits in Safety & Compliance. Recorded here
- * as-is so Phase 0 stays behaviour-identical; worth revisiting when navigation
- * is derived from the registry in Phase 7.
+ * Both routes now sit side by side in the sidebar's Safety & Compliance
+ * group — fixed 2026-07-30 per the staff UX review (C4/C5/T1). Previously
+ * /attendance had no sidebar entry and no MainLayout wrapper at all,
+ * reachable only via the Control Center grid, direct URL or search.
  */
 export const attendanceModule = defineModule({
   id: "attendance",
@@ -25,7 +24,11 @@ export const attendanceModule = defineModule({
   surfaces: { care: { order: 10, roles: { teacher: 10, reception: 30 } } },
   routes: [
     {
+      // Staff review C4/C5/T1 (2026-07-30): no sidebar entry at all, and no
+      // MainLayout wrapper (fixed in App.jsx) — this was the single
+      // highest-frequency screen for a Teacher and the hardest to find.
       path: "/attendance", routeKey: "attendance", label: "Student Attendance", icon: "CalendarCheck",
+      nav: [{ category: "presence_safety", order: 15 }],
       grid: { section: "attendance", label: "Student Attendance", icon: "CalendarCheck",
               description: "Mark attendance and monitor today's presence." },
     },
