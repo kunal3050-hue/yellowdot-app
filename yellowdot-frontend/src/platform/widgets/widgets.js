@@ -98,6 +98,17 @@ export const feesOutstanding = defineWidget({
   capability: "invoices.view",
   featureFlag: "INVOICES",
   priority: 30,
+  // Item 5 of the approved staff-review priority list (2026-07-30): Centre
+  // Owner and Principal hold identical capabilities today, so without this
+  // they see byte-identical Dashboards — confirmed directly in the review.
+  // The two roles differ in EMPHASIS, not access: a business owner's first
+  // glance is revenue; a principal's is what's happening on the ground.
+  // displayOrder is the existing, unused-for-these-two-roles mechanism for
+  // exactly this — no new capability, no new widget, pure reordering.
+  // Rank 5 beats every other widget's base priority (10/15/20/40), so this
+  // becomes Centre Owner's leading tile; Principal keeps the operational
+  // default order (Attendance, Incidents, Pickups, then Fees).
+  displayOrder: { center_owner: 5 },
   destination: "/invoice",
   layouts: ["stat"],
   reads: {
