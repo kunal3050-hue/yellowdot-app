@@ -69,21 +69,45 @@ function _dayAndMinutesIn(now, timezone) {
 /**
  * Returns the timeline entry that is active right now for this camera, or null.
  * A camera without a timeline[] falls back to the static classrooms[] model.
+ *
+ * A camera's entries commonly overlap by design: a broad all-day "Daycare"
+ * block plus a narrower program-specific block (Playgroup/Nursery/LKG) nested
+ * inside the same window, so the room reads as generally supervised outside
+ * the narrower program's own hours. When more than one entry is active at
+ * once, `.find()` returning "whichever is listed first" silently picked the
+ * broad block every time, because it's always listed first and its window
+ * always contains the narrower one -- meaning a Playgroup/Nursery/LKG child
+ * could never match their own camera during their own scheduled slot; the
+ * caller only ever saw the broader Daycare entry and denied them with
+ * "not-child-classroom" against their own correctly-configured schedule.
+ *
+ * `preferredClassroom` breaks that tie: among simultaneously active entries,
+ * prefer the one matching the caller's classroom; fall back to the first
+ * active entry (previous behaviour, still correct when nothing matches) so a
+ * genuinely wrong classroom keeps denying exactly as before.
+ *
  * @param {{ timeline?: Array }} camera
  * @param {Date} [now]
  * @param {string} [timezone] IANA zone the timeline was authored in — defaults
  *   to SCHOOL_TIMEZONE; only ever overridden by tests.
+ * @param {string} [preferredClassroom] break ties among overlapping entries.
  * @returns {{ id, classroom, days, startTime, endTime } | null}
  */
-function getActiveTimelineEntry(camera, now = new Date(), timezone = SCHOOL_TIMEZONE) {
+function getActiveTimelineEntry(camera, now = new Date(), timezone = SCHOOL_TIMEZONE, preferredClassroom) {
   if (!Array.isArray(camera.timeline) || !camera.timeline.length) return null;
   const { day, mins } = _dayAndMinutesIn(now, timezone);
-  return camera.timeline.find(e => {
+  const active = camera.timeline.filter(e => {
     if (!Array.isArray(e.days) || !e.days.includes(day)) return false;
     const [sh, sm] = (e.startTime || "00:00").split(":").map(Number);
     const [eh, em] = (e.endTime   || "23:59").split(":").map(Number);
     return mins >= sh * 60 + sm && mins < eh * 60 + em;
-  }) || null;
+  });
+  if (!active.length) return null;
+  if (preferredClassroom) {
+    const preferred = active.find(e => norm(e.classroom) === norm(preferredClassroom));
+    if (preferred) return preferred;
+  }
+  return active[0];
 }
 
 function sameCenter(user, camera) {
@@ -178,7 +202,7 @@ function canParentViewCamera(child, presence, camera, opts = {}) {
   // static classrooms[] model (backward-compatible with pre-timeline records).
   if (Array.isArray(camera.timeline) && camera.timeline.length) {
     const now   = opts.now instanceof Date ? opts.now : new Date();
-    const entry = getActiveTimelineEntry(camera, now);
+    const entry = getActiveTimelineEntry(camera, now, undefined, child.classroom);
     if (!entry) return { allowed: false, reason: "no-active-slot" };
     if (norm(entry.classroom) !== norm(child.classroom)) {
       return { allowed: false, reason: "not-child-classroom" };
