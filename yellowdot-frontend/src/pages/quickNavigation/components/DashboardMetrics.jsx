@@ -46,9 +46,17 @@ export default function DashboardMetrics() {
       value: presentToday ?? "—", trendLabel: "checked in today",
     },
     {
+      // W3, workflow-optimization review 2026-07-30: this counts only
+      // pickup_auth requests still awaiting the PARENT's own approval —
+      // nothing here is a staff action yet. Gate Register's "Pending
+      // Approval" filter is a different, larger number (it also includes
+      // already-approved-but-not-yet-released children, which IS a staff
+      // action). "Pending Pickups" read as the same concept as both and
+      // undercounted the one that's actually actionable. Renamed to say
+      // exactly what this number is.
       id: "pickups", capability: ["pickup_auth", "view"],
-      icon: Car, label: "Pending Pickups",
-      value: pendingPickups ?? "—", trendLabel: "awaiting collection",
+      icon: Car, label: "Awaiting Parent",
+      value: pendingPickups ?? "—", trendLabel: "pickup requests not yet approved",
     },
     {
       id: "fees", capability: ["invoices", "view"],

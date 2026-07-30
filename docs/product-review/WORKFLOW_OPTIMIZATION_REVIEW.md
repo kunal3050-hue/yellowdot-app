@@ -3,7 +3,7 @@
 **Date:** 2026-07-30
 **Method:** Live walkthrough in a real browser session, signed in as Teacher, Reception, and Accountant in turn, against the seeded emulator (18 students, realistic attendance/pickup/invoice data). Every finding below was observed on screen or confirmed by reading the exact backend route/controller it depends on, not inferred from the UI alone.
 **Scope:** Per the brief — this is a workflow-optimization pass, not a screen-by-screen audit. It answers three specific questions: can a Teacher complete a full daily routine in the fewest possible interactions, can Reception complete admissions and pickups without switching modules, and can an Accountant complete fee collection from a single operational workspace. It follows [STAFF_UX_REVIEW.md](./STAFF_UX_REVIEW.md) and assumes the six fixes from that review's approved batch are already live (they are — verified below).
-**Headline:** two of the three workflows are already close to the target; the third (attendance) has one specific, fixable gap that dominates a Teacher's day more than everything else in this document combined.
+**Headline:** two of the three workflows are already close to the target; the third (attendance) had one specific gap that dominated a Teacher's day more than everything else in this document combined. **All four findings (W1–W4) are now fixed and verified live** (2026-07-30) — see status notes in each section and the summary table.
 
 ---
 
@@ -29,7 +29,7 @@ This is the single highest-frequency action in the entire Staff app — every Te
 
 This is a legitimate data dependency, not a bug — you can't log consumption against a menu that doesn't exist — but as observed it's a same-day hard blocker with no visibility into *whose* responsibility the missing step is. If Food Menu is meant to be set up by kitchen/admin staff ahead of time, a Teacher hitting this wall on a given day has no path forward that's actually theirs to take.
 
-**Recommendation:** Either surface an explicit "today's menu isn't set yet — ask [kitchen/admin]" state instead of a bare link into a module the Teacher may not have create-rights on, or (if Teachers are in fact expected to set the daily menu themselves) make that expectation visible ahead of time — e.g. a Dashboard/Care task the day before, rather than a same-day blocker discovered mid-task.
+**Status: fixed and verified live (2026-07-30).** Confirmed via `rbacConfig.js`'s role templates that this is a real, not hypothetical, permission gap: Teacher holds `food_menu: { view: true, create: false }`, so the old "Go to Food Menu" link sent them to a page they could only look at. `FoodConsumption.jsx`'s `NoMenuState` now checks `canDo("food_menu", "create")` and branches — a role that can actually create a menu (e.g. Center Admin) still gets the "Go to Food Menu" action; a role that can't (Teacher) instead sees "Nobody has set today's menu yet. Ask an admin or kitchen staff to add it." Verified live as both roles: Teacher no longer sees a dead-end link, Center Admin's flow is unchanged.
 
 ### Confirmed working well (no action needed)
 - **Nap Tracker** (`/nap-tracker`) and **Care & Hygiene** (`/care-hygiene`): both use a single tap/modal per *event*, which is correct here — unlike attendance, not every child needs a nap or hygiene event logged every day, so a per-child action is the right default, not a gap.
@@ -53,7 +53,7 @@ This is a legitimate data dependency, not a bug — you can't log consumption ag
 
 The Control Center KPI ("PENDING PICKUPS") reads the raw count of `pickup_auth` requests with `status: "pending"` (2 in the seeded data). Gate Register's "Pending Approval" filter, one click away, reads a union of pending-*and*-approved-but-not-yet-released requests (3 in the same data). Both numbers are correct for what they individually measure, but they share almost the same label ("pending pickups" vs. "pending approval") and a Receptionist moving from the landing page to the actual work screen will see the number change without an obvious reason why.
 
-**Recommendation:** Align the label or the definition — either make the Control Center KPI's destination screen filter to the same set it counted, or rename one of the two so it's clear they're not meant to match (e.g. "Awaiting parent" vs. "Needs release").
+**Status: fixed and verified live (2026-07-30).** Kept the Control Center KPI's underlying number as-is (2, raw pending-only) rather than changing its data model to match Gate Register's — on reflection the pending-only count is the more *honest* one to show as a landing-page KPI, since it isn't actually a staff action yet (the child is still waiting on the parent's own approval); Gate Register's larger union number (3) *does* include a staff action (release an already-approved child) and deserves to stay distinct. Relabeled the Control Center card from "Pending Pickups" to **"Awaiting Parent"** (`DashboardMetrics.jsx`) and, spotting the identical mislabel on the same underlying query, also relabeled the newer Dashboard's matching widget from "Pickup approvals / Requests waiting on staff" to **"Awaiting Parent" / "Pickup requests not yet approved by parent"** (`widgets.js`) — that widget's old copy actively claimed staff had something to do here, which was backwards. Verified live as Reception: Control Center now reads "AWAITING PARENT · 2 · pickup requests not yet approved"; `/dashboard` now reads "Awaiting Parent · 2 · 2 awaiting parent." Neither collides with Gate Register's "Pending Approval (3)" anymore.
 
 ---
 
@@ -67,7 +67,7 @@ The Control Center KPI ("PENDING PICKUPS") reads the raw count of `pickup_auth` 
 
 Clicking "Record Payment" from the Control Center (the first screen every role sees) navigates to `/invoice` showing all 14 invoices with no filter applied, rather than pre-filtering to the invoices that actually need a payment recorded (Pending/Partial/Overdue — 8 of the 14 in the seeded data) or jumping straight to the single most urgent one. This costs a search or a scroll on every use, on a page that already has the filter chips (Pending/Partial/Overdue) needed to do this correctly.
 
-**Recommendation:** Have the quick action deep-link with the Overdue/Pending/Partial filter pre-applied (the page already supports this via its status filter buttons), so the destination matches the intent of the action that was clicked.
+**Status: fixed and verified live (2026-07-30).** The page's existing status filter only supported a single status at a time (All/Paid/Pending/Partial/Overdue), so a straight deep-link to one status chip would have under-covered the other two unpaid states. Added a new `"Unpaid"` filter value (`Invoice.jsx`, `statusFilter`) that matches any non-Paid invoice, read from a `?status=unpaid` query param via `useSearchParams` — no new visible UI chip, just a filter state the quick action can target. The quick action's link is now `/invoice?status=unpaid`. Verified live as Accountant: clicking "Record Payment" now opens `/invoice` showing exactly the 8 unpaid invoices (Overdue/Pending/Partial), not all 14.
 
 ### Also observed, not a workflow problem
 - Two operational warnings surfaced inline in the Payment Collection panel — "UPI not configured" and "no WhatsApp number on file" — are configuration/data gaps for this seeded school, not code defects. Flagged here only because they'd be worth checking against real production tenant data if similar warnings show up there.
@@ -80,8 +80,8 @@ Clicking "Record Payment" from the Control Center (the first screen every role s
 | # | Finding | Role | Severity | Fix scope |
 |---|---|---|---|---|
 | W1 | "Mark all present" existed but was hidden behind the Unmarked filter | Teacher | 🔴 | ✅ FIXED 2026-07-30 — button now visible on any filter |
-| W2 | Food Consumption blocked same-day with no ownership signal when no menu exists | Teacher | 🟠 | Frontend messaging, or process/ownership clarification |
-| W3 | "Pending pickups" (Control Center) vs. "Pending Approval" (Gate Register) count different things | Reception | 🟡 | Copy/label change, or filter-alignment on the KPI's destination link |
-| W4 | "Record Payment" quick action opens the full unfiltered invoice list | Accountant | 🟡 | Deep-link with existing status filter |
+| W2 | Food Consumption blocked same-day with no ownership signal when no menu exists | Teacher | 🟠 | ✅ FIXED 2026-07-30 — capability-aware messaging, no more dead-end link |
+| W3 | "Pending pickups" (Control Center) vs. "Pending Approval" (Gate Register) count different things | Reception | 🟡 | ✅ FIXED 2026-07-30 — both KPI surfaces relabeled to "Awaiting Parent" |
+| W4 | "Record Payment" quick action opens the full unfiltered invoice list | Accountant | 🟡 | ✅ FIXED 2026-07-30 — deep-links to a new "Unpaid" filter (8 of 14) |
 
 **Recommended priority:** W1 first and alone if only one thing ships — it's the only 🔴 in this document and the highest-frequency single action in the app. W2–W4 are all small, independent, low-risk fixes that can ship in any order or together.

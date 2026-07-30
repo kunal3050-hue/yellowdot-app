@@ -61,10 +61,18 @@ export const attendanceToday = defineWidget({
 });
 
 // ── Pickup ────────────────────────────────────────────────────────────────────
+// W3, workflow-optimization review 2026-07-30: `status: "pending"` here means
+// awaiting the PARENT's own approval (see ChildPresence.jsx's "Waiting on
+// parent" state) — there is nothing for staff to act on yet. The previous
+// title/description ("Pickup approvals" / "Requests waiting on staff") said
+// the opposite, and read as the same concept as Gate Register's "Pending
+// Approval" filter even though that's a different, larger number (it also
+// includes already-approved children awaiting release, which IS a staff
+// action). Renamed to say exactly what this count is.
 export const pickupPending = defineWidget({
   id: "pickup-pending",
-  title: "Pickup approvals",
-  description: "Requests waiting on staff",
+  title: "Awaiting Parent",
+  description: "Pickup requests not yet approved by parent",
   icon: Car,
   moduleId: "pickup_auth",
   capability: "pickup_auth.view",
@@ -81,7 +89,7 @@ export const pickupPending = defineWidget({
     const count = requests.count ?? (requests.requests || []).length;
     return {
       value: String(count),
-      sub:   count === 0 ? "Nothing waiting" : count === 1 ? "1 request waiting" : `${count} requests waiting`,
+      sub:   count === 0 ? "Nothing pending" : count === 1 ? "1 awaiting parent" : `${count} awaiting parent`,
       tone:  count === 0 ? "good" : count > 3 ? "bad" : "warn",
     };
   },
