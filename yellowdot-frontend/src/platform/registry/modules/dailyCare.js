@@ -52,6 +52,12 @@ export const napTrackerModule = defineModule({
   featureFlag: "DAILY_CARE",
   actions: ["view", "mark", "edit"],
   keywords: ["nap", "sleep", "rest", "bedtime"],
+  // C4, Care experience review (2026-07-31): had no surfaces.care entry at
+  // all, so it was absent from the Modules grid for every role — the other
+  // half of C3's "daily-care routine is invisible" finding. Teacher holds
+  // mark/edit here (rbacConfig.js), unlike Food Menu below, so this is a
+  // genuine do-the-work destination for them, not a browse-only screen.
+  surfaces: { care: { order: 15, roles: { teacher: 15 } } },
   routes: [
     {
       path: "/nap-tracker", routeKey: "nap-tracker", label: "Nap Tracker", icon: "Moon",
@@ -96,6 +102,13 @@ export const foodConsumptionModule = defineModule({
   featureFlag: "DAILY_CARE",
   actions: ["view", "mark", "edit"],
   keywords: ["consumption", "ate", "food log", "intake", "meal log"],
+  // C4 (see napTrackerModule above). Food Menu itself deliberately does NOT
+  // get a surfaces.care entry: Teacher holds food_menu.view but not .create
+  // (W2, workflow-optimization review — rbacConfig.js), so it's a browse-only
+  // screen for them, not a work destination; adding it would reproduce the
+  // exact "Students"/"Classes" clutter problem C4 flagged. Consumption Log
+  // shares food_menu's capability but is Teacher's actual daily task.
+  surfaces: { care: { order: 25, roles: { teacher: 25 } } },
   routes: [
     {
       path: "/food-consumption", routeKey: "food-consumption", label: "Consumption Log", icon: "ClipboardList",

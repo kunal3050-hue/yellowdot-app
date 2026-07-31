@@ -50,7 +50,9 @@ Nap Tracker and Food Consumption were **not** given providers, on purpose: Nap d
 
 `resolveCareModules()` includes any module with a `surfaces.care` entry that the viewer has view-capability on — the per-role `roles: {...}` map only affects sort *order*, not visibility (confirmed in `resolve.js`'s own comment: "granting a Teacher Finance access makes Finance appear in their grid without any change here"). Live, this meant a Teacher's grid mixed "Students" and "Classes" — reference/browse screens, not action destinations — in with the five genuinely actionable modules (Attendance, Care & Hygiene, Child Journey, Pickup Authorization, Incident Reports), while Nap Tracker and Food Consumption were entirely absent (same root cause as C3 — no `surfaces.care` entry at all, not even an unranked one).
 
-This is a real but smaller issue than C1/C3: it's clutter and a coverage gap, not incorrect data. Two independent fixes, either is safe to do alone: (a) give Nap Tracker/Food Menu/Food Consumption a `surfaces.care` entry so they actually appear (closing the missing-destination half of C3), and (b) reconsider whether "Students" and "Classes" belong in a *do-the-work* grid at all for a Teacher, versus staying reachable only via the sidebar as they are today.
+**Status: coverage half fixed and verified live (2026-07-31).** Added `surfaces.care` to `napTrackerModule` (order 15) and `foodConsumptionModule` (order 25) — same pattern as the existing `attendanceModule`/`careHygieneModule` entries. `foodMenuModule` deliberately did **not** get one: Teacher holds `food_menu.view` but not `.create` (W2), so it's a browse-only screen for them, and adding it would reproduce the exact clutter this finding is about. Verified live as Teacher: Nap Tracker and Consumption Log now appear in the grid; Food Menu correctly does not.
+
+**Still open:** whether "Students" and "Classes" belong in a *do-the-work* grid at all for Teacher, versus staying reachable only via the sidebar as they are today. Left open deliberately — `surfaces.care` is global (the `roles:{}` map only reorders, per-role removal isn't currently expressible), so removing them here would also remove them from every other role's Care grid, including Reception, where "Students" plausibly earns its place differently than it does for Teacher. That's a product call, not a mechanical fix, and needs a decision before touching it.
 
 ---
 
@@ -61,6 +63,6 @@ This is a real but smaller issue than C1/C3: it's clutter and a coverage gap, no
 | C1 | Task feed shows every viewable task, not just the signed-in user's own | 🔴 | ✅ FIXED 2026-07-31 — `splitTasksByOwnership`, primary/secondary sections |
 | C2 | `/care` has no sidebar entry, unreachable except by URL/search | 🟠 | ✅ FIXED 2026-07-31 — sidebar + registry `nav` entry |
 | C3 | No task provider for Nap Tracker/Food Menu/Food Consumption/Care & Hygiene | 🟠 | ✅ Care & Hygiene FIXED 2026-07-31; Nap/Food deliberately deferred, see above |
-| C4 | Modules grid isn't curated — includes browse-only screens, missing daily-care destinations | 🟡 | Still open — Nap Tracker/Food Consumption still missing `surfaces.care`; Students/Classes inclusion still an open question |
+| C4 | Modules grid isn't curated — includes browse-only screens, missing daily-care destinations | 🟡 | ✅ Coverage half FIXED 2026-07-31 (Nap Tracker/Consumption Log added); Students/Classes inclusion still an open product question |
 
-**Remaining:** C4 only. It folds partly into C3's still-open half (Nap/Food still lack a `surfaces.care` entry, so they're still absent from the Modules grid too) plus the separate Students/Classes curation question, which needs a product decision rather than a mechanical fix.
+**Remaining:** whether "Students" and "Classes" belong in Teacher's Care grid — needs a decision, not a mechanical fix, since removing them would affect every role's grid, not just Teacher's.
