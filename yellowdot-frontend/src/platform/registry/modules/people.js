@@ -13,7 +13,11 @@ export const studentsModule = defineModule({
   featureFlag: "STUDENTS",
   actions: ["view", "create", "edit", "delete", "export"],
   keywords: ["students", "children", "admission", "enrol", "enroll", "profile", "roster"],
-  surfaces: { care: { order: 15, roles: { reception: 20 } } },
+  // C4, Care experience review (2026-07-31): removed by explicit decision.
+  // Students is a browse/reference screen, not a work-queue destination —
+  // it was cluttering Care's "do the work" grid for every role that could
+  // view it (Teacher, Reception, ...), not just the ones surfaces.care had
+  // an order for. Stays reachable via the sidebar as normal.
   routes: [
     {
       path: "/students", routeKey: "students", label: "Students", icon: "Users",

@@ -16,7 +16,9 @@ export const academicsClassesModule = defineModule({
   capability: "classes_batches.view",
   actions: ["view"],
   keywords: ["class", "classes", "section", "academic structure"],
-  surfaces: { care: { order: 60, roles: { admin: 20 } } },
+  // C4, Care experience review (2026-07-31): removed by explicit decision,
+  // same reasoning as studentsModule in people.js — a browse/reference
+  // screen, not a work-queue destination. Stays reachable via the sidebar.
   routes: [
     {
       path: "/academics/classes", routeKey: "academics-classes", label: "Classes", icon: "BookOpen",
