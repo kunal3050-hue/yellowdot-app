@@ -11,7 +11,7 @@
  * the engine, navigation, or permissions — that is the acceptance test for §3.
  */
 import {
-  CalendarCheck, Car, Wallet, Cake, AlertTriangle,
+  CalendarCheck, Car, Wallet, Cake, AlertTriangle, Heart,
 } from "lucide-react";
 import { defineWidget } from "./defineWidget.js";
 
@@ -55,6 +55,41 @@ export const attendanceToday = defineWidget({
       value: total ? `${present}/${total}` : String(present),
       sub:   pct == null ? "Present today" : `${pct}% present`,
       tone:  pct == null ? "neutral" : pct >= 85 ? "good" : pct >= 70 ? "warn" : "bad",
+    };
+  },
+  emptyState: "No students enrolled yet",
+});
+
+// ── Care & hygiene ────────────────────────────────────────────────────────────
+// D3, Dashboard experience review (2026-07-31): Care & Hygiene had a task
+// provider (careHygienePending, C3) but no widget — unlike Attendance, which
+// has both, by design, as two views of the same data ("what's the state" vs
+// "what needs doing"). Mirrors attendanceToday's shape exactly and reuses the
+// care_hygiene.summary read C3 already registered — no new backend surface.
+export const careHygieneToday = defineWidget({
+  id: "care-hygiene-today",
+  title: "Care & Hygiene",
+  description: "Children logged today",
+  icon: Heart,
+  moduleId: "care_hygiene",
+  capability: "care_hygiene.view",
+  featureFlag: "DAILY_CARE",
+  priority: 25,
+  destination: "/care-hygiene",
+  layouts: ["stat"],
+  reads: {
+    summary:  { service: "care_hygiene", read: "summary", args: () => ({ date: todayISO() }) },
+    students: { service: "students",     read: "listRaw" },
+  },
+  select: ({ summary, students }) => {
+    const total = asStudents(students).length || null;
+    if (!summary?.success) return { value: "—", sub: "Not available" };
+    const logged = (summary.summary?.students || []).length;
+    const pct = total ? Math.round((logged / total) * 100) : null;
+    return {
+      value: total ? `${logged}/${total}` : String(logged),
+      sub:   pct == null ? "Logged today" : `${pct}% logged`,
+      tone:  pct == null ? "neutral" : pct >= 85 ? "good" : pct >= 50 ? "warn" : "bad",
     };
   },
   emptyState: "No students enrolled yet",
@@ -209,5 +244,5 @@ export const incidentsOpen = defineWidget({
 });
 
 export default [
-  attendanceToday, incidentsOpen, pickupPending, feesOutstanding, birthdaysToday,
+  attendanceToday, incidentsOpen, pickupPending, careHygieneToday, feesOutstanding, birthdaysToday,
 ];

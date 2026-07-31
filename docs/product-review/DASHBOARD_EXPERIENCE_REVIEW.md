@@ -30,11 +30,11 @@ Confirmed in code: the widget reads `GET /api/incidents/dashboard`, whose backen
 
 **Status: fixed and verified live (2026-07-31).** Fixed the data at the source: `getDashboardStats` now computes `open = status === "open" || status === "under_review"`, matching Care's own reasoning rather than maintaining two definitions. Checked all consumers first — `pages/Incidents.jsx` reads the exact same `stats.open` for its own "Open Incidents" stat card, so this fix corrects a **third** surface too, not just Dashboard vs. Care: verified live, that page's stat card now reads 2, matching its own status-filtered list (1 Open + 1 Under Review), which it didn't before. Verified live on Dashboard as well: "Open incidents" now reads 2, matching Care exactly.
 
-## D3 — 🟡 Care & Hygiene has a task provider but no matching widget
+## D3 — 🟡 ~~Care & Hygiene has a task provider but no matching widget~~ FIXED
 
-C3 (Care review, fixed 2026-07-31) added `careHygienePending`, a task provider for same-day coverage. Attendance has both a widget (`attendanceToday`) and a task (`attendancePending`) — the two surfaces are meant to be symmetric, reading the same data for two different purposes ("what's the state" vs "what needs doing"). Care & Hygiene now has the task half but not the widget half, so Dashboard's "what is happening" view has no visibility into an area Care's "what needs doing" view already covers.
+C3 (Care review, fixed 2026-07-31) added `careHygienePending`, a task provider for same-day coverage. Attendance has both a widget (`attendanceToday`) and a task (`attendancePending`) — the two surfaces are meant to be symmetric, reading the same data for two different purposes ("what's the state" vs "what needs doing"). Care & Hygiene had the task half but not the widget half, so Dashboard's "what is happening" view had no visibility into an area Care's "what needs doing" view already covered.
 
-**Recommendation:** Add a `careHygieneToday`-style widget mirroring `attendanceToday`'s shape (logged/total, tone by percentage), reusing the same `care_hygiene.summary` service read `careHygienePending` already established — no new backend surface needed.
+**Status: fixed and verified live (2026-07-31).** Added `careHygieneToday`, mirroring `attendanceToday`'s exact shape (logged/total, tone by percentage), reusing the `care_hygiene.summary` service read C3 already registered — no new backend surface. Verified live as Teacher: Dashboard now shows "Care & Hygiene · 10/18 · 56% logged," matching Care's own count exactly (10 logged = 18 total − 8 unlogged, the number Care's task showed). All 6 verify:* gates, lint, and prod build green — including `verify-roles.mjs`, which correctly reports the new widget as a non-blocking warning (`visible to NO role in production, gated behind "DAILY_CARE"`), the same staging-only treatment C3's task provider already gets.
 
 ---
 
@@ -44,6 +44,6 @@ C3 (Care review, fixed 2026-07-31) added `careHygienePending`, a task provider f
 |---|---|---|---|
 | D1 | `/dashboard` has no sidebar entry | 🟠 | ✅ FIXED 2026-07-31 — added as "Insights" (avoids the C8 "Dashboard" collision) |
 | D2 | "Open incidents" widget and Care's incident task disagree on what counts as open | 🟠 | ✅ FIXED 2026-07-31 — fixed at the source, also corrected a third surface (Incidents page's own stat card) |
-| D3 | No Care & Hygiene widget despite the matching task existing | 🟡 | Still open |
+| D3 | No Care & Hygiene widget despite the matching task existing | 🟡 | ✅ FIXED 2026-07-31 — `careHygieneToday`, mirrors `attendanceToday` |
 
-**Recommended order:** D1 and D2 are independent and both worth doing regardless of order. D3 is smaller and can follow either, or be skipped if the daily-care widget area isn't wanted on Dashboard specifically.
+**All three findings (D1–D3) are now fixed and verified live.**
