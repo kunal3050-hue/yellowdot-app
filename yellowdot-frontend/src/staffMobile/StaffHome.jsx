@@ -34,9 +34,12 @@ import HomeFeed from "./HomeFeed";
 import CareFeed from "./CareFeed";
 import ProfileTab from "./ProfileTab";
 
+// Care is the center, raised/emphasized tab — same treatment and position
+// (middle of three) as Parent Home's "Daily Care" dock button. Matches
+// semantically too: Care is each app's primary "go do something" hub.
 const TABS = [
   { id: "home",    label: "Home",    icon: Home,        Content: HomeFeed },
-  { id: "care",    label: "Care",    icon: CheckSquare, Content: CareFeed },
+  { id: "care",    label: "Care",    icon: CheckSquare, Content: CareFeed, center: true },
   { id: "profile", label: "Profile", icon: User,        Content: ProfileTab },
 ];
 
@@ -111,8 +114,41 @@ export default function StaffHome() {
         boxShadow: shadows.lg,
         display: "flex", alignItems: "stretch",
       }}>
-        {TABS.map(({ id, label, icon: Icon }) => {
+        {TABS.map(({ id, label, icon: Icon, center }) => {
           const active = activeTab === id;
+
+          // ── Center "Care" — raised, emphasized primary tab ──
+          if (center) {
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                style={{
+                  flex: 1, position: "relative", border: "none", background: "none", cursor: "pointer",
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "flex-end",
+                  paddingBottom: 8,
+                }}
+              >
+                <div style={{
+                  position: "absolute", top: -24, left: "50%", transform: "translateX(-50%)",
+                  width: 58, height: 58, borderRadius: radius.pill,
+                  background: colors.brand.gradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: shadows.primary,
+                  border: `3px solid ${colors.surface.card}`,
+                }}>
+                  <Icon size={24} strokeWidth={2.2} color={colors.text.onYellow} />
+                </div>
+                <span style={{
+                  fontSize: 9.5, fontWeight: typography.weight.bold,
+                  letterSpacing: typography.tracking.wide,
+                  color: active ? colors.yellow700 : colors.yellow600,
+                }}>{label}</span>
+              </button>
+            );
+          }
+
           return (
             <button
               key={id}
