@@ -13,6 +13,7 @@ import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
 import IosInstallGuide   from "./components/IosInstallGuide";
 import SplashScreen      from "./components/SplashScreen";
+import { useIsMobile }   from "./hooks/useIsMobile";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
@@ -24,6 +25,7 @@ const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
 const Dashboard           = lazy(() => import("./pages/Dashboard"));
 const Care                = lazy(() => import("./pages/Care"));
+const StaffMobileLayout   = lazy(() => import("./staffMobile/StaffMobileLayout"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -227,6 +229,20 @@ function App() {
               element={
                 <ProtectedRoute routeKey="dashboard">
                   <MainLayout><Care /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Staff mobile feed plan (2026-07-31) — same "dashboard" routeKey
+                gate as /dashboard and /care above: this grants nothing new,
+                it's the Parent-style mobile presentation of the same
+                capability-driven content. NOT wrapped in MainLayout — it has
+                its own shell (StaffMobileLayout), same pattern as Parent's
+                own routes being outside MainLayout. */}
+            <Route
+              path="/staff-mobile"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <StaffMobileLayout />
                 </ProtectedRoute>
               }
             />
@@ -899,6 +915,7 @@ function AuthSplash() {
 // Parents → /parent-home  |  Staff → /dashboard
 function RootRedirect() {
   const { role, isAuthenticated, loading } = useAuth();
+  const isMobile = useIsMobile();
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
@@ -915,5 +932,10 @@ function RootRedirect() {
   // Super Admin using the Role Switcher to preview as another role still
   // lands on that role's normal experience for testing, exactly as before.
   if (role === "super_admin") return <Navigate to="/super-admin/analytics" replace />;
+  // Staff mobile feed plan (2026-07-31): a Staff role signing in on a phone
+  // lands on the new Parent-style mobile feed instead of the desktop Control
+  // Center grid. Desktop Staff logins are completely unaffected — this only
+  // branches on viewport width, never on role.
+  if (isMobile) return <Navigate to="/staff-mobile" replace />;
   return <Navigate to="/quick-navigation" replace />;
 }
