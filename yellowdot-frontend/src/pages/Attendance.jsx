@@ -198,7 +198,7 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
       {/* Brand */}
       <div className="p-5 border-b border-gray-100 flex-shrink-0">
         <Link to="/" className="block">
-          <h1 className="text-3xl font-black text-[var(--yd-yellow)] leading-none">Yellow<br/>Dot</h1>
+          <h1 className="text-2xl font-black text-[var(--yd-yellow)] leading-none">KUE BOXS<br/>Care</h1>
           <p className="text-gray-400 text-[10px] font-medium mt-1 uppercase tracking-wider">Attendance</p>
         </Link>
       </div>
@@ -580,6 +580,17 @@ function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true,
     });
   }, [students, entryMap, filter, search]);
 
+  // Independent of `filter` so "Mark All Present" stays visible on whichever
+  // filter chip the teacher is already on (W1, workflow-optimization review
+  // 2026-07-30) — previously only rendered after switching to "Unmarked",
+  // which buried the highest-frequency action in the app behind an extra tap.
+  const unmarkedStudents = useMemo(() => {
+    let list = students.filter(s => !entryMap[s.Student_ID || s.id]?.status);
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter(s => (s.Student_Name||s.name||"").toLowerCase().includes(q));
+    return list;
+  }, [students, entryMap, search]);
+
   // Groups students by the batchCode recorded on their attendance entry.
   // Students with no entry yet (or entry with no batchCode) land in "__none__".
   const batchGroups = useMemo(() => {
@@ -677,11 +688,11 @@ function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true,
                 </button>
               ))}
             </div>
-            {canMark && filter === "Unmarked" && displayStudents.length > 0 && (
+            {canMark && unmarkedStudents.length > 0 && (
               <button
-                onClick={async () => { for (const s of displayStudents) { const sid=s.Student_ID||s.id; await handleMark({id:sid,name:s.Student_Name||s.name,class:s.Class||s.class},"Present"); } }}
+                onClick={async () => { for (const s of unmarkedStudents) { const sid=s.Student_ID||s.id; await handleMark({id:sid,name:s.Student_Name||s.name,class:s.Class||s.class},"Present"); } }}
                 className="btn btn-success btn-sm ml-auto">
-                ✓ Mark All Present
+                ✓ Mark All Present ({unmarkedStudents.length})
               </button>
             )}
           </div>

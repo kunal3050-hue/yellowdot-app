@@ -24,6 +24,7 @@ import {
   ClipboardList, Heart, CalendarDays, Bell, Megaphone, CreditCard, FileText,
   Wallet, TrendingUp, Handshake, MessageSquareText, Briefcase, UserCheck,
   UserCog, Shield, Car, History, QrCode, Camera, AlertTriangle, Settings,
+  Repeat, Undo2, ScrollText,
 } from "lucide-react";
 
 // Per-category accent — a soft color family used for that category's card
@@ -46,6 +47,24 @@ const ACCENT = {
   security:          { bg: "#FEF2F2", icon: "#DC2626", border: "#FECACA" }, // red
   settings:          { bg: "#F8FAFC", icon: "#475569", border: "#E2E8F0" }, // slate
 };
+
+// ── Finance — two card sets, swapped by index.jsx via useFinancePlatformStatus ─
+// Never both rendered at once, mirroring Sidebar.jsx's own finance/finance_platform
+// swap exactly — this is the fix for staff-review finding F1/C6 (2026-07-30).
+export const LEGACY_FINANCE_ITEMS = [
+  { id: "fees",     label: "Fees",     path: "/fees",        routeKey: "fees",    icon: CreditCard, description: "Set fee structures and track dues by student." },
+  { id: "invoices", label: "Invoices", path: "/invoice",     routeKey: "invoice", icon: FileText,    description: "Generate invoices and record payments." },
+  { id: "payments", label: "Payments", path: "/collections", routeKey: "fees",    icon: Wallet,      description: "Review recent payments received from parents." },
+];
+export const FINANCE_PLATFORM_ITEMS = [
+  { id: "finance_dashboard", label: "Finance Dashboard", path: "/finance/dashboard", routeKey: "finance-dashboard", icon: LayoutDashboard, description: "Revenue, collections and outstanding balances at a glance." },
+  { id: "finance_ledger",    label: "Student Ledger",    path: "/finance/ledger",    routeKey: "finance-ledger",    icon: BookOpen,        description: "Every charge and payment for a student, in one running account." },
+  { id: "finance_invoices",  label: "Invoices",          path: "/finance/invoices",  routeKey: "finance-invoices",  icon: FileText,        description: "Generate invoices and track their payment status." },
+  { id: "finance_payments",  label: "Payments",          path: "/finance/payments",  routeKey: "finance-payments",  icon: Wallet,          description: "Review recent payments received from parents." },
+  { id: "finance_billing_plans", label: "Billing Plans", path: "/finance/billing-plans", routeKey: "finance-billing-plans", icon: Repeat,   description: "Recurring fee schedules, applied automatically each cycle." },
+  { id: "finance_refunds",   label: "Refunds",           path: "/finance/refunds",   routeKey: "finance-refunds",   icon: Undo2,           description: "Process and track refunds and credit notes." },
+  { id: "finance_audit",     label: "Audit Log",         path: "/finance/audit-log", routeKey: "finance-audit",     icon: ScrollText,      description: "Full history of every finance action taken, by whom." },
+];
 
 export const SECTIONS = [
   {
@@ -116,14 +135,22 @@ export const SECTIONS = [
     ],
   },
   {
+    // `items` here is the LEGACY set, used only as the pre-flag-resolution
+    // default (see LEGACY_FINANCE_ITEMS / FINANCE_PLATFORM_ITEMS below,
+    // swapped in by index.jsx via useFinancePlatformStatus — same flag,
+    // same swap Sidebar.jsx already does for its own Finance group).
+    //
+    // Staff UX review finding F1/C6 (2026-07-30): this card set pointed at
+    // /fees, /invoice, /collections — the pre-consolidation screens — even
+    // though the sidebar's Finance group had already been repointed at the
+    // Finance Platform. Two "Finance" experiences, same landing page, one
+    // showing real legacy data and one (empty locally, but the one the rest
+    // of the product now promotes) showing nothing. The swap below is the
+    // fix: Control Center now mirrors the sidebar exactly, never diverges.
     id: "finance",
     label: "Finance",
     accent: ACCENT.finance,
-    items: [
-      { id: "fees",     label: "Fees",     path: "/fees",        routeKey: "fees",    icon: CreditCard, description: "Set fee structures and track dues by student." },
-      { id: "invoices", label: "Invoices", path: "/invoice",     routeKey: "invoice", icon: FileText,    description: "Generate invoices and record payments." },
-      { id: "payments", label: "Payments", path: "/collections", routeKey: "fees",    icon: Wallet,      description: "Review recent payments received from parents." },
-    ],
+    items: LEGACY_FINANCE_ITEMS,
   },
   {
     id: "parents",

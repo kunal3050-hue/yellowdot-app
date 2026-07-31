@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging, isSupported } from "firebase/messaging";
 
@@ -10,7 +10,30 @@ import { getMessaging, isSupported } from "firebase/messaging";
 // default *.firebaseapp.com. The custom domain must be registered as an
 // Authorized Domain in Firebase Console → Authentication → Settings.
 const env = import.meta.env;
-const firebaseConfig = {
+
+// ── Emulator mode ────────────────────────────────────────────────────────────
+// Opt-in via VITE_USE_FIREBASE_EMULATOR=true (set by `npm run dev:local`).
+// The project id is forced to a `demo-` prefix, which Firebase treats as
+// offline-only: even a misconfigured emulator host cannot reach production.
+const USE_EMULATOR = env.VITE_USE_FIREBASE_EMULATOR === "true";
+const EMULATOR_PROJECT = env.VITE_FIREBASE_PROJECT_ID || "demo-kueboxs";
+
+// Mirrors the backend's emulatorGuard: emulator mode is only ever allowed on a
+// `demo-` project. Without this, a stray VITE_FIREBASE_PROJECT_ID could point
+// emulator mode at the real project and the client would happily write to it.
+if (USE_EMULATOR && !EMULATOR_PROJECT.startsWith("demo-")) {
+  throw new Error(
+    `[firebase] Emulator mode requires a "demo-" project id, got "${EMULATOR_PROJECT}". ` +
+    `Refusing to start: a non-demo project can reach production Firebase.`,
+  );
+}
+
+const firebaseConfig = USE_EMULATOR ? {
+  // The emulator validates none of these; the apiKey just has to be non-empty.
+  apiKey:     "demo-api-key",
+  authDomain: "localhost",
+  projectId:  EMULATOR_PROJECT,
+} : {
   apiKey:            env.VITE_FIREBASE_API_KEY            || "AIzaSyBwRMjTuDbOHMFdBtVV55kYoOcL-1L7tKM",
   authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN        || "yellowdot-app.firebaseapp.com",
   projectId:         env.VITE_FIREBASE_PROJECT_ID         || "yellowdot-app",
@@ -26,6 +49,17 @@ console.log("[FCM] Firebase initialized — project:", firebaseConfig.projectId,
 export const auth    = getAuth(app);
 export const db      = getFirestore(app);
 export const storage = getStorage(app);
+
+if (USE_EMULATOR) {
+  const authHost = env.VITE_AUTH_EMULATOR_URL || "http://127.0.0.1:9099";
+  const [fsHost, fsPort] = (env.VITE_FIRESTORE_EMULATOR || "127.0.0.1:8080").split(":");
+  connectAuthEmulator(auth, authHost, { disableWarnings: true });
+  connectFirestoreEmulator(db, fsHost, Number(fsPort));
+  console.log(
+    `%c🧪 EMULATOR MODE — project=${EMULATOR_PROJECT} auth=${authHost} firestore=${fsHost}:${fsPort}`,
+    "background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:600",
+  );
+}
 
 // Firebase Messaging — only available in browsers that support Service Workers
 // and the Push API (most modern mobile browsers). Returns null on unsupported

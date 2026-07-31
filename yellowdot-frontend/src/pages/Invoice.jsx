@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { INR, sumAmounts } from "../utils/currency";
 import { api } from "../services/authService";
@@ -1256,6 +1256,7 @@ function SkeletonRow({ idx }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Invoices() {
   const navigate   = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast      = useToast();
   const { canDo }  = useAuth();
 
@@ -1272,7 +1273,14 @@ export default function Invoices() {
   const [loading,  setLoading]  = useState(true);
   const [loadErr,  setLoadErr]  = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState("All");
+  // W4, workflow-optimization review 2026-07-30: Control Center's "Record
+  // Payment" quick action used to land here with no filter, dumping the
+  // accountant on the full invoice list. It now deep-links with
+  // ?status=unpaid, so the page opens already scoped to what that action
+  // actually implied — invoices with money still owed.
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") === "unpaid" ? "Unpaid" : "All"
+  );
   const [classFilter,  setClassFilter]  = useState("");
   const [feeFilter,    setFeeFilter]    = useState("");
   const [monthFilter,  setMonthFilter]  = useState("");
@@ -1357,7 +1365,8 @@ export default function Invoices() {
 
   const filtered = useMemo(() => {
     let list = [...invoices];
-    if (statusFilter !== "All") list = list.filter(i => i.status === statusFilter);
+    if      (statusFilter === "Unpaid") list = list.filter(i => i.status !== "Paid");
+    else if (statusFilter !== "All")    list = list.filter(i => i.status === statusFilter);
     if (classFilter)            list = list.filter(i => i.class === classFilter);
     if (feeFilter)              list = list.filter(i => i.feeType === feeFilter);
     if (monthFilter)            list = list.filter(i => (i.invoiceDate || "").startsWith(monthFilter));

@@ -13,6 +13,7 @@ import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
 import IosInstallGuide   from "./components/IosInstallGuide";
 import SplashScreen      from "./components/SplashScreen";
+import { useIsMobile }   from "./hooks/useIsMobile";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
@@ -22,6 +23,9 @@ const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"))
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
+const Dashboard           = lazy(() => import("./pages/Dashboard"));
+const Care                = lazy(() => import("./pages/Care"));
+const StaffHome           = lazy(() => import("./staffMobile/StaffHome"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -205,6 +209,43 @@ function App() {
             <Route path="/" element={<RootRedirect />} />
 
             {/* ── Dashboard & analytics ────────────────────────────────────── */}
+            {/* PLATFORM ARCHITECTURE §6 — the Widget Engine dashboard. Added
+                alongside /live-dashboard rather than replacing it: swapping the
+                landing page is a separate, riskier change, and LIVE_DASHBOARD
+                is still pre-production only (§12 Phase 8). */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><Dashboard /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* PLATFORM ARCHITECTURE §7 — Care. Gated on the same "dashboard"
+                routeKey as the surfaces it replaces: Care shows only what the
+                user's own capabilities already allow, so it grants nothing new. */}
+            <Route
+              path="/care"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <MainLayout><Care /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Staff Home plan (2026-07-31) — same "dashboard" routeKey gate
+                as /dashboard and /care above: this grants nothing new, it's
+                the Parent-Home-style mobile presentation of the same
+                capability-driven content. NOT wrapped in MainLayout — it has
+                its own shell (StaffHome), same pattern as Parent's own
+                routes being outside MainLayout. */}
+            <Route
+              path="/staff-mobile"
+              element={
+                <ProtectedRoute routeKey="dashboard">
+                  <StaffHome />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/live-dashboard"
               element={
@@ -320,7 +361,7 @@ function App() {
               path="/attendance"
               element={
                 <ProtectedRoute routeKey="attendance">
-                  <Attendance />
+                  <MainLayout><Attendance /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -548,7 +589,7 @@ function App() {
               path="/pickup-authorization"
               element={
                 <ProtectedRoute routeKey="pickup-authorization">
-                  <PickupAuthorization />
+                  <MainLayout><PickupAuthorization /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -874,8 +915,27 @@ function AuthSplash() {
 // Parents → /parent-home  |  Staff → /dashboard
 function RootRedirect() {
   const { role, isAuthenticated, loading } = useAuth();
+  const isMobile = useIsMobile();
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
+  // Item 6 of the approved staff-review priority list (S1, 2026-07-30): a
+  // Super Admin's job is platform health across every tenant school, not one
+  // school's day-to-day operations — landing them on the single-school
+  // Control Center buried their actual tools (Preschools, Platform
+  // Analytics, Audit Logs) at the bottom of an unrelated 13-group sidebar.
+  // Platform Analytics already existed as a real, working platform-level
+  // overview (total schools, plan/status breakdown, recent preschools) — no
+  // new page needed, just pointing the front door at it.
+  //
+  // `role` is the *effective* role (devRole-aware, see AuthContext), so a
+  // Super Admin using the Role Switcher to preview as another role still
+  // lands on that role's normal experience for testing, exactly as before.
+  if (role === "super_admin") return <Navigate to="/super-admin/analytics" replace />;
+  // Staff mobile feed plan (2026-07-31): a Staff role signing in on a phone
+  // lands on the new Parent-style mobile feed instead of the desktop Control
+  // Center grid. Desktop Staff logins are completely unaffected — this only
+  // branches on viewport width, never on role.
+  if (isMobile) return <Navigate to="/staff-mobile" replace />;
   return <Navigate to="/quick-navigation" replace />;
 }

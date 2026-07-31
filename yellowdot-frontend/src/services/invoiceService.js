@@ -19,10 +19,21 @@ const unwrap = (res, key) =>
  * used by the Collection Dashboard for school-wide aggregation.
  */
 export async function fetchAllInvoices({ studentId, status } = {}) {
+  return unwrap(await getInvoicesRaw({ studentId, status }), "invoices");
+}
+
+/**
+ * Same request, envelope intact.
+ *
+ * Callers that must tell "the request failed" apart from "there are no
+ * invoices" need the raw `{ success, invoices }` — unwrap() collapses both to
+ * an empty array. useDashboardStats relies on that distinction to render "—"
+ * instead of a misleading ₹0 when Finance is unreachable.
+ */
+export async function getInvoicesRaw({ studentId, status } = {}) {
   const qs = new URLSearchParams();
   if (studentId) qs.set("studentId", studentId);
   if (status)    qs.set("status", status);
   const url = "/api/invoices" + (qs.toString() ? `?${qs.toString()}` : "");
-  const res = await api.get(url).then(r => r.data);
-  return unwrap(res, "invoices");
+  return api.get(url).then(r => r.data);
 }

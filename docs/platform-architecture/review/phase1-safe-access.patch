@@ -1,0 +1,58 @@
+diff --git a/yellowdot-backend/services/roleService.js b/yellowdot-backend/services/roleService.js
+index b681b09..c749594 100644
+--- a/yellowdot-backend/services/roleService.js
++++ b/yellowdot-backend/services/roleService.js
+@@ -57,6 +57,10 @@ const STATIC_ROLE_PERMS = {
+     "academics-classes","academics-batches",
+     "academics-teacher-allocation","academics-classroom-allocation",
+     "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
++    // Phase 1 (§12) — restores access to shipped modules that no role could
++    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
++    // union in _fetchAndCache() excluded them for every role document.
++    "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
+   ],
+   center_owner: [
+     "dashboard","students","attendance","fees","invoice","analytics",
+@@ -67,6 +71,10 @@ const STATIC_ROLE_PERMS = {
+     "academics-classes","academics-batches",
+     "academics-teacher-allocation","academics-classroom-allocation",
+     "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
++    // Phase 1 (§12) — restores access to shipped modules that no role could
++    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
++    // union in _fetchAndCache() excluded them for every role document.
++    "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
+   ],
+   center_admin: [
+     "dashboard","students","attendance","fees","invoice","analytics",
+@@ -78,12 +86,20 @@ const STATIC_ROLE_PERMS = {
+     "academics-teacher-allocation","academics-classroom-allocation",
+     "families",
+     "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
++    // Phase 1 (§12) — restores access to shipped modules that no role could
++    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
++    // union in _fetchAndCache() excluded them for every role document.
++    "academics-student-allocation","care-hygiene","child-journey","events","incidents","ptm","qr-management","staff-checkout",
+   ],
+   teacher: [
+     "dashboard","attendance","nap-tracker","food-menu","food-consumption",
+     "students","parent-checkin","profile",
+     "holidays","notices","announcements",
+     "academics-classes","academics-batches",
++    // Phase 1 (§12) — restores access to shipped modules that no role could
++    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
++    // union in _fetchAndCache() excluded them for every role document.
++    "academics-student-allocation","care-hygiene","cctv","child-journey","events","incidents","ptm","staff-checkout",
+   ],
+   accountant: [
+     "dashboard","fees","invoice","analytics","students","profile",
+@@ -92,6 +108,10 @@ const STATIC_ROLE_PERMS = {
+   reception: [
+     "dashboard","students","attendance","parent-checkin",
+     "pickup-authorization","pickup-history","profile",
++    // Phase 1 (§12) — restores access to shipped modules that no role could
++    // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
++    // union in _fetchAndCache() excluded them for every role document.
++    "staff-checkout",
+   ],
+   parent: [
+     "dashboard","parent-checkin","pickup-history","fees","profile",

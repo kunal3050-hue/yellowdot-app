@@ -25,6 +25,7 @@ import Sidebar from "../components/Sidebar";
 import foodMenuService        from "../services/foodMenuService";
 import foodConsumptionService from "../services/foodConsumptionService";
 import { api } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -284,7 +285,7 @@ function SkeletonCards() {
 
 // ── Empty / error states ──────────────────────────────────────────────────
 
-function NoMenuState({ date }) {
+function NoMenuState({ date, canCreateMenu }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="relative w-20 h-20 flex items-center justify-center mb-5 select-none">
@@ -299,17 +300,29 @@ function NoMenuState({ date }) {
         </svg>
       </div>
       <p className="text-lg font-bold text-[#2a1c06]">No Menu for {fmtDateDisplay(date)}</p>
-      <p className="text-[#8b7d65] mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
-        Add a food menu for this date before tracking consumption.
-      </p>
-      <Link
-        to="/food-menu"
-        className="inline-flex items-center gap-2 mt-5 px-6 py-2.5 rounded-xl
-                   text-[#5a4010] font-semibold text-sm transition-all active:scale-95"
-        style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}
-      >
-        Go to Food Menu
-      </Link>
+      {canCreateMenu ? (
+        <>
+          <p className="text-[#8b7d65] mt-2 text-sm max-w-[280px] mx-auto leading-relaxed">
+            Add a food menu for this date before tracking consumption.
+          </p>
+          <Link
+            to="/food-menu"
+            className="inline-flex items-center gap-2 mt-5 px-6 py-2.5 rounded-xl
+                       text-[#5a4010] font-semibold text-sm transition-all active:scale-95"
+            style={{ background: "linear-gradient(160deg,#f9dc5a 0%,#f0c930 100%)", boxShadow: "0 4px 14px rgba(212,170,31,0.28)" }}
+          >
+            Go to Food Menu
+          </Link>
+        </>
+      ) : (
+        // W2, workflow-optimization review 2026-07-30: the "create" action on
+        // food_menu is not granted to this role (e.g. Teacher), so sending
+        // them to /food-menu is a dead end — they'd land on a page they can
+        // only view. Say plainly whose step is missing instead.
+        <p className="text-[#8b7d65] mt-2 text-sm max-w-[300px] mx-auto leading-relaxed">
+          Nobody has set today's menu yet. Ask an admin or kitchen staff to add it — consumption tracking will unlock as soon as it's in.
+        </p>
+      )}
     </div>
   );
 }
@@ -492,6 +505,8 @@ export default function FoodConsumption() {
   const mountedRef   = useRef(true);
   const fetchingRef  = useRef(false);
   const debounceRefs = useRef({});
+  const { canDo }     = useAuth();
+  const canCreateMenu = canDo("food_menu", "create");
 
   useEffect(() => {
     mountedRef.current = true;
@@ -817,7 +832,7 @@ export default function FoodConsumption() {
           ) : bootError ? (
             <ErrorState onRetry={loadStudents} />
           ) : menuSlots.length === 0 ? (
-            <NoMenuState date={selectedDate} />
+            <NoMenuState date={selectedDate} canCreateMenu={canCreateMenu} />
           ) : filteredStudents.length === 0 ? (
             <NoStudentsState cls={selectedClass} />
           ) : (

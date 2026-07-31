@@ -1,0 +1,99 @@
+{
+  "admin": {
+    "onlyInMirror": [
+      "departments",
+      "designations",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
+  },
+  "center_admin": {
+    "onlyInMirror": [
+      "departments",
+      "designations",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
+  },
+  "center_owner": {
+    "onlyInMirror": [
+      "departments",
+      "designations",
+      "staff-attendance",
+      "staff-attendance-manage",
+      "staff-dashboard",
+      "staff-leave",
+      "staff-leave-approve",
+      "staff-leave-types",
+      "staff-management",
+      "staff-payroll",
+      "staff-payroll-process",
+      "staff-performance",
+      "staff-performance-manage",
+      "staff-shifts"
+    ],
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
+  },
+  "teacher": {
+    "onlyInMirror": [
+      "staff-attendance",
+      "staff-leave",
+      "staff-payroll",
+      "staff-performance"
+    ],
+    "onlyInAuthoritative": [
+      "events",
+      "incidents",
+      "ptm"
+    ]
+  },
+  "accountant": {
+    "onlyInMirror": [],
+    "onlyInAuthoritative": []
+  },
+  "reception": {
+    "onlyInMirror": [],
+    "onlyInAuthoritative": []
+  },
+  "parent": {
+    "onlyInMirror": [],
+    "onlyInAuthoritative": [
+      "parent-checkin",
+      "pickup-history"
+    ]
+  }
+}

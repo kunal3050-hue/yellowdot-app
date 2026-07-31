@@ -10,11 +10,15 @@
  * Birthdays are derived client-side from the already-fetched student
  * list's DOB field (same format LiveDashboard/PersonalInfo already
  * parse) — not a new API call, just a filter over data already in hand.
+ *
+ * Admissions-this-week is derived the same way, from each student's
+ * Admission_Date (studentService.js's PascalCase projection of the raw
+ * `admissionDate` field) — replacing what was a hardcoded "3" with no
+ * backend source at all (staff review finding C1, 2026-07-30).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../../services/authService";
+import { callRead } from "../../platform/services";
 
-const get = (url) => api.get(url).then(r => r.data);
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 function parseDOB(dob) {
@@ -24,21 +28,29 @@ function parseDOB(dob) {
   return isNaN(d) ? null : d;
 }
 
+// Admission_Date has been observed as either ISO (YYYY-MM-DD) or DD/MM/YYYY —
+// same ambiguity as DOB, so it gets the same slash-aware parse.
+const parseAdmissionDate = parseDOB;
+
 export default function useDashboardStats() {
   const [stats, setStats] = useState({
     attendancePct: null, presentToday: null, pendingPickups: null,
-    outstandingFees: null, birthdaysToday: null,
+    outstandingFees: null, birthdaysToday: null, admissionsThisWeek: null,
   });
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
   const fetchAll = useCallback(async () => {
     const d = todayISO();
+    // Registry reads (§5A) — same four endpoints, same query strings, now
+    // resolved through registered services instead of raw api.get. The *Raw
+    // variants are used deliberately: the envelope is what lets a failed
+    // request render "—" rather than a misleading 0.
     const [stuRes, sumRes, pickupRes, invRes] = await Promise.allSettled([
-      get("/students"),
-      get(`/api/attendance/summary?date=${d}`),
-      get("/api/pickup-requests?status=pending"),
-      get("/api/invoices"),
+      callRead("students",   "listRaw"),
+      callRead("attendance", "summary",  { date: d }),
+      callRead("pickup_auth", "requests", { status: "pending" }),
+      callRead("invoices",   "listRaw"),
     ]);
     if (!mountedRef.current) return;
 
@@ -73,7 +85,17 @@ export default function useDashboardStats() {
       return dob && dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
     }).length;
 
-    setStats({ attendancePct, presentToday: present, pendingPickups, outstandingFees, birthdaysToday });
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const admissionsThisWeek = students.length ? students.filter(s => {
+      const admitted = parseAdmissionDate(s.Admission_Date);
+      return admitted && admitted >= sevenDaysAgo && admitted <= today;
+    }).length : null;
+
+    setStats({
+      attendancePct, presentToday: present, pendingPickups, outstandingFees,
+      birthdaysToday, admissionsThisWeek,
+    });
     setLoading(false);
   }, []);
 

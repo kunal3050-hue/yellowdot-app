@@ -21,11 +21,12 @@
  * still says "Quick Navigation" and is left alone, per the standing
  * "preserve all existing routes" rule from when this page was built.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { ViewSwitcher, useViewMode } from "../../components/ui";
-import { SECTIONS } from "./modules";
+import { SECTIONS, LEGACY_FINANCE_ITEMS, FINANCE_PLATFORM_ITEMS } from "./modules";
+import useFinancePlatformStatus from "../finance/hooks/useFinancePlatformStatus";
 import useRecentModules from "./useRecentModules";
 import useFavouriteModules from "./useFavouriteModules";
 import useExpandedSections from "./useExpandedSections";
@@ -59,6 +60,18 @@ export default function QuickNavigation() {
   const { isExpanded, toggleExpanded } = useExpandedSections();
   const [view, setView] = useViewMode("quick_navigation", "grid");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Finance section swap — see modules.js LEGACY_FINANCE_ITEMS /
+  // FINANCE_PLATFORM_ITEMS. Mirrors Sidebar.jsx's own finance/finance_platform
+  // swap exactly, so Control Center and the sidebar never disagree about
+  // which Finance experience is "the" one (staff review F1/C6, 2026-07-30).
+  const { enabled: financePlatformEnabled } = useFinancePlatformStatus();
+  const sections = useMemo(
+    () => SECTIONS.map(s => (s.id === "finance"
+      ? { ...s, items: financePlatformEnabled ? FINANCE_PLATFORM_ITEMS : LEGACY_FINANCE_ITEMS }
+      : s)),
+    [financePlatformEnabled],
+  );
 
   const handleNavigate = useCallback((id, path) => {
     recordVisit(id);
@@ -103,7 +116,7 @@ export default function QuickNavigation() {
         <ViewSwitcher modes={["grid", "list"]} value={view} onChange={setView} />
       </div>
 
-      {SECTIONS.map(section => (
+      {sections.map(section => (
         <ModuleSection
           key={section.id}
           section={section}

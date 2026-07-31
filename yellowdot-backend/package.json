@@ -10,7 +10,8 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "build:info": "node scripts/genBuildInfo.js",
-    "test": "node --test"
+    "test": "node --test",
+    "seed:emulator": "node scripts/seedEmulator.js"
   },
   "keywords": [],
   "author": "",

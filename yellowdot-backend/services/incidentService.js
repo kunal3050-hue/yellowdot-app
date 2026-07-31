@@ -180,7 +180,13 @@ async function getDashboardStats({ schoolId = SCHOOL_ID } = {}) {
   const all = await getIncidents({ schoolId });
 
   const thisMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-  const open                = all.filter(i => i.status === "open").length;
+  // D2, Dashboard experience review (2026-07-31): was `status === "open"` only,
+  // which undercounted against Care's openIncidents task provider — that
+  // provider deliberately includes "under_review" too (see its own comment in
+  // platform/tasks/providers.js), on child-safety grounds: an incident stays
+  // "needs attention" until RESOLVED, not until someone starts looking at it.
+  // Matching that definition here instead of maintaining two.
+  const open                = all.filter(i => i.status === "open" || i.status === "under_review").length;
   const highSeverity        = all.filter(i => ["high","critical"].includes(i.severity) && i.status !== "closed").length;
   const resolvedThisMonth   = all.filter(i => i.status === "resolved" && i.updatedAt?.startsWith(thisMonth)).length;
 

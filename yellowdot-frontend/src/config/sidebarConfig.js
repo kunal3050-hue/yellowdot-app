@@ -72,6 +72,34 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.DASHBOARD,
         icon:     "Grid",
       },
+      {
+        // D1, Dashboard experience review (2026-07-31): the new Widget Engine
+        // dashboard (pages/Dashboard.jsx) was fully built and routed but had
+        // no sidebar entry, reachable only by direct URL or ⌘K — the same
+        // class of gap Care's C2 fixed the same day. Labelled "Insights"
+        // rather than reusing "Dashboard" — that word already names three
+        // other things in this sidebar (Live Dashboard, Staff Management ›
+        // Dashboard, Finance › Dashboard), a collision the original staff UX
+        // review already flagged (C8); this page's own docblock calls itself
+        // "insights only," so that's what it's labelled here instead of
+        // adding a fourth "Dashboard".
+        id:       "insights",
+        label:    "Insights",
+        path:     "/dashboard",
+        routeKey: ROUTES.DASHBOARD,
+        icon:     "TrendingUp",
+      },
+      {
+        // C2, Care experience review (2026-07-31): /care was fully built and
+        // routed but had no sidebar entry at all, reachable only by direct
+        // URL or ⌘K — the same class of gap the staff UX review found and
+        // fixed for Attendance/Pickup Authorization (C4/C5, 2026-07-30).
+        id:       "care",
+        label:    "Care",
+        path:     "/care",
+        routeKey: ROUTES.DASHBOARD,
+        icon:     "CheckSquare",
+      },
     ],
   },
 
@@ -560,12 +588,36 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.INCIDENTS,
         icon:     "AlertTriangle",
       },
+      // Staff review findings C4/C5/T1 (2026-07-30): this was the single
+      // most-used screen for a Teacher and had NO sidebar entry at all —
+      // reachable only via the Control Center grid, direct URL, or search.
+      // Placed directly beside Gate Register on purpose: the review found a
+      // real risk that a new teacher opens Gate Register expecting the
+      // attendance-marking screen and doesn't find it — adjacency with a
+      // clearly different label ("Student Attendance" vs "Gate Register")
+      // is the fix, not a folder a new hire has to already know to look in.
+      {
+        id:       "attendance",
+        label:    "Student Attendance",
+        path:     "/attendance",
+        routeKey: ROUTES.ATTENDANCE,
+        icon:     "CalendarCheck",
+      },
       {
         id:       "child_presence",
         label:    "Gate Register",
         path:     "/child-presence",
         routeKey: ROUTES.ATTENDANCE,
         icon:     "UserCheck",
+      },
+      // Same finding, second instance: Reception's highest-frequency screen,
+      // previously reachable only via the Control Center grid.
+      {
+        id:       "pickup_authorization",
+        label:    "Pickup Authorization",
+        path:     "/pickup-authorization",
+        routeKey: ROUTES.PICKUP_AUTHORIZATION,
+        icon:     "Car",
       },
     ],
   },
