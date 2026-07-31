@@ -1,20 +1,22 @@
 /**
- * CareFeed.jsx — Staff mobile "what needs doing" feed
+ * CareFeed.jsx — Staff Home "what needs doing" tab
  * ─────────────────────────────────────────────────────────────────────
- * Staff mobile feed — Parent-style UX plan (2026-07-31).
+ * Staff Home — Parent Home visual language, Staff-owned (2026-07-31).
  *
- * Near-literal mobile re-skin of pages/Care.jsx: consumes useTaskFeed(),
- * splitTasksByOwnership() and useCareModules() UNCHANGED from
- * platform/tasks — same capability gating, same mine/team ownership
- * split (C1, 2026-07-31), same destination grid. Only the rendering
- * differs: Parent-style feed cards instead of desktop rows/grid tiles.
- * No role branch lives here — splitTasksByOwnership already resolves
- * "mine" vs "team" from the signed-in user's role.
+ * Step 1 scope: just the task feed, mirroring Parent Home's activity
+ * feed. Consumes useTaskFeed() and splitTasksByOwnership() UNCHANGED
+ * from platform/tasks — same capability gating, same mine/team
+ * ownership split (C1, 2026-07-31). No role branch lives here —
+ * splitTasksByOwnership already resolves "mine" vs "team" from the
+ * signed-in user's role.
+ *
+ * The Care destination grid (useCareModules — "Staff App Controls") is
+ * deliberately NOT included yet, per the Staff Home Step 1 scope.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { colors, spacing, typography } from "../theme/staffMobile";
-import { useTaskFeed, useCareModules, splitTasksByOwnership } from "../platform/tasks";
+import { useTaskFeed, splitTasksByOwnership } from "../platform/tasks";
 import { useAuth } from "../contexts/AuthContext";
 import FeedCard from "./components/FeedCard";
 
@@ -52,29 +54,8 @@ function TaskCard({ task, muted }) {
   );
 }
 
-function ModuleTile({ mod }) {
-  const navigate = useNavigate();
-  return (
-    <button
-      onClick={() => mod.path && navigate(mod.path)}
-      style={{
-        textAlign: "left", cursor: "pointer",
-        background: colors.surface.card,
-        border: `1px solid ${colors.surface.border}`,
-        borderRadius: 16, padding: "12px 14px",
-        display: "flex", flexDirection: "column", gap: 2,
-      }}
-    >
-      <span style={{ ...typography.caption, fontWeight: typography.weight.semibold, color: colors.text.primary }}>
-        {mod.label}
-      </span>
-    </button>
-  );
-}
-
 export default function CareFeed() {
   const { loading, tasks } = useTaskFeed();
-  const modules = useCareModules();
   const { role } = useAuth();
 
   const { mine, team } = useMemo(() => splitTasksByOwnership(tasks, role), [tasks, role]);
@@ -116,17 +97,6 @@ export default function CareFeed() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginBottom: spacing.lg }}>
             {team.map(t => <TaskCard key={t.id} task={t} muted />)}
-          </div>
-        </>
-      )}
-
-      {modules.length > 0 && (
-        <>
-          <div style={{ ...typography.caption, fontWeight: typography.weight.semibold, color: colors.text.muted, marginBottom: spacing.sm }}>
-            MODULES
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.sm, marginBottom: spacing.lg }}>
-            {modules.map(m => <ModuleTile key={m.id} mod={m} />)}
           </div>
         </>
       )}

@@ -1,20 +1,29 @@
 /**
- * StaffMobileLayout.jsx — Staff mobile app shell
+ * StaffHome.jsx — Staff Home: mobile-first shell, Parent Home's visual language
  * ─────────────────────────────────────────────────────────────────────
- * Staff mobile feed — Parent-style UX plan (2026-07-31).
+ * Step 1 of the Staff Home plan (2026-07-31): reproduce Parent Home's
+ * overall mobile-first experience for Staff — mobile header, greeting/
+ * staff-identity area, feed/card layout, bottom navigation (Home/Care/
+ * Profile) — as one clean, common experience. No Teacher/Reception/
+ * Accountant/Principal/Centre Owner variants, no new role permissions,
+ * no "Staff App Controls" panel, no destination-module redesign. How
+ * permissions populate this shell further is a deliberately separate,
+ * later decision.
  *
  * Structurally parallel to modules/parent/components/ParentLayout.jsx
  * (fixed translucent top bar, scrollable centered content, floating
- * rounded bottom dock) but Staff-owned end to end: built from
- * theme/staffMobile tokens only, zero imports from modules/parent/.
+ * rounded bottom dock) but Staff-owned end to end and completely
+ * separate: built from theme/staffMobile tokens only (a hand-duplicated
+ * copy of Parent's theme, not an import), zero imports from
+ * modules/parent/. Parent Home is not modified by this file in any way.
  *
  * Tabs are fixed (Home / Care / Profile) and switched via local state,
- * not routing — all three live under the single /staff-mobile route
- * (confirmed decision, see the plan). Permission-driven variation
- * happens INSIDE each tab's content (HomeFeed/CareFeed resolve the
- * signed-in user's capabilities via the existing Widget/Task Engine
- * hooks) — this shell itself holds no role branching, same "no role
- * branch in this file" discipline Dashboard.jsx/Care.jsx already state.
+ * not routing — all three live under the single /staff-mobile route.
+ * Permission-driven variation happens INSIDE each tab's content
+ * (HomeFeed/CareFeed already resolve the signed-in user's capabilities
+ * via the existing Widget/Task Engine hooks, reused as-is) — this shell
+ * itself holds no role branching, same "no role branch in this file"
+ * discipline Dashboard.jsx/Care.jsx already state.
  */
 import { useState } from "react";
 import { Home, CheckSquare, User } from "lucide-react";
@@ -31,7 +40,7 @@ const TABS = [
   { id: "profile", label: "Profile", icon: User,        Content: ProfileTab },
 ];
 
-export default function StaffMobileLayout() {
+export default function StaffHome() {
   const [activeTab, setActiveTab] = useState("home");
   const { user } = useAuth();
   const firstName = (user?.name || "").split(" ")[0];
@@ -42,7 +51,7 @@ export default function StaffMobileLayout() {
   return (
     <div style={{ minHeight: "100vh", background: colors.surface.background, display: "flex", flexDirection: "column" }}>
 
-      {/* ── Top bar ─────────────────────────────────────────────────── */}
+      {/* ── Mobile header ───────────────────────────────────────────── */}
       <header style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
         height: layout.topbarHeight,
@@ -89,7 +98,7 @@ export default function StaffMobileLayout() {
         </div>
       </main>
 
-      {/* ── Floating dock ────────────────────────────────────────────── */}
+      {/* ── Bottom navigation — floating dock ───────────────────────── */}
       <div style={{
         position: "fixed",
         bottom: `calc(${layout.safeBottom} + ${spacing.md}px)`,

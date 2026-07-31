@@ -79,11 +79,11 @@ export const dashboardModule = defineModule({
     },
     // Legacy alias kept alive for bookmarks; not in any nav surface.
     { path: "/quick-nav", routeKey: "dashboard" },
-    // Staff mobile feed plan (2026-07-31) — the Parent-style mobile
+    // Staff Home plan (2026-07-31) — the Parent-Home-style mobile
     // presentation of this same capability-driven content. No `nav` entry:
     // reached via RootRedirect's mobile-viewport auto-redirect and the
-    // mobile shell's own internal tab bar, not the desktop sidebar.
-    { path: "/staff-mobile", routeKey: "dashboard", label: "Staff Mobile" },
+    // shell's own internal tab bar, not the desktop sidebar.
+    { path: "/staff-mobile", routeKey: "dashboard", label: "Staff Home" },
   ],
 });
 

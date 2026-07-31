@@ -25,7 +25,7 @@ const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
 const Dashboard           = lazy(() => import("./pages/Dashboard"));
 const Care                = lazy(() => import("./pages/Care"));
-const StaffMobileLayout   = lazy(() => import("./staffMobile/StaffMobileLayout"));
+const StaffHome           = lazy(() => import("./staffMobile/StaffHome"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -232,17 +232,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Staff mobile feed plan (2026-07-31) — same "dashboard" routeKey
-                gate as /dashboard and /care above: this grants nothing new,
-                it's the Parent-style mobile presentation of the same
+            {/* Staff Home plan (2026-07-31) — same "dashboard" routeKey gate
+                as /dashboard and /care above: this grants nothing new, it's
+                the Parent-Home-style mobile presentation of the same
                 capability-driven content. NOT wrapped in MainLayout — it has
-                its own shell (StaffMobileLayout), same pattern as Parent's
-                own routes being outside MainLayout. */}
+                its own shell (StaffHome), same pattern as Parent's own
+                routes being outside MainLayout. */}
             <Route
               path="/staff-mobile"
               element={
                 <ProtectedRoute routeKey="dashboard">
-                  <StaffMobileLayout />
+                  <StaffHome />
                 </ProtectedRoute>
               }
             />
