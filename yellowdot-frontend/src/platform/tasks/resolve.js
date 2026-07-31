@@ -11,6 +11,7 @@
 import { MODULES_BY_ID } from "../registry/index.js";
 import PROVIDERS from "./providers.js";
 import { levelAtLeast } from "../permissions/capabilities.js";
+import { isBypassRole } from "../../config/permissions.js";
 
 /** Task providers this user may see. */
 export function resolveProviders({ can, isEnabled }) {
@@ -61,6 +62,30 @@ export function resolveCareModules({ can, isEnabled, level, role }) {
       order: m.surfaces.care.roles?.[role] ?? m.surfaces.care.order ?? 500,
     }))
     .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+}
+
+/**
+ * Split a resolved feed into what's actually the signed-in user's to act on
+ * versus everything else they merely have view-capability on.
+ *
+ * C1, Care experience review (2026-07-31): `resolveProviders` gates on
+ * capability only, so a task's presence in the feed never meant it belonged
+ * to the viewer — live as Teacher, 4 of 5 "Needs attention" items were
+ * Principal's or Reception's, with `owner` only ever rendered as a caption.
+ * `owner.id` is always a role id (see providers.js), so matching it against
+ * the viewer's own role is enough — no per-task assignment model exists to
+ * do better than that today, and this doesn't invent one.
+ *
+ * Bypass roles (§ config/permissions BYPASS_ROLES) hold every capability by
+ * construction, so splitting their feed would put everything in "team" and
+ * nothing in "mine" — the opposite of what the split is for. They keep the
+ * unsplit view.
+ */
+export function splitTasksByOwnership(tasks, role) {
+  if (isBypassRole(role)) return { mine: tasks, team: [] };
+  const mine = tasks.filter(t => !t.owner?.id || t.owner.id === role);
+  const team = tasks.filter(t => t.owner?.id && t.owner.id !== role);
+  return { mine, team };
 }
 
 export { PROVIDERS };

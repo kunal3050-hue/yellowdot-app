@@ -20,12 +20,12 @@ import { usePermissions } from "../permissions/usePermissions.js";
 import { callRead } from "../services/index.js";
 import { MODULES_BY_ID } from "../registry/index.js";
 import PROVIDERS from "./providers.js";
-import { resolveProviders, resolveCareModules } from "./resolve.js";
+import { resolveProviders, resolveCareModules, splitTasksByOwnership } from "./resolve.js";
 import { computePriority, compareTasks, normalizeTask } from "./defineTaskProvider.js";
 
 export * from "./defineTaskProvider.js";
 // Re-exported, not reimplemented — resolve.js is the single source.
-export { resolveProviders, resolveCareModules };
+export { resolveProviders, resolveCareModules, splitTasksByOwnership };
 
 // ── Integrity: a provider must belong to a registered module ─────────────────
 // This is what keeps §4's "providers are part of module registration" true even

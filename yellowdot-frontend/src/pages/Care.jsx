@@ -20,8 +20,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader, Skeleton } from "../components/ui";
-import { useTaskFeed, useCareModules } from "../platform/tasks";
+import { useTaskFeed, useCareModules, splitTasksByOwnership } from "../platform/tasks";
 import { CATEGORIES_BY_ID } from "../platform/registry";
+import { useAuth } from "../contexts/AuthContext";
 
 const PRIORITY_STYLE = {
   critical: { label: "Critical", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
@@ -107,22 +108,31 @@ export default function Care() {
   const { loading, tasks, degraded, providerCount } = useTaskFeed();
   const modules = useCareModules();
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [filter, setFilter] = useState("all");
+
+  // C1, Care experience review (2026-07-31): the feed used to be shown
+  // whole — capability-gated but not ownership-filtered, so a Teacher's
+  // "Needs attention" was mostly Principal's and Reception's tasks with
+  // only the owner caption to tell them apart. `mine` is what "Needs
+  // attention" actually means from here; `team` keeps the rest visible,
+  // just not counted as this viewer's workload.
+  const { mine, team } = useMemo(() => splitTasksByOwnership(tasks, role), [tasks, role]);
 
   // Filter chips are DERIVED from the categories of the modules that actually
   // contributed tasks — never a hand-maintained enum (§4, domain→moduleId).
   const chips = useMemo(() => {
     const byCategory = new Map();
-    for (const t of tasks) {
+    for (const t of mine) {
       const cat = t.category ?? "other";
       byCategory.set(cat, (byCategory.get(cat) || 0) + 1);
     }
     return [...byCategory.entries()].map(([id, count]) => ({
       id, count, label: CATEGORIES_BY_ID[id]?.label ?? "Other",
     }));
-  }, [tasks]);
+  }, [mine]);
 
-  const visible = filter === "all" ? tasks : tasks.filter(t => (t.category ?? "other") === filter);
+  const visible = filter === "all" ? mine : mine.filter(t => (t.category ?? "other") === filter);
 
   // Every source failed: the feed is unknown, not empty. These are different
   // states and must not share a message.
@@ -136,16 +146,16 @@ export default function Care() {
       <section style={{ marginTop: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Needs attention</h2>
-          {!loading && tasks.length > 0 && (
+          {!loading && mine.length > 0 && (
             <span style={{ fontSize: 12, color: "var(--yd-text-muted, #6B7280)" }}>
-              {tasks.length} item{tasks.length === 1 ? "" : "s"}
+              {mine.length} item{mine.length === 1 ? "" : "s"}
             </span>
           )}
         </div>
 
         {chips.length > 1 && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {[{ id: "all", label: "All", count: tasks.length }, ...chips].map(c => (
+            {[{ id: "all", label: "All", count: mine.length }, ...chips].map(c => (
               <button
                 key={c.id}
                 onClick={() => setFilter(c.id)}
@@ -203,6 +213,27 @@ export default function Care() {
           </div>
         )}
       </section>
+
+      {/* ── Team activity ────────────────────────────────────────────
+          Everything the viewer can see but that isn't theirs to action —
+          kept visible for context (owner caption already names whose it
+          is) but out of the primary count and never mixed into the chips
+          above, which is what C1 was actually about. */}
+      {!loading && team.length > 0 && (
+        <section style={{ marginTop: 26 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: "var(--yd-text-muted, #6B7280)" }}>
+              Team activity
+            </h2>
+            <span style={{ fontSize: 12, color: "var(--yd-text-muted, #9CA3AF)" }}>
+              {team.length} item{team.length === 1 ? "" : "s"} — visible for context, not yours to action
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, opacity: 0.75 }}>
+            {team.map(t => <TaskRow key={t.id} task={t} />)}
+          </div>
+        </section>
+      )}
 
       {/* ── Modules ─────────────────────────────────────────────────── */}
       <section style={{ marginTop: 30 }}>
