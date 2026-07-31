@@ -34,23 +34,80 @@ function cameraClassrooms(camera) {
   return camera.classroom ? [camera.classroom] : [];
 }
 
+// Every camera timeline in production today is authored in the school's local
+// wall-clock time (India). There is no per-tenant timezone field yet, so this
+// is a deliberate, named default rather than an implicit assumption -- see
+// getActiveTimelineEntry() for why it can't be left to the server's ambient
+// clock.
+const SCHOOL_TIMEZONE = "Asia/Kolkata";
+
+const _weekdayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Resolve a Date to { day, mins } (0=Sun..6=Sat, minutes since midnight) IN
+ * the school's timezone, regardless of the server process's own local time.
+ *
+ * A container with no TZ env var defaults to UTC. Comparing UTC-derived
+ * getDay()/getHours() against a timeline authored in IST silently denies
+ * access for the first ~5.5h of the real school day and grants it ~5.5h past
+ * the real cutoff every night -- wrong in both directions, and it never
+ * throws or logs, so it looks like normal "outside hours" behaviour. Always
+ * go through Intl with an explicit timeZone so this can't depend on how the
+ * host/container happens to be configured.
+ */
+function _dayAndMinutesIn(now, timezone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(now);
+  const get = type => parts.find(p => p.type === type).value;
+  return {
+    day:  _weekdayIndex[get("weekday")],
+    mins: parseInt(get("hour"), 10) * 60 + parseInt(get("minute"), 10),
+  };
+}
+
 /**
  * Returns the timeline entry that is active right now for this camera, or null.
  * A camera without a timeline[] falls back to the static classrooms[] model.
+ *
+ * A camera's entries commonly overlap by design: a broad all-day "Daycare"
+ * block plus a narrower program-specific block (Playgroup/Nursery/LKG) nested
+ * inside the same window, so the room reads as generally supervised outside
+ * the narrower program's own hours. When more than one entry is active at
+ * once, `.find()` returning "whichever is listed first" silently picked the
+ * broad block every time, because it's always listed first and its window
+ * always contains the narrower one -- meaning a Playgroup/Nursery/LKG child
+ * could never match their own camera during their own scheduled slot; the
+ * caller only ever saw the broader Daycare entry and denied them with
+ * "not-child-classroom" against their own correctly-configured schedule.
+ *
+ * `preferredClassroom` breaks that tie: among simultaneously active entries,
+ * prefer the one matching the caller's classroom; fall back to the first
+ * active entry (previous behaviour, still correct when nothing matches) so a
+ * genuinely wrong classroom keeps denying exactly as before.
+ *
  * @param {{ timeline?: Array }} camera
  * @param {Date} [now]
+ * @param {string} [timezone] IANA zone the timeline was authored in — defaults
+ *   to SCHOOL_TIMEZONE; only ever overridden by tests.
+ * @param {string} [preferredClassroom] break ties among overlapping entries.
  * @returns {{ id, classroom, days, startTime, endTime } | null}
  */
-function getActiveTimelineEntry(camera, now = new Date()) {
+function getActiveTimelineEntry(camera, now = new Date(), timezone = SCHOOL_TIMEZONE, preferredClassroom) {
   if (!Array.isArray(camera.timeline) || !camera.timeline.length) return null;
-  const day  = now.getDay();                                  // 0=Sun … 6=Sat
-  const mins = now.getHours() * 60 + now.getMinutes();
-  return camera.timeline.find(e => {
+  const { day, mins } = _dayAndMinutesIn(now, timezone);
+  const active = camera.timeline.filter(e => {
     if (!Array.isArray(e.days) || !e.days.includes(day)) return false;
     const [sh, sm] = (e.startTime || "00:00").split(":").map(Number);
     const [eh, em] = (e.endTime   || "23:59").split(":").map(Number);
     return mins >= sh * 60 + sm && mins < eh * 60 + em;
-  }) || null;
+  });
+  if (!active.length) return null;
+  if (preferredClassroom) {
+    const preferred = active.find(e => norm(e.classroom) === norm(preferredClassroom));
+    if (preferred) return preferred;
+  }
+  return active[0];
 }
 
 function sameCenter(user, camera) {
@@ -145,7 +202,7 @@ function canParentViewCamera(child, presence, camera, opts = {}) {
   // static classrooms[] model (backward-compatible with pre-timeline records).
   if (Array.isArray(camera.timeline) && camera.timeline.length) {
     const now   = opts.now instanceof Date ? opts.now : new Date();
-    const entry = getActiveTimelineEntry(camera, now);
+    const entry = getActiveTimelineEntry(camera, now, undefined, child.classroom);
     if (!entry) return { allowed: false, reason: "no-active-slot" };
     if (norm(entry.classroom) !== norm(child.classroom)) {
       return { allowed: false, reason: "not-child-classroom" };
@@ -186,6 +243,7 @@ module.exports = {
   filterViewableCameras,
   describeScope,
   getActiveTimelineEntry,
+  SCHOOL_TIMEZONE,
   BYPASS_ROLES,
   CENTER_WIDE_ROLES,
   CLASSROOM_SCOPED,

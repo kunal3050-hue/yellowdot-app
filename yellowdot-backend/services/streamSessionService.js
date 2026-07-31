@@ -91,6 +91,7 @@ async function audit(event, data, nowISO) {
       childId:    data.childId    || "",
       sessionId:  data.sessionId  || "",
       ip:         data.ip         || "",
+      reason:     data.reason     || "",
       ts:         nowISO,
     });
   } catch (e) {
