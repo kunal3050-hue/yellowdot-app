@@ -72,6 +72,17 @@ export const SIDEBAR_GROUPS = [
         routeKey: ROUTES.DASHBOARD,
         icon:     "Grid",
       },
+      {
+        // C2, Care experience review (2026-07-31): /care was fully built and
+        // routed but had no sidebar entry at all, reachable only by direct
+        // URL or ⌘K — the same class of gap the staff UX review found and
+        // fixed for Attendance/Pickup Authorization (C4/C5, 2026-07-30).
+        id:       "care",
+        label:    "Care",
+        path:     "/care",
+        routeKey: ROUTES.DASHBOARD,
+        icon:     "CheckSquare",
+      },
     ],
   },
 

@@ -51,6 +51,12 @@ async function run() {
   const flagsSrc = readFileSync(join(__dirname, "src/config/featureFlags.js"), "utf8");
   const FLAGS = extractLiteral(flagsSrc, "export const FLAGS =", { isPreProduction: false });
   const isEnabled = flag => Boolean(FLAGS[flag]);
+  // "Yellow Dot only, flip to true when approved for production" (featureFlags.js's
+  // own words) — a widget/provider gated ONLY behind one of these is invisible
+  // in production by design, not by defect, until that flag ships. Distinct
+  // from a capability nobody holds, which is always a bug.
+  const FLAG_GROUPS = extractLiteral(flagsSrc, "export const FLAG_GROUPS =");
+  const stagingOnlyFlags = new Set(FLAG_GROUPS.staging || []);
 
   // ── 1. The matrix ──────────────────────────────────────────────────────────
   section("1. What each role sees (production flags)");
@@ -114,10 +120,22 @@ async function run() {
   const { PROVIDERS } = await import("./src/platform/tasks/resolve.js");
 
   for (const w of WIDGETS) {
-    if (!allW.has(w.id)) fail(`widget "${w.id}" is visible to NO role`, `capability ${w.capability}`);
+    if (allW.has(w.id)) continue;
+    if (w.featureFlag && stagingOnlyFlags.has(w.featureFlag)) {
+      warn(`widget "${w.id}" is visible to NO role in production`,
+           `gated behind "${w.featureFlag}", staging-only until approved for production rollout`);
+    } else {
+      fail(`widget "${w.id}" is visible to NO role`, `capability ${w.capability}`);
+    }
   }
   for (const p of PROVIDERS) {
-    if (!allT.has(p.id)) fail(`task provider "${p.id}" is visible to NO role`, `capability ${p.capability}`);
+    if (allT.has(p.id)) continue;
+    if (p.featureFlag && stagingOnlyFlags.has(p.featureFlag)) {
+      warn(`task provider "${p.id}" is visible to NO role in production`,
+           `gated behind "${p.featureFlag}", staging-only until approved for production rollout`);
+    } else {
+      fail(`task provider "${p.id}" is visible to NO role`, `capability ${p.capability}`);
+    }
   }
 
   // Visible ONLY to bypass roles is nearly as bad as visible to none: no real

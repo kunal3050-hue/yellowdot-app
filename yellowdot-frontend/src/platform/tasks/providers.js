@@ -136,6 +136,50 @@ export const attendancePending = defineTaskProvider({
   },
 });
 
+// ── Care & hygiene not logged ──────────────────────────────────────────────────
+// C3, Care experience review (2026-07-31): the daily-care routine (Nap Tracker,
+// Food Menu, Food Consumption, Care & Hygiene) had no task provider at all, so
+// Care could never surface it — even though it's a recurring, effort-consuming
+// part of a Teacher's day (workflow-optimization review). Care & Hygiene is the
+// one instance added here: unlike Nap (not every child naps) or Food Consumption
+// (blocked until a menu exists — see FoodConsumption.jsx's NoMenuState), "has
+// this child had any care/hygiene event logged today" is a plain, universal
+// per-child check with a summary endpoint that already returns exactly this
+// shape — the same total-vs-logged pattern attendancePending already uses.
+export const careHygienePending = defineTaskProvider({
+  id: "care-hygiene-pending",
+  moduleId: "care_hygiene",
+  capability: "care_hygiene.view",
+  featureFlag: "DAILY_CARE",
+  basePriority: "medium",
+  deepLink: "/care-hygiene",
+  reads: {
+    summary:  { service: "care_hygiene", read: "summary", args: () => ({ date: todayISO() }) },
+    students: { service: "students",     read: "listRaw" },
+  },
+  toTasks: ({ summary, students }) => {
+    if (!summary?.success) return [];
+    const total = asStudents(students).length;
+    const logged = (summary.summary?.students || []).length;
+    const unlogged = total - logged;
+    if (!total || unlogged <= 0) return [];
+
+    return [{
+      id: `care-hygiene:${todayISO()}`,
+      title: "Care & hygiene not logged",
+      context: `${unlogged} of ${total} children with no event logged today`,
+      status: "pending",
+      // Mid-afternoon, not morning — unlike attendance this has no fixed
+      // start-of-day cutoff; a child may simply not have needed anything
+      // logged yet by 9am. 3pm gives the day room to happen first.
+      dueAt: todayAt(15, 0),
+      owner: { type: "role", id: "teacher", label: "Teacher" },
+      createdAt: todayAt(8, 0),
+      deepLink: "/care-hygiene",
+    }];
+  },
+});
+
 // ── Overdue invoices ──────────────────────────────────────────────────────────
 export const overdueInvoices = defineTaskProvider({
   id: "overdue-invoices",
@@ -170,4 +214,4 @@ export const overdueInvoices = defineTaskProvider({
   },
 });
 
-export default [pickupApprovals, openIncidents, attendancePending, overdueInvoices];
+export default [pickupApprovals, openIncidents, attendancePending, careHygienePending, overdueInvoices];

@@ -56,10 +56,12 @@ export const dashboardModule = defineModule({
       path: "/dashboard", routeKey: "dashboard", label: "Dashboard", icon: "Home",
     },
     {
-      // §7 — Care. Also not in `nav` yet: it ships alongside the existing
-      // surfaces so the full Staff experience can be reviewed before either
-      // replaces anything (§12 Phase 9).
-      path: "/care", routeKey: "dashboard", label: "Care", icon: "Heart",
+      // §7 — Care. C2, Care experience review (2026-07-31): given a real
+      // sidebar entry now — it was fully built and routed but unreachable
+      // except by direct URL or ⌘K, the same gap the staff UX review found
+      // and fixed for Attendance/Pickup Authorization (C4/C5, 2026-07-30).
+      path: "/care", routeKey: "dashboard", label: "Care", icon: "CheckSquare",
+      nav: [{ category: "overview", order: 30 }],
     },
     {
       path: "/live-dashboard", routeKey: "dashboard", label: "Live Dashboard", icon: "Home",

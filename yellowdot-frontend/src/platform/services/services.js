@@ -30,6 +30,7 @@ import securityService   from "../../services/securityService";
 import * as studentSvc   from "../../services/studentService";
 import * as invoiceSvc   from "../../services/invoiceService";
 import * as incidentSvc  from "../../services/incidentService";
+import * as careSvc      from "../../services/careService";
 
 export const attendance = defineService({
   id: "attendance",
@@ -81,4 +82,16 @@ export const incidents = defineService({
   },
 });
 
-export default [attendance, students, pickup, invoices, incidents];
+export const careHygiene = defineService({
+  id: "care_hygiene",
+  capability: "care_hygiene.view",
+  reads: {
+    // GET /api/care/summary?date= — { date, total, counts, students: [one entry
+    // per student WITH at least one event logged today] }. "Logged today" is
+    // students.length, not total (an event count), so callers don't have to
+    // re-derive it.
+    summary: ({ date } = {}) => careSvc.getCareSummary({ date }),
+  },
+});
+
+export default [attendance, students, pickup, invoices, incidents, careHygiene];

@@ -28,17 +28,23 @@ This directly works against the new baseline's mandate to reduce clicks and trai
 
 **Recommendation:** Filter the feed to tasks whose `owner.id` matches the signed-in user's role (or is unset/shared), and move anything else into a clearly separate, secondary "Team activity" section — visible for context, but not counted in the headline number or mixed into the primary list.
 
-## C2 — 🟠 Care has no entry point in normal navigation, for any role
+## C2 — 🟠 ~~Care has no entry point in normal navigation, for any role~~ FIXED
+
+**Status: fixed and verified live (2026-07-31).** Added a Care entry to `sidebarConfig.js`'s Overview section (alongside Live Dashboard / Control Center) and the matching `nav` declaration on the registry's `/care` route (`core.js`'s `dashboardModule` — its route comment previously said "not in nav yet: it ships alongside the existing surfaces so the full Staff experience can be reviewed before either replaces anything," which is exactly the state this closes out). Verified live as Teacher: Care now appears in the sidebar and navigates correctly.
 
 `/care` is fully wired (route, `MainLayout`, `ProtectedRoute`) but has zero presence in `sidebarConfig.js` — confirmed by grep, the only "Care" match anywhere in the sidebar is the unrelated "Care & Hygiene" (diaper/hygiene logging) item. `RootRedirect` sends every Staff role to `/quick-navigation` (Control Center) on login, and the sidebar's "Live Dashboard" link points to the legacy `/live-dashboard`, not the new `/dashboard`. So the one screen built specifically to answer "what needs doing right now" is reachable only by typing the URL directly or via ⌘K search — the same class of problem the original Staff UX review found and fixed for Attendance and Pickup Authorization (C4/C5, 2026-07-30), still unresolved here.
 
 **Recommendation:** Add a sidebar entry for Care (Overview section, alongside Live Dashboard / Control Center), so it's actually reachable the way it was designed to be used.
 
-## C3 — 🟠 The daily-care routine itself is invisible to the task feed
+## C3 — 🟠 ~~The daily-care routine itself is invisible to the task feed~~ PARTIALLY FIXED (Care & Hygiene)
 
 None of Nap Tracker, Food Menu, Food Consumption, or Care & Hygiene has a task provider. `platform/tasks/providers.js` has exactly four providers — pickup approvals, open incidents, attendance-not-marked, overdue invoices — and none of them touch daily-care data. This means Care's "what needs doing right now" can never surface "3 children still haven't napped past their usual time" or "lunch hasn't been logged for 5 children" — precisely the recurring, effort-consuming Teacher duties the workflow-optimization review walked through just one phase ago ([[project_workflow_optimization_review]]). A Teacher relying on Care to tell them what's outstanding today would see nothing about roughly half of their actual daily routine, not because it's done, but because nothing is watching it.
 
-**Recommendation:** This is the natural next Task Engine content addition (not a new abstraction — the pattern already exists in `attendancePending`): a same-day nap/meal/hygiene-coverage provider, scoped to unmarked children past a reasonable cutoff, mirroring how `attendancePending` already works.
+**Status: Care & Hygiene fixed and verified live (2026-07-31); Nap Tracker and Food Consumption deliberately left open.** Added `careHygienePending` to `providers.js`, same shape as `attendancePending` (total roster vs. `GET /api/care/summary`'s already-existing `students` array of who has ≥1 event logged today), registered a matching `care_hygiene` entry in the Service Registry. Verified live as Teacher: "Care & hygiene not logged · 8 of 18 children with no event logged today" now appears in Needs attention, correctly counted as the Teacher's own (C1's split still holds).
+
+Nap Tracker and Food Consumption were **not** given providers, on purpose: Nap doesn't apply to every child the way attendance/hygiene do (not everyone naps), so "unmarked" has no honest universal meaning there without inventing a per-child schedule model that doesn't exist yet; Food Consumption is additionally gated behind a same-day Food Menu existing at all (see W2), so a task nagging about unlogged consumption could fire on a day nobody could have logged anything. Shipping either now would mean guessing at business rules the review didn't actually validate — which the new baseline's "does this solve a real problem" bar argues against doing speculatively. Left as future work once those rules are actually defined.
+
+**Incidental fix required to ship this:** `verify-roles.mjs`'s "provider visible to no role" check runs against simulated PRODUCTION feature flags, where `DAILY_CARE` (and therefore the entire Nap/Food/Hygiene feature area, including the pre-existing Care & Hygiene module itself) is off — `featureFlags.js` labels it explicitly "Yellow Dot only... flip to true when approved for production rollout." The gate didn't previously distinguish "nobody holds this capability" (a real bug) from "correctly gated behind a flag not yet approved for production" (expected), because no staging-only-gated task provider had existed before this one. Fixed the gate itself to check `FLAG_GROUPS.staging` and downgrade that specific case to a warning — it still reports (`⚠️ task provider "care-hygiene-pending" is visible to NO role in production → gated behind "DAILY_CARE"...`), just doesn't block the build for a state that's true by design, not by accident.
 
 ## C4 — 🟡 The Modules destination grid isn't curated for the role viewing it
 
@@ -53,8 +59,8 @@ This is a real but smaller issue than C1/C3: it's clutter and a coverage gap, no
 | # | Finding | Severity | Fix scope |
 |---|---|---|---|
 | C1 | Task feed shows every viewable task, not just the signed-in user's own | 🔴 | ✅ FIXED 2026-07-31 — `splitTasksByOwnership`, primary/secondary sections |
-| C2 | `/care` has no sidebar entry, unreachable except by URL/search | 🟠 | One `sidebarConfig.js` entry |
-| C3 | No task provider for Nap Tracker/Food Menu/Food Consumption/Care & Hygiene | 🟠 | New task provider(s), same pattern as `attendancePending` |
-| C4 | Modules grid isn't curated — includes browse-only screens, missing daily-care destinations | 🟡 | Add missing `surfaces.care` entries; reconsider Students/Classes inclusion |
+| C2 | `/care` has no sidebar entry, unreachable except by URL/search | 🟠 | ✅ FIXED 2026-07-31 — sidebar + registry `nav` entry |
+| C3 | No task provider for Nap Tracker/Food Menu/Food Consumption/Care & Hygiene | 🟠 | ✅ Care & Hygiene FIXED 2026-07-31; Nap/Food deliberately deferred, see above |
+| C4 | Modules grid isn't curated — includes browse-only screens, missing daily-care destinations | 🟡 | Still open — Nap Tracker/Food Consumption still missing `surfaces.care`; Students/Classes inclusion still an open question |
 
-**Recommended order:** C1 first — it's the only 🔴, and it undermines trust in the whole screen every time it's opened. C2 and C3 are independent and can ship in either order or together. C4 folds naturally into C3's work (adding the missing `surfaces.care` entries closes half of it) with the Students/Classes question left open for a decision.
+**Remaining:** C4 only. It folds partly into C3's still-open half (Nap/Food still lack a `surfaces.care` entry, so they're still absent from the Modules grid too) plus the separate Students/Classes curation question, which needs a product decision rather than a mechanical fix.
