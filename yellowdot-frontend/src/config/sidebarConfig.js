@@ -73,6 +73,23 @@ export const SIDEBAR_GROUPS = [
         icon:     "Grid",
       },
       {
+        // D1, Dashboard experience review (2026-07-31): the new Widget Engine
+        // dashboard (pages/Dashboard.jsx) was fully built and routed but had
+        // no sidebar entry, reachable only by direct URL or ⌘K — the same
+        // class of gap Care's C2 fixed the same day. Labelled "Insights"
+        // rather than reusing "Dashboard" — that word already names three
+        // other things in this sidebar (Live Dashboard, Staff Management ›
+        // Dashboard, Finance › Dashboard), a collision the original staff UX
+        // review already flagged (C8); this page's own docblock calls itself
+        // "insights only," so that's what it's labelled here instead of
+        // adding a fourth "Dashboard".
+        id:       "insights",
+        label:    "Insights",
+        path:     "/dashboard",
+        routeKey: ROUTES.DASHBOARD,
+        icon:     "TrendingUp",
+      },
+      {
         // C2, Care experience review (2026-07-31): /care was fully built and
         // routed but had no sidebar entry at all, reachable only by direct
         // URL or ⌘K — the same class of gap the staff UX review found and

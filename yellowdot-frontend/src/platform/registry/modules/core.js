@@ -50,10 +50,14 @@ export const dashboardModule = defineModule({
   keywords: ["dashboard", "home", "overview", "today", "stats", "kpi"],
   routes: [
     {
-      // §6 — the Widget Engine dashboard. Deliberately NOT in `nav` yet: it
-      // ships alongside /live-dashboard so it can be verified against real
-      // data before it replaces anything (§12 Phase 8).
-      path: "/dashboard", routeKey: "dashboard", label: "Dashboard", icon: "Home",
+      // §6 — the Widget Engine dashboard. D1, Dashboard experience review
+      // (2026-07-31): given a real sidebar entry, labelled "Insights" to
+      // avoid colliding with "Dashboard" elsewhere in the sidebar (C8, the
+      // original staff UX review already flagged that ambiguity) — matches
+      // the sidebarConfig.js entry, and Dashboard.jsx's own docblock already
+      // calls this page "insights only."
+      path: "/dashboard", routeKey: "dashboard", label: "Insights", icon: "TrendingUp",
+      nav: [{ category: "overview", order: 15 }],
     },
     {
       // §7 — Care. C2, Care experience review (2026-07-31): given a real
