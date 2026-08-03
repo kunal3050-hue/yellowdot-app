@@ -13,7 +13,6 @@ import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
 import IosInstallGuide   from "./components/IosInstallGuide";
 import SplashScreen      from "./components/SplashScreen";
-import { useIsMobile }   from "./hooks/useIsMobile";
 
 // ── Lazy-loaded pages (each becomes its own chunk) ───────────────────────────
 const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
@@ -912,10 +911,9 @@ function AuthSplash() {
 }
 
 // ── Smart root redirect ───────────────────────────────────────────────────────
-// Parents → /parent-home  |  Staff → /dashboard
+// Parents → /parent-home  |  Staff → /staff-mobile  |  Super Admin → platform analytics
 function RootRedirect() {
   const { role, isAuthenticated, loading } = useAuth();
-  const isMobile = useIsMobile();
   if (loading) return null; // splash handles the loading UI
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (role === "parent") return <Navigate to="/parent-home" replace />;
@@ -932,10 +930,13 @@ function RootRedirect() {
   // Super Admin using the Role Switcher to preview as another role still
   // lands on that role's normal experience for testing, exactly as before.
   if (role === "super_admin") return <Navigate to="/super-admin/analytics" replace />;
-  // Staff mobile feed plan (2026-07-31): a Staff role signing in on a phone
-  // lands on the new Parent-style mobile feed instead of the desktop Control
-  // Center grid. Desktop Staff logins are completely unaffected — this only
-  // branches on viewport width, never on role.
-  if (isMobile) return <Navigate to="/staff-mobile" replace />;
-  return <Navigate to="/quick-navigation" replace />;
+  // Staff Home plan (2026-07-31): Staff Home is now THE landing page for
+  // every Staff login, desktop included — same as Parent Home is the one
+  // landing page for every Parent login regardless of window size.
+  // Explicit user decision, confirmed after live-comparing Parent Home
+  // (which has no viewport gating at all) against the previous
+  // mobile-viewport-only redirect here. Control Center (/quick-navigation)
+  // remains fully intact and reachable via its own sidebar link — this
+  // only changes what a fresh login lands on.
+  return <Navigate to="/staff-mobile" replace />;
 }
