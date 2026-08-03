@@ -79,10 +79,12 @@ export const dashboardModule = defineModule({
     },
     // Legacy alias kept alive for bookmarks; not in any nav surface.
     { path: "/quick-nav", routeKey: "dashboard" },
-    // Staff Home plan (2026-07-31) — the Parent-Home-style mobile
-    // presentation of this same capability-driven content. No `nav` entry:
-    // reached via RootRedirect's mobile-viewport auto-redirect and the
-    // shell's own internal tab bar, not the desktop sidebar.
+    // Staff Home plan (2026-07-31) — the Parent-Home-style presentation of
+    // this same capability-driven content. THE landing page RootRedirect
+    // sends every Staff login to now, desktop included (same as Parent
+    // Home for every Parent login). No `nav` entry: reached via that
+    // redirect and the shell's own internal tab bar, not the desktop
+    // sidebar — Control Center stays reachable from its own sidebar link.
     { path: "/staff-mobile", routeKey: "dashboard", label: "Staff Home" },
   ],
 });
