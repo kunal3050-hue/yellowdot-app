@@ -8,9 +8,17 @@
  * SecuritySettings.jsx save handlers are unwired stubs today, so building
  * real self-edit here would mean shipping a new backend endpoint just for
  * mobile — out of scope. Contact/Centers use only fields useAuth() already
- * exposes (zero new fetches); Security deep-links to the existing desktop
- * page, the same "tap → existing desktop screen" pattern every Care tile
- * already uses.
+ * exposes (zero new fetches); "Account & Security" deep-links to the
+ * existing desktop /profile page — same "tap → existing desktop screen"
+ * pattern every Care tile already uses.
+ *
+ * Deliberately NOT /settings/security: live-tested as Teacher and found
+ * Access Restricted there (routeKey "settings" isn't granted below
+ * admin/center_owner tiers — a real, pre-existing gap between what
+ * Profile.jsx links to and what its own routeKey allows, out of scope to
+ * fix since it means touching role permissions). /profile itself is
+ * reachable for every role, shows the same account fields, and carries
+ * its own Password & Security link from there.
  */
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Phone, Mail, Building2 } from "lucide-react";
@@ -97,7 +105,7 @@ export default function ProfileTab() {
       </div>
 
       <button
-        onClick={() => navigate("/settings/security")}
+        onClick={() => navigate("/profile")}
         style={{
           width: "100%",
           display: "flex", alignItems: "center", gap: spacing.md,
@@ -117,7 +125,7 @@ export default function ProfileTab() {
         }}>
           <ShieldCheck size={16} strokeWidth={1.8} color={colors.yellow700} />
         </span>
-        <span style={{ ...typography.title, color: colors.text.primary, flex: 1 }}>Security</span>
+        <span style={{ ...typography.title, color: colors.text.primary, flex: 1 }}>Account & Security</span>
         <span style={{ color: colors.text.faint, fontSize: 16 }}>›</span>
       </button>
 

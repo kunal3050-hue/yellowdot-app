@@ -25,6 +25,18 @@ import { getStudents } from "../../services/studentService";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+// Same fmtClock as pages/Attendance.jsx: checkIn/checkOut are UTC wall-clock
+// strings ("HH:MM:SS") combined with the entry's date, except when they're
+// already-formatted display strings (e.g. from a fresh optimistic write) or
+// full ISO timestamps (seed data) — both pass through unchanged when the
+// combined string fails to parse.
+function fmtClock(dateISO, timeStr) {
+  if (!timeStr) return "";
+  const d = new Date(`${dateISO}T${timeStr}Z`);
+  if (isNaN(d.getTime())) return timeStr;
+  return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
 const STATUS_TONE = {
   Present: { bg: colors.successSoft, fg: colors.successStrong },
   Absent:  { bg: colors.dangerSoft,  fg: colors.dangerStrong },
@@ -48,7 +60,7 @@ function StudentRow({ student, entry, saving, onMark }) {
           {nameOf(student)}
         </div>
         <div style={{ ...typography.caption, color: colors.text.muted, marginTop: 2 }}>
-          {classOf(student)}{entry?.checkIn ? ` · ${entry.checkIn}` : ""}
+          {classOf(student)}{entry?.checkIn ? ` · ${fmtClock(entry.date, entry.checkIn)}` : ""}
         </div>
       </div>
 
