@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 // ── Always-eager: infrastructure (tiny, needed on every render) ──────────────
 import { AuthProvider }  from "./contexts/AuthContext";
@@ -34,6 +35,8 @@ const StudentWizard       = lazy(() => import("./pages/Students/StudentWizard"))
 const StudentProfile      = lazy(() => import("./pages/StudentProfile"));
 
 const Attendance          = lazy(() => import("./pages/Attendance"));
+const MobileAttendance    = lazy(() => import("./staffMobile/screens/MobileAttendance"));
+const MobileCareHygiene   = lazy(() => import("./staffMobile/screens/MobileCareHygiene"));
 const ChildPresence       = lazy(() => import("./pages/ChildPresence"));
 const NapTracker          = lazy(() => import("./pages/NapTracker"));
 const FoodMenu            = lazy(() => import("./pages/FoodMenu"));
@@ -360,7 +363,7 @@ function App() {
               path="/attendance"
               element={
                 <ProtectedRoute routeKey="attendance">
-                  <MainLayout><Attendance /></MainLayout>
+                  <AttendanceRoute />
                 </ProtectedRoute>
               }
             />
@@ -392,7 +395,7 @@ function App() {
               path="/care-hygiene"
               element={
                 <ProtectedRoute routeKey="care-hygiene">
-                  <CareHygiene />
+                  <CareHygieneRoute />
                 </ProtectedRoute>
               }
             />
@@ -939,4 +942,19 @@ function RootRedirect() {
   // remains fully intact and reachable via its own sidebar link — this
   // only changes what a fresh login lands on.
   return <Navigate to="/staff-mobile" replace />;
+}
+
+// ── Viewport-aware Attendance / Care & Hygiene routes ──────────────────────
+// Staff Home Phase 2 (2026-08-05): first mobile-native destination screens.
+// At mobile widths, render the Staff-mobile-owned screen; otherwise render
+// the existing desktop page (MainLayout + all its current views) completely
+// unchanged. Same useIsMobile() hook the Phase 1 mobile-only RootRedirect
+// gate used before the universal-landing decision removed that use.
+function AttendanceRoute() {
+  const isMobile = useIsMobile();
+  return isMobile ? <MobileAttendance /> : <MainLayout><Attendance /></MainLayout>;
+}
+function CareHygieneRoute() {
+  const isMobile = useIsMobile();
+  return isMobile ? <MobileCareHygiene /> : <CareHygiene />;
 }
