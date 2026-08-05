@@ -32,6 +32,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { ROLE_LABELS } from "../config/permissions";
 import communicationService from "../services/communicationService";
 import FeedCard from "./components/FeedCard";
+import ActivityTimeline from "./components/ActivityTimeline";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -203,6 +204,8 @@ export default function HomeFeed() {
           {widgets.map(w => <WidgetCard key={w.id} widget={w} />)}
         </div>
       )}
+
+      <ActivityTimeline />
     </div>
   );
 }
