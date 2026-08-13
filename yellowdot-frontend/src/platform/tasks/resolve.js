@@ -11,7 +11,7 @@
 import { MODULES_BY_ID } from "../registry/index.js";
 import PROVIDERS from "./providers.js";
 import { levelAtLeast } from "../permissions/capabilities.js";
-import { isBypassRole } from "../../config/permissions.js";
+import { isBypassRole, ROLE_LABELS } from "../../config/permissions.js";
 
 /** Task providers this user may see. */
 export function resolveProviders({ can, isEnabled }) {
@@ -80,11 +80,35 @@ export function resolveCareModules({ can, isEnabled, level, role }) {
  * construction, so splitting their feed would put everything in "team" and
  * nothing in "mine" — the opposite of what the split is for. They keep the
  * unsplit view.
+ *
+ * ── Capability fallback (Staff Home audit follow-up, 2026-08-13) ──────────
+ * `owner.id === role` on its own is brittle for a role this file has never
+ * heard of: Staff is now one platform with an open-ended set of roles (§
+ * Platform Architecture Freeze), and a brand-new role holding exactly the
+ * capability a provider gates on has no literal here to match, so it was
+ * silently swept into "team" — its own work read as someone else's.
+ *
+ * Capability alone can't replace the role match entirely: every task already
+ * passed `resolveProviders`'s `can(p.capability)` gate to be in `tasks` at
+ * all, so "the viewer holds this capability" is true for every role that
+ * sees the task, "mine" and "team" alike — it's not a signal, it's the
+ * entry ticket. The only thing worth deciding differently is what happens
+ * when `role` isn't one of the legacy roles this file was written against
+ * (`ROLE_LABELS`, the same enumeration Staff Home's own role-label pill
+ * already reads from): for those, fall back to the capability that the
+ * owning provider stamped on the task at creation time (`owner.capability`,
+ * providers.js) — if the task is visible to this unrecognised role at all,
+ * it's because that role holds this exact capability, so treat it as theirs
+ * rather than defaulting to "someone else's."
  */
 export function splitTasksByOwnership(tasks, role) {
   if (isBypassRole(role)) return { mine: tasks, team: [] };
-  const mine = tasks.filter(t => !t.owner?.id || t.owner.id === role);
-  const team = tasks.filter(t => t.owner?.id && t.owner.id !== role);
+
+  const isLegacyRole = Object.prototype.hasOwnProperty.call(ROLE_LABELS, role);
+  const isMine = t => !t.owner?.id || t.owner.id === role || (!isLegacyRole && Boolean(t.owner?.capability));
+
+  const mine = tasks.filter(isMine);
+  const team = tasks.filter(t => !isMine(t));
   return { mine, team };
 }
 

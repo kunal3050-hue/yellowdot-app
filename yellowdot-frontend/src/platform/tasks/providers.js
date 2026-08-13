@@ -58,7 +58,7 @@ export const pickupApprovals = defineTaskProvider({
       // in the pickup model, so Care does not invent one (§3c).
       status: "pending",
       dueAt: r.schoolEndTime || todayAt(17, 0),
-      owner: { type: "role", id: "reception", label: "Reception" },
+      owner: { type: "role", id: "reception", label: "Reception", capability: "pickup_auth.view" },
       createdAt: r.createdAt ?? null,
       deepLink: "/child-presence",
     }));
@@ -93,7 +93,7 @@ export const openIncidents = defineTaskProvider({
       status: i.status === "under_review" ? "in_progress" : "pending",
       basePriority: i.severity === "high" ? "critical" : "high",
       dueAt: i.dueAt ?? null,
-      owner: { type: "role", id: "admin", label: "Principal" },
+      owner: { type: "role", id: "admin", label: "Principal", capability: "incidents.view" },
       createdAt: i.createdAt ?? i.reportedAt ?? null,
       deepLink: "/incidents",
     }));
@@ -129,7 +129,7 @@ export const attendancePending = defineTaskProvider({
       // Escalates once the 9:30 cutoff passes — the rule the worked example
       // in §3b describes.
       dueAt: todayAt(9, 30),
-      owner: { type: "role", id: "teacher", label: "Teacher" },
+      owner: { type: "role", id: "teacher", label: "Teacher", capability: "attendance.view" },
       createdAt: todayAt(8, 0),
       deepLink: "/attendance",
     }];
@@ -173,7 +173,7 @@ export const careHygienePending = defineTaskProvider({
       // start-of-day cutoff; a child may simply not have needed anything
       // logged yet by 9am. 3pm gives the day room to happen first.
       dueAt: todayAt(15, 0),
-      owner: { type: "role", id: "teacher", label: "Teacher" },
+      owner: { type: "role", id: "teacher", label: "Teacher", capability: "care_hygiene.view" },
       createdAt: todayAt(8, 0),
       deepLink: "/care-hygiene",
     }];
@@ -207,7 +207,7 @@ export const overdueInvoices = defineTaskProvider({
       status: "pending",
       // Overdue by definition — escalated once by the ladder, not repeatedly.
       dueAt: todayAt(0, 1),
-      owner: { type: "role", id: "accountant", label: "Accountant" },
+      owner: { type: "role", id: "accountant", label: "Accountant", capability: "invoices.view" },
       createdAt: null,
       deepLink: "/invoice",
     }];
