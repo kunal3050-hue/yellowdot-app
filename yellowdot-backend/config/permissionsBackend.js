@@ -105,13 +105,18 @@ const ROLE_PERMISSIONS = {
   ],
 };
 
+// Platform Architecture Freeze, Task 1 follow-up (2026-08-12): teacher and
+// accountant no longer get a special-cased destination here. Every staff
+// role now falls through to the same "/" default (ROLE_HOME[role] || "/"
+// in authRoutes.js), which RootRedirect (App.jsx) resolves to /staff-mobile
+// for every non-parent, non-super_admin role — the same path every other
+// staff role already took. This does not touch any capability, permission,
+// or role definition; it only removes two hard-coded login destinations.
 const ROLE_HOME = {
   developer:    "/",
   super_admin:  "/",
   admin:        "/",
   center_admin: "/",
-  teacher:      "/attendance",
-  accountant:   "/invoice",
   reception:    "/",
   parent:       "/parent-home",
 };
