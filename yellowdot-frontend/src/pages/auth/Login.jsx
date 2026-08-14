@@ -13,12 +13,14 @@ import { PLATFORM_NAME } from "../../config/environment";
 import InstallAppButton from "../../components/InstallAppButton";
 
 // ── Route map ──────────────────────────────────────────────────────────────────
+// Platform Architecture Freeze, Task 1 follow-up (2026-08-12): teacher and
+// accountant no longer get a special-cased destination here — mirrors the
+// backend ROLE_HOME change in permissionsBackend.js. Every staff role now
+// falls through to "/", which RootRedirect resolves to /staff-mobile.
 function getHomeRoute(role) {
   const map = {
     super_admin:  "/",          developer:   "/",
-    center_admin: "/",          teacher:     "/attendance",
-    parent:       "/parent-home",
-    accountant:   "/invoice",
+    center_admin: "/",          parent:      "/parent-home",
     reception:    "/",
   };
   return map[role] || "/";
@@ -68,20 +70,37 @@ export default function Login() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    // TEMPORARY — remove once the stuck-on-"Signing in…" root cause is found.
+    // This effect is a SECOND, independent trigger for navigate() — driven by
+    // AuthContext's `user` state (set by the onAuthStateChanged listener),
+    // separate from handleResult()'s direct navigate() call below.
+    console.log(`[AUTH-TRACE ${new Date().toISOString()}] Login.jsx isAuthenticated effect fired`, {
+      centers: user?.centers, activeCenter: user?.activeCenter, role: user?.role,
+    });
     if (user?.centers?.length > 1 && !user?.activeCenter) {
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] (4) [effect] navigate() -> /select-center`);
       navigate("/select-center", { replace: true });
     } else {
-      navigate(from || getHomeRoute(user?.role), { replace: true });
+      const dest = from || getHomeRoute(user?.role);
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] (4) [effect] navigate() -> ${dest}`);
+      navigate(dest, { replace: true });
     }
   }, [isAuthenticated]); // eslint-disable-line
 
   const inactivityNote = location.search.includes("reason=inactivity");
 
   function handleResult(result) {
+    // TEMPORARY — remove once the stuck-on-"Signing in…" root cause is found.
+    console.log(`[AUTH-TRACE ${new Date().toISOString()}] (3) handleResult entered`, {
+      requiresCenterSelect: result?.requiresCenterSelect, homeRoute: result?.homeRoute, from,
+    });
     if (result.requiresCenterSelect) {
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] (4) [handleResult] navigate() -> /select-center`);
       navigate("/select-center", { replace: true });
     } else {
-      navigate(from || result.homeRoute || "/", { replace: true });
+      const dest = from || result.homeRoute || "/";
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] (4) [handleResult] navigate() -> ${dest}`);
+      navigate(dest, { replace: true });
     }
   }
 
@@ -89,10 +108,15 @@ export default function Login() {
     if (loading) return;
     setLoading(true);
     setError("");
+    console.log(`[AUTH-TRACE ${new Date().toISOString()}] handleGoogle: popup requested`);
     try {
       const result = await loginWithGoogle();
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] handleGoogle: loginWithGoogle() resolved, calling handleResult`);
       handleResult(result);
     } catch (err) {
+      console.log(`[AUTH-TRACE ${new Date().toISOString()}] handleGoogle CAUGHT AN EXCEPTION`, {
+        code: err?.code, message: err?.message,
+      });
       setLoading(false);
       if (err.code === "auth/popup-closed-by-user") {
         setError("Sign-in was cancelled. Tap to try again.");
