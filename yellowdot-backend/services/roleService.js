@@ -157,6 +157,42 @@ const MODULE_ROUTE_MAP = {
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
   staff_management:  ["staff-dashboard","staff-management","departments","designations"],
+  // Staff HR — split from staff_management so Attendance/Leave/Payroll/
+  // Performance can be granted independently of each other and of the base
+  // HR directory. "(self)" modules were previously unreachable via any
+  // Firestore matrix at all — only STATIC_ROLE_PERMS granted them, and that
+  // baseline can never be individually revoked from a role. Mirrors rbacConfig.js.
+  staff_attendance:         ["staff-attendance"],
+  staff_attendance_manage:  ["staff-attendance-manage","staff-shifts"],
+  staff_leave:              ["staff-leave"],
+  staff_leave_manage:       ["staff-leave-approve","staff-leave-types"],
+  staff_payroll:            ["staff-payroll"],
+  staff_payroll_manage:     ["staff-payroll-process"],
+  staff_performance:        ["staff-performance"],
+  staff_performance_manage: ["staff-performance-manage"],
+  // Communications — split from the "communications" blanket grant below so
+  // Holidays/Notices/Announcements/Events/PTM are independently toggleable.
+  // "communications" (below) is left in place for any already-seeded role
+  // doc that still carries it — this is purely additive, not a rename.
+  holidays:      ["holidays"],
+  notices:       ["notices"],
+  announcements: ["announcements"],
+  events:        ["events"],
+  ptm:           ["ptm"],
+  // Finance Platform — the nine frontend-only page-gating routeKeys (see
+  // FINANCE_UI_ROUTE_KEYS comment above) previously had no matrix entry at
+  // all, so a Firestore role doc could never individually grant or withhold
+  // any one of these screens. `finance-scheduler` is intentionally excluded —
+  // that route stays bypass-only by design (see permissions.js).
+  finance_dashboard:      ["finance-dashboard"],
+  finance_ledger:         ["finance-ledger"],
+  finance_billing_plans:  ["finance-billing-plans"],
+  finance_invoices:       ["finance-invoices"],
+  finance_payments:       ["finance-payments"],
+  finance_family_account: ["finance-family-account"],
+  finance_refunds:        ["finance-refunds"],
+  finance_settings:       ["finance-settings"],
+  finance_audit:          ["finance-audit"],
 };
 
 // ── Derive route keys from granular permission matrix ─────────────────────────
@@ -291,6 +327,20 @@ const SYSTEM_ROLES = [
       incidents:         { view: true, create: true, edit: true, approve: true },
       care_hygiene:      { view: true, mark: true, edit: true },
       observations:      { view: true, create: true, edit: true, delete: true },
+      holidays:      { view: true },
+      notices:       { view: true },
+      announcements: { view: true },
+      events:        { view: true },
+      ptm:           { view: true },
+      finance_dashboard:      { view: true },
+      finance_ledger:         { view: true },
+      finance_billing_plans:  { view: true },
+      finance_invoices:       { view: true },
+      finance_payments:       { view: true },
+      finance_family_account: { view: true },
+      finance_refunds:        { view: true },
+      finance_settings:       { view: true },
+      finance_audit:          { view: true },
     },
   },
   {
@@ -332,6 +382,20 @@ const SYSTEM_ROLES = [
       incidents:         { view: true, create: true, edit: true, approve: true },
       care_hygiene:      { view: true, mark: true, edit: true },
       observations:      { view: true, create: true, edit: true, delete: true },
+      holidays:      { view: true },
+      notices:       { view: true },
+      announcements: { view: true },
+      events:        { view: true },
+      ptm:           { view: true },
+      finance_dashboard:      { view: true },
+      finance_ledger:         { view: true },
+      finance_billing_plans:  { view: true },
+      finance_invoices:       { view: true },
+      finance_payments:       { view: true },
+      finance_family_account: { view: true },
+      finance_refunds:        { view: true },
+      finance_settings:       { view: true },
+      finance_audit:          { view: true },
     },
   },
   {
@@ -366,6 +430,20 @@ const SYSTEM_ROLES = [
       incidents:         { view: true, create: true, edit: true, approve: true },
       care_hygiene:      { view: true, mark: true, edit: true },
       observations:      { view: true, create: true, edit: true, delete: true },
+      holidays:      { view: true },
+      notices:       { view: true },
+      announcements: { view: true },
+      events:        { view: true },
+      ptm:           { view: true },
+      finance_dashboard:      { view: true },
+      finance_ledger:         { view: true },
+      finance_billing_plans:  { view: true },
+      finance_invoices:       { view: true },
+      finance_payments:       { view: true },
+      finance_family_account: { view: true },
+      finance_refunds:        { view: true },
+      finance_settings:       { view: true },
+      finance_audit:          { view: true },
     },
   },
   {
@@ -391,6 +469,11 @@ const SYSTEM_ROLES = [
       incidents:         { view: true, create: true },
       care_hygiene:      { view: true, mark: true, edit: true },
       observations:      { view: true, create: true, edit: true },
+      holidays:      { view: true },
+      notices:       { view: true },
+      announcements: { view: true },
+      events:        { view: true },
+      ptm:           { view: true },
     },
   },
   {
@@ -409,6 +492,15 @@ const SYSTEM_ROLES = [
       receipts:   { view: true, create: true, export: true },
       analytics:  { view: true, export: true },
       documents:  { view: true, create: true, delete: false, export: true },
+      finance_dashboard:      { view: true },
+      finance_ledger:         { view: true },
+      finance_billing_plans:  { view: true },
+      finance_invoices:       { view: true },
+      finance_payments:       { view: true },
+      finance_family_account: { view: true },
+      finance_refunds:        { view: true },
+      finance_settings:       { view: true },
+      finance_audit:          { view: true },
     },
   },
   {

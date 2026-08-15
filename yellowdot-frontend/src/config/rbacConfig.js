@@ -121,12 +121,41 @@ export const PERMISSION_CATEGORIES = [
     ],
   },
   {
+    // Split out of the single "Staff Management (HR)" toggle above, which
+    // previously bundled the Employees/Departments directory together with
+    // Attendance/Leave/Payroll/Performance — meaning a role could not be
+    // granted Payroll without also getting Leave approval, etc. "(self)"
+    // modules are the individual's own view of their own record; "(manage)"
+    // modules are the approver/processor screens.
+    id:    "staff_hr",
+    label: "Staff HR",
+    icon:  "🧑‍💼",
+    modules: [
+      { id: "staff_attendance",         label: "Staff Attendance (self)",     actions: ["view"] },
+      { id: "staff_attendance_manage",  label: "Staff Attendance (manage)",   actions: ["view"] },
+      { id: "staff_leave",              label: "Staff Leave (self)",          actions: ["view"] },
+      { id: "staff_leave_manage",       label: "Staff Leave (approve)",       actions: ["view"] },
+      { id: "staff_payroll",            label: "Staff Payroll (self)",        actions: ["view"] },
+      { id: "staff_payroll_manage",     label: "Staff Payroll (process)",     actions: ["view"] },
+      { id: "staff_performance",        label: "Staff Performance (self)",    actions: ["view"] },
+      { id: "staff_performance_manage", label: "Staff Performance (manage)",  actions: ["view"] },
+    ],
+  },
+  {
     id:    "communication",
     label: "Communication",
     icon:  "📣",
     modules: [
       { id: "notifications", label: "Notifications", actions: ["view", "create", "manage"] },
       { id: "parent_app",    label: "Parent App",    actions: ["view", "manage"] },
+      // Split out from the single "communications" blanket grant so each can be
+      // toggled independently — was previously all-or-nothing and not exposed
+      // in this UI at all (granted only via the STATIC_ROLE_PERMS fallback).
+      { id: "holidays",      label: "Holidays",      actions: ["view"] },
+      { id: "notices",       label: "Notices",       actions: ["view"] },
+      { id: "announcements", label: "Announcements", actions: ["view"] },
+      { id: "events",        label: "Events",        actions: ["view"] },
+      { id: "ptm",           label: "PTM",           actions: ["view"] },
     ],
   },
   {
@@ -168,6 +197,26 @@ export const PERMISSION_CATEGORIES = [
       { id: "artwork",         label: "Artwork",         actions: ["view", "create", "edit", "delete"] },
     ],
   },
+  {
+    // The Finance Platform (9 screens) previously had NO entry anywhere in
+    // this file — a school could not restrict it per-role through the Roles
+    // UI at all; it was granted as one all-or-nothing block. `finance-scheduler`
+    // is deliberately excluded — that one stays bypass-only by design.
+    id:    "finance_platform",
+    label: "Finance Platform",
+    icon:  "🧾",
+    modules: [
+      { id: "finance_dashboard",      label: "Finance Dashboard",   actions: ["view"] },
+      { id: "finance_ledger",         label: "Student Ledger",      actions: ["view"] },
+      { id: "finance_billing_plans",  label: "Billing Plans",       actions: ["view"] },
+      { id: "finance_invoices",       label: "Invoices (Platform)", actions: ["view"] },
+      { id: "finance_payments",       label: "Payments (Platform)", actions: ["view"] },
+      { id: "finance_family_account", label: "Family Accounts",     actions: ["view"] },
+      { id: "finance_refunds",        label: "Refunds",             actions: ["view"] },
+      { id: "finance_settings",       label: "Finance Settings",    actions: ["view"] },
+      { id: "finance_audit",          label: "Finance Audit Log",   actions: ["view"] },
+    ],
+  },
 ];
 
 // ── Module → route-key mapping (mirrors backend roleService.js) ───────────────
@@ -203,6 +252,31 @@ const MODULE_ROUTE_MAP = {
   journey_media:     ["child-journey"],
   artwork:           ["child-journey"],
   staff_management:  ["staff-dashboard", "staff-management", "departments", "designations"],
+  // Staff HR — split from staff_management, see PERMISSION_CATEGORIES comment.
+  staff_attendance:         ["staff-attendance"],
+  staff_attendance_manage:  ["staff-attendance-manage", "staff-shifts"],
+  staff_leave:              ["staff-leave"],
+  staff_leave_manage:       ["staff-leave-approve", "staff-leave-types"],
+  staff_payroll:            ["staff-payroll"],
+  staff_payroll_manage:     ["staff-payroll-process"],
+  staff_performance:        ["staff-performance"],
+  staff_performance_manage: ["staff-performance-manage"],
+  // Communications — split from the "communications" blanket grant.
+  holidays:      ["holidays"],
+  notices:       ["notices"],
+  announcements: ["announcements"],
+  events:        ["events"],
+  ptm:           ["ptm"],
+  // Finance Platform — previously unmapped anywhere (see PERMISSION_CATEGORIES).
+  finance_dashboard:      ["finance-dashboard"],
+  finance_ledger:         ["finance-ledger"],
+  finance_billing_plans:  ["finance-billing-plans"],
+  finance_invoices:       ["finance-invoices"],
+  finance_payments:       ["finance-payments"],
+  finance_family_account: ["finance-family-account"],
+  finance_refunds:        ["finance-refunds"],
+  finance_settings:       ["finance-settings"],
+  finance_audit:          ["finance-audit"],
 };
 
 /** Derive sidebar route keys from a granular permission matrix. */
@@ -429,6 +503,28 @@ export const PERMISSION_DESCRIPTIONS = {
     view:   "Access parent-facing app features",
     manage: "Configure parent app settings and content",
   },
+  holidays:      { view: "View the school holiday calendar" },
+  notices:       { view: "View posted notices" },
+  announcements: { view: "View announcements" },
+  events:        { view: "View scheduled events" },
+  ptm:           { view: "View parent-teacher meeting scheduling" },
+  finance_dashboard:      { view: "View the Finance Platform dashboard" },
+  finance_ledger:         { view: "View student ledgers" },
+  finance_billing_plans:  { view: "View recurring billing plans" },
+  finance_invoices:       { view: "View Finance Platform invoices" },
+  finance_payments:       { view: "View Finance Platform payments" },
+  finance_family_account: { view: "View family account balances" },
+  finance_refunds:        { view: "View refund requests" },
+  finance_settings:       { view: "View Finance Platform settings" },
+  finance_audit:          { view: "View the Finance Platform audit log" },
+  staff_attendance:         { view: "View your own staff attendance record" },
+  staff_attendance_manage:  { view: "View and manage staff attendance & shifts for others" },
+  staff_leave:              { view: "View your own leave record" },
+  staff_leave_manage:       { view: "Approve leave and manage leave types for others" },
+  staff_payroll:            { view: "View your own payroll" },
+  staff_payroll_manage:     { view: "Process payroll for others" },
+  staff_performance:        { view: "View your own performance record" },
+  staff_performance_manage: { view: "Manage performance reviews for others" },
 };
 
 // ── Risk levels ───────────────────────────────────────────────────────────────
