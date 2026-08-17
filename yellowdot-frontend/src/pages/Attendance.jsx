@@ -210,7 +210,7 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
           {VIEWS.map(v => (
             <button key={v} onClick={() => setView(v)}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all
-                ${view === v ? "bg-yd-navy text-white shadow-yd" : "text-gray-600 hover:bg-gray-50"}`}>
+                ${view === v ? "bg-yd-yellow text-yd-navy shadow-yd" : "text-gray-600 hover:bg-gray-50"}`}>
               <span>{VIEW_META[v].icon}</span>{VIEW_META[v].label}
             </button>
           ))}
@@ -247,8 +247,8 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
       <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-1.5">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-1">Child Safety</p>
         <Link to="/parent-checkin"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-yd-navy text-white
-                     text-sm font-bold hover:bg-yd-navy-2 transition-colors shadow-yd w-full">
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-yd-yellow text-yd-navy
+                     text-sm font-bold hover:bg-yd-yellow-dark transition-colors shadow-yd w-full">
           <span>📱</span> Parent Check-In
         </Link>
         <Link to="/pickup-authorization"
@@ -657,7 +657,7 @@ function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true,
           <button key={mode} onClick={() => setViewMode(mode)}
             className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all
               ${viewMode === mode
-                ? "bg-yd-navy text-white border-yd-navy"
+                ? "bg-yd-yellow text-yd-navy border-yd-yellow"
                 : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
             {label}
           </button>
@@ -683,7 +683,7 @@ function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true,
               {["All","Present","Absent","Late","Inside","Unmarked"].map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all
-                    ${filter===f ? "bg-yd-navy text-white border-yd-navy" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                    ${filter===f ? "bg-yd-yellow text-yd-navy border-yd-yellow" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
                   {f}
                 </button>
               ))}
@@ -707,8 +707,8 @@ function DashboardView({ date, cls, activeBatch, summary, toast, canMark = true,
               </div>
             ) : (
               <table className="w-full">
-                <thead className="sticky top-0 bg-yd-navy z-10">
-                  <tr className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                <thead className="sticky top-0 bg-yd-yellow-light border-b border-yd-yellow z-10">
+                  <tr className="text-[10px] font-bold text-yd-navy/60 uppercase tracking-wider">
                     {["Student","Class","Status","Check-In","Check-Out","Method","Live"].map(h => (
                       <th key={h} className="text-left px-4 py-2.5">{h}</th>
                     ))}
@@ -1149,8 +1149,8 @@ function HistoryView({ cls }) {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-yd-navy z-10">
-              <tr className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+            <thead className="sticky top-0 bg-yd-yellow-light border-b border-yd-yellow z-10">
+              <tr className="text-[10px] font-bold text-yd-navy/60 uppercase tracking-wider">
                 {["Date","Student","Class","Status","Check-In","Check-Out","Method"].map(h => (
                   <th key={h} className="text-left px-4 py-2.5">{h}</th>
                 ))}
