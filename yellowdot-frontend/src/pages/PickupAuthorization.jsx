@@ -216,7 +216,7 @@ function PersonModal({ student, person, onSave, onClose, saving }) {
                 <button key={r} type="button" onClick={() => set("relation", r)}
                   className={`py-2 rounded-xl text-xs font-bold border transition-all
                     ${form.relation === r
-                      ? "bg-yd-navy text-white border-yd-navy shadow-md"
+                      ? "bg-yd-yellow text-yd-navy border-yd-yellow shadow-md"
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-400"}`}>
                   {r}
                 </button>
@@ -272,12 +272,12 @@ function PersonModal({ student, person, onSave, onClose, saving }) {
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-3 rounded-xl bg-yd-navy text-white font-black text-sm
-                         hover:bg-blue-900 transition-colors disabled:opacity-60 disabled:cursor-not-allowed
-                         shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2">
+              className="flex-1 py-3 rounded-xl bg-yd-yellow text-yd-navy font-black text-sm
+                         hover:bg-yd-yellow-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed
+                         shadow-yd flex items-center justify-center gap-2">
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>
+                  <div className="w-4 h-4 border-2 border-yd-navy/30 border-t-yd-navy rounded-full animate-spin"/>
                   Saving…
                 </>
               ) : (
@@ -629,7 +629,7 @@ export default function PickupAuthorization() {
           ].map(l => (
             <Link key={l.to} to={l.to}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                l.active ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                l.active ? "bg-yd-yellow text-yd-navy" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
               }`}>
               <span className={l.active ? "opacity-80" : "opacity-40"}>{l.icon}</span>
               {l.label}
@@ -665,14 +665,14 @@ export default function PickupAuthorization() {
               <button key={sid}
                 onClick={() => setSelectedStudent({ id: sid, name, cls })}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all
-                  ${sel ? "bg-yd-navy text-white shadow-md" : "text-gray-700 hover:bg-gray-50"}`}>
+                  ${sel ? "bg-yd-yellow text-yd-navy shadow-md" : "text-gray-700 hover:bg-gray-50"}`}>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0
-                  ${sel ? "bg-white/20 text-white" : "bg-blue-100 text-yd-navy"}`}>
+                  ${sel ? "bg-white/40 text-yd-navy" : "bg-blue-100 text-yd-navy"}`}>
                   {initials(name)}
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-xs font-bold truncate ${sel ? "text-white" : "text-gray-800"}`}>{name}</p>
-                  <p className={`text-[10px] ${sel ? "text-blue-200" : "text-gray-400"}`}>{cls} · {sid}</p>
+                  <p className={`text-xs font-bold truncate ${sel ? "text-yd-navy" : "text-gray-800"}`}>{name}</p>
+                  <p className={`text-[10px] ${sel ? "text-yd-navy/70" : "text-gray-400"}`}>{cls} · {sid}</p>
                 </div>
               </button>
             );
@@ -702,8 +702,8 @@ export default function PickupAuthorization() {
           {selectedStudent && perm.create && (
             <button
               onClick={() => { setEditPerson(null); setModalOpen(true); }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-yd-navy text-white font-bold text-sm
-                         rounded-xl hover:bg-blue-900 transition-colors shadow-lg shadow-blue-900/20 active:scale-95">
+              className="flex items-center gap-2 px-5 py-2.5 bg-yd-yellow text-yd-navy font-bold text-sm
+                         rounded-xl hover:bg-yd-yellow-dark transition-colors shadow-yd active:scale-95">
               + Add Person
             </button>
           )}
@@ -764,8 +764,8 @@ export default function PickupAuthorization() {
               </p>
               <button
                 onClick={() => { setEditPerson(null); setModalOpen(true); }}
-                className="flex items-center gap-2 px-6 py-3 bg-yd-navy text-white font-bold text-sm
-                           rounded-xl hover:bg-blue-900 transition-colors shadow-lg shadow-blue-900/20">
+                className="flex items-center gap-2 px-6 py-3 bg-yd-yellow text-yd-navy font-bold text-sm
+                           rounded-xl hover:bg-yd-yellow-dark transition-colors shadow-yd">
                 + Add First Pickup Person
               </button>
             </div>
