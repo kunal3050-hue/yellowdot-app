@@ -45,9 +45,10 @@ const FEATURES = [
   { key: "FAMILY_MODULE",      label: "Families",            stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "CHILD_PRESENCE",     label: "Child Presence",      stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "PICKUP_REQUEST",     label: "Pickup Requests",     stage: "ga", defaultByEnv: ALL,      minPlan: null },
+  // Approved for production rollout 2026-08-17, moved out of Pre-production below.
+  { key: "DAILY_CARE",         label: "Daily Care",          stage: "ga", defaultByEnv: ALL,      minPlan: null },
 
   // ── Pre-production — on in dev/staging, off in production ──────────────
-  { key: "DAILY_CARE",         label: "Daily Care",          stage: "beta", defaultByEnv: PRE_PROD, minPlan: null },
   { key: "HIGHLIGHTS",         label: "Highlights",          stage: "beta", defaultByEnv: PRE_PROD, minPlan: null },
   { key: "LIVE_DASHBOARD",     label: "Dashboard",           stage: "beta", defaultByEnv: PRE_PROD, minPlan: null },
   { key: "STUDENT_REPORTS_V2", label: "Student Reports V2",  stage: "beta", defaultByEnv: PRE_PROD, minPlan: null },
