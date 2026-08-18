@@ -37,9 +37,11 @@ export const FLAGS = {
   CHILD_PRESENCE:     true,
   PICKUP_REQUEST:     true,
 
+  // ── Approved for production rollout (2026-08-17) ──────────────────────────
+  DAILY_CARE:         true,
+
   // ── In development — Yellow Dot only ─────────────────────────────────────
   // Flip to `true` when approved for production rollout.
-  DAILY_CARE:         isPreProduction,
   HIGHLIGHTS:         isPreProduction,
   LIVE_DASHBOARD:     isPreProduction,
   STUDENT_REPORTS_V2: isPreProduction,
@@ -56,8 +58,9 @@ export const FLAGS = {
 // isPreProduction is true (making those flags indistinguishable from always-on).
 export const FLAG_GROUPS = {
   production: ['STUDENTS', 'ATTENDANCE', 'FEES', 'INVOICES', 'NOTIFICATIONS',
-               'GATE_MANAGEMENT', 'PARENT_PORTAL', 'FAMILY_MODULE', 'CHILD_PRESENCE', 'PICKUP_REQUEST'],
-  staging:    ['DAILY_CARE', 'HIGHLIGHTS', 'LIVE_DASHBOARD', 'STUDENT_REPORTS_V2', 'CHILD_JOURNEY'],
+               'GATE_MANAGEMENT', 'PARENT_PORTAL', 'FAMILY_MODULE', 'CHILD_PRESENCE', 'PICKUP_REQUEST',
+               'DAILY_CARE'],
+  staging:    ['HIGHLIGHTS', 'LIVE_DASHBOARD', 'STUDENT_REPORTS_V2', 'CHILD_JOURNEY'],
   planned:    ['MESSAGING', 'TIMETABLE', 'PAYROLL'],
 };
 

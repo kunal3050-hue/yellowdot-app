@@ -77,6 +77,11 @@ export const foodMenuModule = defineModule({
   featureFlag: "DAILY_CARE",
   actions: ["view", "create", "edit", "delete"],
   keywords: ["food", "menu", "meal", "lunch", "breakfast", "snack", "diet"],
+  // Deliberately excluded from surfaces.care at C4 (Care experience review,
+  // 2026-07-31) — Teacher holds food_menu.view but not .create, so it read as
+  // browse-only, not a work destination. Re-added 2026-08-17 on explicit
+  // request to make the full Daily Ops set reachable from Staff mobile.
+  surfaces: { care: { order: 18, roles: { teacher: 18 } } },
   routes: [
     {
       path: "/food-menu", routeKey: "food-menu", label: "Food Menu", icon: "Utensils",
@@ -102,12 +107,9 @@ export const foodConsumptionModule = defineModule({
   featureFlag: "DAILY_CARE",
   actions: ["view", "mark", "edit"],
   keywords: ["consumption", "ate", "food log", "intake", "meal log"],
-  // C4 (see napTrackerModule above). Food Menu itself deliberately does NOT
-  // get a surfaces.care entry: Teacher holds food_menu.view but not .create
-  // (W2, workflow-optimization review — rbacConfig.js), so it's a browse-only
-  // screen for them, not a work destination; adding it would reproduce the
-  // exact "Students"/"Classes" clutter problem C4 flagged. Consumption Log
-  // shares food_menu's capability but is Teacher's actual daily task.
+  // C4 (see napTrackerModule above). Shares food_menu's capability but is
+  // Teacher's actual daily task, distinct from browsing the menu itself
+  // (foodMenuModule above, re-added to surfaces.care 2026-08-17).
   surfaces: { care: { order: 25, roles: { teacher: 25 } } },
   routes: [
     {
