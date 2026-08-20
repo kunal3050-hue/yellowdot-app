@@ -87,6 +87,7 @@ export default function FeeTemplates() {
   const [saving,    setSaving]    = useState(false);
   const [deleting,  setDeleting]  = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [copiedId,  setCopiedId]  = useState(null);
 
   const [editTarget, setEditTarget] = useState(null);
   const [form,       setForm]       = useState(EMPTY_FORM);
@@ -110,6 +111,26 @@ export default function FeeTemplates() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Template ID is required when creating a Billing Plan in the Finance
+  // Platform (/finance/billing-plans), so it must be readable and copyable.
+  async function copyTemplateId(id) {
+    try {
+      await navigator.clipboard.writeText(id);
+    } catch {
+      // clipboard API needs a secure context; fall back to a temp textarea
+      const ta = document.createElement("textarea");
+      ta.value = id;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* best effort */ }
+      document.body.removeChild(ta);
+    }
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(c => (c === id ? null : c)), 1500);
+  }
 
   function startEdit(tpl) {
     setEditTarget(tpl);
@@ -243,14 +264,25 @@ export default function FeeTemplates() {
           </div>
         </div>
 
-        {/* Auto-billing notice */}
+        {/* Auto-billing notice — the scheduler is live; it runs off Billing
+            Plans (which reference a template by ID), not off templates alone. */}
         <div className="flex-shrink-0 mx-4 mt-3 px-4 py-2.5 bg-yd-info-soft border border-yd-info-border rounded-xl flex items-start gap-2.5">
           <div className="w-4 h-4 rounded-full bg-yd-info flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-black text-[9px]">i</span>
           </div>
           <div>
-            <span className="text-xs font-bold text-yd-info">Billing Cycles — </span>
-            <span className="text-xs text-yd-text-2">Templates store the billing frequency. Automatic monthly invoice generation requires a backend scheduler — currently invoices are created manually using these templates.</span>
+            <span className="text-xs font-bold text-yd-info">Automatic Billing — </span>
+            <span className="text-xs text-yd-text-2">
+              A template on its own does not generate anything. To bill a student automatically, create a{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/finance/billing-plans")}
+                className="underline font-semibold text-yd-info hover:text-yd-charcoal transition-colors">
+                Billing Plan
+              </button>{" "}
+              that references this template&rsquo;s ID, then set that plan to <strong>Active</strong> — the nightly
+              scheduler only picks up plans in Active status. Draft and paused plans are skipped.
+            </span>
           </div>
         </div>
 
@@ -319,6 +351,24 @@ export default function FeeTemplates() {
                                 : "bg-yd-soft text-yd-text-3 border-yd-border"}`}>
                               {tpl.active !== false ? "Active" : "Inactive"}
                             </span>
+                          </div>
+
+                          {/* Template ID — paste this into Create Billing Plan */}
+                          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-yd-border-light">
+                            <span className="text-[9px] font-bold text-yd-text-3 uppercase tracking-wider flex-shrink-0">ID</span>
+                            <code className="text-[10px] font-mono text-yd-text-2 truncate flex-1" title={tpl.templateId}>
+                              {tpl.templateId}
+                            </code>
+                            <button
+                              type="button"
+                              title="Copy template ID"
+                              onClick={e => { e.stopPropagation(); copyTemplateId(tpl.templateId); }}
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors flex-shrink-0
+                                ${copiedId === tpl.templateId
+                                  ? "border-yd-success text-yd-success bg-yd-success-soft"
+                                  : "border-yd-border text-yd-text-2 hover:border-yd-yellow hover:text-yd-charcoal"}`}>
+                              {copiedId === tpl.templateId ? "Copied" : "Copy"}
+                            </button>
                           </div>
                         </div>
 
