@@ -1,22 +1,34 @@
 /**
- * parentFeesService.js — Parent Module · Phase 5 (Fees)
+ * parentFeesService.js — Parent Module · Fees (read-only)
  * ──────────────────────────────────────────────────────────────────
- * Read-only, parent-facing fees view. Composes existing finance data —
- * it does NOT touch staff finance screens or create a parallel system.
+ * Parent-facing fees view. Reads the `invoices` and `payments`
+ * collections directly.
  *
- *   invoices/{id}  via invoiceService.getAllInvoices()   (equality-only query)
- *   payments/{id}  via invoiceService.getAllPayments()   (equality-only query)
+ * Previously this composed the legacy `invoiceService`. That service was
+ * removed with the finance module rebuild, so the two small queries it
+ * needed now live here. This keeps the parent contract stable across the
+ * rebuild: the route, hook and page are untouched, and the moment the new
+ * finance module starts writing invoices/payments in the same core shape
+ * ({ studentId, totalAmount, paidAmount, balance, status }), parents see
+ * their data again with no further change.
  *
- * Parents see only their linked children's invoices/payments (ownership
- * enforced by the route against parents.studentIds).
+ * Parents see only their linked children's records (ownership enforced by
+ * the route against parents.studentIds).
  *
  * Returns: { summary, invoices[], payments[] } with parent-safe projections.
- * No payment gateway, no receipts PDF, no editing.
+ * No payment gateway, no receipt PDFs, no editing.
  */
 
-const invoiceService = require("./invoiceService");
+const { db } = require("../firebaseAdmin");
 
 const DEFAULT_SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
+
+/** Firestore/legacy rows sometimes carry amounts as strings. */
+function num(v) {
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const n = parseFloat(String(v == null ? "" : v).replace(/[^0-9.-]/g, ""));
+  return isFinite(n) ? n : 0;
+}
 
 function summarize(invoices) {
   let totalDue = 0, totalInvoiced = 0, totalPaid = 0;
@@ -42,9 +54,9 @@ function toInvoiceSafe(i) {
     feeType:       i.feeType,
     invoiceDate:   i.invoiceDate,
     dueDate:       i.dueDate,
-    totalAmount:   i.totalAmount,
-    paidAmount:    i.paidAmount,
-    balance:       i.balance,
+    totalAmount:   num(i.totalAmount),
+    paidAmount:    num(i.paidAmount),
+    balance:       num(i.balance),
     status:        i.status,
   };
 }
@@ -55,10 +67,21 @@ function toPaymentSafe(p) {
     invoiceNumber: p.invoiceNumber,
     studentId:     p.studentId,
     studentName:   p.studentName,
-    amount:        p.amount,
+    amount:        num(p.amount),
     paymentMode:   p.paymentMode,
     paymentDate:   p.paymentDate || p.createdAt || "",
   };
+}
+
+/**
+ * Single equality query per collection, then filter in memory — the same
+ * approach the previous implementation used, so no composite index is
+ * required. Both collections are small (one document per child per month).
+ */
+async function _readScoped(collection, schoolId, ids) {
+  const snap = await db.collection(collection).where("schoolId", "==", schoolId).get();
+  const wanted = new Set(ids);
+  return snap.docs.map(d => d.data()).filter(d => wanted.has(d.studentId));
 }
 
 /**
@@ -71,14 +94,14 @@ async function getFees({ schoolId = DEFAULT_SCHOOL_ID, studentIds = [], studentI
   const ids = studentId ? [studentId] : studentIds;
   if (!ids.length) return { summary: summarize([]), invoices: [], payments: [] };
 
-  const [invArrays, payArrays] = await Promise.all([
-    Promise.all(ids.map(id => invoiceService.getAllInvoices({ schoolId, studentId: id }))),
-    Promise.all(ids.map(id => invoiceService.getAllPayments(null, { schoolId, studentId: id }))),
+  const [rawInvoices, rawPayments] = await Promise.all([
+    _readScoped("invoices", schoolId, ids),
+    _readScoped("payments", schoolId, ids),
   ]);
 
-  const invoices = invArrays.flat().map(toInvoiceSafe)
+  const invoices = rawInvoices.map(toInvoiceSafe)
     .sort((a, b) => (b.invoiceDate || "").localeCompare(a.invoiceDate || ""));
-  const payments = payArrays.flat().map(toPaymentSafe)
+  const payments = rawPayments.map(toPaymentSafe)
     .sort((a, b) => (b.paymentDate || "").localeCompare(a.paymentDate || ""));
 
   return { summary: summarize(invoices), invoices, payments };

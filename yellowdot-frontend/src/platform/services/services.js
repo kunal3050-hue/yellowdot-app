@@ -28,7 +28,6 @@ import { defineService } from "./defineService.js";
 import attendanceService from "../../services/attendanceService";
 import securityService   from "../../services/securityService";
 import * as studentSvc   from "../../services/studentService";
-import * as invoiceSvc   from "../../services/invoiceService";
 import * as incidentSvc  from "../../services/incidentService";
 import * as careSvc      from "../../services/careService";
 
@@ -60,16 +59,6 @@ export const pickup = defineService({
   reads: {
     // GET /api/pickup-requests?status=
     requests: ({ status } = {}) => securityService.getPickupRequests(status ? { status } : {}),
-  },
-});
-
-export const invoices = defineService({
-  id: "invoices",
-  capability: "invoices.view",
-  reads: {
-    // GET /api/invoices — raw envelope, same reasoning as students.listRaw.
-    listRaw: ({ studentId, status } = {}) => invoiceSvc.getInvoicesRaw({ studentId, status }),
-    list:    ({ studentId, status } = {}) => invoiceSvc.fetchAllInvoices({ studentId, status }),
   },
 });
 

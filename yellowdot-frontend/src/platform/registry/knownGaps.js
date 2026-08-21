@@ -50,12 +50,11 @@ export const UNREACHABLE_ROUTEKEYS = [
   "staff-performance", "staff-performance-manage",
   "tenant-management",   // super-admin only in practice, and they bypass — lowest impact
   "dev-tools",           // developer only, and they bypass — no user impact
-  "finance-scheduler",   // bypass-only BY DESIGN (see permissions.js) — not a defect
 ];
 
 /** Of the above, the ones with genuine user impact (excludes bypass-only keys). */
 export const UNREACHABLE_WITH_IMPACT = UNREACHABLE_ROUTEKEYS.filter(
-  k => !["finance-scheduler", "dev-tools", "tenant-management"].includes(k)
+  k => !["dev-tools", "tenant-management"].includes(k)
 );
 
 /**
@@ -147,7 +146,6 @@ export const UNMAPPED_PERMISSION_MODULES = [
  * them real rather than decorative:
  *   staff-leave-approve      → leaveRoutes.js:18 (authorizeRoute on approve)
  *   staff-attendance-manage  → staffAttendanceRoutes.js:34
- *   finance-refund-approval  → financeRefundRoutes.js:25
  *
  * In the target capability model (§2a) these become `<module>.approve` /
  * `<module>.manage` rather than separate route keys — which is exactly the
@@ -156,5 +154,4 @@ export const UNMAPPED_PERMISSION_MODULES = [
 export const ACTION_ONLY_ROUTEKEYS = new Set([
   "staff-leave-approve",
   "staff-attendance-manage",
-  "finance-refund-approval",
 ]);

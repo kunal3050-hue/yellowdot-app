@@ -10,7 +10,7 @@
  *
  * Two service styles exist in the codebase and both are supported as-is:
  *   - default-export object of methods  (attendanceService, securityService)
- *   - named function exports            (incidentService, invoiceService)
+ *   - named function exports            (incidentService, attendanceService)
  * A `reads` entry is just a function, so it can call either.
  *
  * ── What registration buys ────────────────────────────────────────────────

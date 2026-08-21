@@ -61,19 +61,6 @@ export const CATEGORIES = [
     sidebar: { collapsible: true, defaultOpen: true },
   },
   {
-    // Legacy Finance — rendered ONLY while the Finance Platform flag is off.
-    // Sidebar.jsx's financeEnabled filter guarantees these two are never both shown.
-    id: "finance", label: "Finance", order: 90,
-    accent: { bg: "#F0FDF4", icon: "#16A34A", border: "#BBF7D0" },
-    sidebar: { collapsible: true, defaultOpen: true, hiddenWhenFlag: "FINANCE_FOUNDATION" },
-  },
-  {
-    // Finance Platform — labelled simply "Finance" in the UI; replaces the group above.
-    id: "finance_platform", label: "Finance", order: 91,
-    accent: { bg: "#F0FDF4", icon: "#16A34A", border: "#BBF7D0" },
-    sidebar: { collapsible: true, defaultOpen: true, requiresFlag: "FINANCE_FOUNDATION" },
-  },
-  {
     id: "daily_ops", label: "Daily Ops", order: 100,
     accent: { bg: "#FFF7ED", icon: "#EA580C", border: "#FED7AA" },
     sidebar: { collapsible: true, defaultOpen: true },

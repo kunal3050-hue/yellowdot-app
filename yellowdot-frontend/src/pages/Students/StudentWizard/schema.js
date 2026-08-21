@@ -16,7 +16,6 @@ export const GENDERS  = ["Male", "Female", "Other"];
 export const CENTERS  = ["Seawoods", "Vashi", "Kharghar", "Belapur"];
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 export const RELATIONS = ["Father", "Mother", "Guardian", "Grandparent", "Uncle", "Aunt", "Sibling", "Other"];
-// Fee Template options are now fetched live from financeApi.feeTemplates.list()
 // in StepFees (steps.jsx) — see that component's own header comment — rather
 // than a hardcoded placeholder list here.
 export const DOC_ROWS = [

@@ -3,7 +3,6 @@
  * ─────────────────────────────────────────────────────────────────────
  * Reuses the exact same endpoints LiveDashboard.jsx already calls
  * (/students, /api/attendance/summary, /api/pickup-requests,
- * /api/invoices) — no new API surface, just a second consumer of
  * existing data. Failures are non-blocking (Promise.allSettled), same
  * resilience pattern as LiveDashboard.
  *
@@ -35,22 +34,21 @@ const parseAdmissionDate = parseDOB;
 export default function useDashboardStats() {
   const [stats, setStats] = useState({
     attendancePct: null, presentToday: null, pendingPickups: null,
-    outstandingFees: null, birthdaysToday: null, admissionsThisWeek: null,
+    birthdaysToday: null, admissionsThisWeek: null,
   });
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
   const fetchAll = useCallback(async () => {
     const d = todayISO();
-    // Registry reads (§5A) — same four endpoints, same query strings, now
+    // Registry reads (§5A) — same three endpoints, same query strings, now
     // resolved through registered services instead of raw api.get. The *Raw
     // variants are used deliberately: the envelope is what lets a failed
     // request render "—" rather than a misleading 0.
-    const [stuRes, sumRes, pickupRes, invRes] = await Promise.allSettled([
+    const [stuRes, sumRes, pickupRes] = await Promise.allSettled([
       callRead("students",   "listRaw"),
       callRead("attendance", "summary",  { date: d }),
       callRead("pickup_auth", "requests", { status: "pending" }),
-      callRead("invoices",   "listRaw"),
     ]);
     if (!mountedRef.current) return;
 
@@ -70,15 +68,6 @@ export default function useDashboardStats() {
       ? (pickupRes.value.count ?? (pickupRes.value.requests || []).length)
       : null;
 
-    const invoices = (invRes.status === "fulfilled" && invRes.value?.success)
-      ? (invRes.value.invoices || [])
-      : null;
-    const outstandingFees = invoices
-      ? invoices
-          .filter(i => ["Pending", "Partial", "Overdue"].includes(i.status))
-          .reduce((s, i) => s + (Number(i.balance) || 0), 0)
-      : null;
-
     const today = new Date();
     const birthdaysToday = students.filter(s => {
       const dob = parseDOB(s.DOB);
@@ -93,7 +82,7 @@ export default function useDashboardStats() {
     }).length : null;
 
     setStats({
-      attendancePct, presentToday: present, pendingPickups, outstandingFees,
+      attendancePct, presentToday: present, pendingPickups,
       birthdaysToday, admissionsThisWeek,
     });
     setLoading(false);

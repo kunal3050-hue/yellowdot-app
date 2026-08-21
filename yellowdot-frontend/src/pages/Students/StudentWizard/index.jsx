@@ -92,8 +92,7 @@ function WizardInner() {
       mother_name: draft.motherName, mother_whatsapp: draft.motherWhatsapp, mother_email: draft.motherEmail, mother_photo: draft.motherPhoto || "",
       profile_image: draft.studentPhoto || "",
       // A selected Fee Template automatically creates AND activates a
-      // Billing Plan for this student server-side (admissionFinanceService,
-      // gated behind FINANCE_FOUNDATION_ENABLED) — no further staff action.
+      // Billing is set up separately — the finance module is being rebuilt.
       fee_template_id: draft.feeTemplate || "",
     });
     const studentId = res.data?.studentId || res.data?.student?.studentId;

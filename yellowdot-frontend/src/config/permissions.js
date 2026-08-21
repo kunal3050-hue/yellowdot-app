@@ -33,8 +33,6 @@ export const ROUTES = {
   DASHBOARD:             "dashboard",
   STUDENTS:              "students",
   ATTENDANCE:            "attendance",
-  FEES:                  "fees",
-  INVOICE:               "invoice",
   ANALYTICS:             "analytics",
   NAP_TRACKER:           "nap-tracker",
   FOOD_MENU:             "food-menu",
@@ -85,33 +83,16 @@ export const ROUTES = {
   // (one per screen, matching the app's existing per-page routeKey convention),
   // plus the narrower "finance-refund-approval" key backend already enforces
   // server-side for the refund-approve action specifically.
-  FINANCE_DASHBOARD:             "finance-dashboard",
-  FINANCE_LEDGER:                "finance-ledger",
-  FINANCE_BILLING_PLANS:         "finance-billing-plans",
-  FINANCE_INVOICES:              "finance-invoices",
-  FINANCE_PAYMENTS:              "finance-payments",
-  FINANCE_FAMILY_ACCOUNT:        "finance-family-account",
-  FINANCE_REFUNDS:               "finance-refunds",
-  FINANCE_REFUND_APPROVAL:       "finance-refund-approval",
-  FINANCE_SETTINGS:              "finance-settings",
-  FINANCE_AUDIT:                 "finance-audit",
   // Recurring Billing Scheduler (M3.5) — deliberately NOT added to any
-  // role's grant list below (see FINANCE_FOUNDATION_ROUTES). Bypass roles
   // (developer/super_admin) reach it via their existing "*" wildcard;
   // every other role's can("finance-scheduler") is false by construction,
   // matching the backend's bypass-only route guard exactly — this is a
   // platform-wide, cross-school operation, not a per-school Finance screen.
-  FINANCE_SCHEDULER:             "finance-scheduler",
 };
 
 // Finance Platform routeKeys granted to admin/center_admin/center_owner/accountant
 // (matches backend's "finance-foundation" role grant exactly). Refund-approval
 // is added separately per-role below since backend excludes center_admin from it.
-const FINANCE_FOUNDATION_ROUTES = [
-  ROUTES.FINANCE_DASHBOARD, ROUTES.FINANCE_LEDGER, ROUTES.FINANCE_BILLING_PLANS,
-  ROUTES.FINANCE_INVOICES, ROUTES.FINANCE_PAYMENTS, ROUTES.FINANCE_FAMILY_ACCOUNT,
-  ROUTES.FINANCE_REFUNDS, ROUTES.FINANCE_SETTINGS, ROUTES.FINANCE_AUDIT,
-];
 
 // ── Permission map: role → array of allowed routeKeys ─────────────────────────
 // Bypass roles (developer, super_admin) don't need entries here but are
@@ -122,8 +103,7 @@ export const ROLE_PERMISSIONS = {
   super_admin: ["*"],   // bypass — same
 
   admin: [              // alias for center_admin
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.FEES,
-    ROUTES.INVOICE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -139,12 +119,10 @@ export const ROLE_PERMISSIONS = {
     ROUTES.STAFF_LEAVE, ROUTES.STAFF_LEAVE_APPROVE, ROUTES.STAFF_LEAVE_TYPES,
     ROUTES.STAFF_PAYROLL, ROUTES.STAFF_PAYROLL_PROCESS,
     ROUTES.STAFF_PERFORMANCE, ROUTES.STAFF_PERFORMANCE_MANAGE,
-    ...FINANCE_FOUNDATION_ROUTES, ROUTES.FINANCE_REFUND_APPROVAL,
   ],
 
   center_admin: [
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.FEES,
-    ROUTES.INVOICE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -163,13 +141,11 @@ export const ROLE_PERMISSIONS = {
     // Note: center_admin gets Finance Foundation screens but NOT refund
     // approval — mirrors backend's "finance-refund-approval" key, which
     // deliberately excludes center_admin (server-validated, not client-trusted).
-    ...FINANCE_FOUNDATION_ROUTES,
   ],
 
   // center_owner — same privilege as center_admin; separate role for clarity
   center_owner: [
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.FEES,
-    ROUTES.INVOICE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -185,7 +161,6 @@ export const ROLE_PERMISSIONS = {
     ROUTES.STAFF_LEAVE, ROUTES.STAFF_LEAVE_APPROVE, ROUTES.STAFF_LEAVE_TYPES,
     ROUTES.STAFF_PAYROLL, ROUTES.STAFF_PAYROLL_PROCESS,
     ROUTES.STAFF_PERFORMANCE, ROUTES.STAFF_PERFORMANCE_MANAGE,
-    ...FINANCE_FOUNDATION_ROUTES, ROUTES.FINANCE_REFUND_APPROVAL,
   ],
 
   teacher: [
@@ -201,9 +176,8 @@ export const ROLE_PERMISSIONS = {
   ],
 
   accountant: [
-    ROUTES.DASHBOARD, ROUTES.FEES, ROUTES.INVOICE, ROUTES.ANALYTICS,
+    ROUTES.DASHBOARD, ROUTES.ANALYTICS,
     ROUTES.STUDENTS, ROUTES.PROFILE,
-    ...FINANCE_FOUNDATION_ROUTES, ROUTES.FINANCE_REFUND_APPROVAL,
   ],
 
   reception: [
@@ -215,7 +189,7 @@ export const ROLE_PERMISSIONS = {
 
   // Parent Module V1 — CCTV & self check-in intentionally excluded.
   parent: [
-    ROUTES.DASHBOARD, ROUTES.PROFILE, ROUTES.FEES,
+    ROUTES.DASHBOARD, ROUTES.PROFILE,
   ],
 };
 
@@ -227,7 +201,7 @@ export const ROLE_HOME = {
   center_admin: "/",
   center_owner: "/",
   teacher:      "/child-presence",
-  accountant:   "/invoice",
+  accountant:   "/dashboard",
   reception:    "/",
   parent:       "/parent-home",
 };

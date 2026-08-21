@@ -29,63 +29,41 @@ const { db } = require("../firebaseAdmin");
 const col    = () => db.collection("roles");
 const nowISO = () => new Date().toISOString();
 
-// ── Static fallback permissions (mirrors permissionsBackend.js) ───────────────
-// Used when the Firestore doc is absent (legacy / bypass roles).
-//
-// Finance Platform UI routeKeys (finance-dashboard/-ledger/-billing-plans/
-// -invoices/-payments/-family-account/-refunds/-settings/-audit): these are
-// FRONTEND-ONLY page-gating keys (like "dashboard"/"profile" elsewhere in
-// this list) — no backend API route checks them, `authorizeRoute` still only
-// ever checks "finance-foundation"/"finance-refund-approval" on the actual
-// /api/finance/* endpoints. They must still be listed here because this is
-// what populates /api/auth/me's `permissions` array, which the frontend's
-// `can(routeKey)` checks against for a real (non-bypass) session.
-const FINANCE_UI_ROUTE_KEYS = [
-  "finance-dashboard", "finance-ledger", "finance-billing-plans",
-  "finance-invoices", "finance-payments", "finance-family-account",
-  "finance-refunds", "finance-settings", "finance-audit",
-];
 const STATIC_ROLE_PERMS = {
   developer:    ["*"],
   super_admin:  ["*"],
   admin: [
-    "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
     // Phase 1 (§12) — restores access to shipped modules that no role could
     // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
     // union in _fetchAndCache() excluded them for every role document.
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_owner: [
-    "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
-    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
     // Phase 1 (§12) — restores access to shipped modules that no role could
     // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
     // union in _fetchAndCache() excluded them for every role document.
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_admin: [
-    "dashboard","students","attendance","fees","invoice","analytics",
-    "nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements","cctv",
     "academics-classes","academics-batches",
     "academics-teacher-allocation","academics-classroom-allocation",
     "families",
-    "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
     // Phase 1 (§12) — restores access to shipped modules that no role could
     // reach: absent from both MODULE_ROUTE_MAP and this baseline, so the
     // union in _fetchAndCache() excluded them for every role document.
@@ -102,9 +80,8 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","incidents","ptm","staff-checkout",
   ],
   accountant: [
-    "dashboard","fees","invoice","analytics","students","profile",
-    "finance-foundation","finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
-  ],
+    "dashboard","students","profile",
+    ],
   reception: [
     "dashboard","students","attendance","parent-checkin",
     "pickup-authorization","pickup-history","profile",
@@ -114,7 +91,7 @@ const STATIC_ROLE_PERMS = {
     "staff-checkout",
   ],
   parent: [
-    "dashboard","parent-checkin","pickup-history","fees","profile",
+    "dashboard","parent-checkin","pickup-history","profile",
   ],
 };
 
@@ -129,10 +106,6 @@ const MODULE_ROUTE_MAP = {
   pickup_auth:       ["pickup-authorization","pickup-history"],
   medical:           [],                   // sub-feature of students
   food_menu:         ["food-menu","food-consumption"],
-  fees:              ["fees"],
-  invoices:          ["invoice"],
-  payments:          ["fees"],
-  receipts:          ["invoice"],
   analytics:         ["analytics"],
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
@@ -153,7 +126,6 @@ const MODULE_ROUTE_MAP = {
   incidents:          ["incidents"],
   care_hygiene:       ["care-hygiene"],
   observations:       ["child-journey"],
-  finance_foundation: ["finance-foundation"], // Student Ledger / Billing Plan / Family Account extension / Finance Settings (Sprint 1)
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
   staff_management:  ["staff-dashboard","staff-management","departments","designations"],
@@ -180,19 +152,8 @@ const MODULE_ROUTE_MAP = {
   events:        ["events"],
   ptm:           ["ptm"],
   // Finance Platform — the nine frontend-only page-gating routeKeys (see
-  // FINANCE_UI_ROUTE_KEYS comment above) previously had no matrix entry at
   // all, so a Firestore role doc could never individually grant or withhold
-  // any one of these screens. `finance-scheduler` is intentionally excluded —
   // that route stays bypass-only by design (see permissions.js).
-  finance_dashboard:      ["finance-dashboard"],
-  finance_ledger:         ["finance-ledger"],
-  finance_billing_plans:  ["finance-billing-plans"],
-  finance_invoices:       ["finance-invoices"],
-  finance_payments:       ["finance-payments"],
-  finance_family_account: ["finance-family-account"],
-  finance_refunds:        ["finance-refunds"],
-  finance_settings:       ["finance-settings"],
-  finance_audit:          ["finance-audit"],
 };
 
 // ── Derive route keys from granular permission matrix ─────────────────────────
@@ -307,10 +268,6 @@ const SYSTEM_ROLES = [
       pickup_auth:       { view: true, create: true, edit: true, approve: true },
       medical:           { view: true, edit: true },
       food_menu:         { view: true, create: true, edit: true, delete: true },
-      fees:              { view: true, create: true, edit: true, delete: true, approve: true },
-      invoices:          { view: true, create: true, edit: true, delete: true, approve: true },
-      payments:          { view: true, create: true, delete: true },
-      receipts:          { view: true, create: true, export: true },
       analytics:         { view: true, export: true },
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
@@ -332,15 +289,6 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
-      finance_dashboard:      { view: true },
-      finance_ledger:         { view: true },
-      finance_billing_plans:  { view: true },
-      finance_invoices:       { view: true },
-      finance_payments:       { view: true },
-      finance_family_account: { view: true },
-      finance_refunds:        { view: true },
-      finance_settings:       { view: true },
-      finance_audit:          { view: true },
     },
   },
   {
@@ -366,10 +314,6 @@ const SYSTEM_ROLES = [
       pickup_auth:       { view: true, create: true, edit: true, approve: true },
       medical:           { view: true, edit: true },
       food_menu:         { view: true, create: true, edit: true, delete: true },
-      fees:              { view: true, create: true, edit: true, delete: true, approve: true },
-      invoices:          { view: true, create: true, edit: true, delete: true, approve: true },
-      payments:          { view: true, create: true, delete: true },
-      receipts:          { view: true, create: true, export: true },
       analytics:         { view: true, export: true },
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
@@ -387,15 +331,6 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
-      finance_dashboard:      { view: true },
-      finance_ledger:         { view: true },
-      finance_billing_plans:  { view: true },
-      finance_invoices:       { view: true },
-      finance_payments:       { view: true },
-      finance_family_account: { view: true },
-      finance_refunds:        { view: true },
-      finance_settings:       { view: true },
-      finance_audit:          { view: true },
     },
   },
   {
@@ -414,10 +349,6 @@ const SYSTEM_ROLES = [
       pickup_auth:       { view: true, create: true, edit: true, approve: true },
       medical:           { view: true, edit: true },
       food_menu:         { view: true, create: true, edit: true, delete: false },
-      fees:              { view: true, create: true, edit: true, delete: false, approve: true },
-      invoices:          { view: true, create: true, edit: true, delete: false, approve: false },
-      payments:          { view: true, create: true, delete: false },
-      receipts:          { view: true, create: true, export: true },
       analytics:         { view: true, export: false },
       staff:             { view: true, create: true, edit: true, delete: false },
       roles_permissions: { view: true, manage: false },
@@ -435,15 +366,6 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
-      finance_dashboard:      { view: true },
-      finance_ledger:         { view: true },
-      finance_billing_plans:  { view: true },
-      finance_invoices:       { view: true },
-      finance_payments:       { view: true },
-      finance_family_account: { view: true },
-      finance_refunds:        { view: true },
-      finance_settings:       { view: true },
-      finance_audit:          { view: true },
     },
   },
   {
@@ -486,21 +408,8 @@ const SYSTEM_ROLES = [
     permissions: {
       dashboard:  { view: true },
       students:   { view: true, create: false, edit: false, delete: false, export: true },
-      fees:       { view: true, create: true, edit: true, delete: false, approve: true },
-      invoices:   { view: true, create: true, edit: true, delete: false, approve: true },
-      payments:   { view: true, create: true, delete: false },
-      receipts:   { view: true, create: true, export: true },
       analytics:  { view: true, export: true },
       documents:  { view: true, create: true, delete: false, export: true },
-      finance_dashboard:      { view: true },
-      finance_ledger:         { view: true },
-      finance_billing_plans:  { view: true },
-      finance_invoices:       { view: true },
-      finance_payments:       { view: true },
-      finance_family_account: { view: true },
-      finance_refunds:        { view: true },
-      finance_settings:       { view: true },
-      finance_audit:          { view: true },
     },
   },
   {

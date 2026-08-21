@@ -10,7 +10,7 @@
  */
 import { useState } from "react";
 import {
-  User, IdCard, Users, CalendarCheck, Car, Receipt, HeartPulse, FileText,
+  User, IdCard, Users, CalendarCheck, Car, HeartPulse, FileText,
   Activity, StickyNote, Utensils, Moon,
 } from "lucide-react";
 import StudentHeader from "../components/StudentHeader";
@@ -19,7 +19,6 @@ import PersonalInfo from "../components/PersonalInfo";
 import ParentCard from "../components/ParentCard";
 import AttendanceCard from "../components/AttendanceCard";
 import PickupCard from "../components/PickupCard";
-import FeesCard from "../components/FeesCard";
 import MedicalCard from "../components/MedicalCard";
 import DocumentsCard from "../components/DocumentsCard";
 import JourneyTimeline from "../components/JourneyTimeline";
@@ -33,7 +32,6 @@ const TABS = [
   { id: "parents",    label: "Parents",   icon: Users },
   { id: "attendance", label: "Attendance",icon: CalendarCheck },
   { id: "pickup",     label: "Pickup",    icon: Car },
-  { id: "fees",       label: "Fees",      icon: Receipt },
   { id: "medical",    label: "Medical",   icon: HeartPulse },
   { id: "documents",  label: "Documents", icon: FileText },
   { id: "journey",    label: "Journey",   icon: Activity },
@@ -93,7 +91,6 @@ export default function StudentProfile({ studentId, students, onEdit, onDelete, 
         {activeTab === "parents"    && <ParentCard      student={student} onSaved={onRefresh} toast={toast} />}
         {activeTab === "attendance" && <AttendanceCard  student={student} />}
         {activeTab === "pickup"     && <PickupCard      student={student} toast={toast} />}
-        {activeTab === "fees"       && <FeesCard        student={student} />}
         {activeTab === "medical"    && <MedicalCard     student={student} toast={toast} />}
         {activeTab === "documents"  && <DocumentsCard   student={student} toast={toast} />}
         {activeTab === "journey"    && <JourneyTimeline student={student} />}

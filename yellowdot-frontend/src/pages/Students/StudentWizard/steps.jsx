@@ -10,7 +10,6 @@ import { Camera, Plus, X, Search } from "lucide-react";
 import { Field, Input, Select, Button, Card } from "../../../components/ui";
 import { compressImage } from "../shared";
 import familyService from "../../../services/familyService";
-import financeApi from "../../../services/financeApi";
 import { CLASSES, GENDERS, CENTERS, BLOOD_GROUPS, RELATIONS, DOC_ROWS } from "./schema";
 
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 };
@@ -307,30 +306,21 @@ export function StepPickup({ watch, setValue }) {
 StepPickup.fields = [];
 
 /* ── Step: Fees ────────────────────────────────────────────────────────
- * Real Fee Templates (financeApi.feeTemplates.list — the same
- * Finance Settings collection Billing Plans reference), not a hardcoded
- * placeholder list. Selecting one here and completing admission
- * automatically creates AND activates a Billing Plan for the student —
- * no separate visit to the Billing Plans screen needed (M3.6). Leaving
- * "No Fee Template" selected admits the student normally, with no
- * Billing Plan created — staff can still add one manually later. */
+ * Fee templates are unavailable while the finance module is rebuilt, so
+ * this step currently renders with no options. Admission is unaffected. */
 export function StepFees({ watch, setValue, register }) {
   const feeTemplate = watch("feeTemplate");
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // The finance module is being rebuilt, so there is no fee-template source
+  // to read right now. The step stays in the flow (keeping step indices and
+  // the saved `feeTemplate` field stable) but offers no options — admission
+  // proceeds normally and billing is set up separately once finance returns.
   useEffect(() => {
-    let cancelled = false;
-    financeApi.feeTemplates.list()
-      .then(res => {
-        if (cancelled) return;
-        const active = (res?.templates || []).filter(t => t.active !== false);
-        setTemplates(active);
-      })
-      .catch(() => { if (!cancelled) setError("Couldn't load fee templates — you can still admit the student and set up billing later from Finance Settings."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    setTemplates([]);
+    setLoading(false);
   }, []);
 
   return (
