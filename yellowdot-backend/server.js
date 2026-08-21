@@ -73,6 +73,7 @@ const communicationRoutes    = require("./routes/communicationRoutes");
 const securityRoutes         = require("./routes/securityRoutes");
 const qrRoutes               = require("./routes/qrRoutes");
 const cctvRoutes             = require("./routes/cctvRoutes");
+const financeRoutes          = require("./routes/financeRoutes");
 const parentRoutes           = require("./routes/parentRoutes");
 const eventRoutes            = require("./routes/eventRoutes");
 const ptmRoutes              = require("./routes/ptmRoutes");
@@ -91,25 +92,11 @@ const staffAttendanceRoutes  = require("./routes/staffAttendanceRoutes");
 const leaveRoutes            = require("./routes/leaveRoutes");
 const payrollRoutes          = require("./routes/payrollRoutes");
 const performanceRoutes      = require("./routes/performanceRoutes");
-const ledgerRoutes           = require("./routes/ledgerRoutes");
-const billingPlanRoutes      = require("./routes/billingPlanRoutes");
-const familyAccountRoutes    = require("./routes/familyAccountRoutes");
-const financeSettingsRoutes  = require("./routes/financeSettingsRoutes");
-const financeBillingEngineRoutes = require("./routes/financeBillingEngineRoutes");
-const financePaymentRoutes   = require("./routes/financePaymentRoutes");
-const financeRefundRoutes    = require("./routes/financeRefundRoutes");
-const financeAuditRoutes     = require("./routes/financeAuditRoutes");
-const financeInvoiceRoutes   = require("./routes/financeInvoiceRoutes");
-const financeSchedulerRoutes = require("./routes/financeSchedulerRoutes");
-const financeSchedulerSvc    = require("./services/financeBillingSchedulerService"); // M3.5 — Recurring Billing Scheduler
-const financeStatusRoutes    = require("./routes/financeStatusRoutes"); // registered unconditionally — see below
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
-const admissionFinanceSvc = require("./services/admissionFinanceService"); // Sprint 2 — Finance Foundation admission hook
 const studentMedicalSvc = require("./services/studentMedicalService");
 const studentNotesSvc   = require("./services/studentNotesService");
-const invoiceSvc        = require("./services/invoiceService");
 const settingsSvc       = require("./services/settingsService");
 const pickupAuthSvc     = require("./services/pickupAuthorizationService");
 const memoriesSvc       = require("./services/memoriesService");
@@ -144,6 +131,7 @@ app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
+app.use(financeRoutes);        // /api/fee-templates, /api/invoices, /api/payments, /api/finance/*
 app.use(notificationRoutes);   // /api/parent/notifications/*  (must be before parentRoutes)
 app.use(careRoutes);           // /api/care/*  (Care & Hygiene — staff only)
 app.use(academicsRoutes);      // /api/academics/*  (Class Management)
@@ -158,46 +146,7 @@ app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* 
 app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
 app.use(performanceRoutes);
-// GET /api/finance/status — deliberately OUTSIDE the flag block below, so
-// the frontend can always ask "is Finance on?" instead of inferring it from
-// a 404 on a route that may not even be registered. This is the one Finance
-// route that must survive the module being disabled.
-app.use(financeStatusRoutes);
-// Finance Foundation (Sprint 1, patched per Sprint 1 review) — new, additive.
-// Does not touch invoice/payment routes above. The flag now gates ROUTE
-// REGISTRATION itself, not just per-request middleware: when disabled, these
-// four routers are never added to the Express routing tree at all, so there
-// is zero middleware execution and zero routing-table footprint for a
-// disabled module — cleaner for production, simpler to debug, and matches
-// how the rest of the app is deployed. requireFinanceFoundationFlag remains
-// inside each route file too, as a second, defense-in-depth layer in case
-// this block is ever refactored and the guard here is accidentally dropped.
-if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
-  app.use(ledgerRoutes);
-  app.use(billingPlanRoutes);
-  app.use(familyAccountRoutes);
-  app.use(financeSettingsRoutes);
-  app.use(financeBillingEngineRoutes);
-  app.use(financePaymentRoutes);
-  app.use(financeRefundRoutes);
-  app.use(financeAuditRoutes);
-  app.use(financeInvoiceRoutes);
-  app.use(financeSchedulerRoutes);
-}    // /api/performance-* + /api/parent-feedback/* + /api/staff-promotions/* + /api/staff-awards/* (Phase 5)
-app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
-app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
-app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
-
-// ============================================================
-// UTILITY HELPERS
-// ============================================================
-
-function logRouteError(route, err) {
-  const code = err.code || err.status || "?";
-  console.error(`[${route}] Error (code ${code}): ${err.message}`);
-}
-
-const { resolveContext, scopeFinanceQuery, checkInvoiceOwnership } = require("./middleware/requestScope");
+const { resolveContext } = require("./middleware/requestScope");
 const { checkMedicalAccess, checkNotesAccess } = require("./middleware/studentRecordAccess");
 const { checkStudentAccess } = require("./middleware/studentAccess");
 
@@ -326,28 +275,6 @@ app.post("/add-student", authenticate, authorize("admin","center_admin","recepti
       });
     }
 
-    // ── Finance Foundation admission hook (Sprint 2 + M3.6) ───────────
-    // Feature-flagged, same "don't fail the caller" contract as the
-    // pickup-auth block above — a Finance-layer failure must never break
-    // student admission itself. Creates a Student Ledger (and, only if
-    // this payload carries a familyId, a Family Account facet); if a fee
-    // template was selected in the admission wizard, also creates AND
-    // activates a Billing Plan (M3.6 — "no additional staff actions"),
-    // so the student is immediately eligible for the Recurring Billing
-    // Engine. No invoice is generated here — that only ever happens later,
-    // via the Manual Billing Engine or the scheduler, exactly as for any
-    // other active Billing Plan.
-    if (studentId && process.env.FINANCE_FOUNDATION_ENABLED === "true") {
-      admissionFinanceSvc
-        .onStudentAdmitted({
-          studentId, schoolId, centerId,
-          familyId:      body.familyId      || body.family_id      || "",
-          feeTemplateId: body.feeTemplateId || body.fee_template_id || "",
-          admissionDate: body.join_date     || body.joinDate        || "",
-          actorUserId,
-        })
-        .catch(err => console.error("[add-student] Finance Foundation hook failed:", err.message));
-    }
 
     res.json(result);
   } catch (err) {
@@ -399,222 +326,17 @@ app.delete("/delete-student/:id", authenticate, authorize("admin","super_admin",
 // INVOICES — REST API  (/api/invoices)
 // ============================================================
 
-app.get("/api/invoices", authenticate, async (req, res) => {
-  try {
-    const { schoolId, centerId } = resolveContext(req);
-    const { status }  = req.query;
-    const scope = scopeFinanceQuery(req, req.query.studentId);
-    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
-    const bypassAll = ["developer","super_admin","admin","accountant"].includes(req.user.role);
-    const invoices  = await invoiceSvc.getAllInvoices({
-      schoolId,
-      centerId: bypassAll ? (centerId || undefined) : centerId,
-      studentId: scope.studentId,
-      status,
-    });
-    res.json({ success: true, invoices });
-  } catch (e) {
-    logRouteError("GET /api/invoices", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post("/api/invoices", authenticate, authorize("admin","center_admin","accountant","super_admin","developer"), async (req, res) => {
-  try {
-    const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const invoice = await invoiceSvc.createInvoice(req.body || {}, { schoolId, centerId, actorUserId });
-    res.json({ success: true, invoice });
-  } catch (e) {
-    logRouteError("POST /api/invoices", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.put("/api/invoices/:invoiceNumber", authenticate, authorize("admin","center_admin","accountant","super_admin","developer"), async (req, res) => {
-  try {
-    const { schoolId, actorUserId } = resolveContext(req);
-    const updated = await invoiceSvc.updateInvoice(req.params.invoiceNumber, req.body || {}, { schoolId, actorUserId });
-    if (!updated) return res.status(404).json({ success: false, error: "Invoice not found." });
-    res.json({ success: true, invoice: updated });
-  } catch (e) {
-    logRouteError("PUT /api/invoices/:invoiceNumber", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.delete("/api/invoices/:invoiceNumber", authenticate, authorize("admin","super_admin","developer"), async (req, res) => {
-  try {
-    const { schoolId } = resolveContext(req);
-    const deleted = await invoiceSvc.deleteInvoice(req.params.invoiceNumber, { schoolId });
-    if (!deleted) return res.status(404).json({ success: false, error: "Invoice not found." });
-    res.json({ success: true });
-  } catch (e) {
-    logRouteError("DELETE /api/invoices/:invoiceNumber", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 // ============================================================
 // INVOICES — legacy shim routes (backward-compat for older frontend)
 // ============================================================
-
-app.post("/save-invoice", authenticate, authorize("admin","center_admin","accountant","super_admin","developer","teacher"), async (req, res) => {
-  try {
-    const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const invoice = await invoiceSvc.createInvoice(req.body || {}, { schoolId, centerId, actorUserId });
-    res.json({ success: true, message: "Invoice saved successfully", invoice });
-  } catch (err) {
-    logRouteError("POST /save-invoice", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get("/invoices", authenticate, async (req, res) => {
-  try {
-    const { schoolId } = resolveContext(req);
-    const scope = scopeFinanceQuery(req, req.query.studentId);
-    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
-    const invoices = await invoiceSvc.getAllInvoices({ schoolId, studentId: scope.studentId });
-    res.json(invoices);
-  } catch (err) {
-    logRouteError("GET /invoices", err);
-    res.status(500).json({ error: "Failed to fetch invoices", details: err.message });
-  }
-});
-
-app.get("/invoice/:invoiceNumber", authenticate, async (req, res) => {
-  try {
-    const { schoolId } = resolveContext(req);
-    const invoice = await invoiceSvc.getInvoice(req.params.invoiceNumber, { schoolId });
-    if (!invoice) return res.status(404).json({ success: false, message: "Invoice not found" });
-    const denied = checkInvoiceOwnership(req, invoice);
-    if (denied) return res.status(denied.status).json(denied.body);
-    res.json({ success: true, ...invoice });
-  } catch (err) {
-    logRouteError("GET /invoice/:invoiceNumber", err);
-    res.status(500).json({ success: false, message: "Server error", details: err.message });
-  }
-});
-
-app.post("/record-payment", authenticate, authorize("admin","center_admin","accountant","super_admin","developer","teacher"), async (req, res) => {
-  try {
-    const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const { payment, invoice } = await invoiceSvc.recordPayment(req.body || {}, { schoolId, centerId, actorUserId });
-    if (payment?.studentId) {
-      notif.notifyAsync(() => notif.fireForStudent(payment.studentId, schoolId, {
-        type:     notif.TYPES.PAYMENT_RECEIVED,
-        childId:  payment.studentId,
-        title:    "Payment received",
-        message:  `Payment of ₹${payment.amount || ""} received${invoice?.invoiceNumber ? ` for invoice ${invoice.invoiceNumber}` : ""}. Thank you!`,
-        deepLink: "/parent-fees",
-      }));
-    }
-    res.json({ success: true, message: "Payment saved successfully", payment, invoice });
-  } catch (err) {
-    logRouteError("POST /record-payment", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get("/payments", authenticate, async (req, res) => {
-  try {
-    const { schoolId } = resolveContext(req);
-    const scope = scopeFinanceQuery(req, req.query.studentId);
-    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
-    const payments = await invoiceSvc.getAllPayments(null, { schoolId, studentId: scope.studentId });
-    res.json(payments);
-  } catch (err) {
-    logRouteError("GET /payments", err);
-    res.status(500).json({ error: "Failed to fetch payments", details: err.message });
-  }
-});
 
 // ============================================================
 // PAYMENTS — REST API  (/api/payments)
 // ============================================================
 
-app.get("/api/payments", authenticate, async (req, res) => {
-  try {
-    const { schoolId, centerId }          = resolveContext(req);
-    const { invoiceNumber }    = req.query;
-    const scope = scopeFinanceQuery(req, req.query.studentId);
-    if (scope.error) return res.status(scope.error.status).json(scope.error.body);
-    const payments = await invoiceSvc.getAllPayments(invoiceNumber || null, { schoolId, centerId, studentId: scope.studentId });
-    res.json({ success: true, payments });
-  } catch (e) {
-    logRouteError("GET /api/payments", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post("/api/payments", authenticate, authorize("admin","center_admin","accountant","super_admin","developer","teacher"), async (req, res) => {
-  try {
-    const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const { payment, invoice } = await invoiceSvc.recordPayment(req.body || {}, { schoolId, centerId, actorUserId });
-    if (payment?.studentId) {
-      notif.notifyAsync(() => notif.fireForStudent(payment.studentId, schoolId, {
-        type:     notif.TYPES.PAYMENT_RECEIVED,
-        childId:  payment.studentId,
-        title:    "Payment received",
-        message:  `Payment of ₹${payment.amount || ""} received${invoice?.invoiceNumber ? ` for invoice ${invoice.invoiceNumber}` : ""}. Thank you!`,
-        deepLink: "/parent-fees",
-      }));
-    }
-    res.json({ success: true, payment, invoice });
-  } catch (e) {
-    logRouteError("POST /api/payments", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 // ============================================================
 // FEE TEMPLATES — REST API  (/api/fee-templates)
 // ============================================================
-
-app.get("/api/fee-templates", authenticate, blockUnknown, staffOnly, async (req, res) => {
-  try {
-    const { schoolId, centerId } = resolveContext(req);
-    const templates = await invoiceSvc.getAllTemplates({ schoolId, centerId });
-    res.json({ success: true, templates });
-  } catch (e) {
-    logRouteError("GET /api/fee-templates", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post("/api/fee-templates", authenticate, authorize("admin","center_admin","accountant","super_admin","developer"), async (req, res) => {
-  try {
-    const { schoolId, centerId, actorUserId } = resolveContext(req);
-    const template = await invoiceSvc.createTemplate(req.body || {}, { schoolId, centerId, actorUserId });
-    res.json({ success: true, template });
-  } catch (e) {
-    logRouteError("POST /api/fee-templates", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.put("/api/fee-templates/:templateId", authenticate, authorize("admin","center_admin","accountant","super_admin","developer"), async (req, res) => {
-  try {
-    const { actorUserId } = resolveContext(req);
-    const template = await invoiceSvc.updateTemplate(req.params.templateId, req.body || {}, { actorUserId });
-    if (!template) return res.status(404).json({ success: false, error: "Template not found." });
-    res.json({ success: true, template });
-  } catch (e) {
-    logRouteError("PUT /api/fee-templates/:templateId", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.delete("/api/fee-templates/:templateId", authenticate, authorize("admin","center_admin","accountant","super_admin","developer"), async (req, res) => {
-  try {
-    const deleted = await invoiceSvc.deleteTemplate(req.params.templateId);
-    if (!deleted) return res.status(404).json({ success: false, error: "Template not found." });
-    res.json({ success: true });
-  } catch (e) {
-    logRouteError("DELETE /api/fee-templates/:templateId", e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
 
 // ============================================================
 // STUDENT MEDICAL
@@ -837,10 +559,6 @@ app.delete("/api/memories/:id", authenticate, blockUnknown, authorize("admin","c
 // PAYMENT RECEIPT (stub)
 // ============================================================
 
-app.get("/payment-receipt/:invoiceNumber", authenticate, (req, res) => {
-  res.status(501).json({ message: "PDF receipt generation not yet implemented" });
-});
-
 // ============================================================
 // GLOBAL ERROR HANDLER
 // ============================================================
@@ -874,20 +592,6 @@ if (require.main === module) {
     runStartupDiagnostics();
   });
 
-  // Recurring Billing Scheduler (M3.5) — cron registration + startup catch-up
-  // only ever run on the real, persistent server process (never merely from
-  // `require("./server")`, which route-wiring tests and the Cloud Functions
-  // wrapper both do). `cron.schedule()` is never even called while the flag
-  // is off, matching the route-registration gating above, per the explicit
-  // "must not execute in production while the feature flag is disabled"
-  // requirement. Cloud Functions instances are ephemeral, so an in-process
-  // cron there would be unreliable anyway — the VPS process is the intended
-  // home for this.
-  if (process.env.FINANCE_FOUNDATION_ENABLED === "true") {
-    financeSchedulerSvc.registerCronJob();
-    financeSchedulerSvc.maybeRunCatchUp()
-      .catch(err => console.error("[financeBillingScheduler] startup catch-up check failed:", err.message));
-  }
 }
 
 module.exports = app;

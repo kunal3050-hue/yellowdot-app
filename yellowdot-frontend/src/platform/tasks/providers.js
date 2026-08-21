@@ -180,38 +180,5 @@ export const careHygienePending = defineTaskProvider({
   },
 });
 
-// ── Overdue invoices ──────────────────────────────────────────────────────────
-export const overdueInvoices = defineTaskProvider({
-  id: "overdue-invoices",
-  moduleId: "invoices",
-  capability: "invoices.view",
-  featureFlag: "INVOICES",
-  basePriority: "medium",
-  deepLink: "/invoice",
-  reads: {
-    invoices: { service: "invoices", read: "listRaw" },
-  },
-  toTasks: ({ invoices }) => {
-    if (!invoices?.success) return [];
-    const overdue = (invoices.invoices || []).filter(i => i.status === "Overdue");
-    if (!overdue.length) return [];
 
-    const total = overdue.reduce((s, i) => s + (Number(i.balance) || 0), 0);
-    // One aggregate task, not one per invoice: a queue of 200 individual
-    // invoice rows would drown every other domain in the feed. The deep link
-    // takes the accountant to the list that DOES itemise them.
-    return [{
-      id: "invoices:overdue",
-      title: "Overdue fees need chasing",
-      context: `${overdue.length} invoice${overdue.length === 1 ? "" : "s"} · ₹${total.toLocaleString("en-IN")} outstanding`,
-      status: "pending",
-      // Overdue by definition — escalated once by the ladder, not repeatedly.
-      dueAt: todayAt(0, 1),
-      owner: { type: "role", id: "accountant", label: "Accountant", capability: "invoices.view" },
-      createdAt: null,
-      deepLink: "/invoice",
-    }];
-  },
-});
-
-export default [pickupApprovals, openIncidents, attendancePending, careHygienePending, overdueInvoices];
+export default [pickupApprovals, openIncidents, attendancePending, careHygienePending];

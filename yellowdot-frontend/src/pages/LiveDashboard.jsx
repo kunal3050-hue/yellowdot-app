@@ -21,10 +21,6 @@
  *   Staff Absent         not tracked → "—"
  *
  * Finance
- *   Fees Collected      GET /api/invoices            → Σ paidAmount
- *   Pending Payments    GET /api/invoices            → count(status Pending|Partial)
- *   Overdue Fees        GET /api/invoices            → Σ balance where status=Overdue
- *   Monthly Collection  GET /api/payments            → Σ amount where paymentDate ≥ month start
  *
  * Operations
  *   Attendance Rate     computed from summary
@@ -32,7 +28,6 @@
  *   Meals Served        GET /api/food-consumption?date=today   → unique student count
  *   Transport Active    not configured → "—"
  *
- * Today's Schedule (Timeline) and Recent Activity (ActivityFeed) are
  * derived client-side from the same fetched arrays above — no new API
  * calls were added for the Design System v2 Phase 2.1 redesign.
  * ─────────────────────────────────────────────────────────────────
@@ -41,11 +36,11 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  UserPlus, ClipboardCheck, Receipt, Megaphone, Car, RefreshCw, Bell,
+  UserPlus, ClipboardCheck, Megaphone, Car, RefreshCw, Bell,
 } from "lucide-react";
 import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
-import { PageHeader, KpiCard, QuickActionCard, Timeline, ActivityFeed } from "../components/ui";
+import { PageHeader, KpiCard, QuickActionCard, Timeline } from "../components/ui";
 
 const get = (url) => api.get(url).then((r) => r.data);
 const todayISO   = () => new Date().toISOString().slice(0, 10);
@@ -73,10 +68,6 @@ function inr(n) {
 }
 
 /** Start of current calendar month as "YYYY-MM-DD". */
-function monthStart() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
 
 const REFRESH_MS = 60_000; // 60 seconds
 
@@ -119,8 +110,6 @@ export default function LiveDashboard() {
   const [summary,   setSummary]   = useState(null);   // attendance summary
   const [inside,    setInside]    = useState(null);   // attendance/inside
   const [users,     setUsers]     = useState(null);   // /api/users
-  const [invoices,  setInvoices]  = useState(null);   // /api/invoices
-  const [payments,  setPayments]  = useState(null);   // /api/payments
   const [food,      setFood]      = useState(null);   // /api/food-consumption
   const [pickupReq, setPickupReq] = useState(null);   // /api/pickup-requests?status=pending
   const [families,  setFamilies]  = useState(null);   // /api/families/count
@@ -137,14 +126,12 @@ export default function LiveDashboard() {
 
     const [
       stuRes, sumRes, insRes, usrRes,
-      invRes, payRes, foodRes, pReqRes, famRes,
+      foodRes, pReqRes, famRes,
     ] = await Promise.allSettled([
       get("/students"),
       get(`/api/attendance/summary?date=${d}`),
       get(`/api/attendance/inside?date=${d}`),
       get("/api/users"),
-      get("/api/invoices"),
-      get(`/api/payments`),
       get(`/api/food-consumption?date=${d}`),
       get(`/api/pickup-requests?status=pending`),
       get("/api/families/count"),
@@ -173,16 +160,6 @@ export default function LiveDashboard() {
       const v = usrRes.value;
       setUsers(Array.isArray(v) ? v : (v?.users || []));
     } else errs.push("Users");
-
-    // Invoices
-    if (invRes.status === "fulfilled" && invRes.value?.success) {
-      setInvoices(invRes.value.invoices || []);
-    } else errs.push("Invoices");
-
-    // Payments
-    if (payRes.status === "fulfilled" && payRes.value?.success) {
-      setPayments(payRes.value.payments || []);
-    } else errs.push("Payments");
 
     // Food consumption → array of entries
     if (foodRes.status === "fulfilled") {
@@ -245,27 +222,6 @@ export default function LiveDashboard() {
     return staffMembers.filter((u) => (u.role || "").toLowerCase().includes("teacher")).length;
   }, [staffMembers]);
 
-  // ── Derived: Finance ────────────────────────────────────────────
-  const feesCollected  = useMemo(() => {
-    if (!invoices) return null;
-    return invoices.reduce((s, i) => s + (Number(i.paidAmount) || 0), 0);
-  }, [invoices]);
-  const pendingCount   = useMemo(() => {
-    if (!invoices) return null;
-    return invoices.filter((i) => ["Pending", "Partial"].includes(i.status)).length;
-  }, [invoices]);
-  const overdueAmt     = useMemo(() => {
-    if (!invoices) return null;
-    return invoices.filter((i) => i.status === "Overdue")
-                   .reduce((s, i) => s + (Number(i.balance) || 0), 0);
-  }, [invoices]);
-  const monthlyCollect = useMemo(() => {
-    if (!payments) return null;
-    const ms = monthStart();
-    return payments
-      .filter((p) => (p.paymentDate || "") >= ms)
-      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  }, [payments]);
 
   // ── Derived: Operations ─────────────────────────────────────────
   const mealsServed = useMemo(() => {
@@ -307,38 +263,6 @@ export default function LiveDashboard() {
     return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 12);
   }, [inside, food]);
 
-  // ── Derived: Recent Activity (ActivityFeed) ──────────────────────
-  // Money-moved and billing events, assembled from the invoices/payments
-  // arrays already fetched above — no new API calls.
-  const recentActivity = useMemo(() => {
-    const items = [];
-    (payments || []).forEach((p, i) => {
-      items.push({
-        id: `pay-${p.id || i}`,
-        category: "billing",
-        title: `Payment received${p.studentName ? ` — ${p.studentName}` : ""}`,
-        body: `${inr(Number(p.amount) || 0)} recorded${p.method ? ` via ${p.method}` : ""}`,
-        timestamp: p.paymentDate ? new Date(p.paymentDate).getTime() : Date.now(),
-      });
-    });
-    (invoices || [])
-      .filter((inv) => inv.status === "Overdue")
-      .forEach((inv, i) => {
-        items.push({
-          id: `overdue-${inv.id || inv.invoiceNumber || i}`,
-          category: "approval",
-          title: `Invoice ${inv.invoiceNumber || ""} overdue`,
-          body: `${inv.studentName || "A student"} — balance ${inr(Number(inv.balance) || 0)}`,
-          timestamp: inv.dueDate ? new Date(inv.dueDate).getTime() : Date.now() - 1,
-        });
-      });
-    return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
-  }, [payments, invoices]);
-
-  const ACTIVITY_CATEGORIES = [
-    { key: "billing", label: "Billing", color: "var(--yd-success)", bg: "var(--yd-success-soft)" },
-    { key: "approval", label: "Overdue", color: "var(--yd-danger)", bg: "var(--yd-danger-soft)" },
-  ];
 
   // ── Refresh button ──────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
@@ -396,16 +320,6 @@ export default function LiveDashboard() {
         </div>
       </div>
 
-      {/* ── FINANCE ─────────────────────────────────────────────── */}
-      <div className="ld-section">
-        <SectionLabel title="Finance" />
-        <div className="ld-kpi-grid">
-          <KpiCard label="Fees Collected" value={feesCollected != null ? inr(feesCollected) : "—"} trendLabel="total paid (all time)" loading={loading} />
-          <KpiCard label="Pending Payments" value={pendingCount ?? "—"} trendLabel="invoices pending/partial" loading={loading} />
-          <KpiCard label="Overdue Fees" value={overdueAmt != null ? inr(overdueAmt) : "—"} trendLabel="overdue balance" loading={loading} />
-          <KpiCard label="Monthly Collection" value={monthlyCollect != null ? inr(monthlyCollect) : "—"} trendLabel="this calendar month" loading={loading} />
-        </div>
-      </div>
 
       {/* ── OPERATIONS ──────────────────────────────────────────── */}
       <div className="ld-section">
@@ -422,27 +336,6 @@ export default function LiveDashboard() {
       <div className="ld-section">
         <SectionLabel title="Quick Actions" />
         <div className="ld-qa-grid">
-          <QuickActionCard
-            icon={<UserPlus size={18} strokeWidth={2} />}
-            title="Add Student"
-            description="Enroll a new student"
-            permission={{ routeKey: "students" }}
-            onClick={() => { navigate("/add-student"); }}
-          />
-          <QuickActionCard
-            icon={<ClipboardCheck size={18} strokeWidth={2} />}
-            title="Take Attendance"
-            description="Mark today's attendance"
-            permission={{ routeKey: "attendance" }}
-            onClick={() => { navigate("/attendance"); }}
-          />
-          <QuickActionCard
-            icon={<Receipt size={18} strokeWidth={2} />}
-            title="Generate Invoice"
-            description="Create a new invoice"
-            permission={{ routeKey: "invoice" }}
-            onClick={() => { navigate("/generate-invoice"); }}
-          />
           <QuickActionCard
             icon={<Megaphone size={18} strokeWidth={2} />}
             title="Send Notice"
@@ -471,18 +364,6 @@ export default function LiveDashboard() {
                 items={todaySchedule}
                 loading={loading && todaySchedule.length === 0}
                 empty={{ title: "No events yet today", description: "Check-ins and meal logs will appear here as they happen." }}
-              />
-            </div>
-          </div>
-          <div>
-            <SectionLabel title="Recent Activity" />
-            <div className="ld-panel ld-panel-scroll">
-              <ActivityFeed
-                items={recentActivity}
-                loading={loading && recentActivity.length === 0}
-                categories={ACTIVITY_CATEGORIES}
-                searchable={false}
-                empty={{ title: "No recent activity", description: "Payments and billing events will appear here." }}
               />
             </div>
           </div>

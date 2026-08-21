@@ -37,8 +37,6 @@ const FEATURES = [
   // ── Core — always on, every plan ───────────────────────────────────────
   { key: "STUDENTS",           label: "Students",            stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "ATTENDANCE",         label: "Attendance",          stage: "ga", defaultByEnv: ALL,      minPlan: null },
-  { key: "FEES",               label: "Fees",                stage: "ga", defaultByEnv: ALL,      minPlan: null },
-  { key: "INVOICES",           label: "Invoices",            stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "NOTIFICATIONS",      label: "Notifications",       stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "GATE_MANAGEMENT",    label: "Gate Management",     stage: "ga", defaultByEnv: ALL,      minPlan: null },
   { key: "PARENT_PORTAL",      label: "Parent Portal",       stage: "ga", defaultByEnv: ALL,      minPlan: null },
@@ -64,10 +62,6 @@ const FEATURES = [
   // `envVar` keeps that variable authoritative until tenant data is populated,
   // so this migration cannot turn Finance off for anyone. Removed once every
   // tenant carries an explicit features entry.
-  {
-    key: "FINANCE_FOUNDATION", label: "Finance Platform", stage: "ga",
-    defaultByEnv: OFF, minPlan: null, envVar: "FINANCE_FOUNDATION_ENABLED",
-  },
 
   // ── AI — §5E. Default OFF everywhere, per the data-protection constraint ─
   // Children's data under DPDP: enabling is a deliberate act by a school,

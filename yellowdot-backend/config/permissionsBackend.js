@@ -9,21 +9,13 @@ function isBypassRole(role) {
   return BYPASS_ROLES.has(role);
 }
 
-// Finance Platform UI routeKeys — frontend-only page-gating keys (see the
-// matching comment in services/roleService.js's STATIC_ROLE_PERMS).
-const FINANCE_UI_ROUTE_KEYS = [
-  "finance-dashboard", "finance-ledger", "finance-billing-plans",
-  "finance-invoices", "finance-payments", "finance-family-account",
-  "finance-refunds", "finance-settings", "finance-audit",
-];
 
 const ROLE_PERMISSIONS = {
   developer:    ["*"],
   super_admin:  ["*"],
 
   admin: [
-    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
+    "dashboard", "students", "attendance", "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
@@ -37,12 +29,10 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
-  ],
+    ],
 
   center_owner: [
-    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
+    "dashboard", "students", "attendance", "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
@@ -56,12 +46,10 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
-  ],
+    ],
 
   center_admin: [
-    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
-    "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
+    "dashboard", "students", "attendance", "nap-tracker", "food-menu", "food-consumption", "care-hygiene",
     "parent-checkin", "pickup-authorization", "pickup-history", "staff-checkout",
     "profile", "settings", "user-management", "roles-permissions",
     "holidays", "notices", "announcements", "qr-management", "cctv",
@@ -75,8 +63,7 @@ const ROLE_PERMISSIONS = {
     "staff-leave", "staff-leave-approve", "staff-leave-types",
     "staff-payroll", "staff-payroll-process",
     "staff-performance", "staff-performance-manage",
-    "finance-foundation", ...FINANCE_UI_ROUTE_KEYS,
-  ],
+    ],
 
   teacher: [
     "dashboard", "attendance", "nap-tracker", "food-menu", "food-consumption",
@@ -90,9 +77,8 @@ const ROLE_PERMISSIONS = {
   ],
 
   accountant: [
-    "dashboard", "fees", "invoice", "analytics", "students", "profile",
-    "finance-foundation", "finance-refund-approval", ...FINANCE_UI_ROUTE_KEYS,
-  ],
+    "dashboard", "students", "profile",
+    ],
 
   reception: [
     "dashboard", "students", "attendance", "parent-checkin",
@@ -101,8 +87,7 @@ const ROLE_PERMISSIONS = {
 
   // Parent Module V1 — CCTV & self check-in intentionally excluded.
   parent: [
-    "dashboard", "profile", "fees",
-  ],
+    "dashboard", "profile", ],
 };
 
 // Platform Architecture Freeze, Task 1 follow-up (2026-08-12): teacher and

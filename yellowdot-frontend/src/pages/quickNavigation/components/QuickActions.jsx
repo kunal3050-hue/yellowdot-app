@@ -19,8 +19,6 @@ import { Button } from "../../../components/ui";
 const ACTIONS = [
   { id: "add_student",       label: "Add Student",       path: "/students/new",     capability: "students.create",     icon: UserPlus },
   { id: "mark_attendance",   label: "Mark Attendance",   path: "/attendance",       capability: "attendance.mark",     icon: CalendarCheck },
-  { id: "record_payment",    label: "Record Payment",    path: "/invoice?status=unpaid", capability: "payments.create", icon: Wallet },
-  { id: "generate_invoice",  label: "Generate Invoice",  path: "/generate-invoice", capability: "invoices.create",     icon: FileText },
   { id: "send_announcement", label: "Send Announcement", path: "/announcements",    capability: "notifications.create", icon: Megaphone },
 ];
 

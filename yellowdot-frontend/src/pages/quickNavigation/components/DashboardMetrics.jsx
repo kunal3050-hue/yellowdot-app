@@ -30,7 +30,7 @@ function inr(n) {
 export default function DashboardMetrics() {
   const { canDo } = useAuth();
   const {
-    attendancePct, presentToday, pendingPickups, outstandingFees,
+    attendancePct, presentToday, pendingPickups,
     birthdaysToday, admissionsThisWeek, loading,
   } = useDashboardStats();
 
@@ -57,11 +57,6 @@ export default function DashboardMetrics() {
       id: "pickups", capability: ["pickup_auth", "view"],
       icon: Car, label: "Awaiting Parent",
       value: pendingPickups ?? "—", trendLabel: "pickup requests not yet approved",
-    },
-    {
-      id: "fees", capability: ["invoices", "view"],
-      icon: Wallet, label: "Outstanding Fees",
-      value: inr(outstandingFees), trendLabel: "pending + overdue balance",
     },
     {
       id: "birthdays", capability: ["students", "view"],

@@ -324,148 +324,18 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
-  // ── Finance (legacy) ─────────────────────────────────────────────────────────
-  // Shown ONLY while FINANCE_FOUNDATION_ENABLED is off (see Sidebar.jsx's
-  // financeEnabled filter) — the pre-Finance-Platform experience, untouched.
-  // Once the flag is on, this whole group disappears and "Finance Platform"
-  // below (relabeled "Finance") takes over as the single finance experience —
-  // never both at once, per the consolidation requirement.
+
+
+  // ── Finance ──────────────────────────────────────────────────────────────────
   {
     id:          "finance",
     label:       "Finance",
     collapsible: true,
     defaultOpen: true,
     items: [
-      {
-        id:       "fees",
-        label:    "Fees",
-        path:     "/fees",
-        routeKey: ROUTES.FEES,
-        icon:     "CreditCard",
-      },
-      {
-        id:       "collections",
-        label:    "Collections",
-        path:     "/collections",
-        routeKey: ROUTES.FEES,   // reuses Fees permission — no new route key
-        icon:     "BarChart2",
-      },
-      {
-        id:         "invoices",
-        label:      "Invoices",
-        path:       "/invoice",
-        routeKey:   ROUTES.INVOICE,
-        icon:       "FileText",
-        matchPaths: ["/invoice/new", "/invoice/templates", "/invoice-view"],
-      },
-      {
-        id:       "analytics",
-        label:    "Analytics",
-        path:     "/analytics",
-        routeKey: ROUTES.ANALYTICS,
-        icon:     "BarChart2",
-      },
-    ],
-  },
-
-  // ── Finance Platform (shown as "Finance" once enabled) ───────────────────────
-  // Replaces the legacy Finance group above when FINANCE_FOUNDATION_ENABLED is
-  // on (see Sidebar.jsx's financeEnabled filter) — never shown alongside it.
-  // Collections and Reports/Analytics are the legacy Collections.jsx/Analytics.jsx
-  // screens pulled into this group unchanged (same path/routeKey/component —
-  // see the consolidation note in each file); "Fees" has no primary nav slot
-  // here at all — fee template/component management lives inside Finance
-  // Settings instead (see FinanceSettings.jsx's "Fee Templates" tab).
-  {
-    id:          "finance_platform",
-    label:       "Finance",
-    collapsible: true,
-    defaultOpen: true,
-    items: [
-      {
-        id:       "finance_dashboard",
-        label:    "Dashboard",
-        path:     "/finance/dashboard",
-        routeKey: ROUTES.FINANCE_DASHBOARD,
-        icon:     "LayoutDashboard",
-      },
-      {
-        id:       "finance_ledger",
-        label:    "Student Ledger",
-        path:     "/finance/ledger",
-        routeKey: ROUTES.FINANCE_LEDGER,
-        icon:     "BookOpen",
-      },
-      {
-        id:       "finance_billing_plans",
-        label:    "Billing Plans",
-        path:     "/finance/billing-plans",
-        routeKey: ROUTES.FINANCE_BILLING_PLANS,
-        icon:     "Repeat",
-      },
-      {
-        id:       "finance_invoices",
-        label:    "Invoices",
-        path:     "/finance/invoices",
-        routeKey: ROUTES.FINANCE_INVOICES,
-        icon:     "FileText",
-      },
-      {
-        id:       "finance_payments",
-        label:    "Payments",
-        path:     "/finance/payments",
-        routeKey: ROUTES.FINANCE_PAYMENTS,
-        icon:     "Wallet",
-      },
-      {
-        id:       "finance_collections",
-        label:    "Collections",
-        path:     "/collections",
-        routeKey: ROUTES.FEES,   // reuses Fees permission, same as the legacy item
-        icon:     "TrendingUp",
-      },
-      {
-        id:       "finance_family_account",
-        label:    "Family Accounts",
-        path:     "/finance/family-account",
-        routeKey: ROUTES.FINANCE_FAMILY_ACCOUNT,
-        icon:     "Users",
-      },
-      {
-        id:       "finance_refunds",
-        label:    "Refunds",
-        path:     "/finance/refunds",
-        routeKey: ROUTES.FINANCE_REFUNDS,
-        icon:     "Undo2",
-      },
-      {
-        id:       "finance_reports",
-        label:    "Reports",
-        path:     "/analytics",
-        routeKey: ROUTES.ANALYTICS,
-        icon:     "BarChart2",
-      },
-      {
-        id:       "finance_scheduler",
-        label:    "Recurring Billing",
-        path:     "/finance/scheduler",
-        routeKey: ROUTES.FINANCE_SCHEDULER,
-        icon:     "Clock",
-      },
-      {
-        id:       "finance_settings",
-        label:    "Finance Settings",
-        path:     "/finance/settings",
-        routeKey: ROUTES.FINANCE_SETTINGS,
-        icon:     "Settings2",
-      },
-      {
-        id:       "finance_audit",
-        label:    "Audit Log",
-        path:     "/finance/audit-log",
-        routeKey: ROUTES.FINANCE_AUDIT,
-        icon:     "ScrollText",
-      },
+      { id: "finance_fees",     label: "Fees",     path: "/finance",          routeKey: ROUTES.FINANCE, icon: "CreditCard" },
+      { id: "finance_invoices", label: "Invoices", path: "/finance/invoices", routeKey: ROUTES.FINANCE, icon: "FileText"   },
+      { id: "finance_payments", label: "Payments", path: "/finance/payments", routeKey: ROUTES.FINANCE, icon: "Wallet"     },
     ],
   },
 
@@ -739,13 +609,6 @@ export const PARENT_MENU = [
     path:     "/pickup-history",
     routeKey: ROUTES.PICKUP_HISTORY,
     icon:     "Car",
-  },
-  {
-    id:       "fees",
-    label:    "My Fees",
-    path:     "/fees",
-    routeKey: ROUTES.FEES,
-    icon:     "CreditCard",
   },
 ];
 
