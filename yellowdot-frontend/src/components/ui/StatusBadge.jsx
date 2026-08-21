@@ -38,6 +38,7 @@ const STATUS_LABEL_GROUP = {
   Active: "success", Inactive: "neutral", Alumni: "warning",
   // Invoice / payment
   Paid: "success", Pending: "warning", Partial: "warning", Overdue: "danger", Cancelled: "neutral", Completed: "success",
+  Clear: "success", "No Invoices": "neutral",
   // Attendance
   Present: "success", Absent: "danger", Late: "warning", Holiday: "info",
   // User roles

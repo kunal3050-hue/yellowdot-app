@@ -326,6 +326,19 @@ export const SIDEBAR_GROUPS = [
 
 
 
+  // ── Finance ──────────────────────────────────────────────────────────────────
+  {
+    id:          "finance",
+    label:       "Finance",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "finance_fees",     label: "Fees",     path: "/finance",          routeKey: ROUTES.FINANCE, icon: "CreditCard" },
+      { id: "finance_invoices", label: "Invoices", path: "/finance/invoices", routeKey: ROUTES.FINANCE, icon: "FileText"   },
+      { id: "finance_payments", label: "Payments", path: "/finance/payments", routeKey: ROUTES.FINANCE, icon: "Wallet"     },
+    ],
+  },
+
   // ── Daily Ops ──────────────────────────────────────────────────────────────
   {
     id:          "daily_ops",

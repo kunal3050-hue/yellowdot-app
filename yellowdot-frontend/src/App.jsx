@@ -29,6 +29,9 @@ const StaffHome           = lazy(() => import("./staffMobile/StaffHome"));
 const QuickNav            = lazy(() => import("./pages/QuickNav"));
 const QuickNavigation     = lazy(() => import("./pages/quickNavigation"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
+const FeesOverview        = lazy(() => import("./pages/finance/FeesOverview"));
+const FinanceInvoices     = lazy(() => import("./pages/finance/Invoices"));
+const FinancePayments     = lazy(() => import("./pages/finance/Payments"));
 const CCTV                = lazy(() => import("./pages/CCTV"));
 const Students            = lazy(() => import("./pages/Students"));
 const StudentWizard       = lazy(() => import("./pages/Students/StudentWizard"));
@@ -248,6 +251,30 @@ function App() {
               element={
                 <ProtectedRoute routeKey="dashboard">
                   <MainLayout><QuickNavigation /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance"
+              element={
+                <ProtectedRoute routeKey="finance">
+                  <FeesOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/invoices"
+              element={
+                <ProtectedRoute routeKey="finance">
+                  <FinanceInvoices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/payments"
+              element={
+                <ProtectedRoute routeKey="finance">
+                  <FinancePayments />
                 </ProtectedRoute>
               }
             />

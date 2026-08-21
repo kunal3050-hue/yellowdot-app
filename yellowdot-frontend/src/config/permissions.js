@@ -33,6 +33,7 @@ export const ROUTES = {
   DASHBOARD:             "dashboard",
   STUDENTS:              "students",
   ATTENDANCE:            "attendance",
+  FINANCE:               "finance",
   ANALYTICS:             "analytics",
   NAP_TRACKER:           "nap-tracker",
   FOOD_MENU:             "food-menu",
@@ -77,21 +78,11 @@ export const ROUTES = {
   STAFF_PAYROLL_PROCESS:         "staff-payroll-process",
   STAFF_PERFORMANCE:             "staff-performance",
   STAFF_PERFORMANCE_MANAGE:      "staff-performance-manage",
-
-  // Finance Platform (Finance Foundation UI) — mirrors backend's single
-  // "finance-foundation" permission key across 9 distinct frontend routeKeys
   // (one per screen, matching the app's existing per-page routeKey convention),
-  // plus the narrower "finance-refund-approval" key backend already enforces
-  // server-side for the refund-approve action specifically.
   // Recurring Billing Scheduler (M3.5) — deliberately NOT added to any
   // (developer/super_admin) reach it via their existing "*" wildcard;
-  // every other role's can("finance-scheduler") is false by construction,
   // matching the backend's bypass-only route guard exactly — this is a
-  // platform-wide, cross-school operation, not a per-school Finance screen.
 };
-
-// Finance Platform routeKeys granted to admin/center_admin/center_owner/accountant
-// (matches backend's "finance-foundation" role grant exactly). Refund-approval
 // is added separately per-role below since backend excludes center_admin from it.
 
 // ── Permission map: role → array of allowed routeKeys ─────────────────────────
@@ -122,7 +113,7 @@ export const ROLE_PERMISSIONS = {
   ],
 
   center_admin: [
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -138,14 +129,12 @@ export const ROLE_PERMISSIONS = {
     ROUTES.STAFF_LEAVE, ROUTES.STAFF_LEAVE_APPROVE, ROUTES.STAFF_LEAVE_TYPES,
     ROUTES.STAFF_PAYROLL, ROUTES.STAFF_PAYROLL_PROCESS,
     ROUTES.STAFF_PERFORMANCE, ROUTES.STAFF_PERFORMANCE_MANAGE,
-    // Note: center_admin gets Finance Foundation screens but NOT refund
-    // approval — mirrors backend's "finance-refund-approval" key, which
     // deliberately excludes center_admin (server-validated, not client-trusted).
   ],
 
   // center_owner — same privilege as center_admin; separate role for clarity
   center_owner: [
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -176,7 +165,7 @@ export const ROLE_PERMISSIONS = {
   ],
 
   accountant: [
-    ROUTES.DASHBOARD, ROUTES.ANALYTICS,
+    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.ANALYTICS,
     ROUTES.STUDENTS, ROUTES.PROFILE,
   ],
 
@@ -201,7 +190,7 @@ export const ROLE_HOME = {
   center_admin: "/",
   center_owner: "/",
   teacher:      "/child-presence",
-  accountant:   "/dashboard",
+  accountant:   "/finance",
   reception:    "/",
   parent:       "/parent-home",
 };

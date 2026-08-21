@@ -73,6 +73,7 @@ const communicationRoutes    = require("./routes/communicationRoutes");
 const securityRoutes         = require("./routes/securityRoutes");
 const qrRoutes               = require("./routes/qrRoutes");
 const cctvRoutes             = require("./routes/cctvRoutes");
+const financeRoutes          = require("./routes/financeRoutes");
 const parentRoutes           = require("./routes/parentRoutes");
 const eventRoutes            = require("./routes/eventRoutes");
 const ptmRoutes              = require("./routes/ptmRoutes");
@@ -130,6 +131,7 @@ app.use(communicationRoutes);
 app.use(securityRoutes);
 app.use(qrRoutes);             // /api/qr/center/:centerId, /api/qr/validate
 app.use(cctvRoutes);           // /api/cctv/cameras  (CCTV V2 — metadata CRUD, no streaming)
+app.use(financeRoutes);        // /api/fee-templates, /api/invoices, /api/payments, /api/finance/*
 app.use(notificationRoutes);   // /api/parent/notifications/*  (must be before parentRoutes)
 app.use(careRoutes);           // /api/care/*  (Care & Hygiene — staff only)
 app.use(academicsRoutes);      // /api/academics/*  (Class Management)

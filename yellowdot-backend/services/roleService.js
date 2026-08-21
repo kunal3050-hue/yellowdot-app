@@ -33,7 +33,7 @@ const STATIC_ROLE_PERMS = {
   developer:    ["*"],
   super_admin:  ["*"],
   admin: [
-    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
@@ -45,7 +45,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_owner: [
-    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
@@ -57,7 +57,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_admin: [
-    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements","cctv",
@@ -80,7 +80,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","incidents","ptm","staff-checkout",
   ],
   accountant: [
-    "dashboard","students","profile",
+    "finance","dashboard","students","profile",
     ],
   reception: [
     "dashboard","students","attendance","parent-checkin",
