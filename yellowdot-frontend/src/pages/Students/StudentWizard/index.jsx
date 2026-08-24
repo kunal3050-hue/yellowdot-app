@@ -24,7 +24,7 @@ import { Wizard, ToastProvider, useToast } from "../../../components/ui";
 import { api } from "../../../services/authService";
 import familyService from "../../../services/familyService";
 import { admissionSchema, editSchema, EMPTY_DRAFT } from "./schema";
-import { StepStudentInfo, StepParentDetails, StepMedical, StepPickup, StepFees, StepDocuments } from "./steps";
+import { StepStudentInfo, StepParentDetails, StepMedical, StepPickup, StepDocuments } from "./steps";
 
 function formatDateForInput(raw) {
   if (!raw) return "";
@@ -76,7 +76,6 @@ function WizardInner() {
     { key: "parents", label: "Parent Details", fields: StepParentDetails.fields, render: StepParentDetails },
     { key: "medical", label: "Medical", optional: true, fields: StepMedical.fields, render: StepMedical },
     { key: "pickup", label: "Pickup Auth", optional: true, fields: StepPickup.fields, render: StepPickup },
-    { key: "fees", label: "Fees", optional: true, fields: StepFees.fields, render: StepFees },
     { key: "documents", label: "Documents", optional: true, fields: StepDocuments.fields, render: StepDocuments },
   ];
   const editSteps = [
@@ -92,8 +91,6 @@ function WizardInner() {
       mother_name: draft.motherName, mother_whatsapp: draft.motherWhatsapp, mother_email: draft.motherEmail, mother_photo: draft.motherPhoto || "",
       profile_image: draft.studentPhoto || "",
       // A selected Fee Template automatically creates AND activates a
-      // Billing is set up separately — the finance module is being rebuilt.
-      fee_template_id: draft.feeTemplate || "",
     });
     const studentId = res.data?.studentId || res.data?.student?.studentId;
 

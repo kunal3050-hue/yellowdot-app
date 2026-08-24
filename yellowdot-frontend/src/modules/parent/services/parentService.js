@@ -48,13 +48,6 @@ export async function getMemories(studentId) {
   return data;
 }
 
-// Phase 5 — Fees (read-only, for linked children)
-export async function getFees(studentId) {
-  const { data } = await api.get("/api/parent/fees", {
-    params: studentId ? { studentId } : {},
-  });
-  return data;
-}
 
 // Daily Care · Food Menu (read-only)
 export async function getFoodMenu(date) {
@@ -184,4 +177,4 @@ export async function markAllNotificationsRead() {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFees, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getPtms, bookPtmSlot, reschedulePtmBooking, cancelPtmBooking, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
+export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getPtms, bookPtmSlot, reschedulePtmBooking, cancelPtmBooking, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };

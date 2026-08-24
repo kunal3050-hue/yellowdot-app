@@ -28,7 +28,6 @@ export { default as ActionBar     } from "./ActionBar";
 export { default as Table         } from "./Table";
 export { default as DataTable     } from "./DataTable";
 export { default as StatsCard     } from "./StatsCard";
-export { default as InvoiceCard   } from "./InvoiceCard";
 export { default as Timeline      } from "./Timeline";
 export { default as ActivityFeed  } from "./ActivityFeed";
 

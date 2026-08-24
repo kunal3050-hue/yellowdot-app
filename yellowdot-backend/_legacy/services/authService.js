@@ -49,12 +49,12 @@ const ROLE_PERMISSIONS = {
   super_admin:  ["*"],
 
   admin:        [               // alias for center_admin
-    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
+    "dashboard", "students", "attendance", "analytics",
     "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "profile", "settings",
   ],
   center_admin: [
-    "dashboard", "students", "attendance", "fees", "invoice", "analytics",
+    "dashboard", "students", "attendance", "analytics",
     "nap-tracker", "food-menu", "food-consumption",
     "parent-checkin", "pickup-authorization", "pickup-history", "profile", "settings",
   ],
@@ -63,10 +63,10 @@ const ROLE_PERMISSIONS = {
     "students", "parent-checkin", "profile",
   ],
   parent: [
-    "dashboard", "parent-checkin", "pickup-history", "fees", "profile",
+    "dashboard", "parent-checkin", "pickup-history", "profile",
   ],
   accountant: [
-    "dashboard", "fees", "invoice", "analytics", "students", "profile",
+    "dashboard", "analytics", "students", "profile",
   ],
   reception: [
     "dashboard", "students", "attendance", "parent-checkin",
@@ -82,7 +82,7 @@ const ROLE_HOME = {
   center_admin: "/",
   teacher:      "/attendance",
   parent:       "/parent-checkin",
-  accountant:   "/invoice",
+  accountant:   "/dashboard",
   reception:    "/",
 };
 

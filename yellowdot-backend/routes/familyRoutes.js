@@ -25,9 +25,8 @@
  * POST   /api/families/:familyId/documents               Add document metadata
  * DELETE /api/families/:familyId/documents/:docId        Delete document
  *
- * V2 — Timeline & Fees
+ * V2 — Timeline
  * GET    /api/families/:familyId/timeline        Activity timeline
- * GET    /api/families/:familyId/fees-summary    Outstanding fees across children
  *
  * V2 — Sibling discount rules (school-wide)
  * GET    /api/sibling-discount-rules             Get rules
@@ -293,20 +292,6 @@ router.get("/api/families/:familyId/timeline", ...canView, requireFamilyTenant, 
   } catch (err) {
     console.error("[GET timeline]", err.message);
     res.status(500).json({ success: false, error: "Failed to fetch timeline." });
-  }
-});
-
-// ══════════════════════════════════════════════════════════════════
-// V2 — FEES SUMMARY
-// ══════════════════════════════════════════════════════════════════
-
-router.get("/api/families/:familyId/fees-summary", ...canView, requireFamilyTenant, async (req, res) => {
-  try {
-    const summary = await svc.getFeesSummary(req.params.familyId, req.user.schoolId);
-    res.json({ success: true, ...summary });
-  } catch (err) {
-    console.error("[GET fees-summary]", err.message);
-    res.status(500).json({ success: false, error: "Failed to fetch fees summary." });
   }
 });
 

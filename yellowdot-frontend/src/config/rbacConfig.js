@@ -40,7 +40,6 @@ export const PERMISSION_DEPS = {
 // ── Staff type categories ─────────────────────────────────────────────────────
 export const STAFF_CATEGORIES = [
   { id: "academic",    label: "Academic",        color: "#059669" },
-  { id: "finance",     label: "Finance",          color: "#2563eb" },
   { id: "operations",  label: "Operations",       color: "#d97706" },
   { id: "security",    label: "Security",         color: "#dc2626" },
   { id: "support",     label: "Parent Support",   color: "#7c3aed" },
@@ -97,19 +96,7 @@ export const PERMISSION_CATEGORIES = [
       { id: "care_hygiene", label: "Care & Hygiene",   actions: ["view", "mark", "edit"] },
     ],
   },
-  {
-    id:    "finance",
-    label: "Finance",
-    icon:  "💰",
-    modules: [
-      { id: "fees",      label: "Fees",      actions: ["view", "create", "edit", "delete", "approve"] },
-      { id: "invoices",  label: "Invoices",  actions: ["view", "create", "edit", "delete", "approve"] },
-      { id: "payments",  label: "Payments",  actions: ["view", "create", "delete"] },
-      { id: "receipts",  label: "Receipts",  actions: ["view", "create", "export"] },
-      { id: "analytics", label: "Analytics", actions: ["view", "export"] },
-    ],
-  },
-  {
+{
     id:    "administration",
     label: "Administration",
     icon:  "🛡️",
@@ -197,27 +184,7 @@ export const PERMISSION_CATEGORIES = [
       { id: "artwork",         label: "Artwork",         actions: ["view", "create", "edit", "delete"] },
     ],
   },
-  {
-    // The Finance Platform (9 screens) previously had NO entry anywhere in
-    // this file — a school could not restrict it per-role through the Roles
-    // UI at all; it was granted as one all-or-nothing block. `finance-scheduler`
-    // is deliberately excluded — that one stays bypass-only by design.
-    id:    "finance_platform",
-    label: "Finance Platform",
-    icon:  "🧾",
-    modules: [
-      { id: "finance_dashboard",      label: "Finance Dashboard",   actions: ["view"] },
-      { id: "finance_ledger",         label: "Student Ledger",      actions: ["view"] },
-      { id: "finance_billing_plans",  label: "Billing Plans",       actions: ["view"] },
-      { id: "finance_invoices",       label: "Invoices (Platform)", actions: ["view"] },
-      { id: "finance_payments",       label: "Payments (Platform)", actions: ["view"] },
-      { id: "finance_family_account", label: "Family Accounts",     actions: ["view"] },
-      { id: "finance_refunds",        label: "Refunds",             actions: ["view"] },
-      { id: "finance_settings",       label: "Finance Settings",    actions: ["view"] },
-      { id: "finance_audit",          label: "Finance Audit Log",   actions: ["view"] },
-    ],
-  },
-];
+  ];
 
 // ── Module → route-key mapping (mirrors backend roleService.js) ───────────────
 // Used by deriveRouteKeysFromPermissions() for sidebar preview.
@@ -230,10 +197,6 @@ const MODULE_ROUTE_MAP = {
   pickup_auth:       ["pickup-authorization", "pickup-history"],
   medical:           [],
   food_menu:         ["food-menu", "food-consumption"],
-  fees:              ["fees"],
-  invoices:          ["invoice"],
-  payments:          ["fees"],
-  receipts:          ["invoice"],
   analytics:         ["analytics"],
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
@@ -267,16 +230,6 @@ const MODULE_ROUTE_MAP = {
   announcements: ["announcements"],
   events:        ["events"],
   ptm:           ["ptm"],
-  // Finance Platform — previously unmapped anywhere (see PERMISSION_CATEGORIES).
-  finance_dashboard:      ["finance-dashboard"],
-  finance_ledger:         ["finance-ledger"],
-  finance_billing_plans:  ["finance-billing-plans"],
-  finance_invoices:       ["finance-invoices"],
-  finance_payments:       ["finance-payments"],
-  finance_family_account: ["finance-family-account"],
-  finance_refunds:        ["finance-refunds"],
-  finance_settings:       ["finance-settings"],
-  finance_audit:          ["finance-audit"],
 };
 
 /** Derive sidebar route keys from a granular permission matrix. */
@@ -441,30 +394,6 @@ export const PERMISSION_DESCRIPTIONS = {
     edit:   "Update existing menu items",
     delete: "Remove menu entries",
   },
-  fees: {
-    view:    "View fee structures and outstanding balances",
-    create:  "Set up new fee items and structures",
-    edit:    "Modify fee amounts and due dates",
-    delete:  "Remove fee records",
-    approve: "Approve fee waivers and discounts",
-  },
-  invoices: {
-    view:    "View student invoices and billing",
-    create:  "Generate new invoices",
-    edit:    "Update invoice line items and amounts",
-    delete:  "Void and permanently delete invoices",
-    approve: "Approve invoices before sending",
-  },
-  payments: {
-    view:   "View payment history and transactions",
-    create: "Record and collect new payments",
-    delete: "Reverse or delete payment records",
-  },
-  receipts: {
-    view:   "View payment receipts",
-    create: "Generate receipts for payments",
-    export: "Download receipt PDFs and reports",
-  },
   analytics: {
     view:   "View financial and operational reports",
     export: "Download analytics data and reports",
@@ -508,15 +437,6 @@ export const PERMISSION_DESCRIPTIONS = {
   announcements: { view: "View announcements" },
   events:        { view: "View scheduled events" },
   ptm:           { view: "View parent-teacher meeting scheduling" },
-  finance_dashboard:      { view: "View the Finance Platform dashboard" },
-  finance_ledger:         { view: "View student ledgers" },
-  finance_billing_plans:  { view: "View recurring billing plans" },
-  finance_invoices:       { view: "View Finance Platform invoices" },
-  finance_payments:       { view: "View Finance Platform payments" },
-  finance_family_account: { view: "View family account balances" },
-  finance_refunds:        { view: "View refund requests" },
-  finance_settings:       { view: "View Finance Platform settings" },
-  finance_audit:          { view: "View the Finance Platform audit log" },
   staff_attendance:         { view: "View your own staff attendance record" },
   staff_attendance_manage:  { view: "View and manage staff attendance & shifts for others" },
   staff_leave:              { view: "View your own leave record" },
@@ -533,21 +453,14 @@ export const PERMISSION_DESCRIPTIONS = {
 // "critical"  — red dot: irreversible or high-impact action
 export const RISK_LEVELS = {
   "students.delete":          "critical",
-  "fees.delete":              "critical",
-  "invoices.delete":          "critical",
-  "payments.delete":          "critical",
   "staff.delete":             "critical",
   "roles_permissions.manage": "critical",
   "documents.delete":         "critical",
-  "fees.approve":             "sensitive",
-  "invoices.approve":         "sensitive",
   "pickup_auth.approve":      "sensitive",
   "incidents.approve":        "sensitive",
   "admissions.approve":       "sensitive",
-  "payments.create":          "sensitive",
   "students.export":          "sensitive",
   "analytics.export":         "sensitive",
-  "receipts.export":          "sensitive",
   "settings.edit":            "sensitive",
   "staff.create":             "sensitive",
   "staff.edit":               "sensitive",
@@ -621,15 +534,11 @@ export const ROLE_TEMPLATES = [
     emoji:       "📊",
     description: "Financial management, invoicing and reporting",
     color:       "#2563eb",
-    category:    "finance",
-    homeRoute:   "/invoice",
+    category:    "operations",
+    homeRoute:   "/dashboard",
     permissions: {
       dashboard: { view: true },
       students:  { view: true, create: false, edit: false, delete: false, export: true },
-      fees:      { view: true, create: true,  edit: true,  delete: false, approve: true },
-      invoices:  { view: true, create: true,  edit: true,  delete: false, approve: true },
-      payments:  { view: true, create: true,  delete: false },
-      receipts:  { view: true, create: true,  export: true },
       analytics: { view: true, export: true },
       documents: { view: true, upload: true,  delete: false, export: true },
     },
@@ -666,8 +575,6 @@ export const ROLE_TEMPLATES = [
       pickup_auth:       { view: true, create: true,  edit: true,  approve: true },
       medical:           { view: true, edit: true },
       food_menu:         { view: true, create: true,  edit: true,  delete: false },
-      fees:              { view: true, create: true,  edit: true,  delete: false, approve: true },
-      invoices:          { view: true, create: false, edit: false, delete: false, approve: false },
       analytics:         { view: true, export: false },
       staff:             { view: true, create: true,  edit: true,  delete: false },
       roles_permissions: { view: true, manage: false },

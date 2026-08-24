@@ -15,7 +15,7 @@
  * comparable across runs and a failure is reproducible.
  *
  * Dates are anchored to TODAY so the Dashboard and Care surfaces have live
- * data every day without reseeding: attendance is for today, invoices are
+ * data every day without reseeding: attendance is for today.
  * overdue relative to today, and one child always has a birthday today.
  */
 
@@ -163,7 +163,7 @@ async function seedRoles() {
     admin: {
       name: "Principal",
       permissions: {
-        ...full("students", "attendance", "fees", "invoices", "payments", "analytics",
+        ...full("students", "attendance", "analytics",
                 "staff", "settings", "roles_permissions", "notifications",
                 "incidents", "care_hygiene", "observations", "nap_tracking",
                 "food_menu", "pickup_auth", "classes_batches", "staff_management"),
@@ -172,7 +172,7 @@ async function seedRoles() {
     center_owner: {
       name: "Centre Owner",
       permissions: {
-        ...full("students", "attendance", "fees", "invoices", "payments", "analytics",
+        ...full("students", "attendance", "analytics",
                 "staff", "settings", "notifications", "incidents", "care_hygiene",
                 "observations", "nap_tracking", "food_menu", "pickup_auth",
                 "classes_batches", "staff_management"),
@@ -181,7 +181,7 @@ async function seedRoles() {
     center_admin: {
       name: "Centre Admin",
       permissions: {
-        ...full("students", "attendance", "fees", "invoices", "analytics",
+        ...full("students", "attendance", "analytics",
                 "incidents", "care_hygiene", "observations", "pickup_auth", "food_menu"),
       },
     },
@@ -214,8 +214,7 @@ async function seedRoles() {
       name: "Accountant",
       permissions: {
         ...viewOnly("students"),
-        ...full("fees", "invoices", "payments", "receipts", "analytics"),
-        finance: { view: true },
+        ...full("analytics"),
       },
     },
   };
@@ -239,7 +238,7 @@ async function seedTenant() {
     status: "active",
     subscriptionPlan: "premium",
     // Three-layer flags (§2c.2): tenant overrides on top of platform defaults.
-    features: { DAILY_CARE: true, CHILD_JOURNEY: true, LIVE_DASHBOARD: true, FINANCE_FOUNDATION: true },
+    features: { DAILY_CARE: true, CHILD_JOURNEY: true, LIVE_DASHBOARD: true },
     branches: [{ branchId: CENTER_ID, name: "North Centre", centerId: CENTER_ID }],
     createdAt: new Date().toISOString(),
   });
@@ -368,29 +367,6 @@ async function seedIncidents(students) {
   return rows.filter(r => r.status !== "resolved").length;
 }
 
-/** Mixed invoice states, including 3 Overdue → finance widget + task populate. */
-async function seedInvoices(students) {
-  const batch = db.batch();
-  let overdue = 0, outstanding = 0;
-  students.slice(0, 14).forEach((s, i) => {
-    const status = i < 3 ? "Overdue" : i < 6 ? "Pending" : i < 8 ? "Partial" : "Paid";
-    const amount = 8000 + (i % 5) * 1500;
-    const balance = status === "Paid" ? 0 : status === "Partial" ? Math.round(amount / 2) : amount;
-    if (status === "Overdue") overdue++;
-    outstanding += balance;
-    const id = `INV-${String(i + 1).padStart(4, "0")}`;
-    batch.set(db.collection("invoices").doc(id), {
-      invoiceNumber: id, invoiceId: id,
-      studentId: s.id, studentName: s.name,
-      amount, paidAmount: amount - balance, balance, status,
-      dueDate: iso(daysAgo(status === "Overdue" ? 12 + i : -10)),
-      schoolId: SCHOOL_ID, centerId: CENTER_ID,
-      createdAt: iso(daysAgo(30)),
-    });
-  });
-  await batch.commit();
-  return { overdue, outstanding };
-}
 
 /** Daily Care: hygiene logs, meals and naps for today. */
 async function seedDailyCare(students) {
@@ -455,8 +431,7 @@ async function main() {
   console.log(`   schoolId: ${SCHOOL_ID}\n`);
 
   await wipe([
-    "students", "attendance", "pickupRequests", "incidentReports", "invoices",
-    "careLogs", "foodConsumption", "napLogs", "enquiries", "roles", "users",
+    "students", "attendance", "pickupRequests", "incidentReports", "careLogs", "foodConsumption", "napLogs", "enquiries", "roles", "users",
     "staff", "classes", "tenants",
   ]);
 
@@ -472,7 +447,6 @@ async function main() {
     attendance: await seedAttendance(students),
     pickups:   await seedPickupRequests(students),
     incidents: await seedIncidents(students),
-    invoices:  await seedInvoices(students),
     dailyCare: await seedDailyCare(students),
     enquiries: await seedCrmEnquiries(),
   };
@@ -484,8 +458,6 @@ async function main() {
               `${counts.attendance.unmarked} UNMARKED → attendance task fires`);
   console.log(`   pickups         ${counts.pickups} pending → pickup widget + task fire`);
   console.log(`   incidents       ${counts.incidents} unresolved → incident widget + task fire`);
-  console.log(`   invoices        ${counts.invoices.overdue} overdue, ` +
-              `₹${counts.invoices.outstanding.toLocaleString("en-IN")} outstanding → finance widget + task fire`);
   console.log(`   daily care      ${counts.dailyCare} children logged`);
   console.log(`   CRM enquiries   ${counts.enquiries} (no module consumes these yet)`);
   console.log(`   roles           ${counts.roles} (includes center_owner — absent in production, see D1)`);

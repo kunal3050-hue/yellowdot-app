@@ -87,12 +87,6 @@ const familyService = {
     return api.get(`/api/families/${familyId}/timeline`).then(r => r.data);
   },
 
-  // ── V2: Fees summary ──────────────────────────────────────────────
-
-  getFeesSummary(familyId) {
-    return api.get(`/api/families/${familyId}/fees-summary`).then(r => r.data);
-  },
-
   // ── V2: Sibling discount rules ────────────────────────────────────
 
   getDiscountRules() {

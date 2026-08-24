@@ -33,7 +33,7 @@ const STATIC_ROLE_PERMS = {
   developer:    ["*"],
   super_admin:  ["*"],
   admin: [
-    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
@@ -45,7 +45,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_owner: [
-    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements",
@@ -57,7 +57,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","families","incidents","ptm","qr-management","staff-checkout",
   ],
   center_admin: [
-    "finance","dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
+    "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
     "profile","settings","user-management","roles-permissions",
     "holidays","notices","announcements","cctv",
@@ -80,7 +80,7 @@ const STATIC_ROLE_PERMS = {
     "academics-student-allocation","care-hygiene","cctv","child-journey","events","incidents","ptm","staff-checkout",
   ],
   accountant: [
-    "finance","dashboard","students","profile",
+    "dashboard","students","profile",
     ],
   reception: [
     "dashboard","students","attendance","parent-checkin",
@@ -151,7 +151,6 @@ const MODULE_ROUTE_MAP = {
   announcements: ["announcements"],
   events:        ["events"],
   ptm:           ["ptm"],
-  // Finance Platform — the nine frontend-only page-gating routeKeys (see
   // all, so a Firestore role doc could never individually grant or withhold
   // that route stays bypass-only by design (see permissions.js).
 };
@@ -401,10 +400,10 @@ const SYSTEM_ROLES = [
   {
     roleId:      "accountant",
     name:        "Accountant",
-    description: "Financial management, invoicing and reporting",
+    description: "Reporting and student records",
     color:       "#2563eb",
     isSystem:    true,
-    homeRoute:   "/invoice",
+    homeRoute:   "/dashboard",
     permissions: {
       dashboard:  { view: true },
       students:   { view: true, create: false, edit: false, delete: false, export: true },

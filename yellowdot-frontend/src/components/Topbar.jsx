@@ -27,12 +27,6 @@ const SEARCH_ITEMS = [
   { name: "Dashboard",         path: "/",                      icon: "🏠", group: "Core" },
   { name: "Students",          path: "/students",              icon: "🎓", group: "Core" },
   { name: "Attendance",        path: "/attendance",            icon: "📅", group: "Core" },
-  // Finance
-  { name: "Fees",              path: "/fees",                  icon: "💳", group: "Finance" },
-  { name: "Invoices",          path: "/invoice",               icon: "📄", group: "Finance" },
-  { name: "New Invoice",       path: "/invoice/new",           icon: "➕", group: "Finance" },
-  { name: "Fee Templates",     path: "/invoice/templates",     icon: "📋", group: "Finance" },
-  { name: "Analytics",         path: "/analytics",             icon: "📊", group: "Finance" },
   // Daily Ops
   { name: "Nap Tracker",       path: "/nap-tracker",           icon: "😴", group: "Daily Ops" },
   { name: "Food Menu",         path: "/food-menu",             icon: "🍽️",  group: "Daily Ops" },
@@ -50,7 +44,7 @@ const SEARCH_ITEMS = [
 ];
 
 // Items shown when search is empty — most-used pages
-const PINNED_PATHS = ["/", "/students", "/invoice", "/attendance", "/fees", "/analytics"];
+const PINNED_PATHS = ["/", "/students", "/attendance"];
 const PINNED = SEARCH_ITEMS.filter(i => PINNED_PATHS.includes(i.path));
 
 // ── Shared hook: close on outside click ───────────────────────────────────

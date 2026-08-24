@@ -57,14 +57,12 @@ const Icons = Object.fromEntries(
 const SECTIONS = [
   { id: "school",        label: "School Profile",   icon: "Building",   desc: "Basic info, contact details, logo" },
   { id: "academic",      label: "Academic Year",    icon: "Calendar",   desc: "Year label, dates, and terms" },
-  { id: "fees",          label: "Fee Settings",     icon: "CreditCard", desc: "GST, late fees, payment modes" },
   { id: "attendance",    label: "Attendance Rules", icon: "Clock",      desc: "Check-in windows and thresholds" },
   { id: "users",         label: "User Management",  icon: "Users",      desc: "Staff accounts and roles" },
   { id: "permissions",   label: "Role Permissions", icon: "Shield",     desc: "Access control matrix" },
   { id: "branding",      label: "Branding",         icon: "Palette",    desc: "Logo, colors, report styles" },
   { id: "notifications", label: "Notifications",    icon: "Bell",       desc: "Alerts and delivery channels" },
   { id: "parent",        label: "Parent App",       icon: "Smartphone", desc: "What parents can see and do" },
-  { id: "payment",       label: "Payment Settings", icon: "Wallet",     desc: "UPI ID, bank details, payment options" },
   { id: "gate_config",  label: "Gate Configuration", icon: "QrCode",      desc: "QR codes for gate entry and check-in" },
   { id: "about",        label: "About",              icon: "Info",        desc: "App version and install options" },
   { id: "releases",     label: "Staged Releases",    icon: "Rocket",      desc: "Module pipeline: Development → Testing → Production", developerOnly: true },
@@ -323,104 +321,7 @@ const PAYMENT_OPTIONS = [
   { id: "card",          label: "Card" },
 ];
 
-function FeeSection({ data, onSave, saving }) {
-  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.fees, ...data }));
-  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.fees, ...data });
-  const set    = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
-  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
 
-  const methods = toArr(d.paymentMethods);
-  const toggleMethod = (id) => {
-    const next = methods.includes(id) ? methods.filter((m) => m !== id) : [...methods, id];
-    setD((p) => ({ ...p, paymentMethods: fromArr(next) }));
-  };
-
-  return (
-    <>
-      <SectionHeader
-        title="Fee Settings"
-        desc="Configure GST, late fees, due dates, and accepted payment methods."
-        dirty={dirty}
-        saving={saving}
-        onSave={() => onSave("fees", d)}
-      />
-
-      <Card title="Taxation" icon="CreditCard">
-        <ToggleRow
-          label="GST Applicable"
-          sub="Adds GST to all invoices"
-          checked={toBool(d.gstEnabled)}
-          onChange={toggle("gstEnabled")}
-        />
-        {toBool(d.gstEnabled) && (
-          <div style={{ marginTop: 14 }}>
-            <Field label="GST Rate">
-              <select className="yd-input" value={d.gstRate} onChange={set("gstRate")}>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18">18%</option>
-                <option value="28">28%</option>
-              </select>
-            </Field>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Late Fees" icon="Clock">
-        <ToggleRow
-          label="Charge Late Fee"
-          sub="Applied when payment is received after the due date + grace period"
-          checked={toBool(d.lateFeeEnabled)}
-          onChange={toggle("lateFeeEnabled")}
-        />
-        {toBool(d.lateFeeEnabled) && (
-          <div className="yd-stg-grid" style={{ marginTop: 14 }}>
-            <Field label="Late Fee Type">
-              <select className="yd-input" value={d.lateFeeType} onChange={set("lateFeeType")}>
-                <option value="percentage">Percentage of outstanding</option>
-                <option value="fixed">Fixed amount (₹)</option>
-              </select>
-            </Field>
-            <Field label={d.lateFeeType === "percentage" ? "Rate (%)" : "Amount (₹)"}>
-              <input className="yd-input" type="number" value={d.lateFeeValue} onChange={set("lateFeeValue")} min="0" step={d.lateFeeType === "percentage" ? "0.5" : "1"} />
-            </Field>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Invoice & Reminders" icon="Bell">
-        <div className="yd-stg-grid">
-          <Field label="Due Day of Month" hint="Day invoices are due each month (1–28)">
-            <input className="yd-input" type="number" value={d.dueDayOfMonth} onChange={set("dueDayOfMonth")} min="1" max="28" />
-          </Field>
-          <Field label="Grace Period (days)" hint="Extra days before late fee kicks in">
-            <input className="yd-input" type="number" value={d.gracePeriodDays} onChange={set("gracePeriodDays")} min="0" max="30" />
-          </Field>
-          <Field label="Remind Before Due (days)" hint="Send reminder N days before due date">
-            <input className="yd-input" type="number" value={d.remindDaysBefore} onChange={set("remindDaysBefore")} min="0" max="14" />
-          </Field>
-        </div>
-      </Card>
-
-      <Card title="Accepted Payment Methods">
-        <label className="yd-stg-label" style={{ display: "block", marginBottom: 8 }}>Select all methods you accept</label>
-        <div className="yd-check-grid">
-          {PAYMENT_OPTIONS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              className={`yd-check-pill${methods.includes(id) ? " on" : ""}`}
-              onClick={() => toggleMethod(id)}
-            >
-              {methods.includes(id) && <Icons.Check />}
-              {label}
-            </button>
-          ))}
-        </div>
-      </Card>
-    </>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 4 — ATTENDANCE RULES
@@ -719,9 +620,6 @@ const ROUTE_LABELS = {
   [ROUTES.DASHBOARD]:            "Dashboard",
   [ROUTES.STUDENTS]:             "Students",
   [ROUTES.ATTENDANCE]:           "Attendance",
-  [ROUTES.FEES]:                 "Fees",
-  [ROUTES.INVOICE]:              "Invoices",
-  [ROUTES.ANALYTICS]:            "Analytics",
   [ROUTES.NAP_TRACKER]:          "Nap Tracker",
   [ROUTES.FOOD_MENU]:            "Food Menu",
   [ROUTES.FOOD_CONSUMPTION]:     "Food Log",
@@ -939,8 +837,6 @@ function BrandingSection({ data, onSave, saving }) {
 
 const NOTIF_EVENTS = [
   { id: "attendance",    label: "Attendance Marked",       sub: "When a student is checked in or out" },
-  { id: "feeReminder",   label: "Fee Reminder",            sub: "N days before invoice due date" },
-  { id: "invoice",       label: "Invoice Generated",       sub: "When a new invoice is created" },
   { id: "pickup",        label: "Pickup Notification",     sub: "When a student is picked up" },
   { id: "lowAttendance", label: "Low Attendance Alert",    sub: `When attendance drops below threshold` },
 ];
@@ -1011,7 +907,6 @@ function NotifSection({ data, onSave, saving }) {
 
 const PARENT_TOGGLES = [
   { key: "showAttendance",     label: "Attendance History",    sub: "Parents can view their child's daily attendance record" },
-  { key: "showFees",           label: "Fee Details",           sub: "Show outstanding balance and invoice history" },
   { key: "showFoodMenu",       label: "Food Menu",             sub: "Display today's and weekly food menu" },
   { key: "showNapLog",         label: "Nap Log",               sub: "Show nap times and durations for the day" },
   { key: "showSiblingInfo",    label: "Sibling Information",   sub: "Show enrolled siblings on the parent portal" },
@@ -1050,151 +945,6 @@ function ParentSection({ data, onSave, saving }) {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// SECTION 11 — PAYMENT SETTINGS
-// ══════════════════════════════════════════════════════════════════
-
-function PaymentSection({ data, onSave, saving }) {
-  const [d, setD] = useState(() => ({ ...DEFAULT_SETTINGS.payment, ...data }));
-  const dirty = JSON.stringify(d) !== JSON.stringify({ ...DEFAULT_SETTINGS.payment, ...data });
-  const set    = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
-  const toggle = (k) => (v) => setD((p) => ({ ...p, [k]: String(v) }));
-
-  /* Build UPI preview link */
-  const upiPreview = d.upiId
-    ? `upi://pay?pa=${encodeURIComponent(d.upiId)}&pn=${encodeURIComponent(d.accountName || "School")}&cu=INR`
-    : "";
-
-  return (
-    <>
-      <SectionHeader
-        title="Payment Settings"
-        desc="Configure UPI ID, bank details, and payment instructions shown on every invoice."
-        dirty={dirty}
-        saving={saving}
-        onSave={() => onSave("payment", d)}
-      />
-
-      {/* UPI */}
-      <Card title="UPI / QR Code" icon="Wallet">
-        <div className="yd-stg-grid">
-          <Field label="UPI ID" hint="e.g. school@hdfcbank or school@upi" span2>
-            <input
-              className="yd-input"
-              value={d.upiId}
-              onChange={set("upiId")}
-              placeholder="yourschool@upi"
-            />
-          </Field>
-          {d.upiId && (
-            <Field label="QR Preview" span2>
-              <div style={{
-                padding: "12px", background: "#FFFBEA",
-                borderRadius: 8, border: "1px solid #F0D94A",
-                display: "inline-flex", flexDirection: "column",
-                alignItems: "center", gap: 8,
-              }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600,
-                  color: "#92400E", fontFamily: "monospace",
-                  wordBreak: "break-all", maxWidth: 340, textAlign: "center",
-                }}>{upiPreview}</div>
-                <div style={{ fontSize: 11, color: "#6B7280" }}>
-                  A QR code for the exact invoice amount will be generated automatically on each invoice.
-                </div>
-              </div>
-            </Field>
-          )}
-        </div>
-        <div style={{ marginTop: 16 }}>
-          <label className="yd-stg-label" style={{ display: "block", marginBottom: 8 }}>
-            Accepted Payment Methods
-          </label>
-          <div className="yd-check-grid">
-            {[
-              { k: "acceptUpi",    label: "UPI / QR" },
-              { k: "acceptBank",   label: "Bank Transfer" },
-              { k: "acceptCash",   label: "Cash" },
-              { k: "acceptCheque", label: "Cheque" },
-            ].map(({ k, label }) => (
-              <button
-                key={k}
-                type="button"
-                className={`yd-check-pill${toBool(d[k]) ? " on" : ""}`}
-                onClick={() => toggle(k)(!toBool(d[k]))}
-              >
-                {toBool(d[k]) && <Icons.Check />}
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* Bank Transfer */}
-      <Card title="Bank Account Details" icon="CreditCard">
-        <div className="yd-stg-grid">
-          <Field label="Bank Name">
-            <input className="yd-input" value={d.bankName} onChange={set("bankName")} placeholder="HDFC Bank" />
-          </Field>
-          <Field label="Account Holder Name">
-            <input className="yd-input" value={d.accountName} onChange={set("accountName")} placeholder="e.g. Sunshine Preschool Pvt Ltd" />
-          </Field>
-          <Field label="Account Number" hint="Will appear on invoices with a copy button">
-            <input className="yd-input" value={d.accountNumber} onChange={set("accountNumber")} placeholder="0001234567890" />
-          </Field>
-          <Field label="IFSC Code">
-            <input className="yd-input" value={d.ifscCode} onChange={set("ifscCode")} placeholder="HDFC0001234" />
-          </Field>
-          <Field label="Branch">
-            <input className="yd-input" value={d.branch} onChange={set("branch")} placeholder="Seawoods, Navi Mumbai" />
-          </Field>
-          <Field label="GST Number (GSTIN)" hint="Leave blank if not GST registered">
-            <input className="yd-input" value={d.gstNumber} onChange={set("gstNumber")} placeholder="27AADCB2230M1ZT" />
-          </Field>
-        </div>
-      </Card>
-
-      {/* Cash / Cheque */}
-      <Card title="Cash & Cheque Instructions">
-        <div className="yd-stg-grid">
-          <Field label="Office Hours" hint="Shown on invoice payment section">
-            <input className="yd-input" value={d.officeHours} onChange={set("officeHours")} placeholder="Mon – Sat: 8:00 AM – 6:00 PM" />
-          </Field>
-          <Field label="Cash Instructions" span2>
-            <textarea
-              className="yd-input"
-              rows={3}
-              value={d.cashInstructions}
-              onChange={set("cashInstructions")}
-              placeholder="Pay at the school front desk during office hours."
-            />
-          </Field>
-          <Field label="Billing Notes" hint="Shown at bottom of every invoice" span2>
-            <textarea
-              className="yd-input"
-              rows={3}
-              value={d.billingNotes}
-              onChange={set("billingNotes")}
-              placeholder="Fees once paid are non-refundable except under exceptional circumstances..."
-            />
-          </Field>
-        </div>
-      </Card>
-
-      {/* Future integrations */}
-      <Card title="Online Payment Gateways">
-        <div className="yd-stg-info-banner" style={{ margin: 0 }}>
-          <Icons.Info />
-          <span>
-            Razorpay, Cashfree, and Stripe integration is coming soon. Once configured, parents
-            will be able to pay directly from the invoice link — no app switching required.
-          </span>
-        </div>
-      </Card>
-    </>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 12 — GATE CONFIGURATION
@@ -1480,14 +1230,12 @@ export default function Settings() {
     switch (activeId) {
       case "school":        return <SchoolSection      {...props} />;
       case "academic":      return <AcademicSection    {...props} />;
-      case "fees":          return <FeeSection         {...props} />;
       case "attendance":    return <AttendanceSection  {...props} />;
       case "users":         return <UsersSection       isBypass={isFullAccess} />;
       case "permissions":   return <PermissionsSection isBypass={isFullAccess} />;
       case "branding":      return <BrandingSection    {...props} />;
       case "notifications": return <NotifSection       {...props} />;
       case "parent":        return <ParentSection      {...props} />;
-      case "payment":       return <PaymentSection     {...props} />;
       case "gate_config":   return <GateConfigSection />;
       case "about":         return <AboutSection />;
       case "releases":      return <ReleasesDashboard />;

@@ -393,65 +393,6 @@ async function getTimeline(familyId) {
   return snap.docs.map(d => ({ eventId: d.id, ...d.data() }));
 }
 
-// ── Outstanding fees by family ─────────────────────────────────────
-
-async function getFeesSummary(familyId, schoolId = SCHOOL_ID) {
-  const family = await getOne(familyId);
-  if (!family || !family.studentIds.length) {
-    return { totalOutstanding: 0, totalInvoiced: 0, totalPaid: 0, byStudent: [] };
-  }
-
-  // Fetch student names
-  const studentSnaps = await Promise.all(
-    family.studentIds.map(id => db.collection("students").doc(id).get().catch(() => null)),
-  );
-  const studentNames = {};
-  studentSnaps.forEach(s => {
-    if (s?.exists) {
-      const d = s.data();
-      studentNames[s.id] = d.studentName || d.Student_Name || s.id;
-    }
-  });
-
-  // Firestore 'in' supports up to 10 items; chunk if family is large
-  const ids   = family.studentIds.slice(0, 10);
-  const invoiceSnap = await db.collection("invoices")
-    .where("schoolId", "==", schoolId)
-    .where("studentId", "in", ids)
-    .get();
-
-  const byStudent = {};
-  family.studentIds.forEach(id => {
-    byStudent[id] = {
-      studentId:    id,
-      studentName:  studentNames[id] || id,
-      invoiced:     0,
-      paid:         0,
-      outstanding:  0,
-      invoiceCount: 0,
-    };
-  });
-
-  invoiceSnap.docs.forEach(d => {
-    const inv = d.data();
-    const sid = inv.studentId;
-    if (!byStudent[sid]) return;
-    const invoiced    = parseFloat(inv.totalAmount) || 0;
-    const paid        = parseFloat(inv.paidAmount)  || 0;
-    byStudent[sid].invoiced     += invoiced;
-    byStudent[sid].paid         += paid;
-    byStudent[sid].outstanding  += Math.max(0, invoiced - paid);
-    byStudent[sid].invoiceCount++;
-  });
-
-  const rows = Object.values(byStudent);
-  return {
-    totalOutstanding: rows.reduce((s, r) => s + r.outstanding, 0),
-    totalInvoiced:    rows.reduce((s, r) => s + r.invoiced,    0),
-    totalPaid:        rows.reduce((s, r) => s + r.paid,        0),
-    byStudent:        rows,
-  };
-}
 
 // ── Sibling discount rules ─────────────────────────────────────────
 
@@ -496,6 +437,5 @@ module.exports = {
   getNotes, addNote, deleteNote,
   getDocuments, addDocument, deleteDocument,
   getTimeline,
-  getFeesSummary,
   getDiscountRules, updateDiscountRules,
 };

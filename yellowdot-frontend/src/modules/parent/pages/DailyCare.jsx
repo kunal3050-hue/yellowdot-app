@@ -22,7 +22,6 @@ const MODULES = [
   { emoji: "📹", label: "Live Camera",     to: "/parent-live",        active: true, live: true },
   { emoji: "📅", label: "Attendance",      to: "/parent-attendance",  active: true },
   { emoji: "📸", label: "Memories",        to: "/parent-memories",    active: true },
-  { emoji: "💳", label: "Fees",            to: "/parent-fees",        active: true },
   { emoji: "🍽️", label: "Food Menu",       to: "/parent-food-menu",   active: true },
   { emoji: "🍎", label: "Consumption Log", to: "/parent-consumption", active: true },
   { emoji: "😴", label: "Nap Tracker",     to: "/parent-nap",         active: true },

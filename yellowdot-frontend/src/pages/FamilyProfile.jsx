@@ -324,7 +324,7 @@ function DiscountRulesModal({ rules: initialRules, onClose, onSaved }) {
         boxShadow: "0 24px 64px rgba(0,0,0,0.14)", padding: "24px 24px 20px",
       }} onClick={e => e.stopPropagation()}>
         <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700, color: T.text }}>Sibling Discount Rules</h2>
-        <p style={{ margin: "0 0 18px", fontSize: 13, color: T.textMuted }}>School-wide discount applied by sibling order on invoices.</p>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: T.textMuted }}>School-wide discount applied by sibling order.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
           {["Position", "Discount %", "Label"].map(h => (
@@ -474,7 +474,6 @@ export default function FamilyProfile() {
   const [notes,        setNotes]        = useState([]);
   const [documents,    setDocuments]    = useState([]);
   const [timeline,     setTimeline]     = useState([]);
-  const [fees,         setFees]         = useState(null);
   const [discountRules,setDiscountRules]= useState([]);
 
   const [noteInput,    setNoteInput]    = useState("");
@@ -509,18 +508,16 @@ export default function FamilyProfile() {
   }, [familyId]);
 
   const loadSections = useCallback(async () => {
-    const [notesRes, docsRes, timelineRes, feesRes, discountRes] = await Promise.allSettled([
+    const [notesRes, docsRes, timelineRes, discountRes] = await Promise.allSettled([
       familyService.getNotes(familyId),
       familyService.getDocuments(familyId),
       familyService.getTimeline(familyId),
-      familyService.getFeesSummary(familyId),
       familyService.getDiscountRules(),
     ]);
 
     if (notesRes.status    === "fulfilled") setNotes(notesRes.value.notes || []);
     if (docsRes.status     === "fulfilled") setDocuments(docsRes.value.documents || []);
     if (timelineRes.status === "fulfilled") setTimeline(timelineRes.value.events || []);
-    if (feesRes.status     === "fulfilled") setFees(feesRes.value);
     if (discountRes.status === "fulfilled") setDiscountRules(discountRes.value.rules || []);
   }, [familyId]);
 
@@ -649,13 +646,6 @@ export default function FamilyProfile() {
                 <span style={{ fontSize: 12, color: T.textMuted }}>
                   {students.length} {students.length === 1 ? "child" : "children"}
                 </span>
-                {fees?.totalOutstanding > 0 && (
-                  <span style={{
-                    padding: "2px 10px", borderRadius: 10,
-                    background: T.redLight, color: T.red,
-                    fontSize: 11.5, fontWeight: 600,
-                  }}>⚠ {fmt(fees.totalOutstanding)} outstanding</span>
-                )}
               </div>
             </div>
           </div>
@@ -723,45 +713,6 @@ export default function FamilyProfile() {
         </SectionCard>
 
         {/* ── Outstanding Fees ──────────────────────────────────────── */}
-        {fees && (
-          <SectionCard title="Outstanding Fees" icon="💰">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: fees.byStudent.some(r => r.invoiceCount > 0) ? 16 : 0 }}>
-              <div style={{ background: fees.totalOutstanding > 0 ? T.redLight : T.greenLight, borderRadius: 10, padding: "12px 16px" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Outstanding</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: fees.totalOutstanding > 0 ? T.red : T.green }}>{fmt(fees.totalOutstanding)}</div>
-              </div>
-              <div style={{ background: T.surfaceWarm, borderRadius: 10, padding: "12px 16px", border: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Total Invoiced</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(fees.totalInvoiced)}</div>
-              </div>
-              <div style={{ background: T.surfaceWarm, borderRadius: 10, padding: "12px 16px", border: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Total Paid</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>{fmt(fees.totalPaid)}</div>
-              </div>
-            </div>
-
-            {fees.byStudent.filter(r => r.invoiceCount > 0).map(r => (
-              <div key={r.studentId} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.border}`,
-                background: T.surfaceWarm, marginBottom: 6,
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: T.text }}>{r.studentName}</div>
-                  <div style={{ fontSize: 11.5, color: T.textMuted }}>{r.invoiceCount} invoice{r.invoiceCount !== 1 ? "s" : ""}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: r.outstanding > 0 ? T.red : T.green }}>{fmt(r.outstanding)}</div>
-                  <div style={{ fontSize: 11, color: T.textMuted }}>outstanding</div>
-                </div>
-              </div>
-            ))}
-
-            {fees.totalInvoiced === 0 && (
-              <p style={{ margin: 0, fontSize: 13, color: T.textMuted }}>No invoices found for this family's children.</p>
-            )}
-          </SectionCard>
-        )}
 
         {/* ── Sibling Discount Rules ────────────────────────────────── */}
         <SectionCard

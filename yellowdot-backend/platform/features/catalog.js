@@ -56,17 +56,6 @@ const FEATURES = [
   { key: "MESSAGING",          label: "Parent Messaging",    stage: "internal", defaultByEnv: OFF, minPlan: null },
   { key: "TIMETABLE",          label: "Timetable",           stage: "internal", defaultByEnv: OFF, minPlan: null },
   { key: "PAYROLL",            label: "Payroll",             stage: "internal", defaultByEnv: OFF, minPlan: null },
-
-  // ── Finance Platform ───────────────────────────────────────────────────
-  // Live in production and currently gated by FINANCE_FOUNDATION_ENABLED.
-  // `envVar` keeps that variable authoritative until tenant data is populated,
-  // so this migration cannot turn Finance off for anyone. Removed once every
-  // tenant carries an explicit features entry.
-
-  // ── AI — §5E. Default OFF everywhere, per the data-protection constraint ─
-  // Children's data under DPDP: enabling is a deliberate act by a school,
-  // never a deployment default. Do not change this default without the
-  // provider/residency/retention/consent decisions named in §5E.4.
   { key: "AI_INSIGHTS",        label: "AI Insights",         stage: "internal", defaultByEnv: OFF, minPlan: null },
 ];
 

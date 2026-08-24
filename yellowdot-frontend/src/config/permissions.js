@@ -33,8 +33,6 @@ export const ROUTES = {
   DASHBOARD:             "dashboard",
   STUDENTS:              "students",
   ATTENDANCE:            "attendance",
-  FINANCE:               "finance",
-  ANALYTICS:             "analytics",
   NAP_TRACKER:           "nap-tracker",
   FOOD_MENU:             "food-menu",
   FOOD_CONSUMPTION:      "food-consumption",
@@ -94,7 +92,7 @@ export const ROLE_PERMISSIONS = {
   super_admin: ["*"],   // bypass — same
 
   admin: [              // alias for center_admin
-    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -113,7 +111,7 @@ export const ROLE_PERMISSIONS = {
   ],
 
   center_admin: [
-    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -134,7 +132,7 @@ export const ROLE_PERMISSIONS = {
 
   // center_owner — same privilege as center_admin; separate role for clarity
   center_owner: [
-    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.ANALYTICS, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
+    ROUTES.DASHBOARD, ROUTES.STUDENTS, ROUTES.ATTENDANCE, ROUTES.NAP_TRACKER, ROUTES.FOOD_MENU,
     ROUTES.FOOD_CONSUMPTION, ROUTES.CARE_HYGIENE,
     ROUTES.PARENT_CHECKIN, ROUTES.PICKUP_AUTHORIZATION, ROUTES.PICKUP_HISTORY,
     ROUTES.STAFF_CHECKOUT,
@@ -165,7 +163,7 @@ export const ROLE_PERMISSIONS = {
   ],
 
   accountant: [
-    ROUTES.DASHBOARD, ROUTES.FINANCE, ROUTES.ANALYTICS,
+    ROUTES.DASHBOARD,
     ROUTES.STUDENTS, ROUTES.PROFILE,
   ],
 
@@ -190,7 +188,7 @@ export const ROLE_HOME = {
   center_admin: "/",
   center_owner: "/",
   teacher:      "/child-presence",
-  accountant:   "/finance",
+  accountant:   "/dashboard",
   reception:    "/",
   parent:       "/parent-home",
 };

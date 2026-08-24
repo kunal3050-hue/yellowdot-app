@@ -39,10 +39,6 @@ const EXTRA_ROLES = [
       pickup_auth:       { view: true, create: true, edit: true, approve: true },
       medical:           { view: true, edit: true },
       food_menu:         { view: true, create: true, edit: true, delete: true },
-      fees:              { view: true, create: true, edit: true, delete: true, approve: true },
-      invoices:          { view: true, create: true, edit: true, delete: true, approve: true },
-      payments:          { view: true, create: true, delete: true },
-      receipts:          { view: true, create: true, export: true },
       analytics:         { view: true, export: true },
       staff:             { view: true, create: true, edit: true, delete: true },
       roles_permissions: { view: true, manage: true },
@@ -63,7 +59,6 @@ const EXTRA_ROLES = [
     homeRoute:   "/parent-home",
     permissions: {
       dashboard:   { view: true },
-      fees:        { view: true },
       pickup_auth: { view: true },
       parent_app:  { view: true },
     },

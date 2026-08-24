@@ -19,8 +19,6 @@ const { planIncludes, DEFAULT_PLAN } = require("./plans");
 /**
  * The layer-4 default for one feature.
  * `envVar` takes precedence over defaultByEnv where a flag is still governed
- * by an environment variable (FINANCE_FOUNDATION during migration) — that is
- * what guarantees this change cannot turn Finance off for anyone.
  */
 function platformDefault(feature, env) {
   if (feature.envVar) {

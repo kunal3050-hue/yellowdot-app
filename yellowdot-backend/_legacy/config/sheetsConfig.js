@@ -12,13 +12,6 @@ const SHEETS = {
   // Core data
   STUDENTS:              "Students!A:R",
   ATTENDANCE:            "Attendance!A:Z",
-  FEES:                  "Fees!A:Z",
-
-  // Finance
-  INVOICES:              "Invoices!A:Z",
-  PAYMENTS:              "Payments!A:Z",
-  FEE_TEMPLATES:         "FeeTemplates!A:P",
-
   // Daily ops
   NAP_TRACKER:           "NapTracker!A:Z",
   FOOD_MENU:             "FoodMenu!A:Z",

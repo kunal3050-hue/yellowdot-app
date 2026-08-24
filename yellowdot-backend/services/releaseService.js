@@ -25,8 +25,6 @@ const SCHOOL_ID = process.env.SCHOOL_ID || 'ydseawoods';
 const MODULE_REGISTRY = {
   STUDENTS:           { name: 'Students',           description: 'Student profiles and enrollment',        version: '1.0.0'  },
   ATTENDANCE:         { name: 'Attendance',          description: 'Daily check-in and check-out tracking',  version: '1.0.0'  },
-  FEES:               { name: 'Fees',                description: 'Fee management and billing',              version: '1.0.0'  },
-  INVOICES:           { name: 'Invoices',            description: 'Invoice generation and tracking',         version: '1.0.0'  },
   NOTIFICATIONS:      { name: 'Notifications',       description: 'Push and in-app notifications',           version: '1.1.2'  },
   GATE_MANAGEMENT:    { name: 'Gate Management',     description: 'QR-based gate entry system',              version: '1.1.0'  },
   PARENT_PORTAL:      { name: 'Parent Portal',       description: 'Parent-facing mobile experience',         version: '1.1.0'  },
@@ -47,8 +45,6 @@ const MODULE_REGISTRY = {
 const DEFAULT_STATUS = {
   STUDENTS:           'production',
   ATTENDANCE:         'production',
-  FEES:               'production',
-  INVOICES:           'production',
   NOTIFICATIONS:      'production',
   GATE_MANAGEMENT:    'production',
   PARENT_PORTAL:      'production',

@@ -83,4 +83,4 @@ export const careHygiene = defineService({
   },
 });
 
-export default [attendance, students, pickup, invoices, incidents, careHygiene];
+export default [attendance, students, pickup, incidents, careHygiene];

@@ -12,10 +12,10 @@
  *   │  Content           │  scrollable, warm ivory bg
  *   │                    │
  *   ├────────────────────┤
- *   │  Bottom tab bar    │  64px fixed — Home | Attendance | Fees | Profile
+ *   │  Bottom tab bar    │  64px fixed — Home | Attendance | Profile
  *   └────────────────────┘
  *
- * V1 dock: Home · Attendance · Fees · Profile. No CCTV / Camera, no check-in.
+ * V1 dock: Home · Attendance · Profile. No CCTV / Camera, no check-in.
  */
 
 import { useState } from "react";

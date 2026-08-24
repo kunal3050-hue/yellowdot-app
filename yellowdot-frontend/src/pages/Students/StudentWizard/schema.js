@@ -16,7 +16,6 @@ export const GENDERS  = ["Male", "Female", "Other"];
 export const CENTERS  = ["Seawoods", "Vashi", "Kharghar", "Belapur"];
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 export const RELATIONS = ["Father", "Mother", "Guardian", "Grandparent", "Uncle", "Aunt", "Sibling", "Other"];
-// in StepFees (steps.jsx) — see that component's own header comment — rather
 // than a hardcoded placeholder list here.
 export const DOC_ROWS = [
   { key: "birthCertUpload",       label: "Birth Certificate",         hint: "PDF or image accepted" },
@@ -58,10 +57,6 @@ export const admissionSchema = z.object({
   medicalNotes: z.string().optional(),
 
   pickupPersons: z.array(z.any()).optional(),
-
-  feeTemplate: z.string().optional(),
-  feeNotes: z.string().optional(),
-
   birthCertUpload: z.string().optional(),
   addressProofUpload: z.string().optional(),
   vaccineCardUpload: z.string().optional(),
@@ -102,7 +97,6 @@ export const EMPTY_DRAFT = {
   bloodGroup: "", allergies: "", medications: "",
   doctorName: "", doctorPhone: "", emergencyNotes: "", medicalNotes: "",
   pickupPersons: [],
-  feeTemplate: "", feeNotes: "",
   birthCertUpload: "", addressProofUpload: "", vaccineCardUpload: "",
   previousSchoolUpload: "", otherDocUpload: "",
   familyMode: "none", selectedFamilyId: "",

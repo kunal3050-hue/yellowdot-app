@@ -54,15 +54,6 @@ const SECTIONS = [
     ],
   },
   {
-    id: "finance",
-    label: "Finance",
-    items: [
-      { label: "Fees",     path: "/fees",      icon: "CreditCard", desc: "Collection & dues" },
-      { label: "Invoices", path: "/invoice",   icon: "FileText",   desc: "Billing & payments" },
-      { label: "Analytics",path: "/analytics", icon: "BarChart",   desc: "Reports & trends" },
-    ],
-  },
-  {
     id: "daily_ops",
     label: "Daily Ops",
     items: [

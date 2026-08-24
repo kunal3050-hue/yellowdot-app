@@ -24,7 +24,6 @@ const parentSvc                      = require("../services/parentProfileService
 const parentFeedSvc                  = require("../services/parentFeedService");
 const parentAttendanceViewSvc        = require("../services/parentAttendanceViewService");
 const memoriesSvc                    = require("../services/memoriesService");
-const parentFeesSvc                  = require("../services/parentFeesService");
 const parentFoodMenuSvc              = require("../services/parentFoodMenuService");
 const parentConsumptionSvc           = require("../services/parentConsumptionService");
 const parentNapSvc                   = require("../services/parentNapService");
@@ -172,30 +171,6 @@ router.get("/api/parent/activity", loadParent, async (req, res) => {
   } catch (e) {
     console.error("[GET /api/parent/activity]", e.message);
     res.status(500).json({ error: "Failed to load activity feed." });
-  }
-});
-
-// ── GET /api/parent/fees ───────────────────────────────────────────
-// Phase 5 — read-only fees for the parent's linked children.
-// Query: ?studentId=YD001 (optional; must be linked) to filter to one child.
-router.get("/api/parent/fees", loadParent, async (req, res) => {
-  try {
-    const { studentId } = req.query;
-    if (studentId && !req.parent.studentIds?.includes(studentId)) {
-      return res.status(404).json({
-        error: "Child not found or not linked to this account.",
-        code:  "CHILD_NOT_FOUND",
-      });
-    }
-    const data = await parentFeesSvc.getFees({
-      schoolId:   req.parent.schoolId,
-      studentIds: req.parent.studentIds,
-      studentId,
-    });
-    res.json(data);
-  } catch (e) {
-    console.error("[GET /api/parent/fees]", e.message);
-    res.status(500).json({ error: "Failed to load fees." });
   }
 });
 

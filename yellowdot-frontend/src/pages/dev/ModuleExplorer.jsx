@@ -39,7 +39,6 @@ const ROUTE_REGISTRY = [
 
   // Dashboard
   { path: "/dashboard",           routeKey: ROUTES.DASHBOARD,              label: "Dashboard",            category: "app",    layout: "main"   },
-  { path: "/analytics",           routeKey: ROUTES.ANALYTICS,              label: "Analytics",            category: "app",    layout: "main"   },
 
   // Students
   { path: "/students",            routeKey: ROUTES.STUDENTS,               label: "Students",             category: "app",    layout: "bare"   },
@@ -56,14 +55,6 @@ const ROUTE_REGISTRY = [
   { path: "/food-consumption",    routeKey: ROUTES.FOOD_CONSUMPTION,       label: "Food Consumption",     category: "app",    layout: "bare"   },
 
   // Finance
-  { path: "/fees",                routeKey: ROUTES.FEES,                   label: "Fees",                 category: "app",    layout: "bare"   },
-  { path: "/invoice",             routeKey: ROUTES.INVOICE,                label: "Invoices",             category: "app",    layout: "bare"   },
-  { path: "/invoice/new",         routeKey: ROUTES.INVOICE,                label: "New Invoice",          category: "sub",    layout: "bare"   },
-  { path: "/invoice/templates",   routeKey: ROUTES.INVOICE,                label: "Fee Templates",        category: "sub",    layout: "bare"   },
-  { path: "/invoice-view/:n",     routeKey: ROUTES.INVOICE,                label: "Invoice View",         category: "sub",    layout: "bare"   },
-  { path: "/receipt/:id",         routeKey: ROUTES.INVOICE,                label: "Receipt View",         category: "sub",    layout: "bare"   },
-  { path: "/generate-invoice",    routeKey: ROUTES.INVOICE,                label: "Generate Invoice",     category: "app",    layout: "bare",  orphan: true },
-  { path: "/record-payment/:n",   routeKey: ROUTES.FEES,                   label: "Record Payment",       category: "sub",    layout: "bare"   },
 
   // Pickup & Checkout
   { path: "/pickup-authorization", routeKey: ROUTES.PICKUP_AUTHORIZATION,  label: "Pickup Authorization", category: "app",    layout: "bare"   },

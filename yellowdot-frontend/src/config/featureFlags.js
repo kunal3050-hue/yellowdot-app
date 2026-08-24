@@ -26,8 +26,6 @@ export const FLAGS = {
   // ── Core — always on ─────────────────────────────────────────────────────
   STUDENTS:           true,
   ATTENDANCE:         true,
-  FEES:               true,
-  INVOICES:           true,
 
   // ── Approved for production ───────────────────────────────────────────────
   NOTIFICATIONS:      true,
@@ -57,7 +55,7 @@ export const FLAGS = {
 // so the "Yellow Dot only" group shows correctly even in a dev build where
 // isPreProduction is true (making those flags indistinguishable from always-on).
 export const FLAG_GROUPS = {
-  production: ['STUDENTS', 'ATTENDANCE', 'FEES', 'INVOICES', 'NOTIFICATIONS',
+  production: ['STUDENTS', 'ATTENDANCE', 'NOTIFICATIONS',
                'GATE_MANAGEMENT', 'PARENT_PORTAL', 'FAMILY_MODULE', 'CHILD_PRESENCE', 'PICKUP_REQUEST',
                'DAILY_CARE'],
   staging:    ['HIGHLIGHTS', 'LIVE_DASHBOARD', 'STUDENT_REPORTS_V2', 'CHILD_JOURNEY'],

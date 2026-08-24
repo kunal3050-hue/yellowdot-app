@@ -1,7 +1,7 @@
 /**
  * StatusBadge — semantic status pill
  *
- * Covers: invoice statuses, student statuses, attendance, user roles.
+ * Covers: student statuses, attendance, staff, leave, payroll, user roles.
  * Colors are CSS custom properties from tokens.css (via a semantic-group
  * mapping below), never a separate hardcoded palette — this is the single
  * source every status pill in the app renders from, so it always matches
@@ -36,9 +36,7 @@ const GROUP = {
 const STATUS_LABEL_GROUP = {
   // Student / general
   Active: "success", Inactive: "neutral", Alumni: "warning",
-  // Invoice / payment
-  Paid: "success", Pending: "warning", Partial: "warning", Overdue: "danger", Cancelled: "neutral", Completed: "success",
-  Clear: "success", "No Invoices": "neutral",
+  Cancelled: "neutral", Completed: "success",
   // Attendance
   Present: "success", Absent: "danger", Late: "warning", Holiday: "info",
   // User roles
@@ -57,32 +55,6 @@ const STATUS_LABEL_GROUP = {
   // Payroll run status (payrollService.RUN_STATUS_META)
   processed: "success", locked: "warning", reversed: "danger",
 
-  // Finance Platform — Billing Plan status (billingPlanService.js)
-  Draft: "neutral", Paused: "warning", Ended: "neutral",
-  // Finance Platform — Payment state machine (financePaymentStateMachine.js)
-  Recorded: "info", Allocated: "success", PartiallyAllocated: "warning",
-  Refunded: "danger", PartiallyRefunded: "warning", Reversed: "danger",
-  // Finance Platform — Refund status (financeRefundReversalService.js)
-  Requested: "warning", Processed: "success",
-  // Finance Platform — Ledger Entry type (ledgerEntryService.ENTRY_TYPES).
-  // Color encodes ADR-0002's sign convention directly: entries that INCREASE
-  // what's owed get the "attention" family, entries that DECREASE it get the
-  // "resolved" family — more meaningful on a ledger than an arbitrary choice.
-  charge: "danger", lateFee: "danger", refund: "danger",
-  payment: "success", discount: "success", scholarship: "success", creditApplied: "success",
-  adjustment: "neutral",
-  // Finance Platform — Recurring Billing Engine run status (financeBillingSchedulerService.js)
-  running: "info", completed: "success", completed_with_errors: "warning", failed: "danger",
-  // Finance Platform — Scheduler per-plan result outcome (real run)
-  generated: "success", duplicate: "neutral", requiresApproval: "warning",
-  skipped: "neutral", error: "danger",
-  // Finance Platform — Scheduler per-plan result outcome (preview / dry run — same
-  // color family as their real-run counterpart, "would" prefix does the distinguishing)
-  wouldGenerate: "success", wouldSkipDuplicate: "neutral", wouldRequireApproval: "warning",
-  // Finance Platform — Recurring Billing run execution mode
-  manual: "info", scheduled: "neutral", preview: "warning",
-  // Finance Platform — Recurring Billing scheduler health (getDashboardSummary)
-  healthy: "success", degraded: "warning", attention: "danger", unknown: "neutral",
 };
 
 // Role keys need a friendlier display label than the raw snake_case value —

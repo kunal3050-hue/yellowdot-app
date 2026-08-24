@@ -808,7 +808,6 @@ function AdvancedTab({ role, onUpdate, permissions }) {
   const HOME_ROUTES = [
     { value: "/",                     label: "Dashboard" },
     { value: "/attendance",           label: "Attendance" },
-    { value: "/invoice",              label: "Invoices" },
     { value: "/parent-checkin",       label: "Parent Check-In" },
     { value: "/students",             label: "Students" },
     { value: "/pickup-authorization", label: "Pickup Authorization" },
@@ -965,7 +964,6 @@ function AdvancedTab({ role, onUpdate, permissions }) {
           { id: "delete",   label: "Delete payment records",    default: false },
           { id: "refund",   label: "Issue refunds",             default: false },
           { id: "discount", label: "Approve fee discounts",     default: false },
-          { id: "editpaid", label: "Edit already-paid invoices",default: false },
         ].map(ctrl => (
           <label key={ctrl.id} style={{ display: "flex", alignItems: "center", gap: 10,
             padding: "8px 0", borderBottom: `1px solid ${T.borderSoft}`, cursor: "pointer" }}>

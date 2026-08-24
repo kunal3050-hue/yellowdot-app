@@ -93,7 +93,7 @@ export const analyticsModule = defineModule({
   id: "analytics",
   label: "Analytics",
   icon: "BarChart2",
-  category: "finance",
+  category: "reports",
   capability: "analytics.view",
   actions: ["view", "export"],
   keywords: ["analytics", "reports", "trends", "revenue", "enrolment"],
@@ -101,11 +101,8 @@ export const analyticsModule = defineModule({
   routes: [
     {
       path: "/analytics", routeKey: "analytics", label: "Analytics", icon: "BarChart2",
-      // Two sidebar homes — "Analytics" under legacy Finance, "Reports" under
-      // Finance Platform. Mutually exclusive at runtime via the finance flag.
       nav: [
-        { category: "finance",           order: 40, label: "Analytics" },
-        { category: "finance_platform",  order: 90, label: "Reports", icon: "BarChart2" },
+        { category: "reports",           order: 40, label: "Analytics" },
       ],
       grid: { section: "reports_analytics", label: "Analytics", icon: "TrendingUp",
               description: "Attendance, revenue and enrolment trends over time." },

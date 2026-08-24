@@ -74,11 +74,9 @@ const TYPES = {
   PTM_REMINDER:       "ptm_reminder",
   // Security
   PICKUP_REQUEST:     "pickup_request",
-  // Billing
   FEE_REMINDER:       "fee_reminder",
   FEE_DUE_TODAY:      "fee_due_today",
   FEE_OVERDUE:        "fee_overdue",
-  PAYMENT_RECEIVED:   "payment_received",
 };
 
 // ── Priority levels ───────────────────────────────────────────────
@@ -122,7 +120,6 @@ const TYPE_META = {
   [TYPES.FEE_REMINDER]:      { priority: PRIORITY.LOW    },
   [TYPES.FEE_DUE_TODAY]:     { priority: PRIORITY.MEDIUM },
   [TYPES.FEE_OVERDUE]:       { priority: PRIORITY.HIGH   },
-  [TYPES.PAYMENT_RECEIVED]:  { priority: PRIORITY.MEDIUM },
 };
 
 // Anti-spam: within this window, batch notifications with the same batchKey
