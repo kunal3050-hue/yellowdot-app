@@ -36,7 +36,6 @@ const OWNED_ENDPOINTS = [
   { url: "/students",                 owner: "src/services/studentService.js",  read: "students.listRaw" },
   { url: "/api/attendance/summary",   owner: "src/services/attendanceService.js", read: "attendance.summary" },
   { url: "/api/pickup-requests",      owner: "src/services/securityService.js", read: "pickup_auth.requests" },
-  { url: "/api/invoices",             owner: "src/services/invoiceService.js",  read: "invoices.listRaw" },
 ];
 
 /** Directories whose consumers have been migrated to the registry. */

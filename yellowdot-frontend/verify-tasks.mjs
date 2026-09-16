@@ -141,14 +141,8 @@ async function run() {
   if (attendanceDone.length !== 0) fail("fully-marked attendance must produce no task");
   else pass("Fully-marked register produces no task", "queue stays clean");
 
-  const invoices = byId["overdue-invoices"].toTasks({
-    invoices: { success: true, invoices: [
-      { status: "Overdue", balance: 5000 }, { status: "Overdue", balance: 2500 }, { status: "Paid", balance: 0 },
-    ] },
-  });
-  if (invoices.length !== 1 || !/2 invoices/.test(invoices[0].context)) {
-    fail("overdue-invoices mapping", JSON.stringify(invoices));
-  } else pass("overdue-invoices aggregates rather than flooding", invoices[0].context);
+  // The overdue-invoices provider was covered here until Finance was deleted;
+  // aggregation is still exercised by attendance-pending above.
 
   // ── 5. Normalisation ───────────────────────────────────────────────────────
   section("5. Task normalisation");

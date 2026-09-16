@@ -89,27 +89,6 @@ export const dashboardModule = defineModule({
   ],
 });
 
-export const analyticsModule = defineModule({
-  id: "analytics",
-  label: "Analytics",
-  icon: "BarChart2",
-  category: "reports",
-  capability: "analytics.view",
-  actions: ["view", "export"],
-  keywords: ["analytics", "reports", "trends", "revenue", "enrolment"],
-  surfaces: { care: { order: 80, roles: { admin: 30, center_owner: 30 } } },
-  routes: [
-    {
-      path: "/analytics", routeKey: "analytics", label: "Analytics", icon: "BarChart2",
-      nav: [
-        { category: "reports",           order: 40, label: "Analytics" },
-      ],
-      grid: { section: "reports_analytics", label: "Analytics", icon: "TrendingUp",
-              description: "Attendance, revenue and enrolment trends over time." },
-    },
-  ],
-});
-
 export const profileModule = defineModule({
   id: "profile",
   label: "Profile",
@@ -145,5 +124,5 @@ export const settingsModule = defineModule({
 });
 
 export default [
-  authModule, dashboardModule, analyticsModule, profileModule, settingsModule,
+  authModule, dashboardModule, profileModule, settingsModule,
 ];

@@ -22,7 +22,7 @@ import {
   LayoutDashboard, UserPlus, ListChecks, Users, Sparkles, CalendarCheck,
   DoorOpen, BookOpen, Layers, GraduationCap, School, Moon, Utensils,
   ClipboardList, Heart, CalendarDays, Bell, Megaphone, CreditCard, FileText,
-  Wallet, TrendingUp, Handshake, MessageSquareText, Briefcase, UserCheck,
+  Wallet, Handshake, MessageSquareText, Briefcase, UserCheck,
   UserCog, Shield, Car, History, QrCode, Camera, AlertTriangle, Settings,
   Repeat, Undo2, ScrollText,
 } from "lucide-react";
@@ -40,7 +40,6 @@ const ACCENT = {
   academics:         { bg: "#EEF2FF", icon: "#4F46E5", border: "#C7D2FE" }, // indigo
   daily_care:        { bg: "#FFF7ED", icon: "#EA580C", border: "#FED7AA" }, // orange
   communication:     { bg: "#FDF2F8", icon: "#DB2777", border: "#FBCFE8" }, // pink
-  reports_analytics: { bg: "#ECFEFF", icon: "#0891B2", border: "#A5F3FC" }, // cyan
   parents:           { bg: "#F5F3FF", icon: "#7C3AED", border: "#DDD6FE" }, // violet
   staff:             { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" }, // sky
   security:          { bg: "#FEF2F2", icon: "#DC2626", border: "#FECACA" }, // red
@@ -145,14 +144,6 @@ export const SECTIONS = [
       { id: "qr_management",        label: "QR Management",        path: "/qr-management",        routeKey: "qr-management",        icon: QrCode,        description: "Generate and print gate check-in QR codes." },
       { id: "cctv",                 label: "CCTV",                  path: "/cctv",                  routeKey: "cctv",                 icon: Camera,        description: "Manage camera coverage and surveillance zones." },
       { id: "incidents",            label: "Incident Reports",     path: "/incidents",             routeKey: "incidents",            icon: AlertTriangle, description: "Log and track safety incidents and follow-ups." },
-    ],
-  },
-  {
-    id: "reports_analytics",
-    label: "Reports & Analytics",
-    accent: ACCENT.reports_analytics,
-    items: [
-      { id: "analytics", label: "Analytics", path: "/analytics", routeKey: "analytics", icon: TrendingUp, description: "Attendance, revenue and enrolment trends over time." },
     ],
   },
   {
