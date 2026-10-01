@@ -329,7 +329,8 @@ async function liveToken(req, res) {
     if (!decision.allowed) {
       await session.audit("LIVE_VIEW_DENIED", {
         userId: user.userId, userName: user.name || "", userEmail: user.email || "",
-        role: user.role, cameraId: cam.cameraId, cameraName: cam.cameraName || "",
+        role: user.role, kind: "staff", reason: decision.reason || "unspecified",
+        cameraId: cam.cameraId, cameraName: cam.cameraName || "",
         classroom: cam.classroom, centerId: cam.centerId, ip: req.ip,
       }, nowISO);
       return res.status(403).json({ success: false, error: "Not authorized to view this camera.", reason: decision.reason });
@@ -435,10 +436,15 @@ async function parentLiveToken(req, res) {
   const user = req.user || {};
   // `reason` is what makes a denial diagnosable after the fact — without it the
   // audit trail records that access was refused but never why.
-  const auditDeny = (reason, childId) => session.audit("LIVE_VIEW_DENIED", {
+  const auditDeny = (reason, childId, ctx = {}) => session.audit("LIVE_VIEW_DENIED", {
     userId: user.userId, userName: user.name || "", userEmail: user.email || "",
     role: "parent", kind: "parent", reason: reason || "unspecified",
-    cameraId: req.body?.cameraId || "",
+    cameraId: ctx.cameraId || req.body?.cameraId || "",
+    // Whatever context is resolved by the time of the denial. A denial row that
+    // names the classroom and centre is actionable; one with three dashes sends
+    // whoever reads it back to the database to work out who was refused and over
+    // which camera.
+    cameraName: ctx.cameraName || "", classroom: ctx.classroom || "", centerId: ctx.centerId || "",
     childId: childId || "", ip: req.ip,
   }, nowISO);
 
@@ -483,11 +489,14 @@ async function parentLiveToken(req, res) {
         return (c.classrooms || [c.classroom]).map(x => (x||"").toLowerCase()).includes(childRoom);
       });
     }
-    if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId); return res.status(404).json({ success: false, error: "No camera available for your child's classroom.", reason: "no-camera" }); }
+    if (!cam || cam.deleted) { await auditDeny("no-camera", linkedId, { classroom: childCtx.classroom, centerId: childCtx.centerId }); return res.status(404).json({ success: false, error: "No camera available for your child's classroom.", reason: "no-camera" }); }
 
     const decision = resolver.canParentViewCamera(childCtx, presence, cam, { schoolHoursOpen: window.open, now });
     if (!decision.allowed) {
-      await auditDeny(decision.reason, linkedId);
+      await auditDeny(decision.reason, linkedId, {
+        cameraId: cam.cameraId, cameraName: cam.cameraName || "",
+        classroom: cam.classroom || childCtx.classroom, centerId: cam.centerId || childCtx.centerId,
+      });
       const msg = decision.reason === "child-not-present" ? "Your child has not checked in yet."
                 : decision.reason === "child-checked-out" ? "Your child has checked out for today."
                 : decision.reason === "no-active-slot"    ? "No classroom session is scheduled for this camera right now."
@@ -497,7 +506,10 @@ async function parentLiveToken(req, res) {
 
     const engine = process.env.CCTV_STREAM_ENGINE_URL;
     if (!engine) {
-      await auditDeny("engine-not-provisioned", linkedId);
+      await auditDeny("engine-not-provisioned", linkedId, {
+        cameraId: cam.cameraId, cameraName: cam.cameraName || "",
+        classroom: cam.classroom, centerId: cam.centerId,
+      });
       return res.status(503).json({
         success: false, error: "ENGINE_NOT_PROVISIONED",
         message: "Live streaming is not enabled yet.", reason: "engine-not-provisioned",

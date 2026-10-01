@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import cctvService from "../../../services/cctvService";
+import { createTokenLoader, withStreamToken } from "../../../services/hlsStreamToken";
 import { colors, spacing, radius, shadows, typography } from "../theme";
 
 const REFRESH_INTERVAL_MS = 90_000; // token refresh (30 s before 120 s TTL)
@@ -85,6 +86,7 @@ export default function LiveView() {
   const refreshTimer = useRef(null);
   const retryTimer   = useRef(null);
   const sessionRef   = useRef(null);
+  const tokenRef     = useRef(null); // current stream token — read per HLS request
   const retryCount   = useRef(0);
   const activeCamRef = useRef(null); // mirrors activeCam for use inside callbacks
 
@@ -127,19 +129,29 @@ export default function LiveView() {
     try { video.pause(); video.removeAttribute("src"); video.load(); } catch {}
 
     if (Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true, backBufferLength: 10 });
+      // Every request hls.js makes — variant playlist, init segment, each media
+      // segment — has to carry the stream token, because MediaMTX authorizes all
+      // of them through our auth hook. Relative URL resolution inside a playlist
+      // drops the query string, so the token cannot ride on the manifest URL alone.
+      const hls = new Hls({
+        lowLatencyMode: true,
+        backBufferLength: 10,
+        loader: createTokenLoader(() => tokenRef.current),
+      });
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Genuine playback success, not just "the token fetch worked" -- reset
-        // the retry budget here, not in startStream(). A camera whose stream is
-        // unstable (segment-duration drift, dropped RTP packets from the source)
-        // can fail at THIS layer over and over while every token fetch keeps
-        // succeeding; resetting on token-fetch success alone meant the retry
-        // count for a real, ongoing stream problem never accumulated past the
-        // very first attempt, so the fatal-error handler below span forever.
-        retryCount.current = 0;
         video.play?.().catch(() => {});
+      });
+      // The retry budget resets on BUFFERED MEDIA, not on a parsed manifest.
+      // A parsed manifest proves only that the FIRST request was authorized:
+      // when the playlist loads but every segment after it fails, resetting
+      // here put the page in an endless manifest-ok / segment-fail loop that
+      // showed "Reconnecting…" forever and never reached the error state --
+      // which is exactly what a parent reports as "it just keeps buffering".
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        retryCount.current = 0;
+        setStatus("live");
       });
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (data?.fatal) {
@@ -156,7 +168,11 @@ export default function LiveView() {
       });
       hlsRef.current = hls;
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native HLS (iOS Safari): the player fetches segments itself, so the
+      // token can only ride on the URL we hand it — MediaMTX carries the
+      // authorization forward on its own session cookie from there.
       video.src = url;
+      video.onplaying = () => { retryCount.current = 0; setStatus("live"); };
       video.play?.().catch(() => {});
     } else {
       setStatus("error");
@@ -177,12 +193,23 @@ export default function LiveView() {
       // actually playing -- resetting on this signal wiped out the retry
       // budget on every cycle of an ongoing stream-level failure, before the
       // fatal-error handler in attachHls() could ever accumulate toward its
-      // cap. The real "we're actually playing" signal is Hls.Events.MANIFEST_PARSED,
-      // which is where the reset now happens.
+      // cap. The real "we're actually playing" signal is Hls.Events.FRAG_BUFFERED
+      // (media in the buffer, not just an authorized manifest), which is where
+      // the reset now happens.
 
-      const url = `${r.hlsUrl}${r.hlsUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(r.token)}`;
-      attachHls(url, camId || r.cameraId);
-      setStatus("live");
+      // Token first: the loader installed on the live player reads this ref on
+      // every request, so a rotation reaches the stream without a re-attach.
+      tokenRef.current = r.token;
+      const url = withStreamToken(r.hlsUrl, r.token);
+
+      // Only (re)build the player when there isn't one running. This call is
+      // also the 90-second token refresh, and tearing the player down on every
+      // refresh restarted the stream -- and the buffering -- every 90 seconds.
+      if (!hlsRef.current || !Hls.isSupported()) {
+        attachHls(url, camId || r.cameraId);
+      }
+      // Status stays "loading"/"reconnecting" until media is actually buffered
+      // (FRAG_BUFFERED / onplaying above) -- a token is not a picture.
 
       // Schedule token refresh before TTL expires
       refreshTimer.current = setTimeout(
@@ -297,7 +324,7 @@ export default function LiveView() {
       <div style={{ margin: `0 ${spacing.lg}px`, borderRadius: radius.xl, overflow: "hidden", background: "#0F172A", position: "relative", aspectRatio: "16/9", boxShadow: shadows.lg }}>
         <video
           ref={videoRef}
-          style={{ width: "100%", height: "100%", display: status === "live" ? "block" : "none", objectFit: "cover" }}
+          style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
           playsInline muted controls={false}
         />
 
