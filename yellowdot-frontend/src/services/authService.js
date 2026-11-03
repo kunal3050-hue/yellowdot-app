@@ -13,6 +13,8 @@ import axios from "axios";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   linkWithCredential,
   signOut,
@@ -23,6 +25,32 @@ import { auth } from "../firebase/firebase";
 // When loginWithGoogle fails because the email already has a password account,
 // we store the Google credential here so loginWithEmail can link it after login.
 let _pendingGoogleLink = null;   // { credential: AuthCredential, email: string } | null
+
+// ── Popup → redirect fallback ────────────────────────────────────────────────
+// signInWithPopup needs a real popup and a window the opener can talk back to.
+// Two environments parents actually use don't provide that: the app installed
+// to the home screen (standalone display mode) and in-app browsers such as the
+// one WhatsApp opens links in. The failure there is not a clean "popup blocked"
+// -- the SDK commonly surfaces the opaque auth/internal-error, which reached a
+// parent's screen verbatim as "Firebase: Error (auth/internal-error)".
+//
+// These codes mean "this environment cannot run the popup", never "this account
+// is wrong", so they are safe to retry as a full-page redirect. The redirect
+// flow is same-origin here (authDomain is app.kueboxs.com, which serves
+// /__/auth/handler), so it is not exposed to third-party-storage blocking.
+//
+// Deliberately NOT included: auth/popup-closed-by-user and
+// auth/cancelled-popup-request. Those mean the person closed the popup or
+// started a second one -- redirecting them would hijack a deliberate cancel.
+const POPUP_UNAVAILABLE = new Set([
+  "auth/internal-error",
+  "auth/popup-blocked",
+  "auth/operation-not-supported-in-this-environment",
+  "auth/web-storage-unsupported",
+  "auth/timeout",
+]);
+
+const REDIRECT_PENDING_KEY = "yd_google_redirect_pending";
 
 export function getPendingGoogleLink()  { return _pendingGoogleLink; }
 export function clearPendingGoogleLink() { _pendingGoogleLink = null; }
@@ -121,6 +149,17 @@ async function loginWithGoogle() {
     _pendingGoogleLink = null;   // clean up any stale pending link
     return me();
   } catch (err) {
+    if (POPUP_UNAVAILABLE.has(err.code)) {
+      console.warn(`[auth] popup unavailable (${err.code}) — falling back to redirect`);
+      try { sessionStorage.setItem(REDIRECT_PENDING_KEY, "1"); } catch { /* private mode */ }
+      await signInWithRedirect(auth, provider);
+      // The page navigates away here, so this never resolves in practice. The
+      // throw exists so a caller awaiting us doesn't sit on a promise that can
+      // never settle if the navigation is somehow blocked.
+      const pending  = new Error("GOOGLE_REDIRECT_IN_PROGRESS");
+      pending.code   = "auth/redirect-in-progress";
+      throw pending;
+    }
     if (err.code === "auth/account-exists-with-different-credential") {
       const credential = GoogleAuthProvider.credentialFromError(err);
       const email      = err.customData?.email || "";
@@ -133,6 +172,41 @@ async function loginWithGoogle() {
       throw linkErr;
     }
     throw err;
+  }
+}
+
+/**
+ * Settle a redirect sign-in after the browser comes back to the app.
+ *
+ * On success nothing needs doing here: Firebase restores the session and
+ * AuthContext's onAuthStateChanged does the /api/auth/me fetch exactly as it
+ * does for a popup login. This exists so the FAILURE of a redirect is visible
+ * -- a redirect's error arrives here and nowhere else, so without this call a
+ * failed redirect would land the user back on a silent login screen.
+ *
+ * @returns {Promise<{ redirected: boolean }>}
+ * @throws the same auth/link-required error loginWithGoogle throws, so the
+ *         account-linking flow behaves identically through either path.
+ */
+async function completeGoogleRedirect() {
+  let wasPending = false;
+  try { wasPending = sessionStorage.getItem(REDIRECT_PENDING_KEY) === "1"; } catch { /* private mode */ }
+  try {
+    const result = await getRedirectResult(auth);
+    return { redirected: !!result };
+  } catch (err) {
+    if (err.code === "auth/account-exists-with-different-credential") {
+      const credential = GoogleAuthProvider.credentialFromError(err);
+      const email      = err.customData?.email || "";
+      _pendingGoogleLink = { credential, email };
+      const linkErr = new Error("GOOGLE_LINK_REQUIRED");
+      linkErr.code  = "auth/link-required";
+      linkErr.email = email;
+      throw linkErr;
+    }
+    throw err;
+  } finally {
+    if (wasPending) { try { sessionStorage.removeItem(REDIRECT_PENDING_KEY); } catch { /* ignore */ } }
   }
 }
 
@@ -210,6 +284,7 @@ export { api };
 export default {
   me,
   loginWithGoogle,
+  completeGoogleRedirect,
   loginWithEmail,
   logout,
   selectCenter,
