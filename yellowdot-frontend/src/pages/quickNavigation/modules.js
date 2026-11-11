@@ -147,14 +147,10 @@ export const SECTIONS = [
       { id: "incidents",            label: "Incident Reports",     path: "/incidents",             routeKey: "incidents",            icon: AlertTriangle, description: "Log and track safety incidents and follow-ups." },
     ],
   },
-  {
-    id: "reports_analytics",
-    label: "Reports & Analytics",
-    accent: ACCENT.reports_analytics,
-    items: [
-      { id: "analytics", label: "Analytics", path: "/analytics", routeKey: "analytics", icon: TrendingUp, description: "Attendance, revenue and enrolment trends over time." },
-    ],
-  },
+  // The "Reports & Analytics" section was removed here. Its only card pointed
+  // at /analytics, whose page was deleted with Finance in 710dfaf, so the card
+  // rendered in the Control Center grid as a dead link. The ACCENT entry is
+  // kept so the palette stays aligned with the registry's category accents.
   {
     id: "settings",
     label: "Settings",

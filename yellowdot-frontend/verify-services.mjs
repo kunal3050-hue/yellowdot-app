@@ -36,7 +36,9 @@ const OWNED_ENDPOINTS = [
   { url: "/students",                 owner: "src/services/studentService.js",  read: "students.listRaw" },
   { url: "/api/attendance/summary",   owner: "src/services/attendanceService.js", read: "attendance.summary" },
   { url: "/api/pickup-requests",      owner: "src/services/securityService.js", read: "pickup_auth.requests" },
-  { url: "/api/invoices",             owner: "src/services/invoiceService.js",  read: "invoices.listRaw" },
+  // /api/invoices + src/services/invoiceService.js were deleted with Finance in
+  // 710dfaf. The entry stayed behind, so this gate crashed on ENOENT before
+  // running any check.
 ];
 
 /** Directories whose consumers have been migrated to the registry. */
@@ -67,7 +69,17 @@ function run() {
   section("1. Endpoints are owned by the service layer");
 
   for (const { url, owner, read } of OWNED_ENDPOINTS) {
-    const ownerSrc = readFileSync(join(__dirname, owner), "utf8");
+    // Report a deleted owner as a failure instead of throwing ENOENT. A gate
+    // that crashes says nothing about the other checks behind it, which is how
+    // the stale /api/invoices entry above stayed hidden.
+    let ownerSrc;
+    try {
+      ownerSrc = readFileSync(join(__dirname, owner), "utf8");
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+      fail(`${owner} does not exist`, `it still owns "${url}" — drop the entry or restore the file`);
+      continue;
+    }
     if (!ownerSrc.includes(url)) {
       fail(`${owner} no longer contains "${url}"`, `read ${read} would break`);
       continue;
