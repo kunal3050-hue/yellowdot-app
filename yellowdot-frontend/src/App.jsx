@@ -725,8 +725,14 @@ export default App;
 // Mounted once above <Routes>; passes live `loading` to SplashScreen which
 // plays its own fade-out animation when loading flips false, then self-removes.
 function AuthSplash() {
-  const { loading } = useAuth();
-  return <SplashScreen authLoading={loading} />;
+  const { loading, backendUnreachable, retryProfile } = useAuth();
+  return (
+    <SplashScreen
+      authLoading={loading}
+      unreachable={backendUnreachable}
+      onRetry={retryProfile}
+    />
+  );
 }
 
 // ── Smart root redirect ───────────────────────────────────────────────────────

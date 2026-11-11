@@ -28,7 +28,7 @@ const CSS = `
   }
 `;
 
-export default function SplashScreen({ authLoading }) {
+export default function SplashScreen({ authLoading, unreachable = false, onRetry }) {
   /*
    * phase: "in"  — visible, animating in
    *        "out" — fading out (authLoading just became false)
@@ -44,13 +44,16 @@ export default function SplashScreen({ authLoading }) {
     // Static Suspense mode (authLoading === undefined or always false): never auto-dismiss
     if (!hadAuthLoading.current) return;
 
+    // Hold while the backend is unreachable — the message below is the point.
+    if (unreachable) return;
+
     // Auth resolved (prop flipped true → false)
     if (!authLoading && phase === "in") {
       setPhase("out");
       const t = setTimeout(() => setPhase("gone"), 400);
       return () => clearTimeout(t);
     }
-  }, [authLoading, phase]);
+  }, [authLoading, phase, unreachable]);
 
   if (phase === "gone") return null;
 
@@ -128,6 +131,57 @@ export default function SplashScreen({ authLoading }) {
           Preschool Daycare
         </span>
       </div>
+
+      {/* ── Unreachable backend ──────────────────────────────────────────── */}
+      {/* Without this the splash is all there is: the boot request never
+          settles, so nothing below it ever renders and the person sees a logo
+          indefinitely with no hint that anything is wrong. Say so, and give
+          them something to press. */}
+      {unreachable && (
+        <div
+          role="alert"
+          style={{
+            marginTop:     28,
+            display:       "flex",
+            flexDirection: "column",
+            alignItems:    "center",
+            gap:           12,
+            maxWidth:      320,
+            padding:       "0 24px",
+            textAlign:     "center",
+            animation:     "yd-splash-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+            fontFamily:    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          }}
+        >
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111111", lineHeight: 1.4 }}>
+            Can’t reach the server
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 400, color: "#6B7280", lineHeight: 1.5 }}>
+            You’re still signed in — the app just couldn’t load your profile.
+            Check your connection and try again.
+          </span>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              style={{
+                marginTop:    4,
+                padding:      "9px 22px",
+                borderRadius: 999,
+                border:       "none",
+                background:   "#F4C430",
+                color:        "#3A2A06",
+                fontSize:     13,
+                fontWeight:   700,
+                fontFamily:   "inherit",
+                cursor:       "pointer",
+              }}
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
