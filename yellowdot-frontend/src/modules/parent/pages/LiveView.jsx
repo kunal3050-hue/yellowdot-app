@@ -108,6 +108,17 @@ export default function LiveView() {
     if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch {} }
   }, []);
 
+  // Always-current handle on startStream, which is defined further down.
+  // `startStream` depends on `scheduleRetry`, and `scheduleRetry` has to be
+  // able to call `startStream` back — this ref is what breaks that cycle.
+  //
+  // Declared up here, above both of them, so neither reads the binding before
+  // it exists, and initialized to null rather than useRef(startStream): seeding
+  // a ref with a value and then reassigning .current in an effect is exactly
+  // what react-hooks/immutability rejects, and the seed was dead anyway because
+  // the effect below overwrites it on every commit.
+  const startStreamRef = useRef(null);
+
   // ── Schedule auto-retry (exponential backoff) ─────────────────────
   const scheduleRetry = useCallback((camId) => {
     clearTimeout(retryTimer.current);
@@ -211,9 +222,13 @@ export default function LiveView() {
       // Status stays "loading"/"reconnecting" until media is actually buffered
       // (FRAG_BUFFERED / onplaying above) -- a token is not a picture.
 
-      // Schedule token refresh before TTL expires
+      // Schedule token refresh before TTL expires. Goes through the ref rather
+      // than naming startStream inside its own body: the self-reference read a
+      // binding that is not initialized until this useCallback returns, and it
+      // pinned the timer to the startStream from the render that armed it. The
+      // ref always holds the current one.
       refreshTimer.current = setTimeout(
-        () => startStream(camId || r.cameraId),
+        () => startStreamRef.current?.(camId || r.cameraId),
         REFRESH_INTERVAL_MS
       );
     } catch (e) {
@@ -234,8 +249,7 @@ export default function LiveView() {
     }
   }, [attachHls, destroyPlayer, scheduleRetry, classroom]);
 
-  // Keep a ref so scheduleRetry can call it without a circular dep
-  const startStreamRef = useRef(startStream);
+  // Keep the ref declared above pointing at the current startStream.
   useEffect(() => { startStreamRef.current = startStream; }, [startStream]);
 
   // ── Load camera list on mount ─────────────────────────────────────

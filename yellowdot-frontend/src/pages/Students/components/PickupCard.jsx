@@ -6,20 +6,27 @@
  * Shared component -- used by the profile shell for both /students and
  * /student-profile/:id.
  */
+import { useMemo } from "react";
 import { Lock, TriangleAlert } from "lucide-react";
 import { Avatar, StatusBadge, Button, Timeline, EmptyState, Skeleton } from "../../../components/ui";
 import useStudentPickup from "../hooks/useStudentPickup";
+import { useNow } from "../../../hooks/useNow";
 
 export default function PickupCard({ student, toast }) {
   const { persons, history, loading, historyLoading, removePerson } = useStudentPickup(student.Student_ID, toast);
 
-  const historyItems = history.map((e, i) => ({
+  // Pickup history is historical, so the clock is only a fallback for rows
+  // that carry no timestamp at all; one read per minute is plenty. Reading
+  // Date.now() inline made this list re-shuffle on unrelated re-renders.
+  const now = useNow(60_000);
+
+  const historyItems = useMemo(() => history.map((e, i) => ({
     id: e.id || i,
     type: e.approvalStatus === "Unauthorized" ? "incident" : "pickup",
     title: `Pickup ${(e.approvalStatus || "").replace(/_/g, " ")}`,
     description: [e.pickupName, e.relation].filter(Boolean).join(" · "),
-    timestamp: e.timestamp || e.date || Date.now(),
-  }));
+    timestamp: e.timestamp || e.date || now,
+  })), [history, now]);
 
   return (
     <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>

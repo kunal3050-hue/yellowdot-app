@@ -41,6 +41,7 @@ import {
 import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
 import { PageHeader, KpiCard, QuickActionCard, Timeline } from "../components/ui";
+import { useNow } from "../hooks/useNow";
 
 const get = (url) => api.get(url).then((r) => r.data);
 const todayISO   = () => new Date().toISOString().slice(0, 10);
@@ -104,6 +105,11 @@ function ErrorBanner({ errors }) {
 export default function LiveDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Stable clock for the derived timeline below. The dashboard already
+  // refetches every 60s, so a 60s tick keeps relative times honest without
+  // adding renders of its own.
+  const now = useNow(60_000);
 
   // ── Raw API results ─────────────────────────────────────────────
   const [students,  setStudents]  = useState(null);   // array from /students
@@ -236,32 +242,38 @@ export default function LiveDashboard() {
   // ── Derived: Today's Schedule (Timeline) ─────────────────────────
   // Chronological view of today's already-tracked events — check-ins and
   // meals served — assembled client-side from data already fetched above.
+  // `now` is read from useNow (effect-backed state), never Date.now() in
+  // render — a clock read here made this memo non-idempotent: an entry with
+  // an unparseable time drifted to "just now" on every re-render and kept
+  // jumping to the top of the sort.
   const todaySchedule = useMemo(() => {
     const items = [];
     (inside?.students || []).forEach((s, i) => {
       if (!s.checkIn) return;
+      const parsed = new Date(`${todayISO()}T${s.checkIn}`).getTime();
       items.push({
         id: `checkin-${s.studentId || s.id || i}`,
         type: "attendance",
         title: `${s.studentName || s.name || "A student"} checked in`,
         description: s.class || s.Class || undefined,
-        timestamp: new Date(`${todayISO()}T${s.checkIn}`).getTime() || Date.now(),
+        timestamp: Number.isFinite(parsed) ? parsed : now,
       });
     });
     (food || []).forEach((f, i) => {
       const st = (f.status || "").toLowerCase();
       const served = !st || st === "served" || st === "completed" || st === "yes" || Number(f.quantity) > 0;
       if (!served || !f.lastUpdated) return;
+      const parsed = new Date(f.lastUpdated).getTime();
       items.push({
         id: `meal-${f.studentId || i}`,
         type: "communication",
         title: `${f.studentName || "A student"} — meal logged`,
         description: f.mealType || f.category || undefined,
-        timestamp: new Date(f.lastUpdated).getTime() || Date.now(),
+        timestamp: Number.isFinite(parsed) ? parsed : now,
       });
     });
     return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 12);
-  }, [inside, food]);
+  }, [inside, food, now]);
 
 
   // ── Refresh button ──────────────────────────────────────────────

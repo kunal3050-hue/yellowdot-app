@@ -133,79 +133,6 @@ function StudentPicker({ students, value, onChange }) {
   );
 }
 
-// ── Photo Uploader ─────────────────────────────────────────────────────────────
-
-function PhotoUploader({ existingUrls = [], onUrlsChange }) {
-  const [previews, setPreviews]     = useState([]); // { file, url } — pending files
-  const [uploading, setUploading]   = useState(false);
-  const [existing, setExisting]     = useState(existingUrls);
-  const inputRef = useRef(null);
-
-  const handleFiles = (files) => {
-    const newPreviews = Array.from(files).map(f => ({ file: f, url: URL.createObjectURL(f) }));
-    setPreviews(p => [...p, ...newPreviews]);
-  };
-
-  const removePending = (idx) => {
-    setPreviews(p => p.filter((_, i) => i !== idx));
-  };
-
-  const removeExisting = (url) => {
-    const updated = existing.filter(u => u !== url);
-    setExisting(updated);
-    onUrlsChange([...updated, ...previews.map(() => null)].filter(Boolean)); // pass back reduced list
-  };
-
-  // Called by parent form on submit
-  PhotoUploader.upload = async () => {
-    if (previews.length === 0) return existing;
-    setUploading(true);
-    try {
-      const newUrls = await uploadIncidentPhotos(previews.map(p => p.file));
-      const all = [...existing, ...newUrls];
-      setExisting(all);
-      setPreviews([]);
-      onUrlsChange(all);
-      return all;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {existing.map(url => (
-          <div key={url} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-[#e5dfc0]">
-            <img src={url} alt="evidence" className="w-full h-full object-cover" />
-            <button type="button" onClick={() => removeExisting(url)}
-              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] hidden group-hover:flex items-center justify-center">
-              ×
-            </button>
-          </div>
-        ))}
-        {previews.map((p, i) => (
-          <div key={i} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-[#d4b830] bg-[#fff7d6]">
-            <img src={p.url} alt="preview" className="w-full h-full object-cover" />
-            <button type="button" onClick={() => removePending(i)}
-              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center">
-              ×
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={() => inputRef.current?.click()}
-          className="w-20 h-20 rounded-xl border-2 border-dashed border-[#e5dfc0] flex flex-col items-center justify-center gap-1 hover:border-[#d4b830] hover:bg-[#fff7d6] transition-colors text-[#9a7a18]">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span className="text-[9px] font-semibold uppercase tracking-wide">Add</span>
-        </button>
-      </div>
-      {uploading && <p className="text-[11px] text-[#9a7a18]">Uploading photos…</p>}
-      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden"
-        onChange={e => handleFiles(e.target.files)} />
-    </div>
-  );
-}
-
 // ── Incident Form Modal ───────────────────────────────────────────────────────
 
 function IncidentModal({ incident, students, staff, onSave, onClose }) {
@@ -275,8 +202,14 @@ function IncidentModal({ incident, students, staff, onSave, onClose }) {
   const labelCls = "block text-[11px] font-bold text-[#9a7a18] uppercase tracking-[0.1em] mb-1.5";
   const sectionCls = "text-[10px] font-black text-[#9a7a18] tracking-[0.2em] uppercase mb-4 mt-6 first:mt-0 flex items-center gap-2 after:flex-1 after:h-px after:bg-[#F1F1F1]";
 
-  // Expose upload ref
-  uploaderRef.current = { upload: null };
+  // NOTE: this used to do `uploaderRef.current = { upload: null }` here, in the
+  // render body. PhotoUploaderWithRef fills the same ref in during its own
+  // render, and children render after parents, so the real upload function
+  // happened to win — but any render of this modal that did not also re-render
+  // the uploader would have left `upload: null` in place, and handleSubmit
+  // silently skips the upload when it is missing, losing the staff member's
+  // photo evidence. The ref already starts as null from useRef(null); leaving
+  // it alone is both correct and what the rules require.
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -470,22 +403,30 @@ function PhotoUploaderWithRef({ existingUrls, onUrlsChange, uploaderRef }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
-  uploaderRef.current = {
-    upload: async () => {
-      if (previews.length === 0) return existing;
-      setUploading(true);
-      try {
-        const newUrls = await uploadIncidentPhotos(previews.map(p => p.file));
-        const all = [...existing, ...newUrls];
-        setExisting(all);
-        setPreviews([]);
-        onUrlsChange(all);
-        return all;
-      } finally {
-        setUploading(false);
-      }
-    },
-  };
+  // Published to the parent's ref from an effect, not from the render body.
+  // Writing a ref during render is what react-hooks/refs rejects, and the
+  // closure has to see the current `previews`/`existing`, so the effect
+  // re-publishes whenever those change. The ref is cleared on unmount so a
+  // closed modal cannot leave a stale uploader behind.
+  const upload = useCallback(async () => {
+    if (previews.length === 0) return existing;
+    setUploading(true);
+    try {
+      const newUrls = await uploadIncidentPhotos(previews.map(p => p.file));
+      const all = [...existing, ...newUrls];
+      setExisting(all);
+      setPreviews([]);
+      onUrlsChange(all);
+      return all;
+    } finally {
+      setUploading(false);
+    }
+  }, [previews, existing, onUrlsChange]);
+
+  useEffect(() => {
+    uploaderRef.current = { upload };
+    return () => { uploaderRef.current = null; };
+  }, [uploaderRef, upload]);
 
   const addFiles = (files) => {
     const newPreviews = Array.from(files).map(f => ({ file: f, url: URL.createObjectURL(f) }));

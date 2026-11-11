@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef, useReducer } from "react";
+import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from "react";
 import Sidebar from "../components/Sidebar";
 import napService from "../services/napService";
 import { useAuth } from "../contexts/AuthContext";
+import { useNow } from "../hooks/useNow";
 
 // ─────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -693,9 +694,14 @@ export default function NapTracker() {
 // ─────────────────────────────────────────────────────────────────
 
 function SummaryBar({ activeNaps, stats }) {
-  if (!activeNaps.length && !stats.avgDurationMinutes) return null;
+  // Declared before the early return below — hooks must run unconditionally.
+  // The projected wake time has to compare against a live clock, so this bar
+  // ticks on its own every 30s. Previously it read Date.now() during render,
+  // which is impure and meant "Next ~2:15 pm" only disappeared once something
+  // unrelated re-rendered the page.
+  const now = useNow(30_000);
 
-  const nextWake = (() => {
+  const nextWake = useMemo(() => {
     if (!activeNaps.length) return null;
     const times = activeNaps
       .map(n => new Date(n.start_time || n.startTime).getTime())
@@ -704,9 +710,11 @@ function SummaryBar({ activeNaps, stats }) {
     const oldest  = Math.min(...times);
     const napLen  = (stats.avgDurationMinutes > 0) ? stats.avgDurationMinutes : 60;
     const wakeMs  = oldest + napLen * 60000;
-    if (wakeMs <= Date.now()) return null;
+    if (wakeMs <= now) return null;
     return fmtTime(new Date(wakeMs).toISOString());
-  })();
+  }, [activeNaps, stats.avgDurationMinutes, now]);
+
+  if (!activeNaps.length && !stats.avgDurationMinutes) return null;
 
   return (
     <div className="nt-summary-bar flex items-center gap-1.5 px-4 py-2.5 rounded-[14px] flex-wrap">
