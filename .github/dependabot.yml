@@ -1,0 +1,38 @@
+# Dependabot — keeps the GitHub Actions in .github/workflows/ current.
+#
+# Why this exists: the actions in ci.yml are pinned to majors, and major pins
+# go stale silently. The Node 20 runtime deprecation is the example — all four
+# actions kept working because GitHub force-ran them on a newer Node, with
+# only a warning on each run to say so. Nobody is going to notice that by
+# hand, and chasing it manually is an errand, not a decision.
+#
+# Scope is deliberately GitHub Actions only. The npm trees in
+# yellowdot-frontend/ and yellowdot-backend/ are not covered here: the backend
+# ships on Node 18 and carries a legacy-peer-deps install, so dependency bumps
+# there want a human deciding, not a weekly PR. Add them as their own
+# `package-ecosystem: npm` entries if that changes.
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    # "/" is the documented value for this ecosystem — Dependabot scans
+    # .github/workflows/ itself, not a directory named here.
+    directory: "/"
+
+    schedule:
+      interval: weekly
+      day: monday
+
+    # One PR for all action updates rather than one per action. Four actions
+    # updating separately would mean four PRs, each re-running the whole suite,
+    # for what is almost always a single routine review.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+    # Match the repository's conventional-commit style, so Dependabot's PRs
+    # read like the rest of the history: "ci: bump actions/checkout from ...".
+    commit-message:
+      prefix: ci
