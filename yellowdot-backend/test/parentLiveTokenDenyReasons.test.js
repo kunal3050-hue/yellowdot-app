@@ -39,6 +39,7 @@ const state = {
   presence:    { status: "PRESENT" },
   camera:      { cameraId: "cam-07", cameraName: "CAm 07", mediaMtxPath: "cam07", classroom: "Daycare", classrooms: ["Daycare"], centerId: "c1", schoolId: "sch1" },
   decision:    { allowed: true, reason: "present-and-classroom-match" },
+  staffDecision: { allowed: true, reason: "classroom-match" },
 };
 
 stub("../services/cctvParentSettingsService", { isParentViewingOpen: async () => state.viewingOpen });
@@ -47,10 +48,11 @@ stub("../services/securityService", { getChildStatus: async () => state.presence
 stub("../services/cctvService",     { getOne: async () => state.camera, getAll: async () => [state.camera] });
 stub("../services/cctvAccessResolver", {
   canParentViewCamera: () => state.decision,
+  canViewCamera:       () => state.staffDecision,
   getActiveTimelineEntry: () => null,
 });
 
-const { parentLiveToken } = require("../controllers/cctvController");
+const { parentLiveToken, liveToken } = require("../controllers/cctvController");
 
 // ── Harness ──────────────────────────────────────────────────────────────────
 function mockRes() {
@@ -73,6 +75,7 @@ function baseline() {
   state.presence    = { status: "PRESENT" };
   state.camera      = { cameraId: "cam-07", cameraName: "CAm 07", mediaMtxPath: "cam07", classroom: "Daycare", classrooms: ["Daycare"], centerId: "c1", schoolId: "sch1" };
   state.decision    = { allowed: true, reason: "present-and-classroom-match" };
+  state.staffDecision = { allowed: true, reason: "classroom-match" };
   delete process.env.CCTV_STREAM_ENGINE_URL;
 }
 
@@ -223,4 +226,42 @@ test("success path still returns hlsUrl, token and sessionId", async () => {
   assert.equal(res.body.sessionId, "s1");
   assert.equal(deniedAudit(), undefined, "no denial audited on success");
   assert.ok(audits.some(a => a.event === "LIVE_VIEW_STARTED"));
+});
+
+// ── A denial has to be readable from the log alone ───────────────────────────
+
+test("parent denial records the camera, classroom and centre it was about", async () => {
+  baseline();
+  process.env.CCTV_STREAM_ENGINE_URL = "https://stream.example.com";
+  state.decision = { allowed: false, reason: "child-not-present" };
+  await call();
+
+  const a = deniedAudit();
+  assert.equal(a.reason,     "child-not-present");
+  assert.equal(a.cameraId,   "cam-07");
+  assert.equal(a.cameraName, "CAm 07");
+  assert.equal(a.classroom,  "Daycare", "classroom must be on the denial row, not a dash");
+  assert.equal(a.centerId,   "c1",      "centre must be on the denial row, not a dash");
+});
+
+test("staff denial records a reason too", async () => {
+  // The staff endpoint computed decision.reason and returned it to the caller,
+  // but never wrote it to the audit trail -- so every staff denial read as
+  // "refused, cause unknown" in the CCTV Access Log.
+  baseline();
+  audits.length = 0;
+  state.staffDecision = { allowed: false, reason: "classroom-not-assigned" };
+
+  const res = mockRes();
+  await liveToken({
+    user: { role: "teacher", userId: "uid-staff", name: "Asha", email: "asha@example.com", schoolId: "sch1", centerId: "c1", classrooms: ["Nursery"] },
+    params: { id: "cam-07" }, body: {}, ip: "1.2.3.4",
+  }, res);
+
+  assert.equal(res._status, 403);
+  assert.equal(res.body.reason, "classroom-not-assigned");
+  const a = deniedAudit();
+  assert.ok(a, "a staff denial must be audited");
+  assert.equal(a.reason, "classroom-not-assigned", "the audit row must say why");
+  assert.equal(a.kind,   "staff");
 });

@@ -106,7 +106,10 @@ function ObsCard({ entry }) {
   const stars  = entry.level ? "⭐".repeat(entry.level) : "";
   return (
     <div style={{
-      background: "#FAFAFF", borderRadius: 14,
+      background: "#FAFAFF",
+      // Square on the left so the 4px accent border reads as a flush edge.
+      // There was a second `borderRadius: 14` ahead of this one; it was dead —
+      // the later key won — so this drops it and keeps the rendered value.
       border: "1px solid #E0E7FF", borderLeft: "4px solid #818CF8", borderRadius: "0 14px 14px 0",
       padding: "14px 16px",
     }}>

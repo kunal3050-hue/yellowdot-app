@@ -89,26 +89,15 @@ export const dashboardModule = defineModule({
   ],
 });
 
-export const analyticsModule = defineModule({
-  id: "analytics",
-  label: "Analytics",
-  icon: "BarChart2",
-  category: "reports",
-  capability: "analytics.view",
-  actions: ["view", "export"],
-  keywords: ["analytics", "reports", "trends", "revenue", "enrolment"],
-  surfaces: { care: { order: 80, roles: { admin: 30, center_owner: 30 } } },
-  routes: [
-    {
-      path: "/analytics", routeKey: "analytics", label: "Analytics", icon: "BarChart2",
-      nav: [
-        { category: "reports",           order: 40, label: "Analytics" },
-      ],
-      grid: { section: "reports_analytics", label: "Analytics", icon: "TrendingUp",
-              description: "Attendance, revenue and enrolment trends over time." },
-    },
-  ],
-});
+// The analytics module was removed here. Analytics.jsx was deleted in 710dfaf
+// ("existed only to report on invoices and payments") along with the rest of
+// Finance, but its registry entry, Control Center card and RBAC grant were left
+// behind, all pointing at a /analytics route that no longer has a component.
+// The leftover entry also declared category "reports", which has never existed
+// — so importing this registry threw on its own integrity check and took the
+// Care page down with it. Removing the orphan finishes that deletion; there is
+// no planned rebuild in docs/. If Analytics returns, it needs a route in
+// App.jsx and a category in categories.js before it is re-registered here.
 
 export const profileModule = defineModule({
   id: "profile",
@@ -145,5 +134,5 @@ export const settingsModule = defineModule({
 });
 
 export default [
-  authModule, dashboardModule, analyticsModule, profileModule, settingsModule,
+  authModule, dashboardModule, profileModule, settingsModule,
 ];

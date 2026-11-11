@@ -9,6 +9,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import authService from "../../services/authService";
 import { PLATFORM_NAME } from "../../config/environment";
 import InstallAppButton from "../../components/InstallAppButton";
 
@@ -52,6 +53,32 @@ const CSS = `
   }
 `;
 
+// ── Sign-in errors, in words a parent can act on ──────────────────────────────
+// The screen used to render err.message straight from the SDK, so a parent on a
+// phone was shown "Firebase: Error (auth/internal-error)." -- a string that
+// tells them nothing and tells us nothing either, since they read it out over
+// the phone rather than screenshotting it.
+function friendlySignInError(err) {
+  const code = err?.code || "";
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request")
+    return "Sign-in was cancelled. Tap to try again.";
+  if (code === "auth/link-required")
+    return "This email has a staff account. Contact your administrator to link your Google account.";
+  if (code === "auth/network-request-failed")
+    return "No internet connection. Check your network and try again.";
+  if (code === "auth/user-disabled")
+    return "This account has been disabled. Please contact the school.";
+  if (code === "auth/too-many-requests")
+    return "Too many attempts. Please wait a few minutes and try again.";
+  if (code === "auth/unauthorized-domain" || code === "auth/operation-not-allowed")
+    return "Sign-in isn't set up for this address. Please contact the school.";
+  // Reached only when the redirect fallback ALSO failed, so the environment is
+  // not the cause. A wrong device clock is the usual culprit left.
+  if (code === "auth/internal-error")
+    return "Sign-in could not be completed. Please check that your phone's date and time are set automatically, then try again.";
+  return err?.response?.data?.error || err?.message || "Sign-in failed. Please try again.";
+}
+
 // ── Animation helper ───────────────────────────────────────────────────────────
 const rise = (delay) =>
   `yd-rise 0.65s ${SPRING} ${delay}s both`;
@@ -67,6 +94,17 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+
+  // Settle a redirect sign-in when the browser returns to the app. Success is
+  // handled by AuthContext's auth-state listener; this is here so a FAILED
+  // redirect says so instead of dropping the user on a silent login screen.
+  useEffect(() => {
+    let cancelled = false;
+    authService.completeGoogleRedirect()
+      .then(({ redirected }) => { if (redirected && !cancelled) setLoading(true); })
+      .catch(err => { if (!cancelled) { setLoading(false); setError(friendlySignInError(err)); } });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -117,16 +155,12 @@ export default function Login() {
       console.log(`[AUTH-TRACE ${new Date().toISOString()}] handleGoogle CAUGHT AN EXCEPTION`, {
         code: err?.code, message: err?.message,
       });
+      // The popup couldn't run and we've switched to a full-page redirect: the
+      // browser is navigating away, so hold the button in its loading state
+      // rather than flashing an error at someone who is about to leave.
+      if (err.code === "auth/redirect-in-progress") return;
       setLoading(false);
-      if (err.code === "auth/popup-closed-by-user") {
-        setError("Sign-in was cancelled. Tap to try again.");
-        return;
-      }
-      if (err.code === "auth/link-required") {
-        setError("This email has a staff account. Contact your administrator to link your Google account.");
-        return;
-      }
-      setError(err?.response?.data?.error || err.message || "Sign-in failed. Please try again.");
+      setError(friendlySignInError(err));
     }
   }
 

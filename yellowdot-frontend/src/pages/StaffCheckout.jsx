@@ -75,7 +75,17 @@ export default function StaffCheckout() {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; stopCamera(); };
+    // Teardown is inlined rather than calling stopCamera(), which is declared
+    // further down: this cleanup captured that binding before it existed.
+    // Stopping the media tracks is the part that matters on unmount — the
+    // setCameraOpen(false) inside stopCamera is a no-op for a gone component,
+    // and leaving the camera light on would be the real bug.
+    return () => {
+      mountedRef.current = false;
+      const stream = streamRef.current;
+      streamRef.current = null;
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    };
   }, []);
 
   // ── Load students ───────────────────────────────────────────────

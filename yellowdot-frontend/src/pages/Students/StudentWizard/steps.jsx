@@ -254,6 +254,23 @@ export function StepPickup({ watch, setValue }) {
   const persons = watch("pickupPersons") || [];
   const [form, setForm] = useState({ name: "", relation: "", mobile: "", emergency: false });
   const [err, setErr] = useState({});
+  // Local-only row identity, used by removePerson/toggleEmergency and as the
+  // React key. It is never sent to the backend — index.jsx builds the
+  // /api/pickup-authorization payload from the named fields and drops `id`.
+  // A counter replaces Date.now(): the clock read was impure, and two people
+  // added inside the same millisecond got the same id, which made remove and
+  // toggle act on both rows at once.
+  //
+  // Seeded from the rows already present rather than from a plain ref, because
+  // this step unmounts when the wizard moves between steps — a ref restarting
+  // at 1 would hand out an id that a previously added row already holds. The
+  // "p" prefix keeps these clear of ids on rows loaded in edit mode.
+  function nextPersonId() {
+    const used = new Set(persons.map(p => String(p.id)));
+    let n = persons.length + 1;
+    while (used.has(`p${n}`)) n++;
+    return `p${n}`;
+  }
 
   function addPerson() {
     const e = {};
@@ -262,7 +279,7 @@ export function StepPickup({ watch, setValue }) {
     if (!/^\d{10}$/.test(form.mobile)) e.mobile = "10-digit mobile required";
     setErr(e);
     if (Object.keys(e).length) return;
-    setValue("pickupPersons", [...persons, { ...form, id: Date.now() }]);
+    setValue("pickupPersons", [...persons, { ...form, id: nextPersonId() }]);
     setForm({ name: "", relation: "", mobile: "", emergency: false });
     setErr({});
   }

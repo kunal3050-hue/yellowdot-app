@@ -30,9 +30,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PROJECT_ID     = "demo-kueboxs";
 const FIRESTORE_PORT = 8080;
 const AUTH_PORT      = 9099;
-const UI_PORT        = 4000;
+const UI_PORT        = 4001;   // not 4000: KUE BOXS Hub's backend owns that
 const API_PORT       = 5000;
-const WEB_PORT       = 5173;
+// not 5173: KUE BOXS Hub's frontend pins that with strictPort, so Vite used to
+// drift here silently — mislabelling the banner and, because the API's CORS
+// allowlist names the origin, breaking every request once you signed in.
+const WEB_PORT       = 5174;
 
 const args     = process.argv.slice(2);
 const NO_SEED  = args.includes("--no-seed");
@@ -60,6 +63,9 @@ const EMULATOR_ENV = {
   // Finance routes are excluded unless this is set — without it the finance
   // widget and task provider cannot be validated at all.
   FINANCE_FOUNDATION_ENABLED: "true",
+  // server.js defaults its allowlist to :5173; the dev frontend is on WEB_PORT,
+  // so name that origin explicitly or every signed-in request fails CORS.
+  CORS_ORIGIN: `http://localhost:${WEB_PORT},http://127.0.0.1:${WEB_PORT}`,
   // Frontend
   VITE_USE_FIREBASE_EMULATOR: "true",
   VITE_FIREBASE_PROJECT_ID:   PROJECT_ID,
@@ -223,7 +229,10 @@ async function main() {
   run("api", "npm", ["run", "dev"], "yellowdot-backend");
   await waitForPort(API_PORT, "backend API", 60_000).catch(e => console.warn(`⚠️  ${e.message}`));
 
-  run("web", "npm", ["run", "dev"], "yellowdot-frontend");
+  // --strictPort: fail loudly rather than drift to another port, which the
+  // banner below and CORS_ORIGIN above would both then be wrong about.
+  run("web", "npm", ["run", "dev", "--", "--port", String(WEB_PORT), "--strictPort"],
+      "yellowdot-frontend");
   await waitForPort(WEB_PORT, "frontend", 60_000).catch(e => console.warn(`⚠️  ${e.message}`));
 
   console.log(`

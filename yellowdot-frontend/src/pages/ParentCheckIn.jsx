@@ -121,16 +121,6 @@ function Step1GateScan({ onScan, toast }) {
   const html5QrRef = useRef(null);
   const mountedRef = useRef(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    // Start scanner automatically
-    startScanner();
-    return () => {
-      mountedRef.current = false;
-      stopScanner();
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const startScanner = async () => {
     setCamError(null);
     try {
@@ -170,6 +160,20 @@ function Step1GateScan({ onScan, toast }) {
     }
     await stopScanner();
     onScan(gate);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Declared after startScanner/stopScanner on purpose. This effect used to sit
+  // above them and called both before their bindings existed, so it captured
+  // whatever the first render had. Keeping it below means it always starts and
+  // tears down the scanner the component actually has.
+  useEffect(() => {
+    mountedRef.current = true;
+    // Start scanner automatically
+    startScanner();
+    return () => {
+      mountedRef.current = false;
+      stopScanner();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleManualSubmit = () => {
@@ -572,46 +576,23 @@ function Step3FaceSubmit({ gate, parent, student, onSuccess, onBack, toast }) {
       { timeout: 6_000, maximumAge: 60_000 }
     );
 
+    // Teardown is inlined rather than calling stopDetection()/stopCamera(),
+    // which are declared further down — this cleanup captured those bindings
+    // before they existed. Both only touch refs, so the release is identical:
+    // kill the detection interval, then the camera tracks. Releasing the camera
+    // matters most; a missed stop here leaves the parent's camera light on.
     return () => {
       mountedRef.current = false;
-      stopDetection();
-      stopCamera();
+      if (detectTimerRef.current) {
+        clearInterval(detectTimerRef.current);
+        detectTimerRef.current = null;
+      }
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // â”€â”€ Start camera once models are ready â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  useEffect(() => {
-    if (modelsReady) startCamera();
-  }, [modelsReady]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
-
-      const video = videoRef.current;
-      if (!video) return;
-      video.srcObject = stream;
-      await video.play();
-
-      if (mountedRef.current) {
-        setCameraReady(true);
-        startDetection();
-      }
-    } catch (e) {
-      if (!mountedRef.current) return;
-      const msg = e?.message || "";
-      setCamError(
-        msg.includes("permission") || msg.includes("NotAllowed") || msg.includes("NotFoundError")
-          ? "Front camera access denied. Please allow camera permission and refresh."
-          : `Camera error: ${msg}`
-      );
-    }
-  };
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -620,6 +601,7 @@ function Step3FaceSubmit({ gate, parent, student, onSuccess, onBack, toast }) {
       videoRef.current.srcObject = null;
     }
   };
+
 
   // â”€â”€ Face detection loop (~8fps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const runDetection = useCallback(async () => {
@@ -657,17 +639,56 @@ function Step3FaceSubmit({ gate, parent, student, onSuccess, onBack, toast }) {
     }
   }, [modelsReady]);
 
-  const startDetection = useCallback(() => {
-    stopDetection();
-    detectTimerRef.current = setInterval(runDetection, 125); // ~8fps
-  }, [runDetection]);
-
-  const stopDetection = () => {
+  // Declared before startDetection, which calls it to clear any previous
+  // interval before arming a new one.
+  const stopDetection = useCallback(() => {
     if (detectTimerRef.current) {
       clearInterval(detectTimerRef.current);
       detectTimerRef.current = null;
     }
+  }, []);
+
+  const startDetection = useCallback(() => {
+    stopDetection();
+    detectTimerRef.current = setInterval(runDetection, 125); // ~8fps
+  }, [runDetection, stopDetection]);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
+
+      const video = videoRef.current;
+      if (!video) return;
+      video.srcObject = stream;
+      await video.play();
+
+      if (mountedRef.current) {
+        setCameraReady(true);
+        startDetection();
+      }
+    } catch (e) {
+      if (!mountedRef.current) return;
+      const msg = e?.message || "";
+      setCamError(
+        msg.includes("permission") || msg.includes("NotAllowed") || msg.includes("NotFoundError")
+          ? "Front camera access denied. Please allow camera permission and refresh."
+          : `Camera error: ${msg}`
+      );
+    }
   };
+
+  // ── Start camera once models are ready ──────────────────────────────────
+  // Declared after startCamera, which in turn is declared after startDetection
+  // that it calls. Each of these used to sit above the thing it referenced, so
+  // the effect and the camera both read bindings before they existed.
+  useEffect(() => {
+    if (modelsReady) startCamera();
+  }, [modelsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // â”€â”€ Core submit (saves to ParentAttendance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const submitAttendance = useCallback(async (action, selfieDataUrl) => {

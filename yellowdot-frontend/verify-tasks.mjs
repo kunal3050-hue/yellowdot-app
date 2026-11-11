@@ -141,14 +141,9 @@ async function run() {
   if (attendanceDone.length !== 0) fail("fully-marked attendance must produce no task");
   else pass("Fully-marked register produces no task", "queue stays clean");
 
-  const invoices = byId["overdue-invoices"].toTasks({
-    invoices: { success: true, invoices: [
-      { status: "Overdue", balance: 5000 }, { status: "Overdue", balance: 2500 }, { status: "Paid", balance: 0 },
-    ] },
-  });
-  if (invoices.length !== 1 || !/2 invoices/.test(invoices[0].context)) {
-    fail("overdue-invoices mapping", JSON.stringify(invoices));
-  } else pass("overdue-invoices aggregates rather than flooding", invoices[0].context);
+  // The "overdue-invoices" task producer was deleted with Finance in 710dfaf.
+  // This assertion was left pointing at it, so byId[...] was undefined and the
+  // gate died on `.toTasks` of undefined before reaching the checks below.
 
   // ── 5. Normalisation ───────────────────────────────────────────────────────
   section("5. Task normalisation");

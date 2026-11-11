@@ -59,14 +59,16 @@ function run() {
   const roleSvcSrc = readFileSync(join(BACKEND, "services/roleService.js"), "utf8");
   const permBeSrc  = readFileSync(join(BACKEND, "config/permissionsBackend.js"), "utf8");
 
-  const FINANCE_UI_ROUTE_KEYS = extractLiteral(roleSvcSrc, "const FINANCE_UI_ROUTE_KEYS =");
-  const STATIC_ROLE_PERMS     = extractLiteral(roleSvcSrc, "const STATIC_ROLE_PERMS =", { FINANCE_UI_ROUTE_KEYS });
-  const MODULE_ROUTE_MAP      = extractLiteral(roleSvcSrc, "const MODULE_ROUTE_MAP =");
-  const SYSTEM_ROLES          = extractLiteral(roleSvcSrc, "const SYSTEM_ROLES =");
+  // FINANCE_UI_ROUTE_KEYS used to be pulled out of both backend files and
+  // passed in as substitution scope, because STATIC_ROLE_PERMS and
+  // ROLE_PERMISSIONS spread it. Finance was deleted in 710dfaf and the constant
+  // went with it, so the extraction threw "marker not found" and this whole
+  // gate crashed before running a single check.
+  const STATIC_ROLE_PERMS = extractLiteral(roleSvcSrc, "const STATIC_ROLE_PERMS =");
+  const MODULE_ROUTE_MAP  = extractLiteral(roleSvcSrc, "const MODULE_ROUTE_MAP =");
+  const SYSTEM_ROLES      = extractLiteral(roleSvcSrc, "const SYSTEM_ROLES =");
 
-  const beFinanceKeys = extractLiteral(permBeSrc, "const FINANCE_UI_ROUTE_KEYS =");
-  const BE_ROLE_PERMISSIONS = extractLiteral(permBeSrc, "const ROLE_PERMISSIONS =",
-    { FINANCE_UI_ROUTE_KEYS: beFinanceKeys });
+  const BE_ROLE_PERMISSIONS = extractLiteral(permBeSrc, "const ROLE_PERMISSIONS =");
 
   // deriveRouteKeys, reimplemented exactly as roleService.js:135 defines it.
   const deriveRouteKeys = (permissions = {}) => {

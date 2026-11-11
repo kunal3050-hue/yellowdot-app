@@ -9,6 +9,8 @@
  *
  * Role resolution order:
  *   1. Firestore users/{uid}               → staff user (direct UID match)
+ *      A doc with no `role` field resolves to role="unknown" + profileMissing,
+ *      NOT to a default staff role — see _buildUserFromDoc. Fail closed.
  *   1b. Firestore users where email==email → handles Google OAuth UID mismatch
  *       (Firebase creates a new UID for Google sign-in when the email already
  *        has a password-based account; email fallback finds the existing profile.
@@ -56,11 +58,40 @@ async function _buildUserFromDoc(uid, docData, decoded) {
     );
   }
 
-  const _role    = docData.role    || "teacher";
+  // A user doc with no `role` field must NOT inherit a working role. Defaulting
+  // to a real role here would fail OPEN: firestore.rules grants `teacher` read
+  // access to every student in the school, so a half-provisioned user doc would
+  // silently become a staff account with school-wide read. Resolve to the
+  // "unknown" sentinel instead — blockUnknown/staffOnly reject it, and
+  // /api/auth returns the friendly ACCOUNT_NOT_REGISTERED response.
   const _schoolId = docData.schoolId || DEFAULT_SCHOOL_ID;
 
+  if (!docData.role) {
+    console.warn(
+      `[AUTH-DEBUG] Profile resolved with NO ROLE — uid=${uid}` +
+      ` schoolId=${_schoolId} — denying as role="unknown" (fail closed).` +
+      ` Fix the users/${uid} doc to grant access.`,
+    );
+    return {
+      userId:    uid,
+      email:     decoded.email || docData.email || "",
+      role:      "unknown",
+      schoolId:  _schoolId,
+      centerId:  docData.centerId || docData.center || "",
+      center:    docData.centerId || docData.center || "",
+      centers:   Array.isArray(docData.centers) ? docData.centers
+                 : (docData.center ? [docData.center] : []),
+      name:      docData.name    || decoded.name    || "",
+      photoUrl:  docData.photoUrl || decoded.picture || "",
+      permissions: [],
+      profileMissing: true,   // surfaced to frontend for user-friendly error
+    };
+  }
+
+  const _role = docData.role;
+
   console.log(
-    `[AUTH-DEBUG] Profile resolved — uid=${uid} email=${decoded.email || ""}` +
+    `[AUTH-DEBUG] Profile resolved — uid=${uid}` +
     ` role=${_role} schoolId=${_schoolId} centerId=${docData.centerId || docData.center || "(none)"}`,
   );
 

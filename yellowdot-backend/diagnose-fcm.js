@@ -1,12 +1,12 @@
 /**
- * fcm-test.js — FCM End-to-End Push Verification
+ * diagnose-fcm.js — FCM End-to-End Push Verification
  * ───────────────────────────────────────────────
  * Run AFTER the parent app has granted notification permission in the browser.
  *
  * Usage:
  *   GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json \
  *   SCHOOL_ID=ydseawoods \
- *   node fcm-test.js
+ *   node diagnose-fcm.js
  *
  * What it tests:
  *   1. Reads FCM token from parents/{uid} in Firestore
@@ -119,6 +119,6 @@ const SCHOOL_ID  = process.env.SCHOOL_ID || "ydseawoods";
 
   process.exit(0);
 })().catch(e => {
-  console.error("\n[fcm-test] Unexpected error:", e.message);
+  console.error("\n[diagnose-fcm] Unexpected error:", e.message);
   process.exit(1);
 });

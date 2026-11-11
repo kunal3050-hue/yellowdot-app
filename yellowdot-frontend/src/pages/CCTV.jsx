@@ -15,6 +15,37 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Hls from "hls.js";
+import { createTokenLoader, withStreamToken } from "../services/hlsStreamToken";
+
+// Deny reasons the live-token endpoints record on LIVE_VIEW_DENIED, in plain
+// English. Without this the Access Log shows that access was refused but never
+// why -- which is the one thing an admin needs in order to act, since a denial
+// is almost always fixable data (attendance, classroom mapping, the master
+// switch) rather than a fault. The raw code is kept under the label: it is what
+// to grep for in cctvController.js.
+const DENY_REASONS = {
+  "parent-cctv-disabled":   "Parent live view is switched off",
+  "master-switch-off":      "Parent live view is switched off",
+  "outside-school-hours":   "Outside the configured school hours",
+  "not-school-hours":       "Outside the configured school hours",
+  "child-not-present":      "Child is not checked in today",
+  "child-checked-out":      "Child has already checked out",
+  "no-camera":              "No camera mapped to the child's classroom",
+  "no-camera-in-classroom": "No camera mapped to the child's classroom",
+  "no-active-slot":         "No classroom session scheduled on this camera now",
+  "not-child-classroom":    "Camera is not covering the child's classroom",
+  "different-center":       "Camera belongs to another centre",
+  "different-school":       "Camera belongs to another school",
+  "camera-unavailable":     "Camera is deleted or unavailable",
+  "not-linked":             "No student linked to this parent account",
+  "child-missing":          "Linked student record not found",
+  "not-parent":             "Account is not a parent account",
+  "classroom-not-assigned": "Camera is not in this staff member's classrooms",
+  "role-not-permitted":     "Role has no live-view access",
+  "engine-not-provisioned": "Streaming engine not configured",
+  "server-error":           "Server error - check the API logs",
+  "unspecified":            "Not recorded",
+};
 import cctvService from "../services/cctvService";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -190,6 +221,7 @@ export default function CCTV() {
   const videoRef   = useRef(null);
   const hlsRef     = useRef(null);
   const sessionRef = useRef(null);
+  const tokenRef   = useRef(null); // current stream token — read per HLS request
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -325,12 +357,20 @@ export default function CCTV() {
     try {
       const r = await cctvService.getLiveToken(cam.cameraId);
       sessionRef.current = r.sessionId;
-      const url = `${r.hlsUrl}${r.hlsUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(r.token)}`;
+      // The token has to be on EVERY request, not just the manifest: MediaMTX
+      // authorizes each playlist and segment through our auth hook, and hls.js
+      // resolves in-playlist URLs relatively, which drops the query string.
+      tokenRef.current = r.token;
+      const url = withStreamToken(r.hlsUrl, r.token);
       // attach hls.js (or native HLS on Safari)
       const video = videoRef.current;
       if (!video) return;
       if (Hls.isSupported()) {
-        const hls = new Hls({ lowLatencyMode: true, backBufferLength: 10 });
+        const hls = new Hls({
+          lowLatencyMode: true,
+          backBufferLength: 10,
+          loader: createTokenLoader(() => tokenRef.current),
+        });
         hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.ERROR, (_e, data) => {
@@ -807,7 +847,7 @@ export default function CCTV() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                    {["Time", "User", "Role", "Camera", "Classroom", "Center", "Event", "Duration", "IP"].map(h => (
+                    {["Time", "User", "Role", "Camera", "Classroom", "Center", "Event", "Reason", "Duration", "IP"].map(h => (
                       <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#475569", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -849,6 +889,16 @@ export default function CCTV() {
                         }}>
                           {log.event === "LIVE_VIEW_STARTED" ? "Started" : log.event === "LIVE_VIEW_STOPPED" ? "Stopped" : log.event === "LIVE_VIEW_DENIED" ? "Denied" : log.event}
                         </span>
+                      </td>
+                      <td style={{ padding: "9px 12px", color: "#374151", maxWidth: 230 }}>
+                        {log.reason ? (
+                          <>
+                            <div>{DENY_REASONS[log.reason] || log.reason}</div>
+                            {DENY_REASONS[log.reason] && (
+                              <div style={{ fontSize: 11, color: "#94A3B8" }}>{log.reason}</div>
+                            )}
+                          </>
+                        ) : "—"}
                       </td>
                       <td style={{ padding: "9px 12px", whiteSpace: "nowrap", color: "#374151" }}>
                         {log.durationSec != null

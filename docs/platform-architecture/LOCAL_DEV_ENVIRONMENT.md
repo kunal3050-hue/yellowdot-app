@@ -11,9 +11,9 @@ demo tenant, then starts the API and the web app — all wired to the emulator.
 
 | Service | URL |
 |---|---|
-| App | http://localhost:5173 |
+| App | http://localhost:5174 |
 | API | http://localhost:5000 |
-| Emulator UI | http://localhost:4000 |
+| Emulator UI | http://localhost:4001 |
 
 ## Prerequisite: Java
 

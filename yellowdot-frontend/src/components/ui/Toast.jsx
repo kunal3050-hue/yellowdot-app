@@ -15,16 +15,10 @@ let _nextId = 1;
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const show = useCallback((message, type = "info", duration = 4000) => {
-    const id = _nextId++;
-    setToasts(prev => [...prev, { id, message, type, exiting: false }]);
-
-    if (duration > 0) {
-      setTimeout(() => dismiss(id), duration);
-    }
-    return id;
-  }, []);
-
+  /* Declared before `show`, which calls it on the auto-dismiss timer. When
+     `show` came first it closed over `dismiss` while that binding was still
+     in its temporal dead zone — it only worked because the call sat inside a
+     setTimeout. Declaring it first lets `show` take it as a real dependency. */
   const dismiss = useCallback((id) => {
     /* Mark as exiting to trigger the fade-out animation */
     setToasts(prev =>
@@ -35,6 +29,16 @@ export function ToastProvider({ children }) {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 220);
   }, []);
+
+  const show = useCallback((message, type = "info", duration = 4000) => {
+    const id = _nextId++;
+    setToasts(prev => [...prev, { id, message, type, exiting: false }]);
+
+    if (duration > 0) {
+      setTimeout(() => dismiss(id), duration);
+    }
+    return id;
+  }, [dismiss]);
 
   return (
     <ToastContext.Provider value={{ show, dismiss }}>

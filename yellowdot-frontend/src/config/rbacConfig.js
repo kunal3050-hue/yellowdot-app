@@ -197,7 +197,12 @@ const MODULE_ROUTE_MAP = {
   pickup_auth:       ["pickup-authorization", "pickup-history"],
   medical:           [],
   food_menu:         ["food-menu", "food-consumption"],
-  analytics:         ["analytics"],
+  // No routeKey: the /analytics route and its page went with Finance in
+  // 710dfaf. The permission itself stays — the role matrices below still grant
+  // analytics.view/export — but it no longer claims a route that nothing
+  // serves, which is what made it an orphan. Empty is the same shape `medical`
+  // already uses above.
+  analytics:         [],
   staff:             ["user-management"],
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],

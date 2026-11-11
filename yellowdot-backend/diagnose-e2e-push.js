@@ -1,5 +1,5 @@
 /**
- * e2e-push-test.js — End-to-end push notification test
+ * diagnose-e2e-push.js — End-to-end push notification test
  * ─────────────────────────────────────────────────────
  * Steps:
  *   1. Poll Firestore until fcmToken appears on the parent doc
@@ -8,7 +8,7 @@
  *   4. Verify notification document was created
  *   5. Print a pass/fail evidence report
  *
- * Run: node e2e-push-test.js
+ * Run: node diagnose-e2e-push.js
  *
  * Before running: open the parent app on Android, grant notification
  * permission when prompted — that registers the FCM token.

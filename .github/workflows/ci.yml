@@ -1,0 +1,203 @@
+name: CI
+
+# The gates in this repo were all written before anything ran them. verify:all,
+# the backend suite and the lint backlog each only executed when someone
+# remembered to, which is how a registry that no longer described the app, four
+# crashed verify gates and a stale permissions baseline all stayed invisible.
+# This workflow is what makes them hold.
+#
+# Two jobs, because the two apps do not run on the same Node:
+#   frontend — Vite 8 needs ^20.19 || >=22.12 and ESLint 10 needs
+#              ^20.19 || ^22.13 || >=24, so 22 satisfies both.
+#   backend  — pinned to 18 on purpose: that is what ships. nixpacks.toml
+#              installs nodejs_18, yellowdot-backend/Dockerfile is
+#              node:18-alpine, and package.json says engines.node 18. Testing
+#              on anything newer would not be testing production.
+#
+# NOTE: Node 18 went end-of-life in April 2025 and no longer gets security
+# updates. That is a production concern rather than a CI one, but when the
+# backend moves to a supported LTS, bump BACKEND_NODE here in the same change.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FRONTEND_NODE: "22"
+  BACKEND_NODE: "18"
+  # The Firebase CLI needs Node >=20 from v14 on, so it cannot share the
+  # backend's Node 18. It is test tooling, not shipped code, so it gets its own
+  # Node rather than dragging the backend's runtime up or the CLI two majors
+  # down — 13.x is the last line that supports Node 18. The backend job starts
+  # the emulators under this version and then switches to BACKEND_NODE to
+  # actually run the suite.
+  CLI_NODE: "20"
+  # Pinned so a firebase-tools release cannot change what CI does overnight.
+  FIREBASE_TOOLS: "15.30.1"
+  # The Firestore emulator is a Java process and firebase-tools 15.x refuses to
+  # start it on a JDK older than 21. Bump this together with FIREBASE_TOOLS.
+  JAVA_VERSION: "21"
+
+jobs:
+  frontend:
+    name: Frontend — registry, lint budget, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: yellowdot-frontend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.FRONTEND_NODE }}
+          cache: npm
+          cache-dependency-path: yellowdot-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The six verify:* gates. These read yellowdot-backend source as text
+      # (permissions and role parity), so they need the full checkout but not a
+      # backend install.
+      #
+      # This is the gate that matters most: it is the one that proves the
+      # Module Registry still describes the application. A route deleted
+      # without its registry entry, or a nav entry pointing at a page that no
+      # longer exists, fails here.
+      - name: Verify registry, permissions, features, services, tasks, roles
+        run: npm run verify:all
+
+      # Does not demand a clean slate — fails only if the error count rises
+      # above .lint-budget.json. See scripts/lint-budget.mjs for why.
+      - name: Lint budget
+        run: npm run lint:budget
+
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend — tests against Firebase emulators
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Firestore emulator is a Java process. Without a JDK on PATH it
+      # fails at startup with a message that does not mention Java, and on a
+      # JDK older than 21 firebase-tools 15.x refuses outright:
+      #   "firebase-tools no longer supports Java version before 21"
+      - name: Set up Java (Firestore emulator runtime)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # Cache the emulator jars — otherwise every run re-downloads them.
+      - name: Cache Firebase emulators
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ env.FIREBASE_TOOLS }}
+          restore-keys: firebase-emulators-${{ runner.os }}-
+
+      # Node for the CLI only. See CLI_NODE above for why it is not the
+      # backend's version.
+      #
+      # package-manager-cache is off deliberately. Since v5 setup-node turns
+      # caching on by itself when package.json carries a `packageManager` field
+      # (narrowed to npm in v6, which is what this repo uses), and this step
+      # runs at the repository root, which has a package.json but no lockfile —
+      # so the day someone adds that field, the auto-cache would fail here with
+      # "Dependencies lock file is not found". Nothing to cache at this step
+      # anyway: it only puts a Node on PATH for firebase-tools, which npx
+      # fetches.
+      - name: Set up Node for the Firebase CLI
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.CLI_NODE }}
+          package-manager-cache: false
+
+      # Started in the background rather than via `emulators:exec`, because
+      # exec would run the test command under whatever Node is on PATH — which
+      # has to be the CLI's Node 20, not the backend's 18. Launching here means
+      # the emulator process keeps the Node it was started with, and the next
+      # step is free to switch PATH to Node 18 underneath it.
+      #
+      # Runs from the repository root: that is where firebase.json lives, and
+      # the ports below (127.0.0.1:8080 / :9099) are the ones it declares.
+      - name: Start Firebase emulators
+        run: |
+          nohup npx --yes firebase-tools@${{ env.FIREBASE_TOOLS }} emulators:start \
+            --only auth,firestore \
+            --project demo-kueboxs \
+            > "$RUNNER_TEMP/emulators.log" 2>&1 &
+
+          echo "Waiting for the Firestore and Auth emulators to accept connections..."
+          for i in $(seq 1 90); do
+            if curl -sf -o /dev/null http://127.0.0.1:8080 \
+               && curl -sf -o /dev/null http://127.0.0.1:9099; then
+              echo "Emulators up after ${i}s."
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "::error::Emulators did not come up within 90s. Log follows."
+          cat "$RUNNER_TEMP/emulators.log"
+          exit 1
+
+      # Now switch to the Node the backend actually ships on. The emulators
+      # started above are unaffected — they are already-running processes.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.BACKEND_NODE }}
+          cache: npm
+          cache-dependency-path: yellowdot-backend/package-lock.json
+
+      # legacy-peer-deps=true comes from yellowdot-backend/.npmrc — see the
+      # comment in that file for the firebase-functions/firebase-admin peer
+      # conflict it works around. Running npm ci from inside the directory is
+      # what picks it up, and matches how Railway installs.
+      - name: Install
+        working-directory: yellowdot-backend
+        run: npm ci
+
+      # Cheap insurance: if the emulators died during the Node switch or the
+      # install, say so plainly here instead of letting 290-odd tests fail with
+      # a connection error each.
+      - name: Check emulators are still up
+        run: |
+          if curl -sf -o /dev/null http://127.0.0.1:8080 \
+             && curl -sf -o /dev/null http://127.0.0.1:9099; then
+            echo "Emulators still reachable on $(node -v)."
+          else
+            echo "::error::Emulators are no longer reachable. Log follows."
+            cat "$RUNNER_TEMP/emulators.log"
+            exit 1
+          fi
+
+      # APP_ENV=development plus loopback emulator hosts is exactly what
+      # platform/devEnv/emulatorGuard.js requires. That guard refuses to boot if
+      # the process can reach a real Firebase project, so these variables are
+      # what let the suite run at all — and what guarantees CI can never touch
+      # production data.
+      - name: Run backend tests
+        working-directory: yellowdot-backend
+        env:
+          APP_ENV: development
+          GCLOUD_PROJECT: demo-kueboxs
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+        run: npm test

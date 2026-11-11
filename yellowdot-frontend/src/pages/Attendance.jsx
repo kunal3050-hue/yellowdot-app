@@ -783,8 +783,22 @@ function QRScannerView({ toast }) {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; stopScanner(); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Teardown is inlined rather than calling stopScanner(), which is declared
+    // further down: this cleanup captured that binding before it existed and
+    // pinned it to the first render's copy. Releasing the scanner handle is all
+    // that is needed on unmount — stopScanner's setScanning(false) is a no-op
+    // once the component is gone, and it already guards on mountedRef.
+    return () => {
+      mountedRef.current = false;
+      const qr = html5QrRef.current;
+      html5QrRef.current = null;
+      if (!qr) return;
+      Promise.resolve()
+        .then(() => qr.stop())
+        .catch(() => {})
+        .finally(() => { try { qr.clear(); } catch { /* already torn down */ } });
+    };
+  }, []);
 
   const handleDecodedQR = useCallback(async (decodedText) => {
     const now = Date.now();

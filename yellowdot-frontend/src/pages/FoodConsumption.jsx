@@ -716,6 +716,12 @@ export default function FoodConsumption() {
   function handleQuantityChange(student, meal, newQty) {
     const key    = `${student.Student_ID}__${meal.mealType}`;
     const status = Number(newQty) > 0 ? "Ate" : "Didn't Eat";
+    // Event handler, not render: this only runs from the quantity input's
+    // onQuantityChange, and the timestamp must be the moment the staff member
+    // logged the meal. react-hooks/purity cannot prove a function declared in
+    // the component body is never called during render, so it flags the clock
+    // read here; reading it in an event handler is correct and intended.
+    // eslint-disable-next-line react-hooks/purity
     const now    = Date.now();
     setConsumptionMap(prev => ({ ...prev, [key]: { quantity: String(newQty), status, lastUpdated: now } }));
     scheduleAutosave(key, {
