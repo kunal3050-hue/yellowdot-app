@@ -64,11 +64,48 @@ const API_BASE = import.meta.env.DEV
   ? (VITE_API_URL || "http://localhost:5000")
   : (VITE_API_URL || undefined);
 
+// Request timeouts.
+//
+// Axios defaults to NO timeout, which means a request to an unreachable
+// backend never settles — the promise just stays pending forever. That is not
+// theoretical: when api.kueboxs.com became intermittently unreachable, the
+// boot call below hung and the app sat on the splash screen with no login and
+// no error, because the code after the `await` never ran.
+//
+// REQUEST_TIMEOUT_MS is the backstop for every call. It is deliberately
+// generous, because some endpoints legitimately take a while (PDF generation,
+// report exports) and cutting those off would trade one bug for another.
+const REQUEST_TIMEOUT_MS = 30_000;
+
+// The boot call gets a much shorter one. It gates the entire UI — nothing
+// renders until it settles — so waiting half a minute to find out the server
+// is unreachable is far worse than saying so quickly and offering a retry.
+const BOOT_TIMEOUT_MS = 12_000;
+
 // ── Shared axios instance ──────────────────────────────────────────────────────
 // All other frontend service files import this `api` object.
 // baseURL: "" (empty string) makes axios use relative paths → same origin.
 // baseURL: "http://localhost:5000" routes to local backend in dev.
-const api = axios.create({ baseURL: API_BASE });
+const api = axios.create({ baseURL: API_BASE, timeout: REQUEST_TIMEOUT_MS });
+
+/**
+ * True when the request never reached the server, or reached it and timed out
+ * waiting for a reply — as opposed to the server answering with an error.
+ *
+ * The distinction matters: a 401/403 is the backend telling us something about
+ * this session, and signing the user out is a reasonable response. A timeout
+ * says nothing about the session at all, so reacting by destroying it logs
+ * people out over a blip — and the login page they land on needs the same
+ * unreachable backend to work.
+ */
+export function isUnreachableError(err) {
+  if (!err) return false;
+  if (err.response) return false;             // server replied; not a reachability problem
+  return err.code === "ECONNABORTED"          // axios timeout
+      || err.code === "ERR_NETWORK"           // DNS/TLS/connection refused
+      || err.code === "ETIMEDOUT"
+      || err.message === "Network Error";
+}
 
 // Request interceptor: attach the current Firebase ID token (auto-refreshes).
 api.interceptors.request.use(async config => {
@@ -128,7 +165,7 @@ api.interceptors.response.use(
  * Firebase ID token. Returns { user, permissions, homeRoute, requiresCenterSelect }.
  */
 async function me() {
-  const { data } = await api.get("/api/auth/me");
+  const { data } = await api.get("/api/auth/me", { timeout: BOOT_TIMEOUT_MS });
   return data;
 }
 
@@ -289,5 +326,6 @@ export default {
   logout,
   selectCenter,
   refreshPermissions,
+  isUnreachableError,
   api,
 };

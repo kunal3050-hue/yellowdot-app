@@ -63,20 +63,28 @@ export function AuthProvider({ children }) {
   const [loading,        setLoading]       = useState(true);  // always starts loading (SplashScreen needs true→false)
   const [devRole,        setDevRoleState]  = useState(null);
   const [profileMissing, setProfileMissing] = useState(false);
+  // True when the profile fetch could not reach the backend at all. Distinct
+  // from an auth failure: the session may well be fine, we just cannot ask.
+  // While this is set, `loading` stays true so the splash remains mounted and
+  // shows the failure instead of a logo with nothing behind it.
+  const [backendUnreachable, setBackendUnreachable] = useState(false);
   const inactivityTimer = useRef(null);
 
-  // ── Firebase auth state listener ────────────────────────────────────────────
-  useEffect(() => {
-    if (_DEV_BYPASS_ROLE) {
-      // DEV bypass: skip Firebase, inject mock user, resolve loading
-      setUser(_DEV_BYPASS_USER);
-      setPermissions(["*"]);
+  // Fetches the Yellow Dot profile and folds it into context state.
+  //
+  // Declared above the auth listener that calls it, and shared with
+  // retryProfile, so the two paths cannot drift — a retry applies exactly the
+  // same handling as the first attempt, profile-missing branch included.
+  const loadProfile = useCallback(async () => {
+    if (!auth.currentUser) {
+      // The session disappeared while we were failing. Nothing to fetch; let
+      // the normal signed-out path render the login screen.
+      setBackendUnreachable(false);
       setLoading(false);
-      return; // no Firebase subscription to clean up
+      return;
     }
-    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
-      if (firebaseUser) {
-        try {
+    try {
+          setBackendUnreachable(false);
           // Fetch Yellow Dot profile (role, permissions, center assignments)
           const data = await authService.me();
 
@@ -101,7 +109,23 @@ export function AuthProvider({ children }) {
           }
         } catch (err) {
           console.error("[AuthContext] Failed to fetch profile:", err.message);
-          // If the backend is unreachable, sign out rather than leaving a broken state
+
+          // Couldn't reach the server at all — a timeout or a dead connection.
+          // This says nothing about whether the session is valid, so leave it
+          // alone: signing out here would log people out over a network blip
+          // and strand them on a login page that needs the same backend.
+          //
+          // `loading` deliberately stays true, which keeps the splash mounted
+          // and lets it render the unreachable state with a retry. Without
+          // this the request simply never settled and the splash sat there
+          // forever with nothing on it — the bug this replaces.
+          if (authService.isUnreachableError(err)) {
+            setBackendUnreachable(true);
+            return;
+          }
+
+          // The server did answer, and the answer was an error — the session
+          // really is unusable, so clear it as before.
           await auth.signOut().catch(() => {});
           setUser(null);
           setPermissions([]);
@@ -109,7 +133,34 @@ export function AuthProvider({ children }) {
           setFeatures(null);
           setServerScope(null);
           setProfileMissing(false);
-        }
+      }
+      setLoading(false);
+  }, []);
+
+  /**
+   * Re-attempt the boot fetch after the backend was unreachable. Exposed on
+   * the context so the splash can offer a retry in place, rather than leaving
+   * a full page reload as the only way out.
+   */
+  const retryProfile = useCallback(async () => {
+    setLoading(true);
+    await loadProfile();
+  }, [loadProfile]);
+
+  // ── Firebase auth state listener ────────────────────────────────────────────
+  useEffect(() => {
+    if (_DEV_BYPASS_ROLE) {
+      // DEV bypass: skip Firebase, inject mock user, resolve loading
+      setUser(_DEV_BYPASS_USER);
+      setPermissions(["*"]);
+      setLoading(false);
+      return; // no Firebase subscription to clean up
+    }
+    // loadProfile is useCallback([]) — a stable identity — so naming it as a
+    // dependency documents the link without re-subscribing to Firebase.
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+      if (firebaseUser) {
+        await loadProfile();
       } else {
         // Firebase user is signed out
         setUser(null);
@@ -119,12 +170,13 @@ export function AuthProvider({ children }) {
         setServerScope(null);
         setDevRoleState(null);
         setProfileMissing(false);
+        setBackendUnreachable(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe; // cleanup on unmount
-  }, []);
+  }, [loadProfile]);
 
   // ── Permission refresh ─────────────────────────────────────────────────────
   // Flushes the server-side cache and returns a fresh permissions array.
@@ -334,6 +386,8 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     profileMissing,
+    backendUnreachable,  // boot fetch could not reach the server; splash shows it
+    retryProfile,        // re-attempt that fetch
 
     // Login
     loginWithGoogle,
