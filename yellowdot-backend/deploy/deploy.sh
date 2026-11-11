@@ -21,6 +21,16 @@ REPO_DIR=/opt/yd/repo
 COMPOSE_FILE=/opt/yd/docker-compose.yml
 BACKEND_DIR=$REPO_DIR/yellowdot-backend
 
+# Host port the container is published on. Must match the `ports:` mapping in
+# docker-compose.yml, which publishes the container's 8080 on 127.0.0.1:4000.
+#
+# This was hardcoded to 5000 and never updated when the mapping changed, so
+# the smoke test at the end curled a port nothing listens on. With
+# `set -euo pipefail` and the `|| { ...; exit 1; }` below, that meant every
+# successful deploy still ended in "ERROR: /api/version failed" and exit 1.
+# Overridable so a box with a different mapping does not need a code change.
+HEALTH_PORT="${HEALTH_PORT:-4000}"
+
 echo "=== Yellow Dot Backend Deploy $(date -u) ==="
 
 # ── Pull latest code ──────────────────────────────────────────────────────────
@@ -62,7 +72,7 @@ echo "Container started"
 # ── Smoke test ────────────────────────────────────────────────────────────────
 sleep 3
 echo "=== /api/version ==="
-curl -sf http://127.0.0.1:5000/api/version | python3 -m json.tool || \
-  { echo "ERROR: /api/version failed — check logs"; docker logs yd-backend --tail 50; exit 1; }
+curl -sf "http://127.0.0.1:${HEALTH_PORT}/api/version" | python3 -m json.tool || \
+  { echo "ERROR: /api/version failed on 127.0.0.1:${HEALTH_PORT} — check logs"; docker logs yd-backend --tail 50; exit 1; }
 
 echo "=== Deploy complete: $COMMIT ==="

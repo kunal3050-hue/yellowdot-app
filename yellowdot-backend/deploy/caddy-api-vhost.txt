@@ -12,6 +12,12 @@
 # Verify:
 #   curl https://api.kueboxs.com/api/version
 
+# Upstream is 4000, not 5000. docker-compose.yml publishes the container's
+# 8080 on 127.0.0.1:4000 and nothing is published on 5000, so the live Caddy
+# must already point at 4000 — the site could not serve a single request
+# otherwise. This snippet simply never got updated when the mapping changed.
+# The Caddyfile on the VPS is the source of truth; this is the reference copy.
+
 api.kueboxs.com {
-    reverse_proxy 127.0.0.1:5000
+    reverse_proxy 127.0.0.1:4000
 }
