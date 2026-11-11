@@ -1,5 +1,5 @@
 /**
- * test-notif-endpoint.js
+ * diagnose-notif-endpoint.js
  * ─────────────────────
  * 1. Reads Firestore directly to show notification documents
  * 2. Creates a Firebase custom token for the parent UID

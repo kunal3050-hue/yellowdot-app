@@ -1,0 +1,137 @@
+name: CI
+
+# The gates in this repo were all written before anything ran them. verify:all,
+# the backend suite and the lint backlog each only executed when someone
+# remembered to, which is how a registry that no longer described the app, four
+# crashed verify gates and a stale permissions baseline all stayed invisible.
+# This workflow is what makes them hold.
+#
+# Two jobs, because the two apps do not run on the same Node:
+#   frontend — Vite 8 needs ^20.19 || >=22.12 and ESLint 10 needs
+#              ^20.19 || ^22.13 || >=24, so 22 satisfies both.
+#   backend  — pinned to 18 on purpose: that is what ships. nixpacks.toml
+#              installs nodejs_18, yellowdot-backend/Dockerfile is
+#              node:18-alpine, and package.json says engines.node 18. Testing
+#              on anything newer would not be testing production.
+#
+# NOTE: Node 18 went end-of-life in April 2025 and no longer gets security
+# updates. That is a production concern rather than a CI one, but when the
+# backend moves to a supported LTS, bump BACKEND_NODE here in the same change.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FRONTEND_NODE: "22"
+  BACKEND_NODE: "18"
+  # Pinned so a firebase-tools release cannot change what CI does overnight.
+  FIREBASE_TOOLS: "15.30.1"
+
+jobs:
+  frontend:
+    name: Frontend — registry, lint budget, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: yellowdot-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.FRONTEND_NODE }}
+          cache: npm
+          cache-dependency-path: yellowdot-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The six verify:* gates. These read yellowdot-backend source as text
+      # (permissions and role parity), so they need the full checkout but not a
+      # backend install.
+      #
+      # This is the gate that matters most: it is the one that proves the
+      # Module Registry still describes the application. A route deleted
+      # without its registry entry, or a nav entry pointing at a page that no
+      # longer exists, fails here.
+      - name: Verify registry, permissions, features, services, tasks, roles
+        run: npm run verify:all
+
+      # Does not demand a clean slate — fails only if the error count rises
+      # above .lint-budget.json. See scripts/lint-budget.mjs for why.
+      - name: Lint budget
+        run: npm run lint:budget
+
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend — tests against Firebase emulators
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Firestore emulator is a Java process. Without a JDK on PATH it
+      # fails at startup with a message that does not mention Java.
+      - name: Set up Java (Firestore emulator runtime)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.BACKEND_NODE }}
+          cache: npm
+          cache-dependency-path: yellowdot-backend/package-lock.json
+
+      # legacy-peer-deps=true comes from yellowdot-backend/.npmrc — see the
+      # comment in that file for the firebase-functions/firebase-admin peer
+      # conflict it works around. Running npm ci from inside the directory is
+      # what picks it up, and matches how Railway installs.
+      - name: Install
+        working-directory: yellowdot-backend
+        run: npm ci
+
+      # Cache the emulator jars — otherwise every run re-downloads them.
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ env.FIREBASE_TOOLS }}
+          restore-keys: firebase-emulators-${{ runner.os }}-
+
+      # emulators:exec starts the emulators, runs the command, shuts them down
+      # and exits with the command's status, so a failing test fails the job.
+      # It runs from the repository root because that is where firebase.json
+      # lives; the ports it binds (127.0.0.1:8080 / :9099) come from there.
+      #
+      # APP_ENV=development plus loopback emulator hosts is exactly what
+      # platform/devEnv/emulatorGuard.js requires. That guard refuses to boot if
+      # the process can reach a real Firebase project, so these variables are
+      # what let the suite run at all — and what guarantees CI can never touch
+      # production data.
+      - name: Run backend tests
+        env:
+          APP_ENV: development
+          GCLOUD_PROJECT: demo-kueboxs
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+        run: |
+          npx --yes firebase-tools@${{ env.FIREBASE_TOOLS }} emulators:exec \
+            --only auth,firestore \
+            --project demo-kueboxs \
+            'cd yellowdot-backend && npm test'

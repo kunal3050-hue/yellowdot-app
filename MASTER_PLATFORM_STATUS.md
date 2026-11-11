@@ -91,7 +91,9 @@ Full, current-as-of-2026-06-30 module inventory (Completed / In Progress / Plann
 | Post-M15 | 219 |
 | **Post-M16 (current)** | **231** |
 
-**231/231 passing, zero regressions across 15 consecutive milestones (M2–M16).** Run via `node --test "test/*.test.js"` from `yellowdot-backend/` — **do not use bare `npm test`**, its unscoped glob sweeps up two unrelated interactive scripts at the repo root (`e2e-push-test.js`, `fcm-test.js`) and hangs; this is a known, pre-existing issue, not yet fixed.
+**293/293 passing, zero regressions across 15 consecutive milestones (M2–M16).** Run via `npm test` from `yellowdot-backend/`, with the Firebase emulators up — `platform/devEnv/emulatorGuard.js` refuses to run the suite against a real project, so start them first (`npm run dev:local` from the repo root, or `npx firebase-tools emulators:exec --only auth,firestore --project demo-kueboxs 'cd yellowdot-backend && npm test'`, which is what CI does).
+
+The old warning against bare `npm test` no longer applies. It used to sweep up the interactive FCM scripts at the backend root and hang, because `e2e-push-test.js`, `fcm-test.js` and `test-notif-endpoint.js` matched Node's test-file patterns. They are now `diagnose-e2e-push.js`, `diagnose-fcm.js` and `diagnose-notif-endpoint.js` — the same `diagnose-*` convention as `diagnose-parent-cctv.js` — so they are no longer discovered as tests. They remain manual diagnostics, run by hand against real credentials.
 
 No frontend test suite exists (Playwright scaffolded, never populated) — tracked as its own open item, not part of this security program.
 
