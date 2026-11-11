@@ -3,6 +3,23 @@
 > Covers deploying the Parent Module (Phases 1–4: Auth, Profile, Child Profile,
 > Home Feed, Attendance, Memories). Feature development is paused after Phase 4.
 
+> ## ⚠️ The backend is no longer on Railway
+>
+> It runs on a self-managed VPS (`66.116.245.149`, which is also the apex
+> `kueboxs.com`): the Express app as the `yd-backend` Docker container via
+> `/opt/yd/docker-compose.yml`, behind **Caddy** which terminates TLS for
+> `api.kueboxs.com`. The old Railway app is gone —
+> `backend-production-3608.up.railway.app` now returns "Application not found".
+>
+> The real deploy assets live in [`yellowdot-backend/deploy/`](yellowdot-backend/deploy/):
+> `deploy.sh`, `docker-compose.yml`, `caddy-api-vhost.txt`,
+> `backend.env.template`. Deploy with `bash /opt/yd/deploy.sh` on the VPS.
+>
+> **Anything below that refers to Railway, `railway up`, `railway variables`
+> or the `backend-production-3608` URL is superseded by this note.** Those
+> sections are left in place as a record of the Parent Module release rather
+> than rewritten, because their non-Railway detail has not been re-verified.
+
 ## Deployment status (latest run)
 
 | Step | Target | Status |
@@ -10,16 +27,29 @@
 | Firebase web config | `src/firebase/firebase.js` | ✅ **Fixed** — real appId/senderId/measurementId; verified in prod bundle |
 | Firestore rules | `yellowdot-app` | ✅ **Deployed** (compiled successfully, released) |
 | Frontend build | `yellowdot-frontend/dist` | ✅ **Built & verified** (config + Railway URL embedded) — ready to ship |
-| Backend (Railway) | `backend-production-3608` | ⛔ **Blocked** — Railway CLI not authenticated (no `RAILWAY_TOKEN`; `railway login` is interactive). **Action required by you.** |
+| Backend (VPS) | `api.kueboxs.com` | ⚠️ **Stale** — live commit is `1f631fe` (built 2026-08-18), well behind `master`. Deploy with `bash /opt/yd/deploy.sh` on the VPS. |
 | Hosting | `yellowdot-app` | ⏸️ **Held** — intentionally not deployed: shipping the new parent UI before the Railway backend has `/api/parent/*` would break parent features in prod. Deploy **after** the backend is live. |
 
-**To finish the deploy (you):**
+**To deploy:**
 ```bash
-cd yellowdot-backend && railway login && railway up      # 1. backend
-cd ../yellowdot-frontend && npm run build                 # 2. build
-cd .. && firebase deploy --only hosting --project yellowdot-app   # 3. hosting
+# 1. Backend — on the VPS, as root. Pulls origin/master, builds a Docker image
+#    tagged with the commit SHA, recreates the container, smoke-tests it.
+bash /opt/yd/deploy.sh
+
+# 2. Frontend — locally
+cd yellowdot-frontend && npm run build
+firebase deploy --only hosting --project yellowdot-app
 ```
-(Or tell me once the backend is live and I'll run build + hosting.)
+
+Rollback the backend to a previous image:
+```bash
+BACKEND_TAG=<previous-sha> docker compose -f /opt/yd/docker-compose.yml up -d
+```
+
+> ⚠️ `deploy.sh` pulls **`origin/master`** — there is no way to ship a subset.
+> Whatever is on master at that moment goes live, so check `git log` against
+> the currently deployed commit (`curl https://api.kueboxs.com/api/version`)
+> before running it.
 
 ---
 
@@ -28,7 +58,7 @@ cd .. && firebase deploy --only hosting --project yellowdot-app   # 3. hosting
 | Layer | Host | Notes |
 |-------|------|-------|
 | Frontend (SPA) | **Firebase Hosting** — project `yellowdot-app` | Vite build → `yellowdot-frontend/dist` |
-| Backend (Express API) | **Railway** — `https://backend-production-3608.up.railway.app` | Frontend prod build targets this via `VITE_API_URL` |
+| Backend (Express API) | **VPS** — `https://api.kueboxs.com` (Caddy → `127.0.0.1:4000` → `yd-backend` container) | Frontend prod build targets this via `VITE_API_URL` |
 | Auth / Firestore / Storage | **Firebase project `yellowdot-app`** | Web config hardcoded in `src/firebase/firebase.js` |
 
 > ⚠️ **Two Firebase projects exist:** `yellowdot-app` (wired into the app) and
@@ -84,7 +114,7 @@ The Parent Module is **read-only** for media — it renders URLs stored on
 ### Frontend (build-time, Vite)
 | Var | Where | Value |
 |-----|-------|-------|
-| `VITE_API_URL` | `yellowdot-frontend/.env.production` | `https://backend-production-3608.up.railway.app` |
+| `VITE_API_URL` | `yellowdot-frontend/.env.production` | `https://api.kueboxs.com` |
 
 > The Firebase **web** config is currently hardcoded in
 > `src/firebase/firebase.js` (not read from `VITE_FIREBASE_*`). `messagingSenderId`
@@ -133,7 +163,7 @@ firebase deploy --only hosting --project $PROJECT
 |-----------|----------|
 | **Hosting** | `firebase hosting:rollback --project yellowdot-app` (or Firebase Console → Hosting → release history → roll back). |
 | **Firestore rules** | `git revert` the `firestore.rules` change, then `firebase deploy --only firestore:rules --project yellowdot-app`. Rules are additive, so reverting only removes parent/memories access. |
-| **Backend (Railway)** | Railway Dashboard → service → Deployments → **Redeploy** the previous build (or `railway rollback`). |
+| **Backend (VPS)** | `BACKEND_TAG=<previous-sha> docker compose -f /opt/yd/docker-compose.yml up -d` — `deploy.sh` tags each image with its commit SHA and keeps the last three. |
 
 > Rules changes in this release are **additive and backward-compatible** — they
 > only grant parents read access to their own children's docs and add the
