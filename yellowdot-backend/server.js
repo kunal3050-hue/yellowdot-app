@@ -590,7 +590,7 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================================
-// STARTUP  (only when run directly, not when imported by Cloud Functions)
+// STARTUP  (only when run directly, not when imported by the test suite)
 // ============================================================
 
 function runStartupDiagnostics() {
@@ -604,8 +604,10 @@ function runStartupDiagnostics() {
 }
 
 // When run directly (`node server.js` or `npm start`) → start HTTP server.
-// When imported by index.js (Cloud Functions) or a test file (supertest
-// against the exported `app`) → just export the Express app, no side effects.
+// When imported by a test file (supertest against the exported `app`) → just
+// export the Express app, no side effects. This guard also served index.js,
+// the Cloud Functions wrapper, until that path was retired; the test suite is
+// now its only consumer, so do not remove it with the functions code.
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n🚀  Server Running On Port ${PORT}`);

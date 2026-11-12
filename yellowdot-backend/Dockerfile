@@ -17,8 +17,15 @@ ARG APP_BUILD_TIME=unknown
 WORKDIR /app
 
 # Install deps first (cached layer unless package.json changes)
+#
+# This was `npm ci --legacy-peer-deps` for as long as firebase-functions@4.9
+# was a dependency: it declared a peer of firebase-admin ^10||^11||^12 while
+# the app pins ^13, so a strict install aborted with ERESOLVE. That package is
+# gone along with the Cloud Functions entry point it served, and a strict
+# install now resolves cleanly, so the flag is no longer needed and peer
+# conflicts can fail the build again — which is what we want from it.
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps --omit=dev
+RUN npm ci --omit=dev
 
 # Copy source
 COPY . .

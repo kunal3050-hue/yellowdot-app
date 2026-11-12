@@ -167,10 +167,14 @@ jobs:
           cache: npm
           cache-dependency-path: yellowdot-backend/package-lock.json
 
-      # legacy-peer-deps=true comes from yellowdot-backend/.npmrc — see the
-      # comment in that file for the firebase-functions/firebase-admin peer
-      # conflict it works around. Running npm ci from inside the directory is
-      # what picks it up, and matches how the Dockerfile builds on the VPS.
+      # A plain, strict npm ci — matching how the Dockerfile builds on the VPS.
+      #
+      # This used to rely on legacy-peer-deps=true from yellowdot-backend/.npmrc,
+      # which worked around firebase-functions@4.9 declaring a peer of
+      # firebase-admin ^10||^11||^12 against the app's ^13. Both that package and
+      # the .npmrc are gone with the Cloud Functions entry point, so peer
+      # conflicts are no longer suppressed anywhere and a genuine one will fail
+      # this step rather than being installed around.
       - name: Install
         working-directory: yellowdot-backend
         run: npm ci
