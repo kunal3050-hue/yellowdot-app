@@ -28,7 +28,9 @@
  *   notification is also sent via firebase-admin messaging.
  */
 
-const { db, admin } = require("../firebaseAdmin");
+const { db } = require("../firebaseAdmin");
+const { getMessaging } = require("firebase-admin/messaging");
+const { FieldValue } = require("firebase-admin/firestore");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const nowISO    = () => new Date().toISOString();
@@ -173,7 +175,7 @@ async function sendPush(parent, { title, message, type, deepLink }) {
   const token = parent.fcmToken;
   if (!token) return;
   try {
-    await admin.messaging().send({
+    await getMessaging().send({
       token,
       notification: { title, body: message },
       data: {
@@ -187,7 +189,7 @@ async function sendPush(parent, { title, message, type, deepLink }) {
   } catch (e) {
     // Invalid/expired FCM token — clear it so we stop trying
     if (e.code === "messaging/registration-token-not-registered") {
-      await db.collection("parents").doc(parent.uid).update({ fcmToken: admin.firestore.FieldValue.delete() });
+      await db.collection("parents").doc(parent.uid).update({ fcmToken: FieldValue.delete() });
     } else {
       console.warn("[notificationService] FCM push failed:", e.message);
     }

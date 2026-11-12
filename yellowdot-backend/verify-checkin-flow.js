@@ -3,10 +3,11 @@
  * Verifies: parentAttendance write → notification written → activity feed includes it
  * Run: node verify-checkin-flow.js
  */
-const admin = require("firebase-admin");
+const { initializeApp, cert } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 const svcAccount = require("./serviceAccountKey.json");
-admin.initializeApp({ credential: admin.credential.cert(svcAccount), projectId: "yellowdot-app" });
-const db = admin.firestore();
+initializeApp({ credential: cert(svcAccount), projectId: "yellowdot-app" });
+const db = getFirestore();
 
 const SCHOOL_ID  = "ydseawoods";
 const STUDENT_ID = "YD008";          // Rishaan — the test child

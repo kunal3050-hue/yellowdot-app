@@ -3,7 +3,13 @@
 # Usage (from yellowdot-backend/):
 #   docker build -t yd-backend:$(git rev-parse --short HEAD) .
 
-FROM node:18-alpine
+# Node 22, not 18. Two reasons, and the second one is a hard requirement:
+#   - Node 18 went end-of-life in April 2025 and gets no security updates.
+#   - firebase-admin v14 declares engines.node ">=22". v14.0.0 dropped 18 and
+#     20 together, so 22 is the floor, not a preference.
+# Keep this in step with engines.node in package.json and BACKEND_NODE in
+# .github/workflows/ci.yml — all three must name the same major.
+FROM node:22-alpine
 
 # Build metadata passed in by deploy.sh (see deploy/deploy.sh). Declared here
 # so the --build-arg values are actually captured — .dockerignore excludes

@@ -2,9 +2,20 @@
  * firebaseAdmin.js — Firebase Admin SDK initialization
  * ──────────────────────────────────────────────────────
  * Exports:
- *   admin  — Firebase Admin instance
+ *   admin  — the firebase-admin module, re-exported for compatibility only
  *   db     — Firestore database
  *   auth   — Firebase Admin Auth
+ *
+ * NOTE ON STYLE: firebase-admin v14 removed the legacy namespace, so
+ * `admin.firestore()`, `admin.auth()`, `admin.messaging()`, `admin.apps` and
+ * the `admin.firestore.FieldValue` property no longer exist. Everything here
+ * uses the modular entry points instead — firebase-admin/app for
+ * initializeApp/getApps/cert, firebase-admin/firestore, firebase-admin/auth,
+ * firebase-admin/messaging.
+ *
+ * `admin` is still exported because callers destructure it, but nothing in
+ * this file uses it any more and reaching through it for a service will throw.
+ * Prefer requiring the modular entry point directly in new code.
  *
  * Configuration via environment variables:
  *   FIREBASE_SERVICE_ACCOUNT  — JSON string of service account credentials
@@ -15,6 +26,9 @@
  */
 
 const admin = require("firebase-admin");
+const { initializeApp, getApps, cert } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 const { isEmulator, emulatorStatus, assertDevNotPointedAtProduction } =
   require("./platform/devEnv/emulatorGuard");
 
@@ -24,7 +38,7 @@ const { isEmulator, emulatorStatus, assertDevNotPointedAtProduction } =
 // Only fires for APP_ENV=development; production and staging are untouched.
 assertDevNotPointedAtProduction();
 
-if (!admin.apps.length) {
+if (!getApps().length) {
   const svcEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
 
   // True when running inside Google Cloud (Cloud Functions, Cloud Run, etc.)
@@ -41,7 +55,7 @@ if (!admin.apps.length) {
   // emulator and will not contact Google for a `demo-` prefixed project.
   if (isEmulator()) {
     const s = emulatorStatus();
-    admin.initializeApp({ projectId: s.projectId });
+    initializeApp({ projectId: s.projectId });
     console.log(
       `[firebase-admin] 🧪 EMULATOR MODE — project=${s.projectId} ` +
       `firestore=${s.firestoreHost} auth=${s.authHost}\n` +
@@ -51,8 +65,8 @@ if (!admin.apps.length) {
     // Explicit JSON string — used on Railway / Render
     try {
       const serviceAccount = JSON.parse(svcEnv);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      initializeApp({
+        credential: cert(serviceAccount),
         projectId:  serviceAccount.project_id || "yellowdot-app",
       });
       console.log("[firebase-admin] Initialized with FIREBASE_SERVICE_ACCOUNT credentials.");
@@ -62,7 +76,7 @@ if (!admin.apps.length) {
     }
   } else if (IS_GCP) {
     // Cloud Functions / Cloud Run — runtime injects the project service account automatically
-    admin.initializeApp({ projectId: process.env.GOOGLE_CLOUD_PROJECT || "yellowdot-app" });
+    initializeApp({ projectId: process.env.GOOGLE_CLOUD_PROJECT || "yellowdot-app" });
     console.log("[firebase-admin] Initialized with GCP Application Default Credentials.");
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     // File path — read and parse eagerly so any JSON error surfaces at startup,
@@ -92,8 +106,8 @@ if (!admin.apps.length) {
       console.error(`[firebase-admin] Failed to read/parse GOOGLE_APPLICATION_CREDENTIALS at ${credPath}:`, e.message);
       process.exit(1);
     }
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    initializeApp({
+      credential: cert(serviceAccount),
       projectId:  serviceAccount.project_id || "yellowdot-app",
     });
     console.log("[firebase-admin] Initialized with GOOGLE_APPLICATION_CREDENTIALS file.");
@@ -104,12 +118,12 @@ if (!admin.apps.length) {
       "  or GOOGLE_APPLICATION_CREDENTIALS (file path) for local dev.\n" +
       "  Falling back to Application Default Credentials."
     );
-    admin.initializeApp({ projectId: "yellowdot-app" });
+    initializeApp({ projectId: "yellowdot-app" });
   }
 }
 
-const db   = admin.firestore();
-const auth = admin.auth();
+const db   = getFirestore();
+const auth = getAuth();
 
 // Firestore settings — disable deprecated date behaviour
 db.settings({ ignoreUndefinedProperties: true });

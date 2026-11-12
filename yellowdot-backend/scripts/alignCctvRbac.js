@@ -32,7 +32,7 @@ require("dotenv").config();
 const fs   = require("fs");
 const path = require("path");
 const { db } = require("../firebaseAdmin");
-const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 const CONFIRM   = process.argv.includes("--confirm");
@@ -129,10 +129,10 @@ async function run() {
     if (p.action === "set") {
       await ref.update({ "permissions.cctv": p.want, updatedAt: now, updatedBy: "cctv-rbac-align" });
     } else if (p.action === "remove") {
-      await ref.update({ "permissions.cctv": admin.firestore.FieldValue.delete(), updatedAt: now, updatedBy: "cctv-rbac-align" });
+      await ref.update({ "permissions.cctv": FieldValue.delete(), updatedAt: now, updatedBy: "cctv-rbac-align" });
     } else if (p.action === "ghost") {
       const upd = { isActive: false, updatedAt: now, updatedBy: "cctv-rbac-align" };
-      if (p.strip) upd["permissions.cctv"] = admin.firestore.FieldValue.delete();
+      if (p.strip) upd["permissions.cctv"] = FieldValue.delete();
       await ref.update(upd);
     }
     // Re-read for an authoritative after-image of cctv.
