@@ -6,18 +6,21 @@ name: CI
 # crashed verify gates and a stale permissions baseline all stayed invisible.
 # This workflow is what makes them hold.
 #
-# Two jobs, because the two apps do not run on the same Node:
+# Two jobs, both on Node 22:
 #   frontend — Vite 8 needs ^20.19 || >=22.12 and ESLint 10 needs
 #              ^20.19 || ^22.13 || >=24, so 22 satisfies both.
-#   backend  — pinned to 18 on purpose: that is what ships.
-#              yellowdot-backend/Dockerfile is node:18-alpine, package.json
-#              says engines.node 18, and the live server reports v18.20.8 on
-#              /api/version. Testing on anything newer would not be testing
-#              production.
+#   backend  — 22 because that is what ships. yellowdot-backend/Dockerfile is
+#              node:22-alpine and package.json says engines.node 22. Testing on
+#              anything else would not be testing production.
 #
-# NOTE: Node 18 went end-of-life in April 2025 and no longer gets security
-# updates. That is a production concern rather than a CI one, but when the
-# backend moves to a supported LTS, bump BACKEND_NODE here in the same change.
+# The backend was pinned to 18 until firebase-admin v14 forced the move: v14
+# declares engines.node ">=22" and dropped 18 and 20 together. Node 18 had also
+# been end-of-life since April 2025, so this was overdue on its own.
+#
+# One consequence worth keeping: the backend job used to install two different
+# Node versions, because the Firebase CLI needs >=20 and could not share Node
+# 18. On 22 the CLI and the backend run on the same Node, so the job installs
+# it once and never switches mid-run.
 
 on:
   push:
@@ -35,15 +38,10 @@ permissions:
 
 env:
   FRONTEND_NODE: "22"
-  BACKEND_NODE: "18"
-  # The Firebase CLI needs Node >=20 from v14 on, so it cannot share the
-  # backend's Node 18. It is test tooling, not shipped code, so it gets its own
-  # Node rather than dragging the backend's runtime up or the CLI two majors
-  # down — 13.x is the last line that supports Node 18. The backend job starts
-  # the emulators under this version and then switches to BACKEND_NODE to
-  # actually run the suite.
-  CLI_NODE: "20"
+  BACKEND_NODE: "22"
   # Pinned so a firebase-tools release cannot change what CI does overnight.
+  # firebase-tools 15.x declares node ">=20", so BACKEND_NODE satisfies it and
+  # the CLI no longer needs a Node of its own (CLI_NODE, now removed).
   FIREBASE_TOOLS: "15.30.1"
   # The Firestore emulator is a Java process and firebase-tools 15.x refuses to
   # start it on a JDK older than 21. Bump this together with FIREBASE_TOOLS.
@@ -113,28 +111,28 @@ jobs:
           key: firebase-emulators-${{ runner.os }}-${{ env.FIREBASE_TOOLS }}
           restore-keys: firebase-emulators-${{ runner.os }}-
 
-      # Node for the CLI only. See CLI_NODE above for why it is not the
-      # backend's version.
+      # One Node for the whole job. The Firebase CLI needs >=20 and the backend
+      # now ships 22, so both run on the same version and nothing switches Node
+      # mid-run the way this job used to.
       #
-      # package-manager-cache is off deliberately. Since v5 setup-node turns
-      # caching on by itself when package.json carries a `packageManager` field
-      # (narrowed to npm in v6, which is what this repo uses), and this step
-      # runs at the repository root, which has a package.json but no lockfile —
-      # so the day someone adds that field, the auto-cache would fail here with
-      # "Dependencies lock file is not found". Nothing to cache at this step
-      # anyway: it only puts a Node on PATH for firebase-tools, which npx
-      # fetches.
-      - name: Set up Node for the Firebase CLI
+      # cache-dependency-path is explicit rather than left to inference. This
+      # step runs at the repository root, which has a package.json but no
+      # lockfile, and since v5 setup-node enables caching by itself when
+      # package.json carries a `packageManager` field (narrowed to npm in v6,
+      # which is what this repo uses) — so inference would fail here with
+      # "Dependencies lock file is not found" the day someone adds that field.
+      - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ env.CLI_NODE }}
-          package-manager-cache: false
+          node-version: ${{ env.BACKEND_NODE }}
+          cache: npm
+          cache-dependency-path: yellowdot-backend/package-lock.json
 
-      # Started in the background rather than via `emulators:exec`, because
-      # exec would run the test command under whatever Node is on PATH — which
-      # has to be the CLI's Node 20, not the backend's 18. Launching here means
-      # the emulator process keeps the Node it was started with, and the next
-      # step is free to switch PATH to Node 18 underneath it.
+      # Started in the background rather than via `emulators:exec`. That choice
+      # originally existed because exec would have run the suite under the CLI's
+      # Node rather than the backend's; with both on 22 that no longer applies,
+      # but background start is kept because it lets the readiness loop below
+      # fail with a clear message instead of exec swallowing a startup error.
       #
       # Runs from the repository root: that is where firebase.json lives, and
       # the ports below (127.0.0.1:8080 / :9099) are the ones it declares.
@@ -159,14 +157,6 @@ jobs:
           cat "$RUNNER_TEMP/emulators.log"
           exit 1
 
-      # Now switch to the Node the backend actually ships on. The emulators
-      # started above are unaffected — they are already-running processes.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.BACKEND_NODE }}
-          cache: npm
-          cache-dependency-path: yellowdot-backend/package-lock.json
-
       # A plain, strict npm ci — matching how the Dockerfile builds on the VPS.
       #
       # This used to rely on legacy-peer-deps=true from yellowdot-backend/.npmrc,
@@ -179,9 +169,9 @@ jobs:
         working-directory: yellowdot-backend
         run: npm ci
 
-      # Cheap insurance: if the emulators died during the Node switch or the
-      # install, say so plainly here instead of letting 290-odd tests fail with
-      # a connection error each.
+      # Cheap insurance: if the emulators died during the install, say so
+      # plainly here instead of letting 300-odd tests fail with a connection
+      # error each.
       - name: Check emulators are still up
         run: |
           if curl -sf -o /dev/null http://127.0.0.1:8080 \

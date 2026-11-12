@@ -75,7 +75,7 @@ const SCHOOL_ID  = process.env.SCHOOL_ID || "ydseawoods";
   const elapsed = Date.now() - t0;
   console.log("   fireForStudent() completed in", elapsed + "ms  ✅");
   console.log("   → Notification doc written to Firestore");
-  console.log("   → admin.messaging().send() called with token");
+  console.log("   → getMessaging().send() called with token");
 
   // ── 4. Verify notification document ───────────────────────────────
   await new Promise(r => setTimeout(r, 1200));

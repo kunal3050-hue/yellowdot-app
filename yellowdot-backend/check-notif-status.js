@@ -1,7 +1,8 @@
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const svcAccount = require('./serviceAccountKey.json');
-admin.initializeApp({ credential: admin.credential.cert(svcAccount), projectId: 'yellowdot-app' });
-const db = admin.firestore();
+initializeApp({ credential: cert(svcAccount), projectId: 'yellowdot-app' });
+const db = getFirestore();
 
 async function check() {
   // Most recent pickup requests — no orderBy to avoid index requirement

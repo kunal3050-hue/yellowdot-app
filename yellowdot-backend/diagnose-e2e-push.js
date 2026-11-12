@@ -15,7 +15,8 @@
  */
 require("dotenv").config();
 
-const { db, admin } = require("./firebaseAdmin");
+const { db } = require("./firebaseAdmin");
+const { getMessaging } = require("firebase-admin/messaging");
 const notifSvc = require("./services/notificationService");
 
 const PARENT_UID  = "wAUEaJBvi1W84JLyWBYIn268uUi1";
@@ -79,7 +80,7 @@ async function sendDirectFcm(token) {
 
   console.log("   Payload:", JSON.stringify(message, null, 4));
 
-  const messageId = await admin.messaging().send(message);
+  const messageId = await getMessaging().send(message);
   console.log("\n✅ FCM accepted the message — messageId:", messageId);
   return messageId;
 }
