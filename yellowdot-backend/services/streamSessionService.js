@@ -9,6 +9,13 @@
  * CCTV_STREAM_TOKEN_SECRET (falls back to CCTV_ENCRYPTION_KEY, else a per-boot
  * random secret — fine for single-instance; set the env in multi-instance).
  *
+ * Prefer setting CCTV_STREAM_TOKEN_SECRET even on one instance. The first
+ * fallback reuses the AES-256-GCM key that cryptoService.js uses for camera
+ * passwords at rest, so one key ends up serving two different primitives and
+ * the two can no longer be rotated independently: re-keying tokens would leave
+ * stored camera passwords undecryptable until encryptCameraPasswords.js reruns.
+ * Nothing here is exploitable today — this is key separation, not a live hole.
+ *
  * Audit: writes cctvAuditLogs/{id} for issue / start / stop / deny.
  * No streaming, no credentials handled here.
  */
