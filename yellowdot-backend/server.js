@@ -9,6 +9,44 @@ const express = require("express");
 const cors    = require("cors");
 const app     = express();
 
+// ── Trust proxy — what req.ip is allowed to believe ─────────────────
+//
+// req.ip is recorded in the CCTV audit log (who viewed which child's camera,
+// and from where) and on the auth route. Express only reads X-Forwarded-For
+// when the immediate peer is a trusted proxy; otherwise req.ip is the socket
+// address. With this unset, every one of those audit entries recorded the
+// proxy rather than the viewer — a safeguarding trail that identified nobody.
+//
+// In production the chain is:
+//   client → yd-caddy (host network, so it sees the real IP and sets
+//   X-Forwarded-For) → 127.0.0.1:4000 on the host → docker-proxy →
+//   yd-backend at 172.17.0.2:8080
+//
+// Because docker-proxy re-originates the connection, the peer this process
+// sees is the bridge GATEWAY (172.17.0.1), not loopback. So "loopback" alone
+// would silently keep the old behaviour — the setting would look applied and
+// change nothing.
+//
+// Default is "loopback": correct for local dev, and inert in the container,
+// so deploying this cannot change behaviour until the value is set
+// deliberately. Production sets TRUST_PROXY to the bridge gateway — see
+// deploy/backend.env.template.
+//
+// Deliberately NOT defaulting to true. `trust proxy: true` trusts the
+// left-most X-Forwarded-For entry from anyone, which hands every caller the
+// ability to write their own audit-log IP — the same spoofing class as
+// GHSA-jqcg-44mw-7w3h, reintroduced by configuration. A single gateway
+// address is also preferred over the "uniquelocal" preset: this host runs
+// other containers on the same bridge, which can reach the backend's port
+// directly, and a preset covering 172.16/12 would trust those too. Trust
+// exactly the one hop that exists.
+const { resolveTrustProxy } = require("./utils/trustProxy");
+
+const TRUST_PROXY = resolveTrustProxy(process.env.TRUST_PROXY);
+
+app.set("trust proxy", TRUST_PROXY);
+console.log(`[trust-proxy] req.ip trusts: ${JSON.stringify(TRUST_PROXY)}`);
+
 // CORS — restrict to known frontend origins in production
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:3000")
   .split(",").map(o => o.trim());
