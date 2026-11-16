@@ -36,6 +36,49 @@ function _resolveAssignableRole(requestedRole, fallback = "teacher") {
   return ASSIGNABLE_ROLES.has(requestedRole) ? requestedRole : fallback;
 }
 
+/**
+ * Refuse to write a second login profile onto an email that already has one.
+ *
+ * Why this matters: authMiddleware resolves a token to a profile by UID first,
+ * and falls back to `users where email == <token email> limit(1)` when the UID
+ * misses (the Google-OAuth UID-mismatch path). With two documents sharing an
+ * email, that limit(1) picks one arbitrarily — so which role and which centers
+ * the request runs with is down to Firestore's ordering, not to anything a
+ * human decided.
+ *
+ * Two deliberate choices, both to match how that fallback actually queries:
+ *
+ *   • NOT scoped to schoolId. The fallback does not filter by school, so a
+ *     duplicate in any school is still an ambiguous resolution. (staffService's
+ *     _assertNoDuplicate IS school-scoped, correctly — it guards HR records,
+ *     which are never used to resolve a token.) If the fallback ever becomes
+ *     school-scoped, scope this the same way in the same change.
+ *   • Deactivated accounts still count. The fallback has no status filter, so
+ *     a status:"inactive" document with the same email can still win the
+ *     limit(1). Reusing an email therefore means removing the old profile, not
+ *     just deactivating it.
+ *
+ * @param {string} email
+ * @param {{excludeUserId?: string|null}} opts  excludeUserId is the document
+ *   being written — create() upserts by UID, so a profile must not collide
+ *   with itself on re-save.
+ * @throws {Error} code "DUPLICATE", field "email"
+ */
+async function assertEmailNotTaken(email, { excludeUserId = null } = {}) {
+  const value = String(email || "").toLowerCase().trim();
+  if (!value) return;
+
+  const snap = await col().where("email", "==", value).limit(2).get();
+  const hit  = snap.docs.find(d => d.id !== excludeUserId);
+  if (!hit) return;
+
+  const err = new Error("Email is already in use by another login account.");
+  err.code       = "DUPLICATE";
+  err.field      = "email";
+  err.conflictId = hit.id;
+  throw err;
+}
+
 // ── Document mapper ────────────────────────────────────────────────
 
 function docToUser(snap) {
@@ -102,6 +145,10 @@ async function getOne(userId) {
 async function create(data, actorUserId = "system") {
   const uid = data.uid || data.userId;
   if (!uid) throw new Error("uid / userId is required to create a user");
+
+  // Upsert by UID, so a re-save of the same profile must not collide with
+  // itself — hence excludeUserId.
+  await assertEmailNotTaken(data.email, { excludeUserId: uid });
 
   const centerId = data.centerId || data.center || "";
   const doc = {
@@ -203,6 +250,7 @@ async function syncFromFirebaseAuth(uid, { email, name, photoUrl, role, centerId
 
 module.exports = {
   getAll, getOne, create, update, deactivate, syncFromFirebaseAuth,
+  assertEmailNotTaken,
   VALID_ROLES: [...VALID_ROLES], ASSIGNABLE_ROLES: [...ASSIGNABLE_ROLES],
   _resolveAssignableRole,
 };

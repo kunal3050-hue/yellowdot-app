@@ -9,6 +9,7 @@
  */
 
 const { db } = require("../firebaseAdmin");
+const { assertEmailNotTaken } = require("./userService");
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -105,11 +106,20 @@ async function updateUser(userId, updates, { updatedBy = "system" } = {}) {
 async function createUser(data, { actorUserId = "system" } = {}) {
   const resolvedSchool  = data.schoolId || SCHOOL_ID;
   const resolvedCenter  = data.centerId || data.center || "";
+
+  // Email is normalised here rather than stored as typed. Every other writer
+  // of `users` lowercases (userService.create, staffController's invite), and
+  // a raw-cased value would both miss the duplicate check below and fail to
+  // match authMiddleware's email fallback, which compares against the
+  // lowercase address in the token.
+  const email = String(data.email || "").toLowerCase().trim();
+  await assertEmailNotTaken(email);
+
   const ref = db.collection("users").doc();
   const doc = {
     userId:    ref.id,
     name:      data.name   || "",
-    email:     data.email  || "",
+    email,
     mobile:    data.mobile || "",
     role:      data.role   || "teacher",
     centerId:  resolvedCenter,
