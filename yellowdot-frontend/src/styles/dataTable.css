@@ -316,7 +316,14 @@
   border-spacing: 0;
   font-size: var(--yd-font-size-sm);
 }
-.yd-dt-table thead { position: sticky; top: 0; z-index: var(--yd-z-raised); }
+/* Sticky only while the wrapper genuinely scrolls — see useScrollsVertically
+   in DataTable/index.jsx. .yd-dt-scroll-wrap always has overflow:auto (needed
+   for wide tables; CSS cannot scroll one axis alone), so it is the containing
+   block for this sticky header even when it never scrolls. A table shorter
+   than its max-height then pinned the header to a box that never moves, while
+   .yd-scroll-area scrolled underneath and carried it off, clipping the top
+   row. Short tables now scroll away with the page like any other content. */
+.yd-dt-scroll-wrap--scrolls .yd-dt-table thead { position: sticky; top: 0; z-index: var(--yd-z-raised); }
 .yd-dt-table th {
   background: var(--yd-soft);
   border-bottom: 1px solid var(--yd-border);
