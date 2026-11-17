@@ -15,6 +15,7 @@ const timelineSvc = require("../services/employeeTimelineService");
 const { auth, db } = require("../firebaseAdmin");
 const { checkTenantAccess } = require("../middleware/tenantRecordAccess");
 const { _resolveAssignableRole } = require("../services/userService");
+const { BYPASS_ROLES } = require("../config/permissionsBackend");
 
 function _ctx(req) {
   return {
@@ -153,6 +154,59 @@ async function create(req, res) {
   }
 }
 
+/**
+ * Push an employee's role onto the login it is linked to.
+ *
+ * Until this existed, users/{uid}.role was written once — by _ensureAuthUser
+ * during invite, behind `if (!userSnap.exists)` — and never again. Changing an
+ * employee's role afterwards updated the HR record and silently left their
+ * actual permissions untouched: the edit saved, the UI showed the new role, and
+ * authMiddleware kept resolving the old one.
+ *
+ * Three cases deliberately do NOT write, because "Employees is master" must not
+ * become a way to lose access:
+ *
+ *   1. The employee has no assignable role. Real data: the super_admin's staff
+ *      record carries role "" — staffService.create routed it through
+ *      _resolveAssignableRole, which refuses bypass roles, so nothing was
+ *      stored. Copying that blank over the login would resolve to the "teacher"
+ *      fallback and demote the account on the next save of an unrelated field.
+ *   2. The login currently holds a bypass role (developer, super_admin). Those
+ *      grant unscoped cross-tenant access and are provisioned outside these
+ *      APIs; the HR screen must not be able to take one away any more than it
+ *      can grant one.
+ *   3. Nothing changed.
+ *
+ * Only the role is synced. centerId drifts the same way and is the same class
+ * of bug, but several staff records carry a centerId that does not match their
+ * login's, and writing those through would move people between centers — a
+ * visibility change that needs deciding, not inferring.
+ */
+async function _syncLoginRole(staff, actorUserId) {
+  if (!staff || !staff.linkedUserId) return;
+
+  const desired = _resolveAssignableRole(staff.role, null);
+  if (!desired) return;                               // case 1
+
+  const ref  = db.collection("users").doc(staff.linkedUserId);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+
+  const current = snap.data().role || "";
+  if (BYPASS_ROLES.has(current)) return;              // case 2
+  if (current === desired) return;                    // case 3
+
+  await ref.update({
+    role:      desired,
+    updatedAt: new Date().toISOString(),
+    updatedBy: actorUserId,
+  });
+  console.log(
+    `[staff] role sync — login ${staff.linkedUserId}: ${current || "(none)"} -> ${desired}` +
+    ` (staff ${staff.staffId})`,
+  );
+}
+
 async function update(req, res) {
   try {
     const existing = await staffSvc.getOne(req.params.staffId);
@@ -162,6 +216,17 @@ async function update(req, res) {
     const { actorUserId } = _ctx(req);
     const result = await staffSvc.update(req.params.staffId, req.body, { actorUserId });
     if (!result) return res.status(404).json({ success: false, error: "Staff member not found." });
+
+    // staffSvc.update returns { success, message } rather than the record, so
+    // re-read it. That also gets the role as actually stored — staffService
+    // routes it through _resolveAssignableRole on write, so what was requested
+    // and what was kept are not always the same thing.
+    //
+    // Awaited, not fire-and-forget: a role change that silently fails to reach
+    // the login is the bug this closes, so a failure here must surface.
+    const saved = await staffSvc.getOne(req.params.staffId);
+    await _syncLoginRole(saved, actorUserId);
+
     res.json(result);
   } catch (err) {
     _err(res, "PUT /api/staff/:staffId", err);
@@ -371,4 +436,5 @@ module.exports = {
   create, update, remove,
   invite, linkUser, unlinkUser, setUserDisabled,
   restore: restoreStaff,
+  _syncLoginRole,
 };
