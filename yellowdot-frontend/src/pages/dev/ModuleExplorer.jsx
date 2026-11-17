@@ -75,7 +75,6 @@ const ROUTE_REGISTRY = [
   { path: "/announcements",       routeKey: ROUTES.ANNOUNCEMENTS,          label: "Announcements",        category: "app",    layout: "bare"   },
 
   // Admin
-  { path: "/user-management",     routeKey: ROUTES.USER_MANAGEMENT,        label: "User Management",      category: "app",    layout: "main"   },
   { path: "/roles-permissions",   routeKey: ROUTES.ROLES_PERMISSIONS,      label: "Roles & Permissions",  category: "app",    layout: "main"   },
   { path: "/settings",            routeKey: ROUTES.SETTINGS,               label: "Settings",             category: "app",    layout: "main"   },
 

@@ -53,7 +53,6 @@ const StaffCheckout       = lazy(() => import("./pages/StaffCheckout"));
 const PickupMigration     = lazy(() => import("./pages/PickupMigration"));
 
 const Settings            = lazy(() => import("./pages/Settings"));
-const UserManagement      = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions    = lazy(() => import("./pages/RolesPermissions"));
 const ModuleExplorer      = lazy(() => import("./pages/dev/ModuleExplorer"));
 const DataTablePlayground = lazy(() => import("./pages/dev/DataTablePlayground"));
@@ -557,14 +556,10 @@ function App() {
             />
 
             {/* ── Admin ────────────────────────────────────────────────────── */}
-            <Route
-              path="/user-management"
-              element={
-                <ProtectedRoute routeKey="user-management">
-                  <MainLayout><UserManagement /></MainLayout>
-                </ProtectedRoute>
-              }
-            />
+            {/* /user-management (Login Users) retired — Employees
+                (/staff/employees) is the single place staff are managed, with
+                login as an attribute of an employee. See the note in
+                platform/registry/modules/people.js. */}
             <Route
               path="/roles-permissions"
               element={
