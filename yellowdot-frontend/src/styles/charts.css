@@ -48,10 +48,13 @@
   border: 1px solid var(--yd-border);
   border-radius: var(--yd-radius-card);
   box-shadow: var(--yd-elevation-small);
-  padding: 16px 18px;
+  /* Trimmed from 16px 18px / gap 6px / 24px value. These cards sit above the
+     table on list pages and were costing ~100px of vertical space before the
+     first row; they are a glance, not the content. */
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   text-align: left;
   font-family: var(--yd-font);
@@ -73,8 +76,11 @@
 .yd-kpi-top { display: flex; align-items: center; justify-content: space-between; }
 .yd-kpi-label { font-size: 11.5px; font-weight: 600; color: var(--yd-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .yd-kpi-icon { color: var(--yd-text-muted); display: flex; }
-.yd-kpi-value { font-size: 24px; font-weight: 800; color: var(--yd-charcoal); letter-spacing: -0.02em; }
+.yd-kpi-value { font-size: 20px; font-weight: 800; color: var(--yd-charcoal); letter-spacing: -0.02em; }
 .yd-kpi-bottom { display: flex; align-items: center; gap: 6px; }
+/* KpiCard always renders this row, but most cards pass no trend, label,
+   comparison or sparkline. Empty it still costs the card's column gap. */
+.yd-kpi-bottom:empty { display: none; }
 .yd-kpi-trend { display: inline-flex; align-items: center; gap: 2px; font-size: 11.5px; font-weight: 700; }
 .yd-kpi-trend--up { color: var(--yd-success); }
 .yd-kpi-trend--down { color: var(--yd-danger); }
@@ -93,6 +99,6 @@
 }
 
 @media (max-width: 480px) {
-  .yd-kpi-value { font-size: 20px; }
+  .yd-kpi-value { font-size: 18px; }
   .yd-kpi-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
 }
