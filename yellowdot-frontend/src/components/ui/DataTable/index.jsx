@@ -16,7 +16,7 @@
  * virtual rows possible — a real <table> can't do that cleanly.
  */
 
-import { useRef, useMemo, useState, useCallback, memo } from "react";
+import { useRef, useMemo, useState, useCallback, useEffect, memo } from "react";
 import { flexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
@@ -320,9 +320,62 @@ function pinStyleFor(column) {
 // ══════════════════════════════════════════════════════════════════════
 // Plain (non-virtualized) <table> path
 // ══════════════════════════════════════════════════════════════════════
+/**
+ * Does this wrapper actually scroll vertically?
+ *
+ * The sticky header is only correct when it does. .yd-dt-scroll-wrap always
+ * carries overflow:auto — it has to, for horizontally wide tables, and CSS
+ * gives no way to scroll one axis only — which makes it the containing block
+ * for the sticky <thead> whether or not it ever scrolls. A table shorter than
+ * maxBodyHeight therefore got a header pinned to a box that never moves, while
+ * the real scroller (.yd-scroll-area in layout.css) scrolled underneath and
+ * carried the whole table away, clipping the top row against the viewport.
+ *
+ * Six employees in a 560px box was exactly that case. Large tables never hit
+ * it, because then the wrapper does scroll and the header behaves, which is
+ * why it survived this long.
+ *
+ * So: sticky only while the wrapper genuinely scrolls. Short tables scroll away
+ * with the page like any other content, which is what people expect, instead of
+ * stranding a header nobody can see.
+ */
+function useScrollsVertically(ref, rowCount) {
+  const [scrolls, setScrolls] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+
+    // setScrolls is passed the same boolean on most measurements, and React
+    // bails out of a re-render when the value is unchanged — so observing
+    // continuously does not loop.
+    const measure = () => setScrolls(el.scrollHeight > el.clientHeight + 1);
+    measure();
+
+    // Re-measure on anything that changes the ratio without changing rowCount:
+    // viewport resize, density change, a column being resized. Keyed on
+    // rowCount as well so adding or removing rows re-attaches to a fresh tbody.
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const body = el.querySelector("tbody");
+    if (body) ro.observe(body);
+    return () => ro.disconnect();
+  }, [ref, rowCount]);
+
+  return scrolls;
+}
+
 function PlainTable({ table, rows, leafColumns, selectable, onRowClick, globalFilter, focusedCell, setFocusedCell, handleKeyDown, maxBodyHeight }) {
+  const wrapRef = useRef(null);
+  const scrolls = useScrollsVertically(wrapRef, rows.length);
+
   return (
-    <div className="yd-dt-scroll-wrap" style={{ maxHeight: maxBodyHeight }}>
+    <div
+      ref={wrapRef}
+      className={`yd-dt-scroll-wrap${scrolls ? " yd-dt-scroll-wrap--scrolls" : ""}`}
+      style={{ maxHeight: maxBodyHeight }}
+    >
       <table className="yd-dt-table">
         <thead>
           {table.getHeaderGroups().map(hg => (
