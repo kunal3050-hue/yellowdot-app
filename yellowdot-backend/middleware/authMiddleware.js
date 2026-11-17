@@ -235,13 +235,37 @@ async function authenticate(req, res, next) {
         req.user = await _buildUserFromDoc(uid, matchedData, decoded);
         await _attachLinkedStudent(req.user, email);
 
-        // Fire-and-forget: create a Firestore doc for the Google UID so future
-        // sign-ins hit the direct UID lookup (path 1) instead of this fallback.
+        // Write a mirror profile for the Google UID so future sign-ins hit the
+        // direct UID lookup (path 1) instead of this fallback.
+        //
+        // The mirror deliberately carries NO email. This block used to copy
+        // matchedData wholesale, address included, which left two documents
+        // claiming one address — and the very fallback above resolves an
+        // address with limit(1), so which profile (and therefore which role)
+        // won was down to Firestore's ordering. That is how the duplicate in
+        // production was manufactured: not by anyone creating an account
+        // twice, but by this write, every time someone with a password account
+        // signed in with Google.
+        //
+        // Dropping the address means exactly one document owns it, so the
+        // fallback is unambiguous and deleting a stale mirror actually sticks —
+        // a re-created mirror no longer brings the duplicate back with it.
+        //
+        // The mirror cannot simply be skipped: firestore.rules resolves a
+        // caller's role with get(/databases/../users/$(request.auth.uid)), so a
+        // Google UID with no document of its own loses client-side Firestore
+        // access entirely. It has to exist, and it has to carry the role.
+        //
+        // aliasOf marks it as a mirror so other code can find it — the role
+        // sync in staffController updates mirrors alongside the profile they
+        // point at, otherwise the two could drift apart.
+        const { email: _mirrorEmailOmitted, ...mirrorProfile } = matchedData;
         db.collection("users").doc(uid).set(
           {
-            ...matchedData,
+            ...mirrorProfile,
             userId:      uid,            // update to Google UID
-            linkedUid:   originalUid,    // keep audit trail to the original UID
+            aliasOf:     originalUid,    // this is a mirror of that profile
+            linkedUid:   originalUid,    // kept: pre-existing audit trail field
             updatedAt:   new Date().toISOString(),
           },
           { merge: true },

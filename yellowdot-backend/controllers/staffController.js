@@ -196,15 +196,29 @@ async function _syncLoginRole(staff, actorUserId) {
   if (BYPASS_ROLES.has(current)) return;              // case 2
   if (current === desired) return;                    // case 3
 
-  await ref.update({
-    role:      desired,
-    updatedAt: new Date().toISOString(),
-    updatedBy: actorUserId,
-  });
+  const nowISO = new Date().toISOString();
+  await ref.update({ role: desired, updatedAt: nowISO, updatedBy: actorUserId });
   console.log(
     `[staff] role sync — login ${staff.linkedUserId}: ${current || "(none)"} -> ${desired}` +
     ` (staff ${staff.staffId})`,
   );
+
+  // Mirrors too. When someone with a password account signs in with Google,
+  // authMiddleware writes users/{googleUid} as a mirror of their profile
+  // (marked aliasOf) because firestore.rules resolves a role from the caller's
+  // own UID and cannot follow a pointer. Those mirrors carry a role of their
+  // own, so leaving them behind here would mean the same person resolving to
+  // the old role through one sign-in method and the new one through the other.
+  const mirrors = await db.collection("users")
+    .where("aliasOf", "==", staff.linkedUserId)
+    .get();
+
+  for (const m of mirrors.docs) {
+    const mRole = m.data().role || "";
+    if (BYPASS_ROLES.has(mRole) || mRole === desired) continue;
+    await m.ref.update({ role: desired, updatedAt: nowISO, updatedBy: actorUserId });
+    console.log(`[staff] role sync — mirror ${m.id}: ${mRole || "(none)"} -> ${desired}`);
+  }
 }
 
 async function update(req, res) {
