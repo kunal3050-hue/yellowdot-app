@@ -105,3 +105,40 @@ test("an unchanged role writes nothing", async () => {
   assert.equal(after.role, "teacher");
   assert.equal(after.updatedBy, before.updatedBy, "an unchanged role should not touch the document");
 });
+
+// ── Mirrors ─────────────────────────────────────────────────────────────────
+// When someone with a password account signs in with Google, authMiddleware
+// writes users/{googleUid} as a mirror of their profile, marked aliasOf,
+// because firestore.rules resolves a role from the caller's own uid and cannot
+// follow a pointer. A mirror carries its own role, so a sync that ignored it
+// would leave the same person resolving to the old role through one sign-in
+// method and the new one through the other.
+
+async function seedMirror(suffix, aliasOf, role) {
+  const uid = `${RUN}-${suffix}`;
+  await db.collection("users").doc(uid).set({
+    userId: uid, aliasOf, role, schoolId: "s1", status: "active",
+  });
+  touched.push(uid);
+  return uid;
+}
+
+test("a mirror is updated alongside the profile it points at", async () => {
+  const primary = await seedLogin("mirror-primary", "teacher");
+  const mirror  = await seedMirror("mirror-copy", primary, "teacher");
+
+  await _syncLoginRole(staffRecord(primary, "center_admin"), "tester");
+
+  assert.equal(await roleOf(primary), "center_admin");
+  assert.equal(await roleOf(mirror), "center_admin", "the mirror must not keep the old role");
+});
+
+test("a mirror holding a bypass role is left alone too", async () => {
+  const primary = await seedLogin("mirror-bypass-primary", "teacher");
+  const mirror  = await seedMirror("mirror-bypass-copy", primary, "super_admin");
+
+  await _syncLoginRole(staffRecord(primary, "center_admin"), "tester");
+
+  assert.equal(await roleOf(primary), "center_admin");
+  assert.equal(await roleOf(mirror), "super_admin", "bypass roles are untouchable from the HR screen");
+});
