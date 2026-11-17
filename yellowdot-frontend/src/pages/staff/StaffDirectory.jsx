@@ -141,7 +141,11 @@ export default function StaffDirectory() {
         />
       }
       kpis={
-        <KpiRow maxWidth={560}>
+        // 720, not 560. .yd-kpi-row is repeat(auto-fit, minmax(180px, 1fr))
+        // with a 12px gap, so three cards need 3*180 + 2*12 = 564px. At 560
+        // the third wrapped onto a row of its own and doubled the height of
+        // this block before the table.
+        <KpiRow maxWidth={720}>
           <KpiCard label="Total Staff" value={staff.length} loading={loading} />
           <KpiCard label="Active" value={activeCount} loading={loading} />
           <KpiCard label="On Leave" value={onLeaveCount} loading={loading} />
