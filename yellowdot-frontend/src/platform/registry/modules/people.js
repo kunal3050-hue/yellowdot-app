@@ -37,30 +37,30 @@ export const studentsModule = defineModule({
   ],
 });
 
-/**
- * Login accounts. NOTE the naming trap: the permission module is "staff"
- * (rbacConfig PERMISSION_CATEGORIES → administration → staff, "Staff (Login
- * Users)"), which is a DIFFERENT thing from the HR "staff_management" module
- * in staffHr.js. Capability is pinned explicitly so the two never merge.
+/*
+ * The "Login Users" module (/user-management) was removed here.
+ *
+ * It and Employees (staffHr.js, /staff/employees) were two people-shaped
+ * screens: `users` was the login and RBAC record, `staff` the HR record that
+ * Departments, Designations, Attendance, Shifts, Leave, Payroll and
+ * Performance hang off. Employees is now the single list, with login as an
+ * attribute of an employee — staff carries linkedUserId / loginStatus, and
+ * POST /api/staff/:id/invite creates the Firebase user from an employee
+ * record.
+ *
+ * This route could only go once every login actually had an employee record;
+ * removing it earlier would have left accounts with no screen that could
+ * administer them, including the duplicate that had to be cleaned up through
+ * this very page. scripts/backfillStaffFromUsers.js did that migration.
+ *
+ * The `staff` PERMISSION still exists (rbacConfig → administration → staff)
+ * and still grants staff.view/create/edit/delete — it just no longer claims a
+ * route, the same shape `analytics` and `medical` already use there.
+ *
+ * The /api/users routes are deliberately still served. Nothing in the UI calls
+ * them now, but they keep the login records reachable if something has to be
+ * inspected or repaired without a screen.
  */
-export const userManagementModule = defineModule({
-  id: "user_management",
-  label: "Login Users",
-  icon: "Briefcase",
-  category: "people",
-  capability: "staff.view",
-  actions: ["view", "create", "edit", "delete"],
-  keywords: ["users", "login", "accounts", "access", "credentials"],
-  routes: [
-    {
-      path: "/user-management", routeKey: "user-management", label: "Login Users", icon: "Briefcase",
-      capability: "staff.view",
-      nav: [{ category: "people", order: 20, matchPaths: ["/user-management/"] }],
-      grid: { section: "staff", label: "User Management", icon: "UserCog",
-              description: "Manage staff login accounts and access." },
-    },
-  ],
-});
 
 export const rolesPermissionsModule = defineModule({
   id: "roles_permissions",
@@ -80,4 +80,4 @@ export const rolesPermissionsModule = defineModule({
   ],
 });
 
-export default [studentsModule, userManagementModule, rolesPermissionsModule];
+export default [studentsModule, rolesPermissionsModule];

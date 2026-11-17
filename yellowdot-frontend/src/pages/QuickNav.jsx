@@ -42,7 +42,7 @@ const SECTIONS = [
     label: "People",
     items: [
       { label: "Students",           path: "/students",          icon: "Users",      desc: "Profiles & enrolment" },
-      { label: "Staff",              path: "/user-management",   icon: "Briefcase",  desc: "Team management" },
+      { label: "Staff",              path: "/staff/employees",   icon: "Briefcase",  desc: "Team management" },
       { label: "Roles & Permissions",path: "/roles-permissions", icon: "Shield",     desc: "Access control" },
     ],
   },

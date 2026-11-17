@@ -203,7 +203,12 @@ const MODULE_ROUTE_MAP = {
   // serves, which is what made it an orphan. Empty is the same shape `medical`
   // already uses above.
   analytics:         [],
-  staff:             ["user-management"],
+  // No routeKey: /user-management (Login Users) was retired once Employees
+  // became the single place staff are managed. The permission itself stays —
+  // the role matrices below still grant staff.view/create/edit/delete, and
+  // /api/users is still served — it just no longer claims a route nothing
+  // serves. Same shape as `analytics` and `medical` above.
+  staff:             [],
   roles_permissions: ["roles-permissions"],
   settings:          ["settings"],
   cctv:              ["cctv"],

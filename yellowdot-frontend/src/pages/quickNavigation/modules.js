@@ -23,7 +23,7 @@ import {
   DoorOpen, BookOpen, Layers, GraduationCap, School, Moon, Utensils,
   ClipboardList, Heart, CalendarDays, Bell, Megaphone, CreditCard, FileText,
   Wallet, TrendingUp, Handshake, MessageSquareText, Briefcase, UserCheck,
-  UserCog, Shield, Car, History, QrCode, Camera, AlertTriangle, Settings,
+  Shield, Car, History, QrCode, Camera, AlertTriangle, Settings,
   Repeat, Undo2, ScrollText,
 } from "lucide-react";
 
@@ -131,7 +131,6 @@ export const SECTIONS = [
     items: [
       { id: "staff",             label: "Staff",             path: "/staff/dashboard",   routeKey: "staff-dashboard",   icon: Briefcase, description: "Team directory, roles and staff management." },
       { id: "staff_attendance",  label: "Staff Attendance",  path: "/staff/attendance",  routeKey: "staff-attendance",  icon: UserCheck, description: "Staff check-in, check-out and shift tracking." },
-      { id: "user_management",  label: "User Management",   path: "/user-management",   routeKey: "user-management",   icon: UserCog,   description: "Manage staff login accounts and access." },
       { id: "roles_permissions",label: "Roles & Permissions",path: "/roles-permissions",routeKey: "roles-permissions",icon: Shield,    description: "Control what each role can see and do." },
     ],
   },

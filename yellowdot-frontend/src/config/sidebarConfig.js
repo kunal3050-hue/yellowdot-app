@@ -120,14 +120,6 @@ export const SIDEBAR_GROUPS = [
       },
 
       {
-        id:         "login_users",
-        label:      "Login Users",
-        path:       "/user-management",
-        routeKey:   ROUTES.USER_MANAGEMENT,
-        icon:       "Briefcase",
-        matchPaths: ["/user-management/"],
-      },
-      {
         id:       "roles_permissions",
         label:    "Roles & Permissions",
         path:     "/roles-permissions",
