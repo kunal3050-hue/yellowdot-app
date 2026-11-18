@@ -31,27 +31,7 @@ export const CATEGORIES = [
     sidebar: { collapsible: true, defaultOpen: true },
   },
   {
-    id: "staff_management", label: "Staff Management", order: 30,
-    accent: { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" },
-    sidebar: { collapsible: true, defaultOpen: true },
-  },
-  {
-    id: "staff_attendance", label: "Staff Attendance", order: 40,
-    accent: { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" },
-    sidebar: { collapsible: true, defaultOpen: true },
-  },
-  {
-    id: "staff_leave", label: "Leave Management", order: 50,
-    accent: { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" },
-    sidebar: { collapsible: true, defaultOpen: true },
-  },
-  {
-    id: "staff_payroll", label: "Payroll", order: 60,
-    accent: { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" },
-    sidebar: { collapsible: true, defaultOpen: true },
-  },
-  {
-    id: "staff_performance", label: "Performance", order: 70,
+    id: "staff_management", label: "Staff", order: 30,
     accent: { bg: "#F0F9FF", icon: "#0284C7", border: "#BAE6FD" },
     sidebar: { collapsible: true, defaultOpen: true },
   },
