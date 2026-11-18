@@ -98,7 +98,24 @@ export default function useDataTableState({
   const prefs = useMemo(() => loadPrefs(tableId), [tableId]);
 
   const [sorting, setSorting] = useState(prefs.sorting || []);
-  const [columnVisibility, setColumnVisibility] = useState(prefs.columnVisibility || {});
+
+  // Columns marked `hidden: true` start hidden — a default, not a restriction:
+  // they stay in the Columns menu and switch on like any other.
+  //
+  // A saved preference always wins, so this only applies to someone who has
+  // never touched the Columns menu for this table. "Never touched" is read as
+  // an empty visibility map, because savePrefs writes the whole state on every
+  // change and an untouched table therefore persists {}. The cost of that
+  // reading is narrow: if someone switches a hidden column on and later back
+  // off, their map can return to {} and these defaults reapply on the next
+  // load. That is the same state they chose, so it is a repeat rather than a
+  // surprise.
+  const savedVisibility = prefs.columnVisibility;
+  const [columnVisibility, setColumnVisibility] = useState(
+    savedVisibility && Object.keys(savedVisibility).length > 0
+      ? savedVisibility
+      : Object.fromEntries(columns.filter(c => c.hidden).map(c => [c.key, false])),
+  );
   const [columnOrder, setColumnOrder] = useState(prefs.columnOrder || []);
   const [columnPinning, setColumnPinning] = useState(
     prefs.columnPinning || {
