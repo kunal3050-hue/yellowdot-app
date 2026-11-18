@@ -94,16 +94,16 @@ export default function StaffDirectory() {
     { key: "mobile", label: "Mobile", width: 130 },
     { key: "email", label: "Email", width: 200 },
     {
-      key: "departmentName", label: "Department", sortable: true, filterable: true,
+      key: "departmentName", hidden: true, label: "Department", sortable: true, filterable: true,
       filterType: "multiselect", filterOptions: departmentOptions, width: 150,
     },
     {
-      key: "designationName", label: "Designation", sortable: true, filterable: true,
+      key: "designationName", hidden: true, label: "Designation", sortable: true, filterable: true,
       filterType: "multiselect", filterOptions: designationOptions, width: 160,
     },
     { key: "branch", label: "Branch", width: 110, render: (v, row) => v || row.centerId || "—" },
     {
-      key: "assignedClassrooms", label: "Classrooms", width: 150,
+      key: "assignedClassrooms", hidden: true, label: "Classrooms", width: 150,
       render: (v) => v?.length ? <ClassroomCell rooms={v} /> : "—",
     },
     {
@@ -117,7 +117,7 @@ export default function StaffDirectory() {
         { value: "active", label: "Active" }, { value: "disabled", label: "Disabled" },
       ], width: 130,
     },
-    { key: "joiningDate", label: "Joining Date", sortable: true, width: 120 },
+    { key: "joiningDate", hidden: true, label: "Joining Date", sortable: true, width: 120 },
   ], [departmentOptions, designationOptions]);
 
   const bulkActions = [
