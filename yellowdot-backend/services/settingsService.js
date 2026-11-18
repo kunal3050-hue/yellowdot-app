@@ -9,7 +9,38 @@
  */
 
 const { db } = require("../firebaseAdmin");
-const { assertEmailNotTaken } = require("./userService");
+const { assertEmailNotTaken, _resolveAssignableRole } = require("./userService");
+
+/**
+ * Reject a role this API is not allowed to grant.
+ *
+ * These two writers reach users/{uid} directly and used to pass `role` through
+ * untouched — createUser as `data.role || "teacher"`, updateUser as a straight
+ * assignment. Every other write path routes role through
+ * _resolveAssignableRole, which refuses the platform bypass roles (developer,
+ * super_admin) because they grant unscoped cross-tenant access and are meant to
+ * be provisioned outside these APIs.
+ *
+ * Both routes authorize "admin", and PUT takes any userId — so an admin could
+ * set their own role to super_admin and have authMiddleware resolve it on the
+ * next request. That is a privilege-escalation path, not just an inconsistency.
+ *
+ * This throws rather than silently downgrading: an admin who asked for a role
+ * should be told it was refused, not left believing it was granted.
+ */
+function _assertAssignableRole(role) {
+  if (role === undefined) return undefined;
+  const resolved = _resolveAssignableRole(role, null);
+  if (resolved) return resolved;
+
+  const err = new Error(
+    `Role "${role}" cannot be assigned through this API. ` +
+    "Platform roles are provisioned outside staff management.",
+  );
+  err.code  = "ROLE_NOT_ASSIGNABLE";
+  err.field = "role";
+  throw err;
+}
 
 const SCHOOL_ID = process.env.SCHOOL_ID || "yd-main";
 
@@ -78,7 +109,7 @@ async function updateUser(userId, updates, { updatedBy = "system" } = {}) {
   if (!snap.exists) return null;
 
   const allowed = { updatedAt: nowISO(), updatedBy };
-  if (updates.role   !== undefined) allowed.role   = updates.role;
+  if (updates.role   !== undefined) allowed.role   = _assertAssignableRole(updates.role);
   if (updates.status !== undefined) allowed.status = updates.status;
 
   await ref.update(allowed);
@@ -121,7 +152,7 @@ async function createUser(data, { actorUserId = "system" } = {}) {
     name:      data.name   || "",
     email,
     mobile:    data.mobile || "",
-    role:      data.role   || "teacher",
+    role:      _assertAssignableRole(data.role) || "teacher",
     centerId:  resolvedCenter,
     center:    resolvedCenter,
     centers:   resolvedCenter ? [resolvedCenter] : [],
