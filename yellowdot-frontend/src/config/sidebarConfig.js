@@ -138,7 +138,7 @@ export const SIDEBAR_GROUPS = [
     items: [
       {
         id:       "staff_dashboard",
-        label:    "Dashboard",
+        label:    "Staff Overview",
         path:     "/staff/dashboard",
         routeKey: ROUTES.STAFF_DASHBOARD,
         icon:     "Home",
@@ -177,7 +177,7 @@ export const SIDEBAR_GROUPS = [
     items: [
       {
         id:       "attendance_dashboard",
-        label:    "Dashboard",
+        label:    "Attendance Overview",
         path:     "/staff/attendance",
         routeKey: ROUTES.STAFF_ATTENDANCE,
         icon:     "CheckSquare",
@@ -228,7 +228,7 @@ export const SIDEBAR_GROUPS = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "leave_dashboard", label: "Dashboard",    path: "/staff/leave",            routeKey: ROUTES.STAFF_LEAVE,        icon: "Heart", exact: true },
+      { id: "leave_dashboard", label: "Leave Overview",    path: "/staff/leave",            routeKey: ROUTES.STAFF_LEAVE,        icon: "Heart", exact: true },
       { id: "leave_apply",     label: "Apply Leave",  path: "/staff/leave/apply",      routeKey: ROUTES.STAFF_LEAVE,        icon: "CheckSquare" },
       { id: "leave_approvals", label: "Approvals",    path: "/staff/leave/approvals",  routeKey: ROUTES.STAFF_LEAVE,        icon: "UserCheck" },
       { id: "leave_calendar",  label: "Calendar",     path: "/staff/leave/calendar",   routeKey: ROUTES.STAFF_LEAVE,        icon: "CalendarDays" },
@@ -244,7 +244,7 @@ export const SIDEBAR_GROUPS = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "payroll_dashboard",  label: "Dashboard",     path: "/staff/payroll",            routeKey: ROUTES.STAFF_PAYROLL,         icon: "CreditCard", exact: true },
+      { id: "payroll_dashboard",  label: "Payroll Overview",     path: "/staff/payroll",            routeKey: ROUTES.STAFF_PAYROLL,         icon: "CreditCard", exact: true },
       { id: "payroll_run",        label: "Run Payroll",   path: "/staff/payroll/run",        routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "FileText" },
       { id: "payroll_staff",      label: "Staff Salaries",path: "/staff/payroll/staff",      routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "Users" },
       { id: "payroll_structures", label: "Structures",    path: "/staff/payroll/structures", routeKey: ROUTES.STAFF_PAYROLL_PROCESS, icon: "Layers" },
@@ -261,7 +261,7 @@ export const SIDEBAR_GROUPS = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "perf_dashboard", label: "Dashboard",       path: "/staff/performance",           routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "BarChart2", exact: true },
+      { id: "perf_dashboard", label: "Performance Overview",       path: "/staff/performance",           routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "BarChart2", exact: true },
       { id: "perf_reviews",   label: "Reviews",         path: "/staff/performance/reviews",   routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "FileText" },
       { id: "perf_goals",     label: "Goals",           path: "/staff/performance/goals",     routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "CheckSquare" },
       { id: "perf_feedback",  label: "Parent Feedback", path: "/staff/performance/feedback",  routeKey: ROUTES.STAFF_PERFORMANCE,        icon: "Megaphone" },

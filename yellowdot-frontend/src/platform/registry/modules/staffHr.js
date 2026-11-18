@@ -34,7 +34,7 @@ export const staffDashboardModule = defineModule({
   surfaces: { care: { order: 90, minLevel: "team", roles: { admin: 10 } } },
   routes: [
     {
-      path: "/staff/dashboard", routeKey: "staff-dashboard", label: "Dashboard", icon: "Home",
+      path: "/staff/dashboard", routeKey: "staff-dashboard", label: "Staff Overview", icon: "Home",
       nav: [{ category: "staff_management", order: 10 }],
       grid: { section: "staff", label: "Staff", icon: "Briefcase",
               description: "Team directory, roles and staff management." },
@@ -97,7 +97,7 @@ export const staffAttendanceModule = defineModule({
   actions: ["view", "mark", "edit", "export"],
   keywords: ["staff attendance", "check in", "check out", "shift", "roster", "timesheet"],
   routes: [
-    { path: "/staff/attendance",          routeKey: "staff-attendance", label: "Dashboard", icon: "CheckSquare",
+    { path: "/staff/attendance",          routeKey: "staff-attendance", label: "Attendance Overview", icon: "CheckSquare",
       nav: [{ category: "staff_attendance", order: 10, exact: true }],
       grid: { section: "staff", label: "Staff Attendance", icon: "UserCheck",
               description: "Staff check-in, check-out and shift tracking." } },
@@ -135,7 +135,7 @@ export const staffLeaveModule = defineModule({
   actions: ["view", "create", "approve", "export"],
   keywords: ["leave", "absence", "holiday request", "time off", "approval"],
   routes: [
-    { path: "/staff/leave",           routeKey: "staff-leave", label: "Dashboard", icon: "Heart",
+    { path: "/staff/leave",           routeKey: "staff-leave", label: "Leave Overview", icon: "Heart",
       nav: [{ category: "staff_leave", order: 10, exact: true }] },
     { path: "/staff/leave/apply",     routeKey: "staff-leave", label: "Apply Leave", icon: "CheckSquare",
       capability: "staff_management.create",
@@ -174,7 +174,7 @@ export const staffPayrollModule = defineModule({
   actions: ["view", "export"],
   keywords: ["payroll", "salary", "payslip", "wages", "bank"],
   routes: [
-    { path: "/staff/payroll",         routeKey: "staff-payroll", label: "Dashboard", icon: "CreditCard",
+    { path: "/staff/payroll",         routeKey: "staff-payroll", label: "Payroll Overview", icon: "CreditCard",
       nav: [{ category: "staff_payroll", order: 10, exact: true }] },
     { path: "/staff/payroll/history", routeKey: "staff-payroll", label: "History", icon: "History",
       nav: [{ category: "staff_payroll", order: 60 }] },
@@ -213,7 +213,7 @@ export const staffPerformanceModule = defineModule({
   actions: ["view", "create", "edit"],
   keywords: ["performance", "review", "goal", "appraisal", "feedback", "award"],
   routes: [
-    { path: "/staff/performance",          routeKey: "staff-performance", label: "Dashboard", icon: "BarChart2",
+    { path: "/staff/performance",          routeKey: "staff-performance", label: "Performance Overview", icon: "BarChart2",
       nav: [{ category: "staff_performance", order: 10, exact: true }] },
     { path: "/staff/performance/reviews",  routeKey: "staff-performance", label: "Reviews", icon: "FileText",
       nav: [{ category: "staff_performance", order: 20 }] },
