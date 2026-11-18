@@ -58,7 +58,12 @@ function toTanstackColumns(columns, { selectable }) {
     id: col.key,
     accessorFn: col.accessorFn || (row => row[col.key]),
     header: col.label,
-    enableSorting: col.sortable !== false,
+    // An actions column holds buttons, not data — there is nothing to sort by.
+    // It defaulted to sortable, and since these columns carry an empty label,
+    // the result was a blank header with a lone sort chevron in it that did
+    // nothing useful when clicked. Pages do not have to remember
+    // `sortable: false` on every one of them; 13 tables have an actions column.
+    enableSorting: col.type === "actions" ? false : col.sortable !== false,
     enableHiding: col.hideable !== false,
     enableColumnFilter: !!col.filterable,
     size: typeof col.width === "number" ? col.width : undefined,
