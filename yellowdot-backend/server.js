@@ -479,6 +479,9 @@ app.post("/api/settings/users", authenticate, authorize("admin","super_admin","d
     const user = await settingsSvc.createUser(req.body || {}, { actorUserId });
     res.json({ success: true, user });
   } catch (e) {
+    if (e.code === "ROLE_NOT_ASSIGNABLE" || e.code === "DUPLICATE") {
+      return res.status(400).json({ error: e.message, field: e.field });
+    }
     logRouteError("POST /api/settings/users", e);
     res.status(500).json({ error: "Failed to create user", details: e.message });
   }
@@ -491,6 +494,9 @@ app.put("/api/settings/users/:id", authenticate, authorize("admin","super_admin"
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ success: true, user });
   } catch (e) {
+    if (e.code === "ROLE_NOT_ASSIGNABLE" || e.code === "DUPLICATE") {
+      return res.status(400).json({ error: e.message, field: e.field });
+    }
     logRouteError(`PUT /api/settings/users/${req.params.id}`, e);
     res.status(500).json({ error: "Failed to update user", details: e.message });
   }
