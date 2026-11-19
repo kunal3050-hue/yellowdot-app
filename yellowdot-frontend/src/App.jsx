@@ -298,7 +298,7 @@ function App() {
               path="/child-journey"
               element={
                 <ProtectedRoute routeKey="child-journey">
-                  <ChildJourney />
+                  <MainLayout><ChildJourney /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -306,7 +306,7 @@ function App() {
               path="/child-journey/observe"
               element={
                 <ProtectedRoute routeKey="child-journey">
-                  <NewObservation />
+                  <MainLayout><NewObservation /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -314,7 +314,7 @@ function App() {
               path="/child-journey/artwork"
               element={
                 <ProtectedRoute routeKey="child-journey">
-                  <NewArtwork />
+                  <MainLayout><NewArtwork /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -322,7 +322,7 @@ function App() {
               path="/child-journey/milestone"
               element={
                 <ProtectedRoute routeKey="child-journey">
-                  <NewMilestone />
+                  <MainLayout><NewMilestone /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -340,7 +340,7 @@ function App() {
               path="/nap-tracker"
               element={
                 <ProtectedRoute routeKey="nap-tracker">
-                  <NapTracker />
+                  <MainLayout><NapTracker /></MainLayout>
                 </ProtectedRoute>
               }
             />

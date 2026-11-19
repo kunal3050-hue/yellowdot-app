@@ -29,7 +29,7 @@ const AVATAR_GRADIENTS = [
 // why it read as a different product from every other screen.
 const W = {
   charcoal1: "var(--yd-charcoal)",
-  charcoal2: "var(--yd-text-muted)",
+  charcoal2: "var(--yd-text-soft)",
   gold1:     "var(--yd-yellow)",
   gold2:     "var(--yd-yellow-dark)",
   goldPale:  "var(--yd-yellow-light)",
@@ -470,7 +470,7 @@ function ActivityLog({ history, loading, histDate, onDateChange }) {
     <div className="ch-card rounded-[24px] p-4 mb-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,#F6D54A,#D4A820)" }} />
+          <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,var(--yd-yellow),var(--yd-yellow-dark))" }} />
           <h2 className="text-[15px] font-bold tracking-[-0.02em]" style={{ color: W.charcoal1 }}>Activity Log</h2>
           <span className="text-[11px]" style={{ color: W.muted1 }}>
             {loading ? "Loading…" : `${history.length} events · ${fmtDate(histDate)}`}
