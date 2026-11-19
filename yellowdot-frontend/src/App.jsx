@@ -773,5 +773,8 @@ function AttendanceRoute() {
 }
 function CareHygieneRoute() {
   const isMobile = useIsMobile();
-  return isMobile ? <MobileCareHygiene /> : <CareHygiene />;
+  // Desktop goes through MainLayout like every other screen. It used to render
+  // CareHygiene bare, which is why that page shipped its own <Sidebar> and had
+  // no topbar at all. Mobile keeps its own full-screen shell.
+  return isMobile ? <MobileCareHygiene /> : <MainLayout><CareHygiene /></MainLayout>;
 }
