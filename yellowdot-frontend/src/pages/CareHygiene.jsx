@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import Sidebar from "../components/Sidebar";
 import { logCare, getCareHistory, getCareSummary } from "../services/careService";
 import { api } from "../services/authService";
 
@@ -25,49 +24,59 @@ const AVATAR_GRADIENTS = [
   ["#DC2626","#991B1B"],["#7C3AED","#6D28D9"],
 ];
 
+// Mapped onto the design tokens in styles/tokens.css. This page used to carry
+// a private palette of brown-on-cream and import its own typeface, which is
+// why it read as a different product from every other screen.
 const W = {
-  charcoal1: "#4A3A22", charcoal2: "#6A5737",
-  gold1: "#F6D54A", gold2: "#F1C933",
-  goldPale: "#FFF7D6", goldBorder: "#EFD978",
-  bg1: "#FFFDF7", bg2: "#FFFBF0", bg3: "#FFF8E8",
-  muted1: "#8B7355", muted2: "#6A5737",
+  charcoal1: "var(--yd-charcoal)",
+  charcoal2: "var(--yd-text-soft)",
+  gold1:     "var(--yd-yellow)",
+  gold2:     "var(--yd-yellow-dark)",
+  goldPale:  "var(--yd-yellow-light)",
+  goldBorder:"var(--yd-yellow)",
+  bg1:       "var(--yd-bg)",
+  bg2:       "var(--yd-bg)",
+  bg3:       "var(--yd-bg)",
+  muted1:    "var(--yd-text-muted)",
+  muted2:    "var(--yd-text-muted)",
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&display=swap');
-  .ch-page, .ch-page * { font-family: 'Inter Tight', system-ui, -apple-system, sans-serif; box-sizing: border-box; }
+  /* Typeface comes from --yd-font like every other screen; this page used to
+     import Inter Tight and override the whole subtree. */
+  .ch-page, .ch-page * { box-sizing: border-box; }
   .ch-card {
-    background: linear-gradient(145deg,#fffdf6,#f8f4ea);
-    box-shadow: 0 2px 4px rgba(31,26,23,.04), 0 8px 24px rgba(31,26,23,.06);
-    border: 1px solid rgba(139,125,101,.09);
+    background: var(--yd-surface);
+    box-shadow: var(--yd-elevation-small);
+    border: 1px solid var(--yd-border-light);
   }
   .ch-child-card {
-    background: #fffdf8;
-    border: 1px solid rgba(139,125,101,.10);
-    box-shadow: 0 1px 3px rgba(31,26,23,.04);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border-light);
+    box-shadow: var(--yd-elevation-small);
     transition: box-shadow 140ms ease, border-color 140ms ease;
   }
-  .ch-child-card:hover { border-color: rgba(139,125,101,.20); box-shadow: 0 2px 8px rgba(31,26,23,.07); }
+  .ch-child-card:hover { border-color: var(--yd-yellow); box-shadow: var(--yd-elevation-medium); }
   .ch-log-btn {
-    background: linear-gradient(135deg,#F6D54A,#F1C933);
-    color: #4A3A22;
+    background: var(--yd-yellow);
+    color: var(--yd-charcoal);
     border: none;
     font-weight: 700;
     cursor: pointer;
     transition: transform 80ms ease, box-shadow 80ms ease;
   }
-  .ch-log-btn:hover { box-shadow: 0 2px 8px rgba(241,201,51,.35); }
+  .ch-log-btn:hover { background: var(--yd-yellow-dark); }
   .ch-log-btn:active { transform: scale(0.94); }
   .ch-log-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
   .ch-input {
-    background: rgba(255,253,246,.80);
-    border: 1px solid rgba(139,125,101,.12);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
     border-radius: 999px;
     outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
   }
-  .ch-input:focus { border-color: rgba(244,196,48,.50); box-shadow: 0 0 0 2.5px rgba(244,196,48,.20); }
-  .ch-pill-active { background: linear-gradient(135deg,#F6D54A,#F1C933); color: #4A3A22; box-shadow: 0 2px 6px rgba(241,201,51,.28); }
+  .ch-input:focus { border-color: var(--yd-yellow); box-shadow: 0 0 0 3px var(--yd-yellow-glow); }
+  .ch-pill-active { background: var(--yd-yellow); color: var(--yd-charcoal); box-shadow: var(--yd-elevation-small); }
   .ch-type-btn {
     cursor: pointer;
     transition: transform 70ms ease, box-shadow 70ms ease;
@@ -231,15 +240,18 @@ export default function CareHygiene() {
     .filter(s => !search || sname(s).toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="ch-page flex min-h-screen" style={{ background: `linear-gradient(150deg,${W.bg1},${W.bg2} 50%,${W.bg3})` }}>
+    // No sidebar, no min-h-screen, no page gradient: this route now renders
+    // inside MainLayout like every other desktop screen, which supplies the
+    // sidebar, the topbar and .yd-scroll-area. Keeping its own scroller here
+    // would nest one inside another.
+    <div className="ch-page">
       <style>{CSS}</style>
-      <Sidebar />
 
-      <div className="flex-1 min-w-0 overflow-auto">
+      <div className="min-w-0">
 
         {/* ── STICKY HEADER ───────────────────────────────────── */}
         <div className="sticky top-0 z-20"
-          style={{ background: "rgba(255,253,246,.94)", borderBottom: "1px solid rgba(139,125,101,.10)", backdropFilter: "blur(16px)", boxShadow: "0 4px 20px rgba(31,26,23,.05)" }}>
+          style={{ background: "var(--yd-bg)", borderBottom: "1px solid var(--yd-border-light)" }}>
           <div className="px-5 md:px-8 py-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
               <div className="flex items-center gap-3 flex-shrink-0">
@@ -458,7 +470,7 @@ function ActivityLog({ history, loading, histDate, onDateChange }) {
     <div className="ch-card rounded-[24px] p-4 mb-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,#F6D54A,#D4A820)" }} />
+          <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,var(--yd-yellow),var(--yd-yellow-dark))" }} />
           <h2 className="text-[15px] font-bold tracking-[-0.02em]" style={{ color: W.charcoal1 }}>Activity Log</h2>
           <span className="text-[11px]" style={{ color: W.muted1 }}>
             {loading ? "Loading…" : `${history.length} events · ${fmtDate(histDate)}`}

@@ -27,3 +27,4 @@ public/build-info.json
 *.njsproj
 *.sln
 *.sw?
+vite.verify.config.mjs

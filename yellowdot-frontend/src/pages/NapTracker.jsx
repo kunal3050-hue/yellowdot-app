@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from "react";
-import Sidebar from "../components/Sidebar";
 import napService from "../services/napService";
 import { useAuth } from "../contexts/AuthContext";
 import { useNow } from "../hooks/useNow";
@@ -22,29 +21,28 @@ const MOODS = [
 // WARM DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────
 const W = {
-  charcoal1: "#4A3A22",
-  charcoal2: "#6A5737",
-  charcoal3: "#7A6340",
-  gold1:     "#F6D54A",
-  gold2:     "#F1C933",
-  gold3:     "#D4A820",
-  goldPale:  "#FFF7D6",
-  goldMid:   "#F7E7A8",
-  goldBorder:"#EFD978",
-  bg1:       "#FFFDF7",
-  bg2:       "#FFFBF0",
-  bg3:       "#FFF8E8",
-  muted1:    "#8B7355",
-  muted2:    "#6A5737",
+  charcoal1: "var(--yd-charcoal)",
+  charcoal2: "var(--yd-text-soft)",
+  charcoal3: "var(--yd-text-soft)",
+  gold1:     "var(--yd-yellow)",
+  gold2:     "var(--yd-yellow-dark)",
+  gold3:     "var(--yd-yellow-dark)",
+  goldPale:  "var(--yd-yellow-light)",
+  goldMid:   "var(--yd-yellow-light)",
+  goldBorder:"var(--yd-yellow)",
+  bg1:       "var(--yd-bg)",
+  bg2:       "var(--yd-bg)",
+  bg3:       "var(--yd-bg)",
+  muted1:    "var(--yd-text-muted)",
+  muted2:    "var(--yd-text-soft)",
 };
 
 // ─────────────────────────────────────────────────────────────────
 // PREMIUM CSS
 // ─────────────────────────────────────────────────────────────────
 const NAP_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
 
-  .nt-page, .nt-page * { font-family: 'Inter Tight', system-ui, -apple-system, sans-serif; }
+  .nt-page, .nt-page * { box-sizing: border-box; }
   .nt-page h1 { font-size: clamp(1.8rem, 3.5vw, 2.4rem); font-weight: 700; letter-spacing: -0.04em; }
   .nt-page h2 { font-weight: 600; letter-spacing: -0.03em; }
   .nt-page p, .nt-page span, .nt-page td { letter-spacing: -0.01em; }
@@ -112,8 +110,8 @@ const NAP_CSS = `
   }
   /* ── Tab glow pulse ── */
   @keyframes nt-tab-glow {
-    0%,100% { box-shadow: 0 2px 12px rgba(241,201,51,0.30), 0 1px 0 rgba(255,255,255,0.55) inset; }
-    50%     { box-shadow: 0 3px 22px rgba(241,201,51,0.52), 0 1px 0 rgba(255,255,255,0.55) inset; }
+    0%,100% { box-shadow: 0 2px 12px rgba(244,196,0,0.30), 0 1px 0 rgba(255,255,255,0.55) inset; }
+    50%     { box-shadow: 0 3px 22px rgba(244,196,0,0.52), 0 1px 0 rgba(255,255,255,0.55) inset; }
   }
 
   .nt-sleeping-card { animation: nt-breathe 3.6s ease-in-out infinite; }
@@ -184,9 +182,9 @@ const NAP_CSS = `
   }
   /* ── Pill filter active ── */
   .nt-pill-active {
-    background: linear-gradient(135deg, #F6D54A 0%, #F1C933 100%);
-    box-shadow: 0 2px 8px rgba(241,201,51,0.32), 0 1px 0 rgba(255,255,255,0.50) inset;
-    color: #4A3A22;
+    background: linear-gradient(135deg, var(--yd-yellow) 0%, var(--yd-yellow-dark) 100%);
+    box-shadow: 0 2px 8px rgba(244,196,0,0.32), 0 1px 0 rgba(255,255,255,0.50) inset;
+    color: var(--yd-black);
   }
   /* ── Summary bar — soft ivory pill ── */
   .nt-summary-bar {
@@ -204,7 +202,7 @@ const NAP_CSS = `
   }
   /* ── Active workflow tab ── */
   .nt-tab-active {
-    background: linear-gradient(135deg, #F6D54A 0%, #F1C933 100%);
+    background: linear-gradient(135deg, var(--yd-yellow) 0%, var(--yd-yellow-dark) 100%);
     animation: nt-tab-glow 2.8s ease-in-out infinite;
   }
   /* ── Start Nap button ── */
@@ -287,7 +285,7 @@ function fmtTime(iso) {
   return "—";
 }
 
-function renderTimerHM(displayHM, numColor = "#4A3A22", unitColor = "#8B7355") {
+function renderTimerHM(displayHM, numColor = "var(--yd-charcoal)", unitColor = "var(--yd-text-muted)") {
   if (!displayHM || displayHM === "Just started") {
     return <span style={{ fontSize:13, fontWeight:500, color:unitColor, letterSpacing:0 }}>Just started</span>;
   }
@@ -500,15 +498,14 @@ export default function NapTracker() {
 
   // ── Render
   return (
-    <div className="nt-page flex min-h-screen" style={{ background: `linear-gradient(150deg, ${W.bg1} 0%, ${W.bg2} 50%, ${W.bg3} 100%)` }}>
+    <div className="nt-page">
       <style>{NAP_CSS}</style>
-      <Sidebar />
 
-      <div className="flex-1 min-w-0 overflow-auto">
+      <div className="min-w-0">
 
         {/* ── STICKY HEADER ────────────────────────────────── */}
         <div className="sticky top-0 z-20 backdrop-blur-2xl"
-          style={{ background:"rgba(255,253,246,0.92)", borderBottom:"1px solid rgba(139,125,101,0.10)", boxShadow:"0 1px 0 rgba(255,255,255,0.7) inset, 0 4px 24px rgba(31,26,23,0.06)" }}>
+          style={{ background:"var(--yd-bg)", borderBottom:"1px solid var(--yd-border-light)" }}>
           <div className="px-6 md:px-10 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h1 className="leading-none flex-shrink-0" style={{ color:W.charcoal1, fontWeight:700, letterSpacing:"-0.04em" }}>
@@ -570,7 +567,7 @@ export default function NapTracker() {
                 style={{ transition:"transform 180ms ease" }}
                 onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform=""; }}>
-                <div style={{ position:"absolute", bottom:-20, right:-20, width:100, height:100, background:`radial-gradient(circle, rgba(241,201,51,0.08) 0%, transparent 70%)`, pointerEvents:"none" }} />
+                <div style={{ position:"absolute", bottom:-20, right:-20, width:100, height:100, background:`radial-gradient(circle, rgba(244,196,0,0.08) 0%, transparent 70%)`, pointerEvents:"none" }} />
                 <div className="text-2xl mb-2 select-none relative z-10">🌙</div>
                 <div className="text-4xl font-black tracking-tight leading-none relative z-10" style={{ color:W.charcoal1 }}>{fmtDuration(stats.avgDurationMinutes)}</div>
                 <div className="mt-2 text-xs relative z-10" style={{ color:W.charcoal2, fontWeight:500 }}>Avg Duration</div>
@@ -780,7 +777,7 @@ function WorkflowSwitcher({ active, onChange, wakeCount }) {
             {tab.count > 0 && (
               <span className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black px-1.5"
                 style={{
-                  background: isActive ? "rgba(74,58,34,0.20)" : "linear-gradient(135deg, #F6D54A, #F1C933)",
+                  background: isActive ? "rgba(74,58,34,0.20)" : "linear-gradient(135deg, var(--yd-yellow), var(--yd-yellow-dark))",
                   color: "#7A5A00",
                   boxShadow: isActive ? "none" : "0 1px 4px rgba(212,168,32,0.35)",
                 }}>
@@ -843,10 +840,10 @@ function StartNapCard({ name, klass, starting, exiting, disabled, animDelay, onS
             border: `1px solid rgba(139,125,101,0.08)`,
             cursor: "default",
           } : {
-            background: `linear-gradient(180deg,#F6D54A 0%,#F1C933 100%)`,
+            background: `linear-gradient(180deg,var(--yd-yellow) 0%,var(--yd-yellow-dark) 100%)`,
             color: "#7A5A00",
             border: `1px solid rgba(212,178,40,0.25)`,
-            boxShadow: "0 2px 8px rgba(241,201,51,0.28), inset 0 1px 0 rgba(255,255,255,0.60)",
+            boxShadow: "0 2px 8px rgba(244,196,0,0.28), inset 0 1px 0 rgba(255,255,255,0.60)",
             cursor: "pointer",
             letterSpacing: "-0.01em",
           }}>
@@ -951,7 +948,7 @@ function ActivityTimeline({ history, loading, histDate, histStudent, onDateChang
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-1 h-4 rounded-full flex-shrink-0"
-              style={{ background:`linear-gradient(180deg, #F6D54A, #D4A820)` }} />
+              style={{ background:`linear-gradient(180deg, var(--yd-yellow), var(--yd-yellow-dark))` }} />
             <h2 className="text-[18px]" style={{ color:W.charcoal1, fontWeight:600, letterSpacing:"-0.03em" }}>
               Today's Activity
             </h2>
@@ -1135,7 +1132,7 @@ function WakeUpSheet({ nap, mood, notes, loading, onMood, onNotes, onConfirm, on
             </button>
             <button onClick={onConfirm} disabled={loading}
               className="flex-1 font-black py-3.5 rounded-2xl disabled:opacity-60 flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all"
-              style={{ background:`linear-gradient(180deg,#F6D54A 0%,#F1C933 100%)`, color:"#7A5A00", boxShadow:`0 3px 12px rgba(241,201,51,0.30), inset 0 1px 0 rgba(255,255,255,0.50)` }}>
+              style={{ background:`linear-gradient(180deg,var(--yd-yellow) 0%,var(--yd-yellow-dark) 100%)`, color:"var(--yd-black)", boxShadow:`0 3px 12px rgba(244,196,0,0.30), inset 0 1px 0 rgba(255,255,255,0.50)` }}>
               {loading ? (
                 <><span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor:`${W.goldPale} transparent transparent transparent` }} />Saving…</>
               ) : "☀️ Wake Up"}
@@ -1350,7 +1347,7 @@ function EmptyActiveNaps({ onSwitch }) {
       <p className="text-[15px] font-bold" style={{ color:W.charcoal1 }}>No active naps right now</p>
       <p className="mt-1.5 text-[12px]" style={{ color:W.muted1 }}>Tap Start Nap to begin tracking</p>
       <button onClick={onSwitch} className="mt-4 px-4 py-2 font-bold text-[12px] rounded-full transition-all active:scale-95"
-        style={{ background:"linear-gradient(180deg,#F6D54A 0%,#F1C933 100%)", color:"#7A5A00", border:"1px solid rgba(212,178,40,0.25)", boxShadow:"0 2px 8px rgba(241,201,51,0.25)" }}>
+        style={{ background:"linear-gradient(180deg,var(--yd-yellow) 0%,var(--yd-yellow-dark) 100%)", color:"var(--yd-black)", border:"1px solid rgba(212,178,40,0.25)", boxShadow:"0 2px 8px rgba(244,196,0,0.25)" }}>
         😴 Start Nap
       </button>
     </div>

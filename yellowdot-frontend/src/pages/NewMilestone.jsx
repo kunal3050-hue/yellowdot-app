@@ -4,15 +4,14 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import { api } from "../services/authService";
 
 const W = {
-  bg1: "#FFFDF7", bg2: "#FFFBF0", bg3: "#FFF8E8",
-  charcoal1: "#4A3A22", charcoal2: "#6A5737",
-  gold1: "#F6D54A", gold2: "#F1C933",
-  goldPale: "#FFF7D6", goldBorder: "#EFD978",
-  muted1: "#8B7355",
+  bg1: "var(--yd-bg)", bg2: "var(--yd-bg)", bg3: "var(--yd-bg)",
+  charcoal1: "var(--yd-charcoal)", charcoal2: "var(--yd-text-soft)",
+  gold1: "var(--yd-yellow)", gold2: "var(--yd-yellow-dark)",
+  goldPale: "var(--yd-yellow-light)", goldBorder: "var(--yd-yellow)",
+  muted1: "var(--yd-text-muted)",
 };
 
 const PRESETS = [
@@ -95,22 +94,22 @@ export default function NewMilestone() {
   };
   const LABEL = { fontSize: 13, fontWeight: 700, color: W.charcoal2, marginBottom: 6, display: "block" };
 
+  // MainLayout supplies the sidebar, topbar and scroll area; this page used to
+  // render its own and sit outside the app shell entirely.
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: `linear-gradient(150deg,${W.bg1},${W.bg2} 50%,${W.bg3})` }}>
+    <div>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&display=swap');
-        .nm-page, .nm-page * { font-family: 'Inter Tight', system-ui, sans-serif; box-sizing: border-box; }
-        .nm-btn { background: linear-gradient(135deg,#F6D54A,#F1C933); color: #4A3A22; border: none; font-weight: 800; cursor: pointer; transition: box-shadow 80ms; }
-        .nm-btn:hover { box-shadow: 0 2px 12px rgba(241,201,51,.4); }
+        .nm-page, .nm-page * { box-sizing: border-box; }
+        .nm-btn { background: linear-gradient(135deg,var(--yd-yellow),var(--yd-yellow-dark)); color: var(--yd-black); border: none; font-weight: 800; cursor: pointer; transition: box-shadow 80ms; }
+        .nm-btn:hover { box-shadow: 0 2px 12px rgba(244,196,0,.4); }
         .nm-btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .nm-preset { cursor: pointer; transition: box-shadow 80ms, transform 80ms; }
         .nm-preset:hover { box-shadow: 0 2px 8px rgba(0,0,0,.10); transform: translateY(-1px); }
-        textarea:focus, select:focus, input:focus { outline: 2px solid #F6D54A !important; }
+        textarea:focus, select:focus, input:focus { outline: 2px solid var(--yd-yellow) !important; }
       `}</style>
 
-      <Sidebar />
 
-      <div className="nm-page" style={{ flex: 1, padding: "32px 28px", maxWidth: 680, margin: "0 auto" }}>
+      <div className="nm-page" style={{ padding: "32px 28px", maxWidth: 680, margin: "0 auto" }}>
         <div style={{ marginBottom: 28 }}>
           <button
             onClick={() => navigate("/child-journey")}
@@ -162,7 +161,7 @@ export default function NewMilestone() {
                       padding: "14px 16px", borderRadius: 12, textAlign: "left",
                       background: sel ? W.goldPale : "#fff",
                       border: `2px solid ${sel ? W.gold1 : "rgba(139,125,101,.14)"}`,
-                      boxShadow: sel ? `0 2px 10px rgba(246,213,74,.3)` : "none",
+                      boxShadow: sel ? `0 2px 10px rgba(244,196,0,.3)` : "none",
                     }}>
                     <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1 }}>{p.emoji}</span>
                     <div>
