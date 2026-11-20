@@ -58,14 +58,14 @@ const CSS = `
   }
   .ch-child-card:hover { border-color: var(--yd-yellow); box-shadow: var(--yd-elevation-medium); }
   .ch-log-btn {
-    background: var(--yd-yellow);
+    background: var(--yd-yellow-light);
     color: var(--yd-charcoal);
-    border: none;
+    border: 1px solid var(--yd-yellow);
     font-weight: 700;
     cursor: pointer;
-    transition: transform 80ms ease, box-shadow 80ms ease;
+    transition: transform 80ms ease, box-shadow 80ms ease, border-color 80ms ease;
   }
-  .ch-log-btn:hover { background: var(--yd-yellow-dark); }
+  .ch-log-btn:hover { border-color: var(--yd-yellow-dark); box-shadow: var(--yd-elevation-small); }
   .ch-log-btn:active { transform: scale(0.94); }
   .ch-log-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
   .ch-input {

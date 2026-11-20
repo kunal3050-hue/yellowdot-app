@@ -108,12 +108,6 @@ const NAP_CSS = `
     from { opacity: 0; transform: translateY(10px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
-  /* ── Tab glow pulse ── */
-  @keyframes nt-tab-glow {
-    0%,100% { box-shadow: 0 2px 12px rgba(244,196,0,0.30), 0 1px 0 rgba(255,255,255,0.55) inset; }
-    50%     { box-shadow: 0 3px 22px rgba(244,196,0,0.52), 0 1px 0 rgba(255,255,255,0.55) inset; }
-  }
-
   .nt-sleeping-card { animation: nt-breathe 3.6s ease-in-out infinite; }
   .nt-spring-in     { animation: nt-spring-in 400ms cubic-bezier(.16,1,.3,1) both; }
   .nt-sheet-in      { animation: nt-sheet-in  320ms cubic-bezier(.16,1,.3,1) both; }
@@ -202,14 +196,16 @@ const NAP_CSS = `
   }
   /* ── Active workflow tab ── */
   .nt-tab-active {
-    background: linear-gradient(135deg, var(--yd-yellow) 0%, var(--yd-yellow-dark) 100%);
-    animation: nt-tab-glow 2.8s ease-in-out infinite;
+    background: var(--yd-yellow-light);
+    border: 1px solid var(--yd-yellow);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.85) inset, 0 1px 3px rgba(31,26,23,0.05);
   }
   /* ── Start Nap button ── */
   .nt-start-btn { transition: transform 150ms ease, box-shadow 150ms ease; }
   .nt-start-btn:hover:not(:disabled) {
     transform: translateY(-1.5px);
-    box-shadow: 0 5px 18px rgba(212,170,31,0.42), inset 0 1px 0 rgba(255,255,255,0.55) !important;
+    box-shadow: 0 2px 8px rgba(31,26,23,0.08) !important;
+    border-color: var(--yd-yellow-dark) !important;
   }
   .nt-start-btn:active:not(:disabled) { transform: scale(0.97); }
   /* ── Wake Up button ── */
@@ -766,7 +762,7 @@ function WorkflowSwitcher({ active, onChange, wakeCount }) {
           <button key={tab.id} onClick={() => onChange(tab.id)}
             className={`flex-1 relative flex items-center justify-center gap-2 py-2.5 rounded-[14px] transition-all duration-200 ${isActive ? "nt-tab-active" : ""}`}
             style={isActive ? {
-              color: "#7A5A00",
+              color: "var(--yd-charcoal)",
               transform: "translateY(-0.5px)",
             } : {
               color: W.muted1,
@@ -778,7 +774,7 @@ function WorkflowSwitcher({ active, onChange, wakeCount }) {
               <span className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black px-1.5"
                 style={{
                   background: isActive ? "rgba(74,58,34,0.20)" : "linear-gradient(135deg, var(--yd-yellow), var(--yd-yellow-dark))",
-                  color: "#7A5A00",
+                  color: "var(--yd-black)",
                   boxShadow: isActive ? "none" : "0 1px 4px rgba(212,168,32,0.35)",
                 }}>
                 {tab.count}
@@ -840,10 +836,10 @@ function StartNapCard({ name, klass, starting, exiting, disabled, animDelay, onS
             border: `1px solid rgba(139,125,101,0.08)`,
             cursor: "default",
           } : {
-            background: `linear-gradient(180deg,var(--yd-yellow) 0%,var(--yd-yellow-dark) 100%)`,
-            color: "#7A5A00",
-            border: `1px solid rgba(212,178,40,0.25)`,
-            boxShadow: "0 2px 8px rgba(244,196,0,0.28), inset 0 1px 0 rgba(255,255,255,0.60)",
+            background: `var(--yd-yellow-light)`,
+            color: "var(--yd-charcoal)",
+            border: `1px solid var(--yd-yellow)`,
+            boxShadow: "0 1px 2px rgba(31,26,23,0.04)",
             cursor: "pointer",
             letterSpacing: "-0.01em",
           }}>
