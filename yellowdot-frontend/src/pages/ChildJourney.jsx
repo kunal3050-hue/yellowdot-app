@@ -258,9 +258,13 @@ export default function ChildJourney() {
     <div>
       <style>{`
         .cj-page, .cj-page * { box-sizing: border-box; }
-        .cj-action { background: linear-gradient(135deg,var(--yd-yellow),var(--yd-yellow-dark)); color: var(--yd-black); border: none; font-weight: 700; cursor: pointer; transition: box-shadow 80ms, transform 80ms; }
-        .cj-action:hover { box-shadow: 0 2px 10px rgba(244,196,0,.38); }
+        .cj-action { background: var(--yd-yellow-light); color: var(--yd-charcoal); border: 1px solid var(--yd-yellow); font-weight: 700; cursor: pointer; transition: border-color 80ms, box-shadow 80ms, transform 80ms; }
+        .cj-action:hover { border-color: var(--yd-yellow-dark); box-shadow: var(--yd-elevation-small); }
         .cj-action:active { transform: scale(0.97); }
+        /* The empty state is the one call-to-action moment on this page, and
+           the only place that carries the saturated fill. */
+        .cj-action--primary { background: var(--yd-yellow); color: var(--yd-black); border-color: var(--yd-yellow); }
+        .cj-action--primary:hover { background: var(--yd-yellow-dark); border-color: var(--yd-yellow-dark); }
         .cj-tab { cursor: pointer; white-space: nowrap; transition: background 80ms, border-color 80ms; font-family: inherit; }
         .cj-tab:hover { opacity: .85; }
         select:focus, input:focus { outline: 2px solid var(--yd-yellow) !important; }
@@ -368,7 +372,7 @@ export default function ChildJourney() {
             {error}
           </div>
         ) : entries.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "56px 24px", background: W.goldPale, border: `1px solid ${W.goldBorder}`, borderRadius: 16 }}>
+          <div style={{ textAlign: "center", padding: "56px 24px", background: "var(--yd-surface)", border: "1px solid var(--yd-border)", borderRadius: 16 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: W.charcoal1, marginBottom: 6 }}>
               {category === "all" ? "No journey entries yet" : `No ${CATEGORIES.find(c => c.key === category)?.label?.toLowerCase()} yet`}
@@ -380,9 +384,9 @@ export default function ChildJourney() {
             </div>
             {category === "all" && (
               <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                <button className="cj-action" onClick={() => navigate("/child-journey/observe")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>📝 Observation</button>
-                <button className="cj-action" onClick={() => navigate("/child-journey/artwork")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>🎨 Artwork</button>
-                <button className="cj-action" onClick={() => navigate("/child-journey/milestone")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>⭐ Milestone</button>
+                <button className="cj-action cj-action--primary" onClick={() => navigate("/child-journey/observe")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>📝 Observation</button>
+                <button className="cj-action cj-action--primary" onClick={() => navigate("/child-journey/artwork")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>🎨 Artwork</button>
+                <button className="cj-action cj-action--primary" onClick={() => navigate("/child-journey/milestone")} style={{ padding: "9px 18px", borderRadius: 12, fontSize: 13 }}>⭐ Milestone</button>
               </div>
             )}
           </div>
