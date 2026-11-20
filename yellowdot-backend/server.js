@@ -182,6 +182,17 @@ app.use(staffAttendanceRoutes);// /api/staff-attendance/* + /api/staff-shifts/* 
 app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
 app.use(performanceRoutes);
+
+// Restored 2026-11-20. 29d19f9 ("refactor(finance): delete both finance
+// modules ahead of rebuild") removed a contiguous block of app.use() calls
+// and took these three non-finance mounts with it, so every path below has
+// returned 404 in production since 2026-08-21. The route files, their guards
+// and their tests were untouched -- only the mounts went missing, and the
+// tests exercise the routers directly rather than through the app, which is
+// why the suite stayed green.
+app.use(journeyRoutes);        // /api/journey/*   (Child Journey — staff CRUD + parent read)
+app.use(releaseRoutes);        // /api/releases/*  (Staged Release Dashboard — developer only)
+app.use(parentRoutes);         // /api/parent/*    (Parent Module V1 — parent-scoped)
 const { resolveContext } = require("./middleware/requestScope");
 const { checkMedicalAccess, checkNotesAccess } = require("./middleware/studentRecordAccess");
 const { checkStudentAccess } = require("./middleware/studentAccess");
