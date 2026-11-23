@@ -126,6 +126,7 @@ const MODULE_ROUTE_MAP = {
   incidents:          ["incidents"],
   care_hygiene:       ["care-hygiene"],
   observations:       ["child-journey"],
+  certificates:       ["certificates"],
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
   staff_management:  ["staff-dashboard","staff-management","departments","designations"],
@@ -288,6 +289,10 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
+      // Certificates — the admin tier issues and revokes; a certificate is a
+      // formal document printing a signatory's name, so writes are not a
+      // classroom-level action. Teachers get view-only below.
+      certificates:  { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -330,6 +335,10 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
+      // Certificates — the admin tier issues and revokes; a certificate is a
+      // formal document printing a signatory's name, so writes are not a
+      // classroom-level action. Teachers get view-only below.
+      certificates:  { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -365,6 +374,10 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
+      // Certificates — the admin tier issues and revokes; a certificate is a
+      // formal document printing a signatory's name, so writes are not a
+      // classroom-level action. Teachers get view-only below.
+      certificates:  { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -395,6 +408,9 @@ const SYSTEM_ROLES = [
       announcements: { view: true },
       events:        { view: true },
       ptm:           { view: true },
+      // View-only: a class teacher needs to see whether her class has had its
+      // certificates, but issuing them is an admin-tier action.
+      certificates:  { view: true },
     },
   },
   {

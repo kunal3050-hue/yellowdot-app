@@ -66,6 +66,8 @@ const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/Academi
 
 
 const ChildJourney        = lazy(() => import("./pages/ChildJourney"));
+const CertificateRegister = lazy(() => import("./pages/certificates/CertificateRegister"));
+const IssueCertificates   = lazy(() => import("./pages/certificates/IssueCertificates"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
 const NewArtwork          = lazy(() => import("./pages/NewArtwork"));
 const NewMilestone        = lazy(() => import("./pages/NewMilestone"));
@@ -323,6 +325,27 @@ function App() {
               element={
                 <ProtectedRoute routeKey="child-journey">
                   <MainLayout><NewMilestone /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Certificates ─────────────────────────────────────────────── */}
+            {/* Both routes share the "certificates" routeKey; the admin-tier
+                gate on issuing is the certificates.create capability, checked
+                in the page and enforced again by the API. */}
+            <Route
+              path="/certificates"
+              element={
+                <ProtectedRoute routeKey="certificates">
+                  <MainLayout><CertificateRegister /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/certificates/issue"
+              element={
+                <ProtectedRoute routeKey="certificates">
+                  <MainLayout><IssueCertificates /></MainLayout>
                 </ProtectedRoute>
               }
             />

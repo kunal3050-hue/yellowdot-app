@@ -1,0 +1,284 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Certificates — the printable sheet
+   ═══════════════════════════════════════════════════════════════════
+
+   One sheet, two renderings, one set of rules
+   ───────────────────────────────────────────
+   The sheet is always A4 landscape (297mm x 210mm). On screen it is scaled
+   down to fit its stage; in print it is exactly one physical page. Both come
+   from the SAME markup, because the whole point of a preview is that it is
+   what comes out of the printer.
+
+   Every inner dimension is expressed in `cqw` — 1% of the sheet's own width —
+   so the proportions are identical at any scale. At print size 1cqw = 2.97mm;
+   in a 900px preview it is 9px. That is why the preview can be trusted.
+
+   Printing
+   ────────
+   The print copy lives in its own portal at `.yd-cert-print-root`, a direct
+   child of <body>, and print media hides every other body child. Printing the
+   page while a modal is open would otherwise emit the app shell, the sidebar
+   and the dialog chrome around the certificate.
+   =================================================================== */
+
+/* ── The stage (screen only) ──────────────────────────────────────── */
+
+.yd-cert-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--yd-space-2);
+  background: var(--yd-bg-sunken);
+  border-radius: var(--yd-radius-md);
+  overflow-x: auto;
+}
+
+/* ── The sheet ────────────────────────────────────────────────────── */
+
+.yd-cert-sheet {
+  /* A4 landscape proportions. Width is driven by the stage on screen and
+     fixed in mm for print (see the print block at the bottom). */
+  width: 100%;
+  max-width: 980px;
+  aspect-ratio: 297 / 210;
+
+  /* Makes the sheet the container that `cqw` below resolves against. */
+  container-type: size;
+
+  position: relative;
+  box-sizing: border-box;
+  background: var(--yd-white);
+  color: var(--yd-charcoal);
+  box-shadow: var(--yd-shadow-md);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+/* Inner frame — the ruled border that makes it read as a certificate. */
+.yd-cert-frame {
+  position: absolute;
+  inset: 2.4cqw;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3cqw 5cqw;
+}
+
+.yd-cert-sheet--classic .yd-cert-frame {
+  border: 0.5cqw double var(--yd-yellow);
+  outline: 0.12cqw solid var(--yd-border-warm);
+  outline-offset: 0.6cqw;
+}
+
+.yd-cert-sheet--playful .yd-cert-frame {
+  border: 0.7cqw solid var(--yd-yellow);
+  border-radius: 3cqw;
+  background:
+    radial-gradient(circle at 0% 0%,   var(--yd-yellow-pale) 0 14cqw, transparent 14cqw),
+    radial-gradient(circle at 100% 100%, var(--yd-yellow-pale) 0 14cqw, transparent 14cqw);
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+
+.yd-cert-school {
+  font-size: 1.9cqw;
+  font-weight: var(--yd-weight-bold);
+  letter-spacing: var(--yd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--yd-navy);
+}
+
+.yd-cert-rule {
+  width: 9cqw;
+  height: 0.3cqw;
+  margin: 1.1cqw 0 1.6cqw;
+  background: var(--yd-yellow);
+  border-radius: var(--yd-radius-full);
+}
+
+.yd-cert-eyebrow {
+  font-size: 1.35cqw;
+  font-weight: var(--yd-weight-semi);
+  letter-spacing: var(--yd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-cert-title {
+  margin: 0.5cqw 0 1.8cqw;
+  font-size: 4.6cqw;
+  line-height: var(--yd-leading-tight);
+  font-weight: var(--yd-weight-black);
+  letter-spacing: var(--yd-tracking-tight);
+  color: var(--yd-navy);
+}
+
+.yd-cert-sheet--playful .yd-cert-title { color: var(--yd-yellow-dark); }
+
+/* ── Body ─────────────────────────────────────────────────────────── */
+
+.yd-cert-presented {
+  font-size: 1.55cqw;
+  color: var(--yd-text-muted);
+}
+
+.yd-cert-name {
+  margin: 1cqw 0 0.4cqw;
+  font-size: 5.4cqw;
+  line-height: var(--yd-leading-tight);
+  font-weight: var(--yd-weight-bold);
+  color: var(--yd-charcoal);
+
+  /* A long name must shrink the line, never spill outside the frame or push
+     the signature block off the page. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.yd-cert-underline {
+  width: 54cqw;
+  max-width: 100%;
+  height: 0.15cqw;
+  margin-bottom: 1.6cqw;
+  background: var(--yd-border);
+}
+
+.yd-cert-citation {
+  font-size: 1.85cqw;
+  line-height: var(--yd-leading-relaxed);
+  max-width: 72cqw;
+  color: var(--yd-charcoal);
+}
+
+.yd-cert-class {
+  margin-top: 1cqw;
+  font-size: 1.6cqw;
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-text-muted);
+}
+
+/* ── Footer: date, signature, serial ─────────────────────────────── */
+
+.yd-cert-footer {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4cqw;
+}
+
+.yd-cert-foot-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5cqw;
+}
+
+.yd-cert-foot-line {
+  width: 100%;
+  height: 0.15cqw;
+  background: var(--yd-charcoal);
+}
+
+.yd-cert-foot-label {
+  font-size: 1.2cqw;
+  letter-spacing: var(--yd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-cert-foot-value {
+  font-size: 1.5cqw;
+  font-weight: var(--yd-weight-semi);
+  color: var(--yd-charcoal);
+  min-height: 1.5cqw;
+}
+
+/* The serial sits in the corner, deliberately small: it is a reference a
+   parent can quote, not part of the presentation. */
+.yd-cert-serial {
+  position: absolute;
+  right: 2.6cqw;
+  bottom: 1.2cqw;
+  font-size: 1.05cqw;
+  letter-spacing: var(--yd-tracking-wide);
+  color: var(--yd-text-muted);
+}
+
+/* Draft and revoked copies are watermarked, so an unissued or withdrawn
+   certificate can never be mistaken for a valid one once it is on paper. */
+.yd-cert-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11cqw;
+  font-weight: var(--yd-weight-black);
+  letter-spacing: var(--yd-tracking-wider);
+  text-transform: uppercase;
+  transform: rotate(-24deg);
+  pointer-events: none;
+}
+
+.yd-cert-watermark--draft   { color: var(--yd-warning-soft); }
+.yd-cert-watermark--revoked { color: var(--yd-danger-soft); }
+
+/* ── The print portal ─────────────────────────────────────────────── */
+
+/* Mounted but invisible on screen; print media turns it on and everything
+   else off. `display: none` rather than clipping, so it costs no layout. */
+.yd-cert-print-root { display: none; }
+
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+
+  html, body {
+    background: var(--yd-white) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Everything that is not the print portal — app shell, sidebar, the open
+     preview dialog and its backdrop — is not part of the certificate. */
+  body > *:not(.yd-cert-print-root) { display: none !important; }
+
+  .yd-cert-print-root {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .yd-cert-print-root .yd-cert-stage {
+    display: block !important;
+    padding: 0 !important;
+    background: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Exactly one physical page per certificate, at true A4 landscape. */
+  .yd-cert-print-root .yd-cert-sheet {
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    break-after: page;
+  }
+
+  .yd-cert-print-root .yd-cert-sheet:last-child { break-after: auto; }
+
+  /* Borders, the yellow rule and the watermark are the document — without
+     this the browser helpfully drops every one of them. */
+  .yd-cert-print-root * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

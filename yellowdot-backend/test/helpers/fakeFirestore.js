@@ -145,6 +145,33 @@ function createFakeFirestore() {
     };
   }
 
+  /**
+   * batch() — the WriteBatch surface (set/update/delete + commit).
+   *
+   * Added for certificateService.issueBulk(), which writes a whole class's
+   * certificates in one batch. Without this, a test that swaps `db.collection`
+   * and `db.runTransaction` would still get the REAL Firestore WriteBatch from
+   * `db.batch()` and try to commit it over the network, so the one write path
+   * the bulk issue actually takes would be the one path left untested.
+   */
+  function batch() {
+    const ops = [];
+    return {
+      set(ref, data, opts) { ops.push(() => {
+        const coll = getCollectionMap(ref.__collection);
+        coll.set(ref.id, opts && opts.merge && coll.has(ref.id)
+          ? applyDottedFields({ ...coll.get(ref.id) }, data)
+          : { ...data });
+      }); return this; },
+      update(ref, data) { ops.push(() => {
+        const coll = getCollectionMap(ref.__collection);
+        coll.set(ref.id, applyDottedFields({ ...(coll.get(ref.id) || {}) }, data));
+      }); return this; },
+      delete(ref) { ops.push(() => { getCollectionMap(ref.__collection).delete(ref.id); }); return this; },
+      async commit() { ops.forEach(op => op()); return ops.map(() => ({})); },
+    };
+  }
+
   async function runTransaction(fn) {
     const tx = {
       get: async (target) => {
@@ -181,7 +208,7 @@ function createFakeFirestore() {
     return [...getCollectionMap(collectionName).values()].map((d) => ({ ...d }));
   }
 
-  return { collection, runTransaction, seed, peek, all };
+  return { collection, runTransaction, batch, seed, peek, all };
 }
 
 module.exports = { createFakeFirestore };
