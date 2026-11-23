@@ -150,17 +150,14 @@ const NAP_CSS = `
     border: 1px solid #EFD978;
   }
   /* ── Gold glass panel ── */
-  .nt-gold-panel {
-    background: linear-gradient(145deg, #fff9e0 0%, #fff4c2 40%, #fded9a 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.60) inset, 0 8px 32px rgba(224,177,0,0.18), 0 32px 64px rgba(224,177,0,0.09);
-    border: 1px solid rgba(224,177,0,0.18);
+  .nt-stat-card {
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
+    box-shadow: var(--yd-elevation-small);
+    transition: transform 180ms ease, box-shadow 180ms ease;
   }
+  .nt-stat-card:hover { transform: translateY(-2px); box-shadow: var(--yd-elevation-medium); }
   /* ── Ivory minimal card ── */
-  .nt-ivory-card {
-    background: linear-gradient(145deg, #fffdf6 0%, #f8f4ea 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.92) inset, 0 2px 4px rgba(31,26,23,0.04), 0 10px 28px rgba(31,26,23,0.07);
-    border: 1px solid rgba(139,125,101,0.10);
-  }
   /* ── Premium input ── */
   .nt-input {
     background: linear-gradient(180deg, #fffdf8 0%, #fdfaf0 100%);
@@ -225,14 +222,14 @@ const REFUSED_REASONS = [
 ];
 
 const AVATAR_GRADIENTS = [
-  "from-stone-600 to-stone-800",
-  "from-amber-600 to-amber-900",
-  "from-yellow-700 to-amber-800",
-  "from-stone-500 to-amber-700",
-  "from-amber-700 to-stone-700",
-  "from-yellow-600 to-stone-700",
-  "from-stone-700 to-amber-600",
-  "from-amber-500 to-stone-600",
+  "from-amber-800 to-amber-900",
+  "from-amber-700 to-amber-800",
+  "from-amber-600 to-amber-700",
+  "from-emerald-600 to-emerald-800",
+  "from-cyan-600 to-cyan-700",
+  "from-indigo-700 to-indigo-800",
+  "from-red-600 to-red-800",
+  "from-violet-600 to-violet-700",
 ];
 
 const CLASS_COLORS = {
@@ -528,10 +525,7 @@ export default function NapTracker() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
               {/* Sleeping — warm gold */}
-              <div className="rounded-[22px] p-4 relative overflow-hidden cursor-default"
-                style={{ background:"linear-gradient(180deg, #FFF7D6 0%, #F7E7A8 100%)", border:`1px solid ${W.goldBorder}`, boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 20px rgba(240,200,70,0.15)", transition:"transform 180ms ease, box-shadow 180ms ease" }}
-                onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 1px 0 rgba(255,255,255,0.80) inset, 0 8px 28px rgba(240,200,70,0.22)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow="0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 20px rgba(240,200,70,0.15)"; }}>
+              <div className="nt-stat-card rounded-[22px] p-4 relative overflow-hidden cursor-default">
                 {stats.currentlySleeping > 0 && (
                   <span className="absolute top-4 right-4 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background:W.gold2 }} />
@@ -547,11 +541,7 @@ export default function NapTracker() {
               </div>
 
               {/* Total naps */}
-              <div className="nt-gold-panel rounded-[22px] p-4 relative overflow-hidden cursor-default"
-                style={{ transition:"transform 180ms ease" }}
-                onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform=""; }}>
-                <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:"120%", height:"120%", background:"radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.30) 0%, transparent 70%)", pointerEvents:"none" }} />
+              <div className="nt-stat-card rounded-[22px] p-4 relative overflow-hidden cursor-default">
                 <div className="text-2xl mb-2 select-none relative z-10">✦</div>
                 <div className="text-4xl font-black tracking-tight tabular-nums leading-none relative z-10" style={{ color:W.charcoal1 }}>{stats.totalNapsToday}</div>
                 <div className="mt-2 text-xs relative z-10" style={{ color:W.charcoal2, fontWeight:500 }}>Total Naps Today</div>
@@ -559,11 +549,7 @@ export default function NapTracker() {
               </div>
 
               {/* Avg duration */}
-              <div className="nt-ivory-card rounded-[22px] p-4 relative overflow-hidden cursor-default"
-                style={{ transition:"transform 180ms ease" }}
-                onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform=""; }}>
-                <div style={{ position:"absolute", bottom:-20, right:-20, width:100, height:100, background:`radial-gradient(circle, rgba(244,196,0,0.08) 0%, transparent 70%)`, pointerEvents:"none" }} />
+              <div className="nt-stat-card rounded-[22px] p-4 relative overflow-hidden cursor-default">
                 <div className="text-2xl mb-2 select-none relative z-10">🌙</div>
                 <div className="text-4xl font-black tracking-tight leading-none relative z-10" style={{ color:W.charcoal1 }}>{fmtDuration(stats.avgDurationMinutes)}</div>
                 <div className="mt-2 text-xs relative z-10" style={{ color:W.charcoal2, fontWeight:500 }}>Avg Duration</div>
@@ -1197,19 +1183,19 @@ function ToastStack({ toasts, onDismiss }) {
 function SkeletonStatCards() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div className="rounded-[22px] p-4 animate-pulse" style={{ background:"linear-gradient(180deg, #FFF7D6, #F7E7A8)", border:"1px solid #EFD978" }}>
+      <div className="nt-stat-card rounded-[22px] p-4 animate-pulse">
         <div className="w-6 h-6 rounded-lg mb-2" style={{ background:"rgba(212,168,32,0.15)" }} />
         <div className="h-9 w-10 rounded-xl mb-2" style={{ background:"rgba(212,168,32,0.15)" }} />
         <div className="h-2.5 w-28 rounded-full mb-1" style={{ background:"rgba(212,168,32,0.12)" }} />
         <div className="h-2 w-20 rounded-full" style={{ background:"rgba(212,168,32,0.10)" }} />
       </div>
-      <div className="nt-gold-panel rounded-[22px] p-4 animate-pulse">
+      <div className="nt-stat-card rounded-[22px] p-4 animate-pulse">
         <div className="w-6 h-6 rounded-lg mb-2" style={{ background:`rgba(74,58,34,0.08)` }} />
         <div className="h-9 w-10 rounded-xl mb-2" style={{ background:`rgba(74,58,34,0.08)` }} />
         <div className="h-2.5 w-20 rounded-full mb-1" style={{ background:`rgba(74,58,34,0.07)` }} />
         <div className="h-3 w-28 rounded-full" style={{ background:`rgba(31,26,23,0.05)` }} />
       </div>
-      <div className="nt-ivory-card rounded-[22px] p-4 animate-pulse">
+      <div className="nt-stat-card rounded-[22px] p-4 animate-pulse">
         <div className="w-6 h-6 rounded-lg mb-2" style={{ background:"rgba(139,125,101,0.10)" }} />
         <div className="h-9 w-14 rounded-xl mb-2" style={{ background:"rgba(139,125,101,0.10)" }} />
         <div className="h-2.5 w-24 rounded-full mb-1" style={{ background:"rgba(139,125,101,0.08)" }} />
