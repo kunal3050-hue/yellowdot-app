@@ -122,32 +122,26 @@ const NAP_CSS = `
 
   /* ── Premium card base ── */
   .nt-card {
-    background: linear-gradient(145deg, #fffdf6 0%, #f8f4ea 100%);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.90) inset,
-      0 -1px 0 rgba(139,125,101,0.06) inset,
-      0 2px 4px rgba(31,26,23,0.04),
-      0 12px 36px rgba(31,26,23,0.07),
-      0 32px 64px rgba(31,26,23,0.04);
-    border: 1px solid rgba(139,125,101,0.09);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
+    box-shadow: var(--yd-elevation-small);
   }
   /* ── Awake card ── */
   .nt-idle-card {
-    background: linear-gradient(150deg, #fffdf6 0%, #fdf9ee 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 1px 3px rgba(31,26,23,0.05), 0 4px 12px rgba(31,26,23,0.05);
-    border: 1px solid rgba(139,125,101,0.08);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
+    box-shadow: var(--yd-elevation-small);
     transition: box-shadow 150ms ease, border-color 150ms ease, transform 150ms ease;
   }
   .nt-idle-card:hover {
-    box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 6px rgba(31,26,23,0.07), 0 10px 28px rgba(31,26,23,0.09);
-    border-color: rgba(139,125,101,0.14);
-    transform: translateY(-2px);
+    box-shadow: var(--yd-elevation-medium);
+    border-color: var(--yd-border-warm);
   }
   /* ── Sleeping card — light warm gold ── */
   .nt-sleep-card {
-    background: linear-gradient(180deg, #FFF7D6 0%, #F7E7A8 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 20px rgba(240,200,70,0.18), 0 12px 36px rgba(240,200,70,0.10);
-    border: 1px solid #EFD978;
+    background: var(--yd-yellow-light);
+    border: 1px solid var(--yd-yellow);
+    box-shadow: var(--yd-elevation-small);
   }
   /* ── Gold glass panel ── */
   .nt-stat-card {
@@ -160,16 +154,15 @@ const NAP_CSS = `
   /* ── Ivory minimal card ── */
   /* ── Premium input ── */
   .nt-input {
-    background: linear-gradient(180deg, #fffdf8 0%, #fdfaf0 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.92) inset, 0 1px 0 rgba(139,125,101,0.06), 0 2px 6px rgba(43,33,24,0.05);
-    border: 1px solid rgba(139,125,101,0.12);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
+    box-shadow: none;
     transition: box-shadow 180ms ease, border-color 180ms ease;
     border-radius: 999px;
-    outline: none;
   }
   .nt-input:focus {
-    box-shadow: 0 1px 0 rgba(255,255,255,0.90) inset, 0 0 0 2.5px rgba(244,196,48,0.30), 0 2px 6px rgba(43,33,24,0.05);
-    border-color: rgba(244,196,48,0.50);
+    border-color: var(--yd-yellow);
+    box-shadow: 0 0 0 3px var(--yd-yellow-glow);
   }
   /* ── Pill filter active ── */
   .nt-pill-active {
@@ -179,17 +172,14 @@ const NAP_CSS = `
   }
   /* ── Summary bar — soft ivory pill ── */
   .nt-summary-bar {
-    background: linear-gradient(135deg, rgba(255,253,246,0.96) 0%, rgba(255,249,224,0.96) 100%);
-    border: 1px solid rgba(244,196,48,0.22);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.85) inset, 0 2px 10px rgba(224,177,0,0.08);
-    backdrop-filter: blur(8px);
+    background: var(--yd-surface);
+    border: 1px solid var(--yd-border);
+    box-shadow: var(--yd-elevation-small);
   }
   /* ── Workflow tab container ── */
   .nt-tab-strip {
-    background: rgba(255,253,246,0.80);
-    border: 1px solid rgba(139,125,101,0.09);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.90) inset, 0 2px 8px rgba(31,26,23,0.04);
-    backdrop-filter: blur(8px);
+    background: var(--yd-bg-sunken);
+    border: 1px solid var(--yd-border);
   }
   /* ── Active workflow tab ── */
   .nt-tab-active {
@@ -509,7 +499,7 @@ export default function NapTracker() {
                 {CLASSES.map(c => (
                   <button key={c} onClick={() => setCls(c)}
                     className={`px-2.5 py-1 rounded-full text-[11.5px] whitespace-nowrap flex-shrink-0 transition-all duration-200 ${cls === c ? "nt-pill-active scale-[1.02]" : ""}`}
-                    style={cls !== c ? { background:"rgba(139,125,101,0.06)", color:W.muted1, fontWeight:500, border:"1px solid rgba(139,125,101,0.08)" } : { fontWeight:600 }}>
+                    style={cls !== c ? { background:"var(--yd-bg-sunken)", color:W.muted1, fontWeight:500, border:"1px solid var(--yd-border)" } : { fontWeight:600 }}>
                     {c}
                   </button>
                 ))}
@@ -575,7 +565,7 @@ export default function NapTracker() {
               </div>
               {!loading && (
                 <span className="text-[11.5px] font-bold px-3 py-1.5 rounded-xl tabular-nums flex-shrink-0"
-                  style={{ background:`rgba(139,125,101,0.07)`, color:W.muted2, border:`1px solid rgba(139,125,101,0.09)` }}>
+                  style={{ background:"var(--yd-bg-sunken)", color:W.muted2, border:"1px solid var(--yd-border)" }}>
                   {workflow === "start" ? `${awakeStudents.length} awake` : `${sleepingFiltered.length} sleeping`}
                 </span>
               )}
@@ -817,9 +807,9 @@ function StartNapCard({ name, klass, starting, exiting, disabled, animDelay, onS
           disabled={disabled || !onStart}
           className="nt-start-btn w-full font-semibold text-[11px] py-1.5 rounded-[9px]"
           style={disabled || !onStart ? {
-            background: `rgba(139,125,101,0.06)`,
+            background: "var(--yd-bg-sunken)",
             color: W.muted1,
-            border: `1px solid rgba(139,125,101,0.08)`,
+            border: "1px solid var(--yd-border)",
             cursor: "default",
           } : {
             background: `var(--yd-yellow-light)`,
@@ -863,7 +853,7 @@ function WakeUpCard({ nap, duration, disabled, animDelay, onWakeUp }) {
       {/* Header row — avatar + name */}
       <div className="flex items-start gap-2.5 mb-3">
         <div className={`w-10 h-10 rounded-xl flex-shrink-0 bg-gradient-to-br ${avatarGrad(name)} flex items-center justify-center text-white font-bold text-[12px]`}
-          style={{ boxShadow:"0 2px 10px rgba(212,168,32,0.22)" }}>
+          style={{ boxShadow:"var(--yd-elevation-small)" }}>
           {initials(name)}
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
@@ -891,9 +881,9 @@ function WakeUpCard({ nap, duration, disabled, animDelay, onWakeUp }) {
       {/* Long nap warning */}
       {isLong && (
         <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 mb-2.5 inline-flex w-auto"
-          style={{ background:"rgba(255,240,180,0.85)", border:"1px solid rgba(212,168,32,0.30)" }}>
+          style={{ background:"var(--yd-yellow-light)", border:"1px solid var(--yd-yellow)" }}>
           <span className="text-[10px]">⚠</span>
-          <span className="text-[10px] font-bold" style={{ color:"#8B6914" }}>Long nap · {duration.totalMinutes}m</span>
+          <span className="text-[10px] font-bold" style={{ color:"var(--yd-charcoal)" }}>Long nap · {duration.totalMinutes}m</span>
         </div>
       )}
 
@@ -973,7 +963,7 @@ function ActivityTimeline({ history, loading, histDate, histStudent, onDateChang
             const name   = nap.student_name || nap.studentName || "";
             return (
               <div key={nap.nap_id || nap.napId || i}>
-                {i > 0 && <div style={{ height:1, background:`rgba(139,125,101,0.07)`, margin:"0 4px" }} />}
+                {i > 0 && <div style={{ height:1, background:"var(--yd-bg-sunken)", margin:"0 4px" }} />}
                 <div className="nt-timeline-row flex items-center gap-3 py-2.5 px-2.5">
 
                   {/* Time stamp */}
@@ -1015,7 +1005,7 @@ function ActivityTimeline({ history, loading, histDate, histStudent, onDateChang
                     </span>
                     <span className={`inline-flex items-center gap-0.5 font-bold rounded-full whitespace-nowrap px-2 py-0.5 text-[9px]`}
                       style={isDone
-                        ? { background:"rgba(176,152,48,0.10)", color:"#5a4d18", border:"1px solid rgba(180,150,40,0.22)" }
+                        ? { background:"var(--yd-yellow-light)", color:"var(--yd-charcoal)", border:"1px solid var(--yd-yellow)" }
                         : { background:`rgba(31,26,23,0.07)`, color:W.charcoal2, border:`1px solid rgba(31,26,23,0.09)` }}>
                       {isDone ? "☀️ Done" : "😴 Live"}
                     </span>
@@ -1063,7 +1053,7 @@ function WakeUpSheet({ nap, mood, notes, loading, onMood, onNotes, onConfirm, on
             <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mt-0.5 ${classPill(napClass)}`}>{napClass}</span>
           </div>
           <div className="text-right flex-shrink-0 rounded-2xl px-3 py-2"
-            style={{ background:W.bg2, border:`1px solid rgba(139,125,101,0.10)` }}>
+            style={{ background:W.bg2, border:"1px solid var(--yd-border)" }}>
             <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color:W.muted1 }}>Duration</p>
             <p className="text-lg font-black font-mono tabular-nums leading-tight" style={{ color:W.charcoal1 }}>{dur.display.slice(0,5)}</p>
             <p className="text-[10px]" style={{ color:W.muted1 }}>{dur.totalMinutes}m total</p>
@@ -1083,8 +1073,8 @@ function WakeUpSheet({ nap, mood, notes, loading, onMood, onNotes, onConfirm, on
                   className={`flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all duration-180 active:scale-[.92] ${mood === m.value ? "nt-badge-pop" : ""}`}
                   style={{
                     border:`2px solid ${mood === m.value ? W.gold1 : "rgba(139,125,101,0.12)"}`,
-                    background: mood === m.value ? `rgba(244,196,48,0.10)` : `rgba(255,253,246,0.80)`,
-                    boxShadow: mood === m.value ? `0 2px 8px rgba(224,177,0,0.18)` : "none",
+                    background: mood === m.value ? "var(--yd-yellow-light)" : "var(--yd-surface)",
+                    boxShadow: mood === m.value ? "var(--yd-elevation-small)" : "none",
                   }}>
                   <span className="text-2xl leading-none select-none">{m.emoji}</span>
                   <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color:W.muted1 }}>{m.value}</span>
@@ -1100,7 +1090,7 @@ function WakeUpSheet({ nap, mood, notes, loading, onMood, onNotes, onConfirm, on
             <textarea value={notes} onChange={e => onNotes(e.target.value)} rows={2}
               placeholder="Any observations about this nap…"
               className="w-full rounded-2xl px-4 py-3 resize-none text-sm"
-              style={{ background:`rgba(248,244,234,0.70)`, border:`1px solid rgba(139,125,101,0.12)`, color:W.charcoal1, outline:"none" }}
+              style={{ background:"var(--yd-bg-sunken)", border:"1px solid var(--yd-border)", color:W.charcoal1, outline:"none" }}
               onFocus={e => { e.target.style.boxShadow=`0 0 0 3px rgba(244,196,48,0.22)`; e.target.style.borderColor=`rgba(244,196,48,0.45)`; }}
               onBlur={e => { e.target.style.boxShadow="none"; e.target.style.borderColor=`rgba(139,125,101,0.12)`; }}
             />
@@ -1109,7 +1099,7 @@ function WakeUpSheet({ nap, mood, notes, loading, onMood, onNotes, onConfirm, on
           <div className="flex gap-2.5">
             <button onClick={onClose} disabled={loading}
               className="font-bold py-3.5 rounded-2xl transition-all disabled:opacity-40 text-sm active:scale-95 flex-shrink-0"
-              style={{ width:"4.5rem", background:`rgba(139,125,101,0.10)`, color:W.muted2 }}>
+              style={{ width:"4.5rem", background:"var(--yd-bg-sunken)", color:W.muted2 }}>
               Cancel
             </button>
             <button onClick={onConfirm} disabled={loading}
@@ -1142,7 +1132,7 @@ function StatusBadge({ status, mini = false }) {
   }
   return (
     <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap ${mini ? "px-2 py-0.5 text-[9px]" : "px-3 py-1.5 text-xs"}`}
-      style={{ background:"rgba(176,152,48,0.10)", color:"#5a4d18", border:"1px solid rgba(180,150,40,0.22)" }}>
+      style={{ background:"var(--yd-yellow-light)", color:"var(--yd-charcoal)", border:"1px solid var(--yd-yellow)" }}>
       <span className={`leading-none select-none ${mini ? "text-[10px]" : "text-sm"}`}>☀️</span>
       {mini ? "Done" : "Complete"}
     </span>
@@ -1161,8 +1151,8 @@ function ToastStack({ toasts, onDismiss }) {
         <div key={t.id}
           className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4 rounded-2xl shadow-2xl text-sm font-semibold w-full sm:min-w-[280px] sm:max-w-sm pointer-events-auto"
           style={t.type === "success"
-            ? { background:"#FFF7D6", color:W.charcoal1, border:"1px solid #EFD978", boxShadow:`0 8px 24px rgba(240,200,70,0.18)` }
-            : { background:"#b91c1c", color:"#fff" }}>
+            ? { background:"var(--yd-yellow-light)", color:W.charcoal1, border:"1px solid var(--yd-yellow)", boxShadow:"var(--yd-elevation-medium)" }
+            : { background:"var(--yd-danger)", color:"var(--yd-white)" }}>
           <span className="text-xl flex-shrink-0 leading-none select-none">{t.type === "success" ? "✨" : "⚠️"}</span>
           <span className="flex-1 leading-snug">{t.message}</span>
           <button onClick={() => onDismiss(t.id)} aria-label="Dismiss"
@@ -1199,7 +1189,7 @@ function SkeletonStatCards() {
         <div className="w-6 h-6 rounded-lg mb-2" style={{ background:"rgba(139,125,101,0.10)" }} />
         <div className="h-9 w-14 rounded-xl mb-2" style={{ background:"rgba(139,125,101,0.10)" }} />
         <div className="h-2.5 w-24 rounded-full mb-1" style={{ background:"rgba(139,125,101,0.08)" }} />
-        <div className="h-2 w-20 rounded-full" style={{ background:"rgba(139,125,101,0.06)" }} />
+        <div className="h-2 w-20 rounded-full" style={{ background:"var(--yd-bg-sunken)" }} />
       </div>
     </div>
   );
@@ -1224,7 +1214,7 @@ function SkeletonWorkflow({ compact }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
       {[0,1,2].map(i => (
         <div key={i} className="rounded-[20px] p-4 animate-pulse"
-          style={{ background:"linear-gradient(180deg, #FFF7D6, #F7E7A8)", border:"1px solid #EFD978", animationDelay:`${i*80}ms` }}>
+          style={{ background:"var(--yd-yellow-light)", border:"1px solid var(--yd-yellow)", animationDelay:`${i*80}ms` }}>
           <div className="flex items-start gap-2.5 mb-3">
             <div className="w-10 h-10 rounded-xl flex-shrink-0" style={{ background:"rgba(212,168,32,0.20)" }} />
             <div className="flex-1 pt-0.5">
@@ -1283,7 +1273,7 @@ function EmptyStudents({ searched = false, error = false, onRetry }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div className="w-14 h-14 rounded-3xl flex items-center justify-center text-2xl mb-3 select-none"
-        style={{ background:`rgba(244,196,48,0.10)`, border:`1px solid rgba(244,196,48,0.18)` }}>
+        style={{ background:"var(--yd-yellow-light)", border:`1px solid rgba(244,196,48,0.18)` }}>
         {searched ? "🔍" : "🎒"}
       </div>
       <p className="font-bold" style={{ color:W.charcoal1 }}>{searched ? "No Matches" : "No Students Found"}</p>
@@ -1298,7 +1288,7 @@ function EmptyAwake({ sleepingCount, onSwitch }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl mb-4 select-none"
-        style={{ background:"linear-gradient(180deg, #FFF7D6, #F7E7A8)", border:`1px solid #EFD978`, animation:"nt-moon-float 4.5s ease-in-out infinite" }}>
+        style={{ background:"var(--yd-bg-sunken)", border:"1px solid var(--yd-border)", animation:"nt-moon-float 4.5s ease-in-out infinite" }}>
         🌙
       </div>
       <p className="text-[15px] font-bold" style={{ color:W.charcoal1 }}>
@@ -1323,7 +1313,7 @@ function EmptyActiveNaps({ onSwitch }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl mb-4 select-none"
-        style={{ background:`rgba(255,253,246,0.80)`, border:`1px solid rgba(244,196,48,0.16)`, animation:"nt-moon-float 4.5s ease-in-out infinite" }}>
+        style={{ background:"var(--yd-bg-sunken)", border:"1px solid var(--yd-border)", animation:"nt-moon-float 4.5s ease-in-out infinite" }}>
         🌙
       </div>
       <p className="text-[15px] font-bold" style={{ color:W.charcoal1 }}>No active naps right now</p>
@@ -1340,7 +1330,7 @@ function EmptyHistory({ filtered = false }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div className="w-14 h-14 rounded-3xl flex items-center justify-center text-2xl mb-3 select-none"
-        style={{ background:W.bg2, border:`1px solid rgba(139,125,101,0.10)` }}>
+        style={{ background:W.bg2, border:"1px solid var(--yd-border)" }}>
         {filtered ? "🔍" : "📋"}
       </div>
       <p className="font-bold" style={{ color:W.charcoal1 }}>{filtered ? "No Matches" : "No Activity Yet"}</p>
