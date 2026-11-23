@@ -79,6 +79,73 @@
     radial-gradient(circle at 100% 100%, var(--yd-yellow-pale) 0 14cqw, transparent 14cqw);
 }
 
+/* ── Playful decoration ───────────────────────────────────────────────
+   Every piece here is absolutely positioned against the SHEET and
+   pointer-events:none, so it is incapable of affecting the frame's layout.
+   That is deliberate: the frame was measured overflow-free at true A4 with
+   long names, and decoration must not be able to undo that.
+   ------------------------------------------------------------------- */
+
+.yd-cert-confetti,
+.yd-cert-seal,
+.yd-cert-mascot {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Confetti spans the whole sheet; its own viewBox keeps the dots in the
+   margins, clear of the text column. */
+.yd-cert-confetti {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Seal top-right, mascot top-left: they balance each other, and the header
+   block between them is width-capped below so a long title cannot run under
+   either. Occupied bands are 84-96% and 5-15% of sheet width respectively. */
+.yd-cert-seal {
+  top: 5cqw;
+  right: 4cqw;
+  width: 12cqw;
+  height: auto;
+}
+
+/* NOT bottom-left, which is where the date's signature rule starts: the
+   footer's left column spans from the frame edge to the centre, so its rule
+   begins at ~7% of sheet width and a mascot there would sit on top of it. */
+.yd-cert-mascot {
+  top: 6cqw;
+  left: 5cqw;
+  width: 10cqw;
+  height: auto;
+}
+
+/* Keep the centred header clear of both corners (18%-82% of sheet width). */
+.yd-cert-sheet--playful .yd-cert-school,
+.yd-cert-sheet--playful .yd-cert-eyebrow,
+.yd-cert-sheet--playful .yd-cert-title {
+  max-width: 64cqw;
+}
+
+/* Warmer than the classic hairline: a soft rounded bar under the name. */
+.yd-cert-sheet--playful .yd-cert-underline {
+  height: 0.5cqw;
+  border-radius: var(--yd-radius-full);
+  background: var(--yd-yellow);
+  width: 46cqw;
+}
+
+.yd-cert-sheet--playful .yd-cert-rule {
+  height: 0.5cqw;
+  width: 7cqw;
+}
+
+.yd-cert-sheet--playful .yd-cert-class {
+  color: var(--yd-yellow-dark);
+}
+
 /* ── Header ───────────────────────────────────────────────────────── */
 
 .yd-cert-school {
