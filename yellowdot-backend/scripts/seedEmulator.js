@@ -166,7 +166,8 @@ async function seedRoles() {
         ...full("students", "attendance", "analytics",
                 "staff", "settings", "roles_permissions", "notifications",
                 "incidents", "care_hygiene", "observations", "nap_tracking",
-                "food_menu", "pickup_auth", "classes_batches", "staff_management"),
+                "food_menu", "pickup_auth", "classes_batches", "staff_management",
+                "certificates"),
       },
     },
     center_owner: {
@@ -175,14 +176,15 @@ async function seedRoles() {
         ...full("students", "attendance", "analytics",
                 "staff", "settings", "notifications", "incidents", "care_hygiene",
                 "observations", "nap_tracking", "food_menu", "pickup_auth",
-                "classes_batches", "staff_management"),
+                "classes_batches", "staff_management", "certificates"),
       },
     },
     center_admin: {
       name: "Centre Admin",
       permissions: {
         ...full("students", "attendance", "analytics",
-                "incidents", "care_hygiene", "observations", "pickup_auth", "food_menu"),
+                "incidents", "care_hygiene", "observations", "pickup_auth", "food_menu",
+                "certificates"),
       },
     },
     teacher: {
@@ -196,6 +198,9 @@ async function seedRoles() {
         food_menu:    { view: true, mark: true },
         incidents:    { view: true, create: true },
         pickup_auth:  { view: true },
+        // View-only, mirroring roleService.SYSTEM_ROLES: a teacher reads the
+        // certificate register but the admin tier issues and revokes.
+        certificates: { view: true },
         // Self-service HR at `self` scope — exercises the §2c.1 ladder.
         staff_management: { view: "self" },
       },
