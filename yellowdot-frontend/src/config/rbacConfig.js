@@ -182,6 +182,10 @@ export const PERMISSION_CATEGORIES = [
       { id: "observations",    label: "Observations",    actions: ["view", "create", "edit", "delete"] },
       { id: "journey_media",   label: "Photos & Videos", actions: ["view", "create", "delete"] },
       { id: "artwork",         label: "Artwork",         actions: ["view", "create", "edit", "delete"] },
+      // Certificates issued to children. "create" is the admin-tier gate the
+      // Issue screen and the backend's authorize() both read; teachers hold
+      // view only, so they see the register without the write affordances.
+      { id: "certificates",    label: "Certificates",    actions: ["view", "create", "edit", "delete"] },
     ],
   },
   ];
@@ -224,6 +228,7 @@ const MODULE_ROUTE_MAP = {
   observations:      ["child-journey"],
   journey_media:     ["child-journey"],
   artwork:           ["child-journey"],
+  certificates:      ["certificates"],
   staff_management:  ["staff-dashboard", "staff-management", "departments", "designations"],
   // Staff HR — split from staff_management, see PERMISSION_CATEGORIES comment.
   staff_attendance:         ["staff-attendance"],

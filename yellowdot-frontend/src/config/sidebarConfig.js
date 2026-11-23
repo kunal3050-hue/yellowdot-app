@@ -377,6 +377,17 @@ export const SIDEBAR_GROUPS = [
         icon:       "BookOpen",
         matchPaths: ["/child-journey/"],
       },
+      {
+        // Sits beside Child Journey rather than under Academics: a certificate
+        // is an output of the child's record, and this is where staff already
+        // come to look at what a child has done.
+        id:         "certificates",
+        label:      "Certificates",
+        path:       "/certificates",
+        routeKey:   ROUTES.CERTIFICATES,
+        icon:       "Award",
+        matchPaths: ["/certificates/"],
+      },
     ],
   },
 

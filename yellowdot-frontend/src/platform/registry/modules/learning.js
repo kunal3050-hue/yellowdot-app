@@ -132,7 +132,36 @@ export const childJourneyModule = defineModule({
   ],
 });
 
+/**
+ * Certificates. Two routes behind ONE routeKey: reaching the module at all is
+ * `certificates.view`, and the admin-tier gate on issuing is the capability
+ * `certificates.create`, which /certificates/issue declares and which the
+ * backend enforces independently with authorize(). Splitting the issue screen
+ * onto its own routeKey would have put the admin gate in the sidebar instead
+ * of on the action, and a teacher would lose the register with it.
+ */
+export const certificatesModule = defineModule({
+  id: "certificates",
+  label: "Certificates",
+  icon: "Award",
+  category: "child_journey",
+  capability: "certificates.view",
+  actions: ["view", "create", "edit", "delete"],
+  keywords: ["certificate", "certificates", "graduation", "award", "achievement",
+             "participation", "attendance award", "print", "diploma"],
+  routes: [
+    {
+      path: "/certificates", routeKey: "certificates", label: "Certificates", icon: "Award",
+      nav: [{ category: "child_journey", order: 20, matchPaths: ["/certificates/"] }],
+      grid: { section: "students", label: "Certificates", icon: "Award",
+              description: "Issue, reprint and track certificates for every child." },
+    },
+    { path: "/certificates/issue", routeKey: "certificates", capability: "certificates.create" },
+  ],
+});
+
 export default [
   academicsClassesModule, academicsBatchesModule, academicsTeacherAllocationModule,
   academicsClassroomAllocationModule, academicsStudentAllocationModule, childJourneyModule,
+  certificatesModule,
 ];

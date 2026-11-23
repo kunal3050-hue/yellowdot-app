@@ -24,7 +24,7 @@ import {
   ClipboardList, Heart, CalendarDays, Bell, Megaphone, CreditCard, FileText,
   Wallet, TrendingUp, Handshake, MessageSquareText, Briefcase, UserCheck,
   Shield, Car, History, QrCode, Camera, AlertTriangle, Settings,
-  Repeat, Undo2, ScrollText,
+  Repeat, Undo2, ScrollText, Award,
 } from "lucide-react";
 
 // Per-category accent — a soft color family used for that category's card
@@ -72,6 +72,7 @@ export const SECTIONS = [
     items: [
       { id: "students",      label: "Students",     path: "/students",     routeKey: "students",     icon: Users,    description: "Manage admissions, profiles and student records." },
       { id: "child_journey", label: "Child Journey", path: "/child-journey", routeKey: "child-journey", icon: Sparkles, description: "Milestones, artwork and memories for every child." },
+      { id: "certificates",  label: "Certificates",  path: "/certificates",  routeKey: "certificates",  icon: Award,    description: "Issue, reprint and track certificates for every child." },
     ],
   },
   {
