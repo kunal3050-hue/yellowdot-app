@@ -14,7 +14,6 @@
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
 import { ToastProvider, useToast } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { get, put, del } from "./shared";
@@ -124,8 +123,7 @@ function StudentsInner() {
   const selectedStudentObj = students.find(s => (s.Student_ID || s.id) === selectedId);
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "var(--yd-bg-sunken)", overflow: "hidden" }}>
-      <Sidebar />
+    <div style={{ display: "flex", height: "100%", minHeight: 0, background: "var(--yd-bg-sunken)", overflow: "hidden" }}>
 
       {editStudent && (
         <StudentModal student={editStudent} onSave={handleEdit} onClose={() => setEditStudent(null)} saving={saving} />
