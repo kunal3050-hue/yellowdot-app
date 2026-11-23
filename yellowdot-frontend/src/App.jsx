@@ -255,7 +255,7 @@ function App() {
               path="/students"
               element={
                 <ProtectedRoute routeKey="students">
-                  <Students />
+                  <MainLayout><Students /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -287,7 +287,7 @@ function App() {
               path="/student-profile/:id"
               element={
                 <ProtectedRoute routeKey="students">
-                  <StudentProfile />
+                  <MainLayout><StudentProfile /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -432,7 +432,7 @@ function App() {
               path="/pickup-migration"
               element={
                 <ProtectedRoute routeKey="attendance">
-                  <PickupMigration />
+                  <MainLayout><PickupMigration /></MainLayout>
                 </ProtectedRoute>
               }
             />

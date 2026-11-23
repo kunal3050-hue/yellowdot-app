@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link }                                      from "react-router-dom";
-import Sidebar                                        from "../components/Sidebar";
 import { api }                                        from "../services/authService";
 
 // ── SVG Icons (encoding-safe, zero emoji) ─────────────────────────────────
@@ -703,10 +702,8 @@ export default function PickupMigration() {
 
   // ── Render ─────────────────────────────────────────────────────
   return (
-    <div className="flex bg-white min-h-screen">
-      <Sidebar />
-
-      <div className="ml-[280px] w-full p-8">
+    <div>
+      <div className="w-full">
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between mb-8">
