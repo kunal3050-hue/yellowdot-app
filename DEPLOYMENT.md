@@ -5,15 +5,19 @@
 
 > ## ⚠️ The backend is no longer on Railway
 >
-> It runs on a self-managed VPS (`66.116.245.149`, which is also the apex
-> `kueboxs.com`): the Express app as the `yd-backend` Docker container via
-> `/opt/yd/docker-compose.yml`, behind **Caddy** which terminates TLS for
-> `api.kueboxs.com`. The old Railway app is gone —
+> It runs on a self-managed VPS (the same host as the apex `kueboxs.com`):
+> the Express app as the `yd-backend` Docker container, behind **Caddy** which
+> terminates TLS for `api.kueboxs.com`. The old Railway app is gone —
 > `backend-production-3608.up.railway.app` now returns "Application not found".
 >
-> The real deploy assets live in [`yellowdot-backend/deploy/`](yellowdot-backend/deploy/):
-> `deploy.sh`, `docker-compose.yml`, `caddy-api-vhost.txt`,
-> `backend.env.template`. Deploy with `bash /opt/yd/deploy.sh` on the VPS.
+> **The container is managed with plain `docker run`, not compose.**
+> `docker inspect yd-backend` shows no compose labels, and
+> `MASTER_PLATFORM_STATUS.md` §3 has recorded this for some time. The
+> `deploy/docker-compose.yml` in this repo is reference material only and does
+> not describe the live host.
+>
+> Deploy with
+> `bash /opt/yd/backend/yellowdot-backend/deploy/deploy.sh` on the VPS.
 >
 > **Anything below that refers to Railway, `railway up`, `railway variables`
 > or the `backend-production-3608` URL is superseded by this note.** Those
@@ -26,24 +30,57 @@
 |------|--------|--------|
 | Firebase web config | `src/firebase/firebase.js` | ✅ **Fixed** — real appId/senderId/measurementId; verified in prod bundle |
 | Firestore rules | `yellowdot-app` | ✅ **Deployed** (compiled successfully, released) |
-| Frontend build | `yellowdot-frontend/dist` | ✅ **Built & verified** (config + Railway URL embedded) — ready to ship |
-| Backend (VPS) | `api.kueboxs.com` | ⚠️ **Stale** — live commit is `1f631fe` (built 2026-08-18), well behind `master`. Deploy with `bash /opt/yd/deploy.sh` on the VPS. |
-| Hosting | `yellowdot-app` | ⏸️ **Held** — intentionally not deployed: shipping the new parent UI before the Railway backend has `/api/parent/*` would break parent features in prod. Deploy **after** the backend is live. |
+| Frontend build | `yellowdot-frontend/dist` | ✅ **Built & verified** — Firebase config and `VITE_API_URL=https://api.kueboxs.com` embedded (not the dead Railway URL; see the verification greps below) |
+| Backend (VPS) | `api.kueboxs.com` | ✅ **Current** — `329fb12`, deployed 2026-11-24. Check with `curl https://api.kueboxs.com/api/version`. |
+| Hosting | `yellowdot-app` | ✅ **Current** — deployed 2026-11-24 from `329fb12`. The earlier "held pending backend" note is cleared: the backend has `/api/parent/*`. |
+
+> Both rows above were wrong for roughly three months — the table claimed the
+> backend sat at `1f631fe` (2026-08-18) when it had been redeployed several
+> times since, and claimed Hosting was deliberately held when the reason for
+> the hold no longer applied. **Treat this table as a hint and
+> `/api/version` as the truth**; it is the only source that cannot drift,
+> because the build stamps it in. Same for Hosting: compare the entry chunk in
+> the live `index.html` against a fresh build.
 
 **To deploy:**
 ```bash
-# 1. Backend — on the VPS, as root. Pulls origin/master, builds a Docker image
+# 1. Backend — on the VPS, as root. Pulls origin/master, builds an image
 #    tagged with the commit SHA, recreates the container, smoke-tests it.
-bash /opt/yd/deploy.sh
+bash /opt/yd/backend/yellowdot-backend/deploy/deploy.sh
 
-# 2. Frontend — locally
-cd yellowdot-frontend && npm run build
-firebase deploy --only hosting --project yellowdot-app
+# 2. Frontend — locally, from the REPO ROOT (firebase.json lives there and
+#    points at yellowdot-frontend/dist).
+cd yellowdot-frontend && npm run build:production   # reads .env.production
+cd .. && npx firebase deploy --only hosting
 ```
 
-Rollback the backend to a previous image:
+`build:production`, not `build`: a plain `npm run build` can pick up an empty
+`VITE_API_URL` from the local dev setup, and that bundle calls `/api/*` on the
+hosting domain, where every request 404s. Before deploying, confirm the API
+URL is actually baked in:
+
 ```bash
-BACKEND_TAG=<previous-sha> docker compose -f /opt/yd/docker-compose.yml up -d
+grep -rl "api.kueboxs.com" yellowdot-frontend/dist/assets | head   # must match
+grep -rn "localhost:" yellowdot-frontend/dist/assets | head        # must be empty
+```
+
+Rollback the backend to a previous image (tags are kept — `docker images yd-backend`):
+```bash
+docker stop yd-backend && docker rm yd-backend
+docker run -d --name yd-backend --restart unless-stopped   -p 127.0.0.1:4000:8080 -v /opt/yd/secrets:/opt/yd/secrets   --env-file /opt/yd/backend.env yd-backend:<previous-sha>
+```
+
+### After a release that adds a module
+
+`seedDefaultRoles()` is create-only — it never adds a newly introduced module
+to a role document that already exists. A new module is therefore invisible to
+every non-bypass account until its permission is granted, while `developer`
+and `super_admin` see it working, because `can()` short-circuits for bypass
+roles. Grant it on the live role docs:
+
+```bash
+cd /opt/yd/backend/yellowdot-backend
+NODE_ENV=production SCHOOL_ID=<school>   GOOGLE_APPLICATION_CREDENTIALS=/opt/yd/secrets/firebase-service-account.json   node scripts/grantBillingRbac.js            # dry run; add --confirm to apply
 ```
 
 > ⚠️ `deploy.sh` pulls **`origin/master`** — there is no way to ship a subset.

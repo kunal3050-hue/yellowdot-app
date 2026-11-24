@@ -48,7 +48,7 @@
 
 | Component | Where | Notes |
 |---|---|---|
-| Backend API | Docker container `yd-backend` on VPS `66.116.245.149` | `docker run --restart unless-stopped`, no PM2/Kubernetes/docker-compose in actual use despite files existing in the repo |
+| Backend API | Docker container `yd-backend` on the production VPS (same host as the apex `kueboxs.com`) | `docker run --restart unless-stopped`, no PM2/Kubernetes/docker-compose in actual use despite files existing in the repo |
 | Reverse proxy + TLS | Caddy, same VPS, host-network mode | Let's Encrypt, automatic renewal |
 | CCTV streaming | MediaMTX, same VPS | `stream.kueboxs.com` |
 | Frontend | Firebase Hosting | `app.kueboxs.com` |
