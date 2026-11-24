@@ -62,7 +62,13 @@ function makeFakeFirestore() {
     reset(seed = {}) {
       for (const k of Object.keys(store)) delete store[k];
       for (const [name, rows] of Object.entries(seed)) {
-        rows.forEach((r, i) => coll(name).set(r.userId || r.studentId || `d${i}`, r));
+        rows.forEach((r, i) => {
+          // `_id` lets a test pin the Firestore document id independently of
+          // the row's fields — needed to seed a student that has no studentId
+          // field at all, where the document id is the only id there is.
+          const { _id, ...data } = r;
+          coll(name).set(_id || r.userId || r.studentId || `d${i}`, data);
+        });
       }
     },
   };
@@ -328,4 +334,90 @@ test("an expired token still 401s with TOKEN_EXPIRED", async () => {
   assert.equal(nextCalled, false);
   assert.equal(res._status, 401);
   assert.equal(res.body.code, "TOKEN_EXPIRED");
+});
+
+// ── 7. Student document with no studentId FIELD ──────────────────────────────
+// The regression. `_findLinkedStudent` read `.studentId` straight off the
+// document, so a student whose id lives only in the Firestore document id —
+// an import, a migration, a seed, a hand-written fixture — matched the query
+// and then resolved to `studentId: undefined`. requireOwnChild saw no linked
+// id and denied EVERY child-scoped endpoint with NO_LINKED_STUDENT: the
+// family's fees, journey, attendance and care.
+//
+// It was hard to spot from the outside because parentProfileService's own
+// copy of this lookup already does `s.studentId || d.id`, so /api/parent/me
+// and /api/parent/children kept working throughout — a parent saw a populated
+// home screen above a wall of "no student linked".
+
+const studentNoIdField = {
+  _id: "stu-001",                       // the document id is the only id
+  studentName: "Anvi Patel",
+  fatherEmail: PARENT_EMAIL,
+  schoolId: SCHOOL, centerId: "c1",
+};
+
+test("student with no studentId field: link falls back to the document id", async () => {
+  const { req, nextCalled } = await auth(
+    { users: [parentUserDoc], students: [studentNoIdField] },
+    parentToken,
+  );
+
+  assert.equal(nextCalled, true);
+  assert.equal(req.user.role, "parent");
+  assert.deepEqual(req.user.student, { studentId: "stu-001", studentName: "Anvi Patel" });
+  assert.equal(ownChildPasses(req), true, "requireOwnChild must let this parent through");
+  assert.equal(req.ownChildId, "stu-001");
+});
+
+test("student with no studentId field: works on the students-only branch too", async () => {
+  // No users/{uid} document — the parent is resolved entirely from the student
+  // record, and that branch reads the same link.
+  const { req, nextCalled } = await auth({ students: [studentNoIdField] }, parentToken);
+
+  assert.equal(nextCalled, true);
+  assert.equal(req.user.role, "parent");
+  assert.deepEqual(req.user.student, { studentId: "stu-001", studentName: "Anvi Patel" });
+  assert.equal(ownChildPasses(req), true);
+});
+
+test("student with no studentId field: works on the email-fallback branch too", async () => {
+  const { req, nextCalled } = await auth(
+    {
+      users:    [{ ...parentUserDoc, userId: "old-password-uid" }],
+      students: [studentNoIdField],
+    },
+    { uid: "new-google-uid", email: PARENT_EMAIL, name: "Meera Sharma" },
+  );
+
+  assert.equal(nextCalled, true);
+  assert.equal(req.user.student.studentId, "stu-001");
+  assert.equal(ownChildPasses(req), true);
+});
+
+test("a present studentId field still wins over the document id", async () => {
+  // The fallback must not override a record that names itself. studentService
+  // writes both, and the field is what every other consumer reads.
+  const { req } = await auth(
+    { users: [parentUserDoc], students: [{ ...studentNoIdField, studentId: "YD001" }] },
+    parentToken,
+  );
+
+  assert.equal(req.user.student.studentId, "YD001");
+  // req.ownChildId is set by requireOwnChild, not by authenticate.
+  assert.equal(ownChildPasses(req), true);
+  assert.equal(req.ownChildId, "YD001");
+});
+
+test("a student with no studentId field is still refused for the wrong parent", async () => {
+  // The fallback invents an id where one was missing; it must not invent a LINK.
+  const { req } = await auth(
+    {
+      users:    [parentUserDoc],
+      students: [{ ...studentNoIdField, fatherEmail: "someone@else.com" }],
+    },
+    parentToken,
+  );
+
+  assert.equal(req.user.student, undefined);
+  assert.equal(ownChildPasses(req), false, "requireOwnChild must still fail closed");
 });
