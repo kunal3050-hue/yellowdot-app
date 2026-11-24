@@ -4,7 +4,8 @@
 # Do NOT replace the existing stream.kueboxs.com block.
 # Caddy will issue a new Let's Encrypt cert for api.kueboxs.com automatically.
 #
-# Pre-req: DNS A record for api.kueboxs.com → 66.116.245.149 must exist
+# Pre-req: an A record for api.kueboxs.com pointing at the production VPS
+#          (the same address the apex kueboxs.com resolves to) must exist
 #          and have propagated before adding this block.
 #
 # After appending:
