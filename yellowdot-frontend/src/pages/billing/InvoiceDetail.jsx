@@ -51,7 +51,7 @@ function ReasonModal({
   const amountOk = !amountField || (Number(amount) > 0 && Number(amount) <= Number(maxAmount));
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="default" footer={null}>
       <p className="yd-modal-lede">{lede}</p>
 
       {amountField && (
@@ -94,7 +94,7 @@ function ReasonModal({
 export default function InvoiceDetail() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
-  const { canDo } = useAuth();
+  const { canDo, user } = useAuth();
   const { show: toast } = useToast();
 
   const canCollect = canDo("billing", "create");
@@ -162,6 +162,11 @@ export default function InvoiceDetail() {
         reference:   payForm.reference,
         paymentDate: payForm.paymentDate,
         notes:       payForm.notes,
+        // Send the staff member's name so the receipt reads "Recorded by Priya
+        // Principal" rather than "Recorded by demo-principal". The server falls
+        // back to the actor's user id when this is absent, which is accurate but
+        // is not something to print on a document a family keeps.
+        receivedBy:  user?.name || "",
       });
       setPayOpen(false);
       // The settled invoice comes back in the same response, because the
@@ -414,7 +419,8 @@ export default function InvoiceDetail() {
         isOpen={payOpen}
         onClose={() => setPayOpen(false)}
         title="Record a payment"
-        size="md"
+        size="default"
+        footer={null}
       >
         {payForm && (
           <>

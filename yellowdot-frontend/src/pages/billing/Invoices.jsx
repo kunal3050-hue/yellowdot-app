@@ -401,7 +401,8 @@ export default function Invoices() {
         isOpen={runOpen}
         onClose={() => { setRunOpen(false); setPreview(null); }}
         title={preview ? "Confirm this billing run" : "Run this month's billing"}
-        size={preview ? "lg" : "md"}
+        size={preview ? "wide" : "default"}
+        footer={null}
       >
         {preview ? (
           <RunPreview
@@ -448,7 +449,8 @@ export default function Invoices() {
         isOpen={newOpen}
         onClose={() => setNewOpen(false)}
         title="Raise an invoice"
-        size="lg"
+        size="wide"
+        footer={null}
       >
         {form && (
           <>

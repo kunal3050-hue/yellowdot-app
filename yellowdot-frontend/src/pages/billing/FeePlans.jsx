@@ -306,7 +306,8 @@ export default function FeePlans() {
         isOpen={Boolean(editing)}
         onClose={() => setEditing(null)}
         title={editing?.planId ? "Edit this fee plan" : "Add a fee plan"}
-        size="md"
+        size="default"
+        footer={null}
       >
         {editing && (
           <>
@@ -416,7 +417,8 @@ export default function FeePlans() {
         isOpen={Boolean(payee)}
         onClose={() => setPayee(null)}
         title="Payee details"
-        size="md"
+        size="default"
+        footer={null}
       >
         {payee && (
           <>
