@@ -23,6 +23,7 @@ import "./styles/students.css";
 import "./styles/layout.css";
 import "./styles/settings.css";
 import "./styles/certificates.css";
+import "./styles/billing.css";
 import "./styles/mobile.css";  // responsive overrides — must be last
 
 // ── Service Worker registration ───────────────────────────────────────────────

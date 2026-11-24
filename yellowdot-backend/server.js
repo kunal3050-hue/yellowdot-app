@@ -130,6 +130,7 @@ const leaveRoutes            = require("./routes/leaveRoutes");
 const payrollRoutes          = require("./routes/payrollRoutes");
 const performanceRoutes      = require("./routes/performanceRoutes");
 const certificateRoutes      = require("./routes/certificateRoutes");
+const billingRoutes          = require("./routes/billingRoutes");
 
 // ── Services (for inline routes below) ────────────────────────────
 const studentSvc        = require("./services/studentService");
@@ -184,6 +185,7 @@ app.use(leaveRoutes);          // /api/leave-* (Phase 3 — Leave Management)
 app.use(payrollRoutes);        // /api/salary-* + /api/payroll-runs/* + /api/payslips/* (Phase 4)
 app.use(performanceRoutes);
 app.use(certificateRoutes);    // /api/certificates/*  (Certificates — staff only)
+app.use(billingRoutes);        // /api/billing/* + /api/parent/billing  (must be before parentRoutes)
 
 // Restored 2026-11-20. 29d19f9 ("refactor(finance): delete both finance
 // modules ahead of rebuild") removed a contiguous block of app.use() calls

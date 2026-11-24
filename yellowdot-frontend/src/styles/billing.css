@@ -1,0 +1,698 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   billing.css — Billing & Payments module
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Every colour here is a token from tokens.css. Nothing is hard-coded, so
+   light and dark both follow the app, and money numbers sit on the same
+   semantic palette as every other status in the product.
+
+   --yd-yellow is reserved for the one primary action per screen (recording a
+   payment, raising an invoice), which the Button component already supplies.
+   Nothing in this file paints a surface with it except the one nudge card,
+   which uses --yd-yellow-light with a --yd-yellow border, per the design
+   system's rule for repeated or secondary emphasis.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared small pieces ─────────────────────────────────────────────────── */
+
+.yd-inline-error {
+  margin: 10px 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
+  border: 1px solid var(--yd-danger-border);
+}
+
+.yd-modal-lede {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--yd-text-secondary);
+}
+
+.yd-modal-note {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--yd-text-secondary);
+  background: var(--yd-surface-raised);
+  border: 1px solid var(--yd-border);
+}
+
+.yd-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--yd-border);
+}
+
+/* Right-aligned, tabular money columns — so a column of amounts lines up at
+   the decimal point instead of drifting with the glyph widths. */
+.yd-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Outstanding by age (overview) ───────────────────────────────────────── */
+
+.yd-aging {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--yd-surface-card);
+  border: 1px solid var(--yd-border);
+  border-radius: 12px;
+}
+
+.yd-aging__title {
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-aging__bars { display: grid; gap: 7px; }
+
+.yd-aging__row {
+  display: grid;
+  grid-template-columns: 110px 1fr 100px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.yd-aging__label { color: var(--yd-text-secondary); }
+
+.yd-aging__track {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--yd-surface-raised);
+  overflow: hidden;
+}
+
+.yd-aging__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.yd-aging__fill--current { background: var(--yd-info); }
+.yd-aging__fill--due     { background: var(--yd-danger); }
+
+.yd-aging__amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--yd-text-primary);
+}
+
+/* ── The billing-run preview ─────────────────────────────────────────────── */
+
+.yd-run-preview__headline {
+  display: flex;
+  gap: 32px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: var(--yd-surface-raised);
+  border: 1px solid var(--yd-border);
+  border-radius: 12px;
+}
+
+.yd-run-preview__count {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--yd-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.yd-run-preview__count-label {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--yd-text-muted);
+}
+
+.yd-run-preview__meta {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  color: var(--yd-text-secondary);
+}
+
+.yd-run-preview__section { margin-bottom: 16px; }
+
+.yd-run-preview__section h4 {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+/* The one section a school must actually read: children who matched no plan
+   are silently unbilled every month until somebody notices. */
+.yd-run-preview__section--warn h4 { color: var(--yd-warning); }
+
+.yd-run-preview__section--warn .yd-run-preview__list {
+  background: var(--yd-warning-soft);
+  border-color: var(--yd-warning-border);
+}
+
+.yd-run-preview__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--yd-border);
+  border-radius: 10px;
+  background: var(--yd-surface-card);
+}
+
+.yd-run-preview__list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--yd-border);
+}
+
+.yd-run-preview__list li:last-child { border-bottom: none; }
+
+.yd-run-preview__name {
+  font-weight: 600;
+  color: var(--yd-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yd-run-preview__lines {
+  font-size: 11.5px;
+  color: var(--yd-text-muted);
+  text-align: right;
+}
+
+.yd-run-preview__amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--yd-text-primary);
+}
+
+.yd-run-preview__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--yd-border);
+}
+
+/* ── The invoice line editor ─────────────────────────────────────────────── */
+
+.yd-invoice-line {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.3fr) minmax(120px, 1.4fr) 120px 110px 32px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.yd-invoice-line__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--yd-border);
+}
+
+.yd-invoice-line__total {
+  font-size: 13px;
+  color: var(--yd-text-secondary);
+}
+
+.yd-invoice-line__total strong {
+  margin-left: 6px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--yd-text-primary);
+}
+
+@media (max-width: 720px) {
+  .yd-invoice-line {
+    grid-template-columns: 1fr 1fr 32px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--yd-border);
+  }
+  .yd-invoice-line > :nth-child(2) { grid-column: 1 / -2; }
+}
+
+/* ── Invoice detail ──────────────────────────────────────────────────────── */
+
+.yd-invoice-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.yd-invoice-detail__bill { grid-row: span 2; }
+
+@media (max-width: 900px) {
+  .yd-invoice-detail { grid-template-columns: 1fr; }
+  .yd-invoice-detail__bill { grid-row: auto; }
+}
+
+.yd-invoice-detail__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.yd-invoice-detail__dates {
+  font-size: 12px;
+  color: var(--yd-text-muted);
+}
+
+.yd-invoice-detail__void-notice {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
+  border: 1px solid var(--yd-danger-border);
+}
+
+.yd-invoice-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.yd-invoice-lines th {
+  padding: 7px 8px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+  border-bottom: 1px solid var(--yd-border);
+}
+
+.yd-invoice-lines th.yd-num,
+.yd-invoice-lines td.yd-num { text-align: right; }
+
+.yd-invoice-lines td {
+  padding: 9px 8px;
+  color: var(--yd-text-primary);
+  border-bottom: 1px solid var(--yd-border);
+}
+
+.yd-invoice-lines__adjustment td { color: var(--yd-warning); }
+
+.yd-invoice-lines tfoot td {
+  padding: 7px 8px;
+  border-bottom: none;
+  color: var(--yd-text-secondary);
+}
+
+.yd-invoice-lines__total td {
+  padding-top: 11px;
+  font-weight: 600;
+  color: var(--yd-text-primary);
+  border-top: 1px solid var(--yd-border);
+}
+
+.yd-invoice-lines__balance td {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--yd-text-primary);
+  border-top: 1px solid var(--yd-border);
+}
+
+.yd-invoice-detail__notes {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--yd-text-secondary);
+  background: var(--yd-surface-raised);
+}
+
+.yd-invoice-detail__qr { text-align: center; }
+
+.yd-invoice-detail__qr h3,
+.yd-invoice-detail__payments h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--yd-text-primary);
+}
+
+.yd-invoice-detail__payments h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.yd-invoice-detail__count {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--yd-text-muted);
+}
+
+.yd-invoice-detail__qr-code {
+  display: inline-block;
+  padding: 12px;
+  background: #fff;             /* a QR must be read off white, in both themes */
+  border: 1px solid var(--yd-border);
+  border-radius: 10px;
+}
+
+.yd-invoice-detail__qr-meta {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--yd-text-secondary);
+}
+
+.yd-invoice-detail__qr-hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--yd-text-muted);
+}
+
+.yd-invoice-detail__danger-hint {
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--yd-text-muted);
+}
+
+/* ── Payments against one bill ───────────────────────────────────────────── */
+
+.yd-payment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.yd-payment-list li {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--yd-border);
+}
+
+.yd-payment-list li:last-child { border-bottom: none; }
+
+/* A reversed payment keeps its row — a family may already hold the printed
+   receipt — but is visibly struck through rather than quietly removed. */
+.yd-payment-list li.is-reversed { opacity: 0.62; }
+.yd-payment-list li.is-reversed .yd-payment-list__amount {
+  text-decoration: line-through;
+}
+
+.yd-payment-list__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.yd-payment-list__amount {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--yd-text-primary);
+}
+
+.yd-payment-list__meta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--yd-text-muted);
+}
+
+.yd-payment-list__reason {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--yd-danger);
+}
+
+.yd-payment-list__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ── The payee nudge (fee plans) ─────────────────────────────────────────── */
+
+.yd-payee-nudge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--yd-text-secondary);
+  background: var(--yd-yellow-light, #FFF9E0);
+  border: 1px solid var(--yd-yellow);
+}
+
+.yd-payee-nudge > svg { flex-shrink: 0; color: var(--yd-yellow-dark); }
+.yd-payee-nudge > div { flex: 1; min-width: 0; }
+.yd-payee-nudge strong { color: var(--yd-text-primary); }
+
+/* ── The receipt ─────────────────────────────────────────────────────────── */
+
+.yd-receipt-reversed {
+  margin-bottom: 16px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
+  border: 1px solid var(--yd-danger-border);
+}
+
+.yd-receipt {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 30px;
+  background: var(--yd-surface-card);
+  border: 1px solid var(--yd-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.yd-receipt__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--yd-text-primary);
+}
+
+.yd-receipt__school {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--yd-text-primary);
+}
+
+.yd-receipt__kind {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__ref { text-align: right; }
+
+.yd-receipt__ref-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__ref-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--yd-text-primary);
+}
+
+.yd-receipt__ref-date {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__watermark {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  font-size: 58px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--yd-danger);
+  opacity: 0.1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.yd-receipt__parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 18px 0;
+}
+
+.yd-receipt__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__value {
+  margin-top: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--yd-text-primary);
+}
+
+.yd-receipt__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__amount {
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  background: var(--yd-surface-raised);
+  border-radius: 10px;
+}
+
+.yd-receipt__big {
+  margin: 4px 0 2px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--yd-text-primary);
+}
+
+.yd-receipt__breakdown table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.yd-receipt__breakdown td {
+  padding: 6px 0;
+  color: var(--yd-text-secondary);
+  border-bottom: 1px solid var(--yd-border);
+}
+
+.yd-receipt__breakdown tfoot td {
+  color: var(--yd-text-primary);
+  border-bottom: none;
+}
+
+.yd-receipt__balance td {
+  padding-top: 8px;
+  font-weight: 700;
+  border-top: 1px solid var(--yd-border);
+}
+
+.yd-receipt__foot {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--yd-border);
+}
+
+.yd-receipt__footer-note {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--yd-text-secondary);
+}
+
+.yd-receipt__meta {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--yd-text-muted);
+}
+
+.yd-receipt__aside {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* ── Print ───────────────────────────────────────────────────────────────── */
+/* One rendering path, not two. The deleted implementation had a server PDF
+   endpoint that returned a literal 501 while the client faked its own PDFs
+   with jsPDF in two different places; here Ctrl+P and the browser's own
+   "Save as PDF" both print exactly what is on screen. */
+
+@media print {
+  body * { visibility: hidden !important; }
+
+  .yd-receipt,
+  .yd-receipt * { visibility: visible !important; }
+
+  .yd-receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .yd-receipt__aside,
+  .yd-receipt-reversed { display: none !important; }
+
+  /* Keep the reversal visible on paper: a printed receipt for money that went
+     back must say so, or it reads as valid proof of payment. */
+  .yd-receipt__watermark {
+    visibility: visible !important;
+    opacity: 0.16;
+    color: #000;
+  }
+
+  @page { size: A4; margin: 18mm; }
+}

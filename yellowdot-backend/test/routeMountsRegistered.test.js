@@ -67,3 +67,16 @@ test("the three mounts lost in 29d19f9 are present, in an order that works", () 
   assert.ok(at("notificationRoutes") < at("parentRoutes"),
     "notificationRoutes must be mounted before parentRoutes");
 });
+
+test("billingRoutes is mounted before parentRoutes", () => {
+  // billingRoutes owns GET /api/parent/billing and guards it with
+  // requireOwnChild, so it needs to reach the handler ahead of parentRoutes'
+  // blanket `router.use("/api/parent", ..., parentOnly)`. Mounted after, the
+  // parent-facing fees view 404s for every family — the same failure mode
+  // 29d19f9 caused for Child Journey and the whole parent API.
+  const at = name => SERVER.indexOf("app.use(" + name + ")");
+
+  assert.notEqual(at("billingRoutes"), -1, "billingRoutes is not mounted");
+  assert.ok(at("billingRoutes") < at("parentRoutes"),
+    "billingRoutes must be mounted before parentRoutes");
+});

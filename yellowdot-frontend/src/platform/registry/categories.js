@@ -56,6 +56,11 @@ export const CATEGORIES = [
     sidebar: { collapsible: true, defaultOpen: true },
   },
   {
+    id: "billing", label: "Billing & Payments", order: 125,
+    accent: { bg: "#ECFDF5", icon: "#059669", border: "#A7F3D0" },
+    sidebar: { collapsible: true, defaultOpen: true },
+  },
+  {
     // Permanently expanded — child-safety-critical. A collapsed state here
     // silently hides Incident Reports and the Gate Register with zero signal;
     // see the Gate Register visibility investigation (2026-07-14).

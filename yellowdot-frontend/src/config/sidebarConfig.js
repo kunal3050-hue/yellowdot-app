@@ -391,6 +391,43 @@ export const SIDEBAR_GROUPS = [
     ],
   },
 
+  // ── Billing & Payments ─────────────────────────────────────────────────────
+  // Its own group rather than an item under People or System: fees are a daily
+  // destination for the owner, the accountant and the front desk, and the three
+  // screens here are read in a fixed order (what is owed → the bills → the
+  // catalogue), which a flat item cannot express.
+  {
+    id:          "billing",
+    label:       "Billing & Payments",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      {
+        id:         "billing_overview",
+        label:      "Billing",
+        path:       "/billing",
+        routeKey:   ROUTES.BILLING,
+        icon:       "Wallet",
+        exact:      true,
+      },
+      {
+        id:         "billing_invoices",
+        label:      "Invoices",
+        path:       "/billing/invoices",
+        routeKey:   ROUTES.BILLING,
+        icon:       "Receipt",
+        matchPaths: ["/billing/invoices", "/billing/receipts"],
+      },
+      {
+        id:         "billing_plans",
+        label:      "Fee Plans",
+        path:       "/billing/plans",
+        routeKey:   ROUTES.BILLING,
+        icon:       "ListChecks",
+      },
+    ],
+  },
+
   // ── Safety & Compliance ────────────────────────────────────────────────────
   // Permanently expanded — child-safety-critical (Incident Reports, Gate
   // Register). A collapsed state here silently hides both items with zero

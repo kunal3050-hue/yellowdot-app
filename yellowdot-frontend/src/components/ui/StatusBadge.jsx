@@ -54,6 +54,14 @@ const STATUS_LABEL_GROUP = {
   pending: "warning", approved: "success", rejected: "danger", cancelled: "neutral",
   // Payroll run status (payrollService.RUN_STATUS_META)
   processed: "success", locked: "warning", reversed: "danger",
+  // Billing & Payments — invoice statuses (billingMoney.statusFor) and the
+  // per-child / per-family rollup statuses (billingService.getOutstanding).
+  // "Paid" and "Pending" were in this map before 710dfaf removed the finance
+  // module and took them with it; the docstring above still cites "Paid" as
+  // its example, which is how the gap was easy to miss.
+  Paid: "success", Pending: "warning", Partial: "warning",
+  Overdue: "danger", Void: "neutral",
+  Outstanding: "warning", Clear: "success", "No Invoices": "neutral",
 
 };
 

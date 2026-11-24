@@ -28,6 +28,7 @@ const ParentPTM      = lazy(() => import("../pages/PTM"));
 const ParentIncidents  = lazy(() => import("../pages/Incidents"));
 const PickupApproval   = lazy(() => import("../pages/PickupApproval"));
 const LiveView         = lazy(() => import("../pages/LiveView"));
+const Fees             = lazy(() => import("../pages/Fees"));
 
 // Wrap with ParentLayout; guard with ProtectedRoute unless in DEV.
 function wrap(node, routeKey) {
@@ -57,6 +58,11 @@ export const parentRoutes = [
   <Route key="parent-incidents"       path="/parent-incidents"         element={wrap(<ParentIncidents />, "dashboard")} />,
   <Route key="parent-pickup-approval" path="/parent-pickup-approval"   element={wrap(<PickupApproval />, "dashboard")} />,
   <Route key="parent-live"            path="/parent-live"              element={wrap(<LiveView />,       "dashboard")} />,
+  // Fees: what this family owes and what they have paid. Guarded by the same
+  // "dashboard" routeKey every other parent screen uses; the real isolation is
+  // server-side, where GET /api/parent/billing resolves the child from the
+  // parent's own link and ignores any studentId in the query.
+  <Route key="parent-fees"            path="/parent-fees"              element={wrap(<Fees />,           "dashboard")} />,
 ];
 
 export default parentRoutes;

@@ -73,6 +73,7 @@ export const SECTIONS = [
       { id: "students",      label: "Students",     path: "/students",     routeKey: "students",     icon: Users,    description: "Manage admissions, profiles and student records." },
       { id: "child_journey", label: "Child Journey", path: "/child-journey", routeKey: "child-journey", icon: Sparkles, description: "Milestones, artwork and memories for every child." },
       { id: "certificates",  label: "Certificates",  path: "/certificates",  routeKey: "certificates",  icon: Award,    description: "Issue, reprint and track certificates for every child." },
+      { id: "billing",       label: "Billing",       path: "/billing",       routeKey: "billing",       icon: Wallet,   description: "Fee plans, invoices, payments and who still owes what." },
     ],
   },
   {

@@ -14,6 +14,7 @@
     "analytics",
     "announcements",
     "attendance",
+    "billing",
     "care-hygiene",
     "cctv",
     "certificates",
@@ -48,6 +49,7 @@
     "analytics",
     "announcements",
     "attendance",
+    "billing",
     "care-hygiene",
     "cctv",
     "certificates",
@@ -82,6 +84,7 @@
     "analytics",
     "announcements",
     "attendance",
+    "billing",
     "care-hygiene",
     "cctv",
     "certificates",
@@ -135,12 +138,14 @@
   ],
   "accountant": [
     "analytics",
+    "billing",
     "dashboard",
     "profile",
     "students"
   ],
   "reception": [
     "attendance",
+    "billing",
     "dashboard",
     "parent-checkin",
     "pickup-authorization",
