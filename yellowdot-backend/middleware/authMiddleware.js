@@ -112,6 +112,33 @@ async function _buildUserFromDoc(uid, docData, decoded) {
 }
 
 /**
+ * Shape a matched student snapshot into the link both callers rely on.
+ *
+ * `studentId` falls back to the Firestore document id. A student document is
+ * written with its id in BOTH places — studentService.create() sets the field
+ * and uses the same value as the document id — but only the document id is
+ * guaranteed, because the field can be absent on a record that arrived any
+ * other way (an import, a migration, a seed, a hand-written fixture).
+ *
+ * Without the fallback such a record matches the query and then resolves to
+ * `studentId: undefined`, so `requireOwnChild` reads no linked id and denies
+ * EVERY child-scoped endpoint with NO_LINKED_STUDENT — the parent's own fees,
+ * journey, attendance and care. The failure is particularly unhelpful because
+ * `/api/parent/me` and `/api/parent/children` resolve through the `parents`
+ * collection instead and keep working, so the family sees a populated home
+ * screen above a wall of "no student linked".
+ *
+ * Every other reader in the codebase already does this: studentService's own
+ * shaping function is `studentId: d.studentId || id`, and getOne/update/remove
+ * each fall back to a field query when the document id misses. This was the
+ * one lookup that trusted the field alone.
+ */
+function _toStudentLink(snap) {
+  const d = snap.data();
+  return { ...d, studentId: d.studentId || snap.id };
+}
+
+/**
  * Find the student record linked to a parent's email address.
  * fatherEmail first, then motherEmail — the order parent resolution has always
  * used. Returns the student document data, or null when no student carries it.
@@ -129,7 +156,7 @@ async function _findLinkedStudent(email) {
     .get();
 
   if (!fatherSnap.empty) {
-    const doc = fatherSnap.docs[0].data();
+    const doc = _toStudentLink(fatherSnap.docs[0]);
     console.log(`[AUTH-DEBUG] Parent match via fatherEmail — studentId=${doc.studentId}`);
     return doc;
   }
@@ -140,7 +167,7 @@ async function _findLinkedStudent(email) {
     .get();
 
   if (!motherSnap.empty) {
-    const doc = motherSnap.docs[0].data();
+    const doc = _toStudentLink(motherSnap.docs[0]);
     console.log(`[AUTH-DEBUG] Parent match via motherEmail — studentId=${doc.studentId}`);
     return doc;
   }

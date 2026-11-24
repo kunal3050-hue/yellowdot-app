@@ -274,8 +274,15 @@ function buildStudents() {
     const dob = i === 0
       ? new Date(TODAY.getFullYear() - 4, TODAY.getMonth(), TODAY.getDate())
       : new Date(TODAY.getFullYear() - 3 - (i % 3), (TODAY.getMonth() + i) % 12, ((i * 7) % 27) + 1);
+    const studentId = `stu-${String(i + 1).padStart(3, "0")}`;
     students.push({
-      id: `stu-${String(i + 1).padStart(3, "0")}`,
+      id: studentId,
+      // Written as a FIELD as well as the document id, because that is what a
+      // student created through studentService.create() looks like. Seeding it
+      // with only the document id left every parent-facing endpoint denying
+      // with NO_LINKED_STUDENT: the parent↔child lookup matched the record and
+      // then read `studentId: undefined` off it.
+      studentId,
       // CANONICAL Firestore field names. studentService reads `studentName`
       // and `dob` (lowercase) and PROJECTS them to Student_Name / DOB in the
       // API response — writing `name`/`DOB` here produced records the API
@@ -289,6 +296,11 @@ function buildStudents() {
       schoolId: SCHOOL_ID, centerId: CENTER_ID,
       admissionDate: iso(daysAgo(200 + i)),
       active: true,
+      // The demo parent is linked to exactly one child, so the parent app has
+      // something to show. Without a student carrying this address, every
+      // child-scoped parent endpoint denies and the whole parent module can
+      // only be exercised by hand-editing fixtures.
+      ...(i === 0 ? { motherEmail: "parent@demo.local" } : {}),
     });
   }
   return students;
