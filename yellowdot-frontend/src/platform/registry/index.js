@@ -25,6 +25,7 @@ import coreModules          from "./modules/core.js";
 import peopleModules        from "./modules/people.js";
 import dailyCareModules     from "./modules/dailyCare.js";
 import learningModules      from "./modules/learning.js";
+import billingModules       from "./modules/billing.js";
 import communicationModules from "./modules/communication.js";
 import safetyModules        from "./modules/safety.js";
 import staffHrModules       from "./modules/staffHr.js";
@@ -43,6 +44,7 @@ export const MODULES = [
   ...peopleModules,
   ...dailyCareModules,
   ...learningModules,
+  ...billingModules,
   ...communicationModules,
   ...safetyModules,
   ...staffHrModules,

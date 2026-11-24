@@ -27,6 +27,7 @@ const MODULES = [
   { emoji: "😴", label: "Nap Tracker",     to: "/parent-nap",         active: true },
   { emoji: "📅", label: "Holidays",        to: "/parent-holidays",    active: true },
   { emoji: "🩺", label: "Care & Hygiene",  to: "/parent-care",        active: true },
+  { emoji: "💳", label: "Fees",            to: "/parent-fees",        active: true },
 ];
 
 export default function DailyCare() {

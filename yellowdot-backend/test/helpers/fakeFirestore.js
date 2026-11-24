@@ -127,9 +127,24 @@ function createFakeFirestore() {
     };
   }
 
+  /**
+   * Auto-generated document ids, for `collection().doc()` called with no
+   * argument. Real Firestore mints a random id and hands back a reference
+   * you can write through; the fake previously required an explicit id, so
+   * a service that lets Firestore name its own documents got a reference
+   * whose id was the string "undefined" and silently wrote every record of
+   * that collection over the same one. billingService relies on auto-ids
+   * for fee plans, invoices and payments.
+   */
+  let autoIdSeq = 0;
+  function nextAutoId() {
+    autoIdSeq += 1;
+    return `auto${String(autoIdSeq).padStart(6, "0")}`;
+  }
+
   function collection(name) {
     return {
-      doc: (id) => makeDocRef(name, id),
+      doc: (id) => makeDocRef(name, id === undefined || id === null || id === "" ? nextAutoId() : id),
       where: (field, op, value) => makeQuery(name, [[field, op, value]], null),
       orderBy: (field, direction = "asc") => makeQuery(name, [], null, { field, direction }),
       // Bare collection.get() — real Firestore supports fetching an entire

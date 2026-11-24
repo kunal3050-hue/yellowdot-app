@@ -167,7 +167,7 @@ async function seedRoles() {
                 "staff", "settings", "roles_permissions", "notifications",
                 "incidents", "care_hygiene", "observations", "nap_tracking",
                 "food_menu", "pickup_auth", "classes_batches", "staff_management",
-                "certificates"),
+                "certificates", "billing"),
       },
     },
     center_owner: {
@@ -176,7 +176,8 @@ async function seedRoles() {
         ...full("students", "attendance", "analytics",
                 "staff", "settings", "notifications", "incidents", "care_hygiene",
                 "observations", "nap_tracking", "food_menu", "pickup_auth",
-                "classes_batches", "staff_management", "certificates"),
+                "classes_batches", "staff_management", "certificates",
+                "billing"),
       },
     },
     center_admin: {
@@ -184,7 +185,7 @@ async function seedRoles() {
       permissions: {
         ...full("students", "attendance", "analytics",
                 "incidents", "care_hygiene", "observations", "pickup_auth", "food_menu",
-                "certificates"),
+                "certificates", "billing"),
       },
     },
     teacher: {
@@ -213,6 +214,10 @@ async function seedRoles() {
         pickup_auth: { view: true, create: true, edit: true, approve: true },
         incidents:   { view: true },
         notifications: { view: true, create: true },
+        // Front desk takes money at pickup but never unwinds it, mirroring
+        // roleService.SYSTEM_ROLES. Granting a module in only one of the two
+        // maps leaves it invisible locally to every non-bypass account.
+        billing:     { view: true, create: true },
       },
     },
     accountant: {
@@ -220,6 +225,9 @@ async function seedRoles() {
       permissions: {
         ...viewOnly("students"),
         ...full("analytics"),
+        // The finance specialist: catalogue, invoices and payments, but no
+        // "delete", so voids, credit notes and reversals stay admin-tier.
+        billing:     { view: true, create: true, edit: true },
       },
     },
   };

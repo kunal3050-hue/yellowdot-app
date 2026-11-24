@@ -127,6 +127,7 @@ const MODULE_ROUTE_MAP = {
   care_hygiene:       ["care-hygiene"],
   observations:       ["child-journey"],
   certificates:       ["certificates"],
+  billing:            ["billing"],
   // Staff Management module — view grants dashboard + directory + dept/desig.
   // Sub-actions (create/edit/delete) are governed by manage flag in matrix.
   staff_management:  ["staff-dashboard","staff-management","departments","designations"],
@@ -293,6 +294,11 @@ const SYSTEM_ROLES = [
       // formal document printing a signatory's name, so writes are not a
       // classroom-level action. Teachers get view-only below.
       certificates:  { view: true, create: true, edit: true, delete: true },
+      // Billing & Payments — "delete" is the reversal tier, not a row delete:
+      // nothing in this module is ever hard-deleted. It gates voiding an
+      // invoice, crediting one and reversing a payment, which is why the
+      // accountant below has every other action but not this one.
+      billing:       { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -339,6 +345,11 @@ const SYSTEM_ROLES = [
       // formal document printing a signatory's name, so writes are not a
       // classroom-level action. Teachers get view-only below.
       certificates:  { view: true, create: true, edit: true, delete: true },
+      // Billing & Payments — "delete" is the reversal tier, not a row delete:
+      // nothing in this module is ever hard-deleted. It gates voiding an
+      // invoice, crediting one and reversing a payment, which is why the
+      // accountant below has every other action but not this one.
+      billing:       { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -378,6 +389,11 @@ const SYSTEM_ROLES = [
       // formal document printing a signatory's name, so writes are not a
       // classroom-level action. Teachers get view-only below.
       certificates:  { view: true, create: true, edit: true, delete: true },
+      // Billing & Payments — "delete" is the reversal tier, not a row delete:
+      // nothing in this module is ever hard-deleted. It gates voiding an
+      // invoice, crediting one and reversing a payment, which is why the
+      // accountant below has every other action but not this one.
+      billing:       { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -425,6 +441,10 @@ const SYSTEM_ROLES = [
       students:   { view: true, create: false, edit: false, delete: false, export: true },
       analytics:  { view: true, export: true },
       documents:  { view: true, create: true, delete: false, export: true },
+      // The finance specialist: maintains the fee catalogue, raises invoices
+      // and records payments. No "delete", so voiding an invoice, crediting
+      // one and reversing a payment stay with the owner/admin tier.
+      billing:    { view: true, create: true, edit: true, delete: false },
     },
   },
   {
@@ -439,6 +459,10 @@ const SYSTEM_ROLES = [
       students:    { view: true, create: false, edit: false, delete: false, export: false },
       attendance:  { view: true, mark: true, edit: false, export: false },
       pickup_auth: { view: true, create: true, edit: true, approve: false },
+      // Front desk: answers "how much do we owe?" at pickup and records the
+      // cash or UPI payment just handed over. Cannot raise an invoice, edit
+      // the catalogue, or unwind a payment once recorded.
+      billing:     { view: true, create: true, edit: false, delete: false },
     },
   },
 ];

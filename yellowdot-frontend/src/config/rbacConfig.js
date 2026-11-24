@@ -188,6 +188,21 @@ export const PERMISSION_CATEGORIES = [
       { id: "certificates",    label: "Certificates",    actions: ["view", "create", "edit", "delete"] },
     ],
   },
+  {
+    id:    "billing",
+    label: "Billing & Payments",
+    icon:  "💳",
+    modules: [
+      // "delete" is the REVERSAL tier, not a row delete: nothing in this module
+      // is ever hard-deleted. It gates voiding an invoice, crediting one,
+      // reversing a payment, reading the audit trail and changing the payee —
+      // which is why the accountant role holds every other action but not this
+      // one. "create" records a payment and raises an invoice; "edit" maintains
+      // the fee catalogue. routes/billingRoutes.js enforces the same four tiers
+      // server-side with authorize().
+      { id: "billing",         label: "Billing & Payments", actions: ["view", "create", "edit", "delete"] },
+    ],
+  },
   ];
 
 // ── Module → route-key mapping (mirrors backend roleService.js) ───────────────
@@ -229,6 +244,7 @@ const MODULE_ROUTE_MAP = {
   journey_media:     ["child-journey"],
   artwork:           ["child-journey"],
   certificates:      ["certificates"],
+  billing:           ["billing"],
   staff_management:  ["staff-dashboard", "staff-management", "departments", "designations"],
   // Staff HR — split from staff_management, see PERMISSION_CATEGORIES comment.
   staff_attendance:         ["staff-attendance"],

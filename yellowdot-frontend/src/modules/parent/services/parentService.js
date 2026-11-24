@@ -90,6 +90,18 @@ export async function getHolidays(year, studentId) {
   return data;
 }
 
+/**
+ * Billing — what this family owes and what they have paid.
+ *
+ * Takes no studentId: the server resolves which child this is from the
+ * parent's own link (requireOwnChild) and ignores anything in the query, so a
+ * client-supplied id cannot pick another family's money. GET /api/parent/billing.
+ */
+export async function getBilling() {
+  const { data } = await api.get("/api/parent/billing");
+  return data;
+}
+
 // Notices (read-only, filtered to child's class)
 export async function getNotices(studentId) {
   const params = {};
@@ -177,4 +189,5 @@ export async function markAllNotificationsRead() {
   return data;
 }
 
-export default { getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getPtms, bookPtmSlot, reschedulePtmBooking, cancelPtmBooking, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };
+export default {
+  getBilling, getParentProfile, getChildren, getChild, getFeed, getActivity, getChildAttendance, getMemories, getFoodMenu, getConsumption, getNaps, getHolidays, getNotices, getEvents, submitRsvp, getPtms, bookPtmSlot, reschedulePtmBooking, cancelPtmBooking, getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead };

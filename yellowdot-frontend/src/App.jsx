@@ -68,6 +68,11 @@ const AcademicsStudentAllocation  = lazy(() => import("./pages/academics/Academi
 const ChildJourney        = lazy(() => import("./pages/ChildJourney"));
 const CertificateRegister = lazy(() => import("./pages/certificates/CertificateRegister"));
 const IssueCertificates   = lazy(() => import("./pages/certificates/IssueCertificates"));
+const BillingOverview      = lazy(() => import("./pages/billing/BillingOverview"));
+const BillingInvoices      = lazy(() => import("./pages/billing/Invoices"));
+const BillingInvoiceDetail = lazy(() => import("./pages/billing/InvoiceDetail"));
+const BillingFeePlans      = lazy(() => import("./pages/billing/FeePlans"));
+const BillingReceipt       = lazy(() => import("./pages/billing/Receipt"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
 const NewArtwork          = lazy(() => import("./pages/NewArtwork"));
 const NewMilestone        = lazy(() => import("./pages/NewMilestone"));
@@ -346,6 +351,56 @@ function App() {
               element={
                 <ProtectedRoute routeKey="certificates">
                   <MainLayout><IssueCertificates /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Billing & Payments ───────────────────────────────────────── */}
+            {/* All five routes share the "billing" routeKey. The tiers within
+                it are capabilities checked in the pages — billing.create to
+                record a payment or raise an invoice, billing.edit for the fee
+                catalogue, billing.delete for the reversal actions — and
+                routes/billingRoutes.js enforces the same four tiers again
+                server-side, so a hidden button is never the only guard. */}
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingOverview /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/invoices"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingInvoices /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Declared before /billing/invoices/:invoiceId so "plans" is
+                never matched as an invoice id. */}
+            <Route
+              path="/billing/plans"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingFeePlans /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/invoices/:invoiceId"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingInvoiceDetail /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/receipts/:paymentId"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingReceipt /></MainLayout>
                 </ProtectedRoute>
               }
             />
