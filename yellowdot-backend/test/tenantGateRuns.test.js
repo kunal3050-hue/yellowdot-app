@@ -176,15 +176,8 @@ test("attachTenantStatus lets the request through and leaves the verdict on req"
   }
 });
 
-test("a blocked school still gets a 200 from the boot call", () => {
-  // Pinned as source, because the handler needs Firestore to run. If /api/auth/me
-  // ever 403s instead, the app shows an outage rather than an explanation.
-  const fs = require("node:fs");
-  const path = require("node:path");
-  const src = fs.readFileSync(path.join(__dirname, "..", "routes/authRoutes.js"), "utf8");
-  const i = src.indexOf("if (req.tenantBlock)");
-  assert.notEqual(i, -1, "/api/auth/me must branch on req.tenantBlock");
-  const window = src.slice(i, i + 600);
-  assert.match(window, /res\.status\(200\)/, "the block must be reported as a structured 200");
-  assert.match(window, /tenantBlocked/, "the payload must name the block for the client");
-});
+// "a blocked school still gets a 200 from the boot call" used to live here as
+// a regex over authRoutes.js source. test/authMeTenantBlocked.test.js now
+// invokes the real handler and asserts the real payload, which covers the same
+// contract properly — the source check was both redundant and brittle (it
+// depended on how many characters sat between the branch and the field).
