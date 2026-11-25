@@ -24,17 +24,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Wallet } from "lucide-react";
 import {
-  PageShell, PageHeader, DataTable, Badge, Button, Modal, Select, Input,
-  FormGrid, Field, FormSection, Card, useToast,
+  PageShell, PageHeader, DataTable, Badge, Button, Modal, Input,
+  FormGrid, Field, Card, useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import billingService from "../../services/billingService";
 import { inr, prettyDate, labelFor, FEE_TYPES, CADENCES } from "./billingMeta";
-
-const BLANK_PLAN = {
-  name: "", feeType: "tuition", amount: "", cadence: "monthly",
-  classes: "", effectiveFrom: "", effectiveTo: "", notes: "",
-};
 
 export default function FeePlans() {
   const navigate = useNavigate();
@@ -47,10 +42,6 @@ export default function FeePlans() {
   const [plans,   setPlans]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
-
-  const [editing, setEditing] = useState(null);      // null | { planId?, ...fields }
-  const [saving,  setSaving]  = useState(false);
-  const [formError, setFormError] = useState("");
 
   const [settings, setSettings] = useState(null);
   const [payee, setPayee]       = useState(null);    // null | { upiId, upiName, ... }
@@ -77,55 +68,11 @@ export default function FeePlans() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  function openNew() {
-    setFormError("");
-    setEditing({ ...BLANK_PLAN });
-  }
+  // Add and edit live on their own routes rather than in a dialog — the form
+  // has two sections and a four-field grid, which overflowed a modal.
+  const openNew  = () => navigate("/billing/plans/new");
+  const openEdit = (plan) => navigate(`/billing/plans/${plan.planId}/edit`);
 
-  function openEdit(plan) {
-    setFormError("");
-    setEditing({
-      planId:        plan.planId,
-      name:          plan.name,
-      feeType:       plan.feeType,
-      amount:        String(plan.amount),
-      cadence:       plan.cadence,
-      classes:       (plan.classes || []).join(", "),
-      effectiveFrom: plan.effectiveFrom || "",
-      effectiveTo:   plan.effectiveTo || "",
-      notes:         plan.notes || "",
-    });
-  }
-
-  async function savePlan() {
-    setSaving(true);
-    setFormError("");
-    const payload = {
-      name:    editing.name,
-      feeType: editing.feeType,
-      amount:  editing.amount,
-      cadence: editing.cadence,
-      classes: editing.classes.split(",").map(c => c.trim()).filter(Boolean),
-      effectiveFrom: editing.effectiveFrom,
-      effectiveTo:   editing.effectiveTo,
-      notes:   editing.notes,
-    };
-    try {
-      if (editing.planId) {
-        await billingService.updatePlan(editing.planId, payload);
-        toast(`"${payload.name}" updated. Invoices already raised are unchanged.`, "success");
-      } else {
-        await billingService.createPlan(payload);
-        toast(`"${payload.name}" added to the catalogue.`, "success");
-      }
-      setEditing(null);
-      await load();
-    } catch (err) {
-      setFormError(err.response?.data?.error || err.message || "Could not save the plan.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function toggleActive(plan) {
     try {
@@ -301,116 +248,6 @@ export default function FeePlans() {
         }}
       />
 
-      {/* ── Add or edit a plan ─────────────────────────────────────────── */}
-      <Modal
-        isOpen={Boolean(editing)}
-        onClose={() => setEditing(null)}
-        title={editing?.planId ? "Edit this fee plan" : "Add a fee plan"}
-        size="default"
-        footer={null}
-      >
-        {editing && (
-          <>
-            <FormSection title="What is charged">
-              <FormGrid>
-                <Field label="Name" required hint="What a parent will read on the bill">
-                  <Input
-                    value={editing.name}
-                    onChange={(e) => setEditing(p => ({ ...p, name: e.target.value }))}
-                    placeholder="Monthly tuition"
-                    maxLength={80}
-                  />
-                </Field>
-                <Field label="Amount" required>
-                  <Input
-                    type="number" min="0" step="0.01"
-                    value={editing.amount}
-                    onChange={(e) => setEditing(p => ({ ...p, amount: e.target.value }))}
-                    placeholder="0.00"
-                  />
-                </Field>
-                <Field label="Type" required>
-                  <Select
-                    value={editing.feeType}
-                    onChange={(e) => setEditing(p => ({ ...p, feeType: e.target.value }))}
-                    options={FEE_TYPES}
-                  />
-                </Field>
-                <Field
-                  label="How often"
-                  required
-                  hint="Only monthly plans are picked up by the monthly run"
-                >
-                  <Select
-                    value={editing.cadence}
-                    onChange={(e) => setEditing(p => ({ ...p, cadence: e.target.value }))}
-                    options={CADENCES}
-                  />
-                </Field>
-              </FormGrid>
-            </FormSection>
-
-            <FormSection
-              title="Who it applies to"
-              description="Leave the classes blank to charge every child."
-            >
-              <Field label="Classes" hint="Comma separated — Playgroup, Nursery">
-                <Input
-                  value={editing.classes}
-                  onChange={(e) => setEditing(p => ({ ...p, classes: e.target.value }))}
-                  placeholder="Playgroup, Nursery"
-                />
-              </Field>
-              <FormGrid>
-                <Field label="In effect from" hint="Optional">
-                  <Input
-                    type="date"
-                    value={editing.effectiveFrom}
-                    onChange={(e) => setEditing(p => ({ ...p, effectiveFrom: e.target.value }))}
-                  />
-                </Field>
-                <Field label="Until" hint="Optional">
-                  <Input
-                    type="date"
-                    value={editing.effectiveTo}
-                    onChange={(e) => setEditing(p => ({ ...p, effectiveTo: e.target.value }))}
-                  />
-                </Field>
-              </FormGrid>
-            </FormSection>
-
-            <Field label="Note for staff" hint="Not shown to families">
-              <Input
-                value={editing.notes}
-                onChange={(e) => setEditing(p => ({ ...p, notes: e.target.value }))}
-              />
-            </Field>
-
-            {editing.planId && (
-              <p className="yd-modal-note">
-                Invoices already raised from this plan keep the amount they were raised
-                at. A change here applies to the next billing run.
-              </p>
-            )}
-
-            {formError && <div className="yd-inline-error">{formError}</div>}
-
-            <div className="yd-modal-actions">
-              <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                loading={saving}
-                disabled={saving || !editing.name.trim() || !(Number(editing.amount) > 0)}
-                onClick={savePlan}
-              >
-                {editing.planId ? "Save changes" : "Add the plan"}
-              </Button>
-            </div>
-          </>
-        )}
-      </Modal>
 
       {/* ── Payee details ──────────────────────────────────────────────── */}
       <Modal
