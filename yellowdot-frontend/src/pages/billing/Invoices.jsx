@@ -16,20 +16,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Play, Trash2 } from "lucide-react";
+import { Play } from "lucide-react";
 import {
   PageShell, PageHeader, DataTable, StatusBadge, Badge, Button, Modal,
-  Select, Input, FormSection, Field, FormGrid, EmptyState, useToast,
+  Select, Input, Field, FormGrid, EmptyState, useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import billingService from "../../services/billingService";
-import studentService from "../../services/studentService";
 import {
-  inr, prettyDate, prettyPeriod, currentPeriod, todayLocal, recentPeriods,
-  labelFor, FEE_TYPES, INVOICE_STATUS_OPTIONS, SKIP_REASONS,
+  inr, prettyDate, prettyPeriod, currentPeriod, recentPeriods,
+  labelFor, INVOICE_STATUS_OPTIONS, SKIP_REASONS,
 } from "./billingMeta";
-
-const BLANK_LINE = { planId: "", label: "", feeType: "tuition", amount: "" };
 
 /**
  * The dry-run preview. Deliberately shows the three outcomes side by side:
@@ -134,8 +131,6 @@ export default function Invoices() {
   const canBill = canDo("billing", "create");
 
   const [invoices, setInvoices] = useState([]);
-  const [plans,    setPlans]    = useState([]);
-  const [students, setStudents] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
 
@@ -146,22 +141,14 @@ export default function Invoices() {
   const [preview, setPreview]   = useState(null);
   const [runBusy, setRunBusy]   = useState(false);
 
-  // One-off invoice.
-  const [newOpen, setNewOpen]   = useState(false);
-  const [form, setForm]         = useState(null);
-  const [saving, setSaving]     = useState(false);
-  const [formError, setFormError] = useState("");
-
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [inv, pl] = await Promise.all([
-        billingService.listInvoices(studentFilter ? { studentId: studentFilter } : {}),
-        billingService.listPlans({ activeOnly: "true" }),
-      ]);
+      const inv = await billingService.listInvoices(
+        studentFilter ? { studentId: studentFilter } : {},
+      );
       if (inv?.success) setInvoices(inv.invoices || []);
-      if (pl?.success)  setPlans(pl.plans || []);
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Could not load invoices.");
     } finally {
@@ -173,22 +160,6 @@ export default function Invoices() {
   useEffect(() => { load(); }, [load]);
 
   /** Children are only needed by the one-off form, so they load with it. */
-  const openNewInvoice = useCallback(async () => {
-    setFormError("");
-    setForm({
-      studentId: "", period: currentPeriod(), invoiceDate: todayLocal(),
-      dueDate: "", notes: "", lines: [{ ...BLANK_LINE }],
-    });
-    setNewOpen(true);
-    if (students.length === 0) {
-      try {
-        setStudents(await studentService.getStudents({ status: "Active" }));
-      } catch {
-        // Not fatal: the id can still be typed, and the server validates it.
-        setStudents([]);
-      }
-    }
-  }, [students.length]);
 
   async function runPreviewNow() {
     setRunBusy(true);
@@ -225,52 +196,8 @@ export default function Invoices() {
     }
   }
 
-  function setLine(index, patch) {
-    setForm(f => ({
-      ...f,
-      lines: f.lines.map((l, i) => (i === index ? { ...l, ...patch } : l)),
-    }));
-  }
 
-  /** Picking a plan fills the line from it; the amount stays editable. */
-  function pickPlan(index, planId) {
-    const plan = plans.find(p => p.planId === planId);
-    setLine(index, plan
-      ? { planId, label: plan.name, feeType: plan.feeType, amount: String(plan.amount) }
-      : { planId: "", label: "", feeType: "tuition", amount: "" });
-  }
 
-  const formTotal = useMemo(
-    () => (form?.lines || []).reduce((t, l) => t + (Number(l.amount) || 0), 0),
-    [form],
-  );
-
-  async function saveInvoice() {
-    setSaving(true);
-    setFormError("");
-    try {
-      const res = await billingService.createInvoice({
-        studentId:   form.studentId,
-        period:      form.period,
-        invoiceDate: form.invoiceDate,
-        dueDate:     form.dueDate || undefined,
-        notes:       form.notes,
-        lines: form.lines.map(l => ({
-          planId:  l.planId || undefined,
-          label:   l.label,
-          feeType: l.feeType,
-          amount:  l.amount,
-        })),
-      });
-      setNewOpen(false);
-      toast(`Invoice ${res.invoice.invoiceNumber} raised.`, "success");
-      navigate(`/billing/invoices/${res.invoice.invoiceId}`);
-    } catch (err) {
-      setFormError(err.response?.data?.error || err.message || "Could not raise the invoice.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   const classOptions = useMemo(
     () => [...new Set(invoices.map(i => i.class).filter(Boolean))].map(c => ({ value: c, label: c })),
@@ -332,22 +259,6 @@ export default function Invoices() {
     },
   ], [classOptions]);
 
-  const studentOptions = useMemo(
-    () => students.map(s => ({
-      value: s.studentId,
-      label: `${s.studentName}${s.class ? ` — ${s.class}` : ""}`,
-    })),
-    [students],
-  );
-
-  const planOptions = useMemo(
-    () => [
-      { value: "", label: "Custom line (not from a plan)" },
-      ...plans.map(p => ({ value: p.planId, label: `${p.name} — ${inr(p.amount)}` })),
-    ],
-    [plans],
-  );
-
   return (
     <PageShell
       header={
@@ -368,7 +279,7 @@ export default function Invoices() {
             onClick: () => { setPreview(null); setRunOpen(true); },
           } : undefined}
           secondaryActions={canBill ? [
-            { key: "one-off", label: "One-off invoice", onClick: openNewInvoice },
+            { key: "one-off", label: "One-off invoice", onClick: () => navigate("/billing/invoices/new") },
           ] : undefined}
         />
       }
@@ -444,141 +355,6 @@ export default function Invoices() {
         )}
       </Modal>
 
-      {/* ── A one-off itemised invoice ──────────────────────────────────── */}
-      <Modal
-        isOpen={newOpen}
-        onClose={() => setNewOpen(false)}
-        title="Raise an invoice"
-        size="wide"
-        footer={null}
-      >
-        {form && (
-          <>
-            <FormSection title="Who and when">
-              <FormGrid>
-                <Field label="Child" required>
-                  <Select
-                    value={form.studentId}
-                    onChange={(e) => setForm(f => ({ ...f, studentId: e.target.value }))}
-                    options={studentOptions}
-                    placeholder="Choose a child…"
-                  />
-                </Field>
-                <Field label="Bill for">
-                  <Select
-                    value={form.period}
-                    onChange={(e) => setForm(f => ({ ...f, period: e.target.value }))}
-                    options={recentPeriods(12)}
-                  />
-                </Field>
-                <Field label="Invoice date">
-                  <Input
-                    type="date"
-                    value={form.invoiceDate}
-                    onChange={(e) => setForm(f => ({ ...f, invoiceDate: e.target.value }))}
-                  />
-                </Field>
-                <Field label="Due date" hint="Defaults to the end of the month">
-                  <Input
-                    type="date"
-                    value={form.dueDate}
-                    onChange={(e) => setForm(f => ({ ...f, dueDate: e.target.value }))}
-                  />
-                </Field>
-              </FormGrid>
-            </FormSection>
-
-            <FormSection
-              title="What is being charged"
-              description="One line per thing. Tuition, daycare and transport belong on one bill."
-            >
-              {form.lines.map((line, i) => (
-                <div key={i} className="yd-invoice-line">
-                  <Select
-                    aria-label={`Line ${i + 1} fee plan`}
-                    value={line.planId}
-                    onChange={(e) => pickPlan(i, e.target.value)}
-                    options={planOptions}
-                  />
-                  <Input
-                    aria-label={`Line ${i + 1} description`}
-                    placeholder="Description"
-                    value={line.label}
-                    onChange={(e) => setLine(i, { label: e.target.value })}
-                  />
-                  <Select
-                    aria-label={`Line ${i + 1} fee type`}
-                    value={line.feeType}
-                    onChange={(e) => setLine(i, { feeType: e.target.value })}
-                    options={FEE_TYPES}
-                  />
-                  <Input
-                    aria-label={`Line ${i + 1} amount`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={line.amount}
-                    onChange={(e) => setLine(i, { amount: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="yd-close-btn"
-                    aria-label={`Remove line ${i + 1}`}
-                    disabled={form.lines.length === 1}
-                    onClick={() => setForm(f => ({
-                      ...f, lines: f.lines.filter((_, j) => j !== i),
-                    }))}
-                  >
-                    <Trash2 size={13} strokeWidth={2} />
-                  </button>
-                </div>
-              ))}
-
-              <div className="yd-invoice-line__footer">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Plus size={13} strokeWidth={2} />}
-                  disabled={form.lines.length >= 20}
-                  onClick={() => setForm(f => ({ ...f, lines: [...f.lines, { ...BLANK_LINE }] }))}
-                >
-                  Add a line
-                </Button>
-                <div className="yd-invoice-line__total">
-                  Total <strong>{inr(formTotal)}</strong>
-                </div>
-              </div>
-            </FormSection>
-
-            <FormSection title="Anything else">
-              <Field label="Note on the invoice">
-                <Input
-                  value={form.notes}
-                  onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Optional — shown to the family"
-                />
-              </Field>
-            </FormSection>
-
-            {formError && <div className="yd-inline-error">{formError}</div>}
-
-            <div className="yd-modal-actions">
-              <Button variant="ghost" onClick={() => setNewOpen(false)} disabled={saving}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={saveInvoice}
-                loading={saving}
-                disabled={saving || !form.studentId || formTotal <= 0}
-              >
-                Raise invoice for {inr(formTotal)}
-              </Button>
-            </div>
-          </>
-        )}
-      </Modal>
 
       {!loading && invoices.length === 0 && !canBill && (
         <EmptyState

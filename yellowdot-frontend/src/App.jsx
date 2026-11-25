@@ -73,6 +73,8 @@ const BillingInvoices      = lazy(() => import("./pages/billing/Invoices"));
 const BillingInvoiceDetail = lazy(() => import("./pages/billing/InvoiceDetail"));
 const BillingFeePlans      = lazy(() => import("./pages/billing/FeePlans"));
 const BillingReceipt       = lazy(() => import("./pages/billing/Receipt"));
+const BillingFeePlanForm   = lazy(() => import("./pages/billing/FeePlanForm"));
+const BillingInvoiceForm   = lazy(() => import("./pages/billing/InvoiceForm"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
 const NewArtwork          = lazy(() => import("./pages/NewArtwork"));
 const NewMilestone        = lazy(() => import("./pages/NewMilestone"));
@@ -385,6 +387,30 @@ function App() {
               element={
                 <ProtectedRoute routeKey="billing">
                   <MainLayout><BillingFeePlans /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/invoices/new"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingInvoiceForm /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/plans/new"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingFeePlanForm /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/plans/:planId/edit"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingFeePlanForm /></MainLayout>
                 </ProtectedRoute>
               }
             />

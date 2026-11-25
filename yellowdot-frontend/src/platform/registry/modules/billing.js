@@ -62,9 +62,20 @@ export const billingModule = defineModule({
       path: "/billing/plans", routeKey: "billing", label: "Fee Plans", icon: "ListChecks",
       nav: [{ category: "billing", order: 30 }],
     },
-    // Detail routes: reached from the list screens, so no nav entry and no
-    // grid card. Both read-tier — the write affordances on them are gated by
-    // capability inside the page, and again by the API.
+    // Detail and form routes: reached from the list screens, so no nav entry
+    // and no grid card. All read-tier as far as the routeKey goes — the write
+    // affordances are gated by capability inside each page, and again by the
+    // API, which is the same split /certificates/issue uses.
+    //
+    // The two form routes were dialogs until 2026-11-25. They outgrew them:
+    // each has two or more sections, and the invoice form grows a row per
+    // charge, so the total and the submit button sat below the fold of a
+    // scrolling modal. Pages match /certificates/issue and
+    // /staff/employees/new. Short confirmations in this module — void, credit
+    // note, reverse a payment — are still dialogs on purpose.
+    { path: "/billing/invoices/new",        routeKey: "billing", capability: "billing.create" },
+    { path: "/billing/plans/new",           routeKey: "billing", capability: "billing.edit" },
+    { path: "/billing/plans/:planId/edit",  routeKey: "billing", capability: "billing.edit" },
     { path: "/billing/invoices/:invoiceId", routeKey: "billing" },
     { path: "/billing/receipts/:paymentId", routeKey: "billing" },
   ],
