@@ -40,6 +40,19 @@ const OTHER = { schoolId: "school-b", centerId: "centre-9", actorUserId: "user-o
 const PERIOD = "2026-11";
 const DUE    = "2026-11-30";
 
+/**
+ * createPlan with the required start date filled in.
+ *
+ * A fee plan must carry an effectiveFrom, but almost every test here is about
+ * something else — numbering, settlement, tenant isolation — and threading a
+ * date through each call would bury what it is asserting. An explicit date
+ * still wins, so the tests that DO care about effective dates override it, and
+ * the tests that care about the rule itself call billing.createPlan directly.
+ */
+const PLAN_FROM = "2026-01-01";
+const createPlan = (data, ctx = CTX) =>
+  billing.createPlan({ effectiveFrom: PLAN_FROM, ...data }, ctx);
+
 /** Install a clean in-memory Firestore for one test and restore afterwards. */
 function withFakeDb(fn) {
   const saved = {
@@ -67,7 +80,7 @@ function seedStudent(fake, id, over = {}) {
 /** A plan, an active child, and one invoice for that child. */
 async function seedBilled(fake, { amount = 5000, studentId = "YD001", lines } = {}) {
   seedStudent(fake, studentId);
-  const plan = await billing.createPlan(
+  const plan = await createPlan(
     { name: "Monthly Tuition", feeType: "tuition", amount, cadence: "monthly" }, CTX,
   );
   const invoice = await billing.createInvoice({
@@ -80,7 +93,7 @@ async function seedBilled(fake, { amount = 5000, studentId = "YD001", lines } = 
 // ── Fee plans ────────────────────────────────────────────────────────────────
 
 test("a plan is created, listed and read back with its own amount", () => withFakeDb(async () => {
-  const plan = await billing.createPlan({
+  const plan = await createPlan({
     name: "Daycare — full day", feeType: "daycare", amount: "3500.50", cadence: "monthly",
     classes: ["Playgroup", "Nursery"],
   }, CTX);
@@ -110,13 +123,13 @@ test("a plan refuses a bad name, amount, fee type or cadence", () => withFakeDb(
       /cannot be before/],
   ];
   for (const [payload, pattern] of bad) {
-    await assert.rejects(() => billing.createPlan(payload, CTX), pattern,
+    await assert.rejects(() => createPlan(payload, CTX), pattern,
       `createPlan(${JSON.stringify(payload)}) should be refused`);
   }
 }));
 
 test("a plan is deactivated, never deleted — invoice lines reference it", () => withFakeDb(async () => {
-  const plan = await billing.createPlan({ name: "Transport", feeType: "transport", amount: 800 }, CTX);
+  const plan = await createPlan({ name: "Transport", feeType: "transport", amount: 800 }, CTX);
   const off  = await billing.deactivatePlan(plan.planId, CTX);
 
   assert.equal(off.active, false);
@@ -139,10 +152,148 @@ test("changing a plan's amount does not rewrite invoices already raised", () => 
   assert.equal(reread.lines[0].amount, 5000);
 }));
 
+// ── A required start date ────────────────────────────────────────────────────
+
+test("a new plan must carry a start date", () => withFakeDb(async () => {
+  // Without one there is no answer to "since when has this been charged?", and
+  // a plan added mid-year reads as though it had always applied.
+  await assert.rejects(
+    () => billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX),
+    /needs a start date/,
+  );
+  assert.equal((await billing.listPlans({ schoolId: CTX.schoolId })).length, 0);
+}));
+
+test("the end date is optional, and cannot precede the start", () => withFakeDb(async () => {
+  const open = await billing.createPlan(
+    { name: "Open ended", feeType: "tuition", amount: 5000, effectiveFrom: "2026-04-01" }, CTX);
+  assert.equal(open.effectiveFrom, "2026-04-01");
+  assert.equal(open.effectiveTo, "", "no end date is a valid, open-ended plan");
+
+  await assert.rejects(
+    () => billing.createPlan({
+      name: "Backwards", feeType: "tuition", amount: 5000,
+      effectiveFrom: "2026-06-01", effectiveTo: "2026-01-01",
+    }, CTX),
+    /end date cannot be before the start date/,
+  );
+}));
+
+test("editing a plan created before the rule does not force a date on it", () => withFakeDb(async (fake) => {
+  // Plans written before effectiveFrom was required have none. Editing an
+  // unrelated field on one must not demand a date be invented for it.
+  fake.seed("feePlans", "legacy-plan", {
+    planId: "legacy-plan", name: "Legacy tuition", feeType: "tuition",
+    amount: 4000, cadence: "monthly", classes: [], active: true,
+    schoolId: CTX.schoolId,
+  });
+
+  const updated = await billing.updatePlan("legacy-plan", { amount: 4500 }, CTX);
+  assert.equal(updated.amount, 4500);
+  assert.equal(updated.effectiveFrom, "", "still no start date, and that is allowed on edit");
+}));
+
+// ── Targeting named children ─────────────────────────────────────────────────
+
+test("a plan can name specific children instead of classes", () => withFakeDb(async () => {
+  const plan = await createPlan({
+    name: "Negotiated tuition", feeType: "tuition", amount: 4200,
+    studentIds: ["YD001", "YD002"],
+  });
+
+  assert.deepEqual(plan.studentIds, ["YD001", "YD002"]);
+  assert.deepEqual(plan.classes, [], "naming children does not require classes");
+
+  const reread = await billing.getPlan(plan.planId, CTX);
+  assert.deepEqual(reread.studentIds, ["YD001", "YD002"]);
+}));
+
+test("generation bills only the named children, whatever class they are in",
+  () => withFakeDb(async (fake) => {
+    seedStudent(fake, "YD001", { class: "Playgroup" });
+    seedStudent(fake, "YD002", { class: "Nursery" });
+    seedStudent(fake, "YD003", { class: "Playgroup" });
+
+    await createPlan({
+      name: "Bespoke rate", feeType: "tuition", amount: 4200,
+      studentIds: ["YD001", "YD002"],
+    });
+
+    await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
+    const billed = (await billing.listInvoices({ schoolId: CTX.schoolId }))
+      .map(i => i.studentId).sort();
+
+    // YD002 is in a different class and still billed; YD003 shares a class
+    // with YD001 and is not.
+    assert.deepEqual(billed, ["YD001", "YD002"]);
+  }));
+
+test("named children override the class list rather than narrowing it",
+  () => withFakeDb(async (fake) => {
+    seedStudent(fake, "YD001", { class: "Nursery" });
+
+    // The plan says Playgroup AND names a Nursery child. The child wins —
+    // otherwise "this child, whatever class they move to" is inexpressible,
+    // which is the case the feature exists for.
+    await createPlan({
+      name: "Follows the child", feeType: "tuition", amount: 4200,
+      classes: ["Playgroup"], studentIds: ["YD001"],
+    });
+
+    await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
+    const invoices = await billing.listInvoices({ schoolId: CTX.schoolId });
+    assert.equal(invoices.length, 1);
+    assert.equal(invoices[0].studentId, "YD001");
+  }));
+
+test("a child-targeted plan still respects its effective dates", () => withFakeDb(async (fake) => {
+  seedStudent(fake, "YD001");
+  await createPlan({
+    name: "Ended already", feeType: "tuition", amount: 4200,
+    studentIds: ["YD001"], effectiveFrom: "2026-01-01", effectiveTo: "2026-06-30",
+  });
+
+  const run = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
+  assert.equal(run.createdCount, 0, "the plan expired before this period");
+  assert.equal(run.unmatchedCount, 1);
+}));
+
+test("studentIds are deduplicated and capped", () => withFakeDb(async () => {
+  const plan = await createPlan({
+    name: "Dupes", feeType: "tuition", amount: 100,
+    studentIds: ["YD001", "YD001", " YD002 ", ""],
+  });
+  assert.deepEqual(plan.studentIds, ["YD001", "YD002"], "trimmed, deduplicated, blanks dropped");
+
+  await assert.rejects(
+    () => createPlan({
+      name: "Too many", feeType: "tuition", amount: 100,
+      studentIds: Array.from({ length: billing.MAX_PLAN_STUDENTS + 1 }, (_, i) => `S${i}`),
+    }),
+    /at most 100 children/,
+  );
+
+  await assert.rejects(
+    () => createPlan({ name: "Bad", feeType: "tuition", amount: 100, studentIds: "YD001" }),
+    /must be an array/,
+  );
+}));
+
+test("a class filter never returns a plan that names children", () => withFakeDb(async () => {
+  await createPlan({ name: "Class rule", feeType: "tuition", amount: 5000, classes: ["Playgroup"] });
+  await createPlan({ name: "Everyone",   feeType: "tuition", amount: 1000 });
+  await createPlan({ name: "Named kids", feeType: "tuition", amount: 4200, studentIds: ["YD001"] });
+
+  const forClass = await billing.listPlans({ schoolId: CTX.schoolId, classId: "Playgroup" });
+  // The all-classes plan matches; the child-targeted one must not, or it would
+  // surface under every class as though it applied to all of them.
+  assert.deepEqual(forClass.map(p => p.name).sort(), ["Class rule", "Everyone"]);
+}));
+
 // ── Tenant isolation ─────────────────────────────────────────────────────────
 
 test("another school's plan is 404, not 403 — and cannot be edited or deactivated", () => withFakeDb(async () => {
-  const mine = await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  const mine = await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   // The audit's one confirmed vulnerability: PUT/DELETE on a guessable
   // template id with no schoolId comparison. f1796e9 carried it forward.
@@ -229,7 +380,7 @@ test("an itemised invoice totals its lines exactly", () => withFakeDb(async (fak
 
 test("a line takes its label, fee type and amount from its plan", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
-  const plan = await billing.createPlan(
+  const plan = await createPlan(
     { name: "Monthly Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   const invoice = await billing.createInvoice({
@@ -244,7 +395,7 @@ test("a line takes its label, fee type and amount from its plan", () => withFake
 
 test("an explicit line amount overrides its plan, for a prorated first month", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
-  const plan = await billing.createPlan(
+  const plan = await createPlan(
     { name: "Monthly Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   const invoice = await billing.createInvoice({
@@ -728,9 +879,9 @@ test("two credit notes stack, and a payment settles what is left", () => withFak
 test("generation puts every matching plan on ONE invoice", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001", { class: "Playgroup" });
 
-  await billing.createPlan({ name: "Tuition",   feeType: "tuition",   amount: 5000, classes: ["Playgroup"] }, CTX);
-  await billing.createPlan({ name: "Daycare",   feeType: "daycare",   amount: 3000, classes: ["Playgroup"] }, CTX);
-  await billing.createPlan({ name: "Transport", feeType: "transport", amount: 800 }, CTX);
+  await createPlan({ name: "Tuition",   feeType: "tuition",   amount: 5000, classes: ["Playgroup"] }, CTX);
+  await createPlan({ name: "Daycare",   feeType: "daycare",   amount: 3000, classes: ["Playgroup"] }, CTX);
+  await createPlan({ name: "Transport", feeType: "transport", amount: 800 }, CTX);
 
   const run = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
@@ -746,7 +897,7 @@ test("a dry run writes nothing and reports exactly what a real run would do", ()
   seedStudent(fake, "YD001", { class: "Playgroup" });
   seedStudent(fake, "YD002", { class: "Nursery" });
   seedStudent(fake, "YD003", { class: "Playgroup", status: "Inactive" });
-  await billing.createPlan(
+  await createPlan(
     { name: "Tuition", feeType: "tuition", amount: 5000, classes: ["Playgroup"] }, CTX);
 
   const dry = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE, dryRun: true });
@@ -769,7 +920,7 @@ test("a dry run writes nothing and reports exactly what a real run would do", ()
 test("generation is idempotent — running it twice does not double-bill", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
   seedStudent(fake, "YD002");
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   const first = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
   assert.equal(first.createdCount, 2);
@@ -784,7 +935,7 @@ test("generation is idempotent — running it twice does not double-bill", () =>
 
 test("a voided invoice lets generation raise that child's invoice again", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   const first = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
   const raised = (await billing.listInvoices({ schoolId: CTX.schoolId }))[0];
@@ -800,14 +951,14 @@ test("generation skips inactive children and only uses monthly, in-date, active 
   () => withFakeDb(async (fake) => {
     seedStudent(fake, "YD001", { class: "Playgroup" });
 
-    await billing.createPlan({ name: "Monthly",  feeType: "tuition", amount: 5000 }, CTX);
-    await billing.createPlan({ name: "One-off",  feeType: "admission", amount: 9000, cadence: "one_time" }, CTX);
-    await billing.createPlan({ name: "Termly",   feeType: "activity",  amount: 1200, cadence: "termly" }, CTX);
-    const stale = await billing.createPlan(
+    await createPlan({ name: "Monthly",  feeType: "tuition", amount: 5000 }, CTX);
+    await createPlan({ name: "One-off",  feeType: "admission", amount: 9000, cadence: "one_time" }, CTX);
+    await createPlan({ name: "Termly",   feeType: "activity",  amount: 1200, cadence: "termly" }, CTX);
+    const stale = await createPlan(
       { name: "Expired", feeType: "other", amount: 400, effectiveTo: "2026-01-31" }, CTX);
-    const future = await billing.createPlan(
+    const future = await createPlan(
       { name: "Next year", feeType: "other", amount: 400, effectiveFrom: "2027-04-01" }, CTX);
-    const off = await billing.createPlan({ name: "Retired", feeType: "other", amount: 400 }, CTX);
+    const off = await createPlan({ name: "Retired", feeType: "other", amount: 400 }, CTX);
     await billing.deactivatePlan(off.planId, CTX);
     void stale; void future;
 
@@ -822,7 +973,7 @@ test("generation reports a child whose class matches no plan rather than silentl
   () => withFakeDb(async (fake) => {
     seedStudent(fake, "YD001", { class: "Playgroup" });
     seedStudent(fake, "YD002", { class: "Toddler" });
-    await billing.createPlan(
+    await createPlan(
       { name: "Tuition", feeType: "tuition", amount: 5000, classes: ["Playgroup"] }, CTX);
 
     const run = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
@@ -844,7 +995,7 @@ test("generation never crosses into another school's children", () => withFakeDb
     studentId: "ZZ001", studentName: "Other Child", class: "Playgroup",
     status: "Active", schoolId: OTHER.schoolId,
   });
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
 
   const run = await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
   assert.equal(run.createdCount, 1);
@@ -951,7 +1102,7 @@ test("outstanding rolls a family's children into one balance", () => withFakeDb(
   seedStudent(fake, "YD002", { familyId: "FAM1", studentName: "Anaya" });
   seedStudent(fake, "YD003", { familyId: "",     studentName: "Solo" });
 
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
   await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
   const invoices = await billing.listInvoices({ schoolId: CTX.schoolId, studentId: "YD001" });
@@ -980,7 +1131,7 @@ test("outstanding rolls a family's children into one balance", () => withFakeDb(
 test("outstanding excludes void invoices from every total", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
   seedStudent(fake, "YD002");
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
   await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
   const all = await billing.listInvoices({ schoolId: CTX.schoolId });
@@ -1004,7 +1155,7 @@ test("a child with no invoices reads No Invoices, not a zero balance that looks 
 test("the summary and the outstanding rollup agree on what is owed", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
   seedStudent(fake, "YD002");
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
   await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
   const invoices = await billing.listInvoices({ schoolId: CTX.schoolId });
@@ -1040,7 +1191,7 @@ test("the summary excludes reversed payments from what was collected", () => wit
 test("the summary reports what share of invoices the plans raised", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001");
   seedStudent(fake, "YD002");
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
   await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
   let summary = await billing.getSummary({ schoolId: CTX.schoolId, period: PERIOD });
@@ -1117,7 +1268,7 @@ test("a receipt resolves the payment, its invoice and the school's payee details
 test("a parent sees only their own child's bills, with a usable summary", () => withFakeDb(async (fake) => {
   seedStudent(fake, "YD001", { studentName: "Aarav" });
   seedStudent(fake, "YD002", { studentName: "Someone else" });
-  await billing.createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
+  await createPlan({ name: "Tuition", feeType: "tuition", amount: 5000 }, CTX);
   await billing.generateForPeriod({ ...CTX, period: PERIOD, dueDate: DUE });
 
   const mine = await billing.listInvoices({ schoolId: CTX.schoolId, studentId: "YD001" });

@@ -19,19 +19,21 @@
  * someone to a different route to type a reason would lose that context.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { X } from "lucide-react";
 import {
   PageShell, PageHeader, Button, Select, Input,
   FormSection, Field, FormGrid, LoadingPage, PageError, useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import billingService from "../../services/billingService";
-import { FEE_TYPES, CADENCES, inr } from "./billingMeta";
+import studentService from "../../services/studentService";
+import { FEE_TYPES, CADENCES, inr, todayLocal } from "./billingMeta";
 
 const BLANK = {
   name: "", feeType: "tuition", amount: "", cadence: "monthly",
-  classes: "", effectiveFrom: "", effectiveTo: "", notes: "",
+  classes: "", studentIds: [], effectiveFrom: todayLocal(), effectiveTo: "", notes: "",
 };
 
 export default function FeePlanForm() {
@@ -43,22 +45,29 @@ export default function FeePlanForm() {
   const isEdit = Boolean(planId);
   const canEdit = canDo("billing", "edit");
 
-  const [form,    setForm]    = useState(isEdit ? null : { ...BLANK });
-  const [loading, setLoading] = useState(isEdit);
+  const [form,     setForm]     = useState(isEdit ? null : { ...BLANK });
+  const [students, setStudents] = useState([]);
+  const [loading,  setLoading]  = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState("");
   const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
-    if (!isEdit) return;
     setLoading(true);
     setLoadError("");
     try {
-      // listPlans rather than a by-id fetch: the API has no GET /plans/:id, and
-      // adding one for a screen that is always reached from the list would be a
-      // route nothing else needs.
-      const res  = await billingService.listPlans();
-      const plan = (res.plans || []).find(p => p.planId === planId);
+      // Children are needed either way, to offer the picker.
+      const [stu, res] = await Promise.all([
+        studentService.getStudents({ status: "Active" }).catch(() => []),
+        // listPlans rather than a by-id fetch: the API has no GET /plans/:id,
+        // and adding one for a screen always reached from the list would be a
+        // route nothing else needs.
+        isEdit ? billingService.listPlans() : Promise.resolve(null),
+      ]);
+      setStudents(stu || []);
+
+      if (!isEdit) return;
+      const plan = (res?.plans || []).find(p => p.planId === planId);
       if (!plan) { setLoadError("That fee plan could not be found."); return; }
       setForm({
         name:          plan.name,
@@ -66,6 +75,7 @@ export default function FeePlanForm() {
         amount:        String(plan.amount),
         cadence:       plan.cadence,
         classes:       (plan.classes || []).join(", "),
+        studentIds:    plan.studentIds || [],
         effectiveFrom: plan.effectiveFrom || "",
         effectiveTo:   plan.effectiveTo || "",
         notes:         plan.notes || "",
@@ -82,6 +92,34 @@ export default function FeePlanForm() {
 
   const set = (patch) => setForm(f => ({ ...f, ...patch }));
 
+  // ── Derived values for the child picker ────────────────────────────────────
+  // Above the early returns below: hooks must run in the same order on every
+  // render, and `form` is null while an edit is still loading.
+  // Read straight off `form` rather than defaulted into a new array: `?? []`
+  // would mint a fresh array every render, and the React Compiler rejects a
+  // memo whose written dependencies do not match the ones it infers.
+  const picked = form?.studentIds;
+  const namedChildren = (picked?.length ?? 0) > 0;
+
+  const studentById = useMemo(
+    () => Object.fromEntries(students.map(s => [s.studentId, s])),
+    [students],
+  );
+
+  const unpicked = useMemo(
+    () => students
+      .filter(s => !(picked || []).includes(s.studentId))
+      .sort((a, b) => (a.studentName || "").localeCompare(b.studentName || "")),
+    [students, picked],
+  );
+
+  const addChild = (studentId) => {
+    if (!studentId) return;
+    setForm(f => ({ ...f, studentIds: [...f.studentIds, studentId] }));
+  };
+  const removeChild = (studentId) =>
+    setForm(f => ({ ...f, studentIds: f.studentIds.filter(id => id !== studentId) }));
+
   async function save() {
     setSaving(true);
     setError("");
@@ -91,6 +129,7 @@ export default function FeePlanForm() {
       amount:        form.amount,
       cadence:       form.cadence,
       classes:       form.classes.split(",").map(c => c.trim()).filter(Boolean),
+      studentIds:    form.studentIds,
       effectiveFrom: form.effectiveFrom,
       effectiveTo:   form.effectiveTo,
       notes:         form.notes,
@@ -135,7 +174,9 @@ export default function FeePlanForm() {
     );
   }
 
-  const valid = form.name.trim() && Number(form.amount) > 0;
+  // A start date is required by the API on create. Edit leaves it alone, so a
+  // plan written before that rule can still be edited without inventing one.
+  const valid = form.name.trim() && Number(form.amount) > 0 && (isEdit || form.effectiveFrom);
 
   return (
     <PageShell
@@ -188,26 +229,70 @@ export default function FeePlanForm() {
 
         <FormSection
           title="Who it applies to"
-          description="Leave the classes blank to charge every child."
+          description="Leave both blank to charge every child."
         >
-          <Field label="Classes" hint="Comma separated — Playgroup, Nursery">
+          <Field
+            label="Classes"
+            hint="Comma separated — Playgroup, Nursery"
+          >
             <Input
               value={form.classes}
               onChange={(e) => set({ classes: e.target.value })}
               placeholder="Playgroup, Nursery"
+              disabled={namedChildren}
             />
           </Field>
+
+          <Field
+            label="Or specific children"
+            hint={namedChildren
+              ? "This plan applies to exactly these children — the classes above are ignored, and it follows them if they change class."
+              : "For a negotiated rate, a sibling arrangement, or one child on transport."}
+          >
+            <Select
+              value=""
+              onChange={(e) => addChild(e.target.value)}
+              options={unpicked.map(s => ({
+                value: s.studentId,
+                label: `${s.studentName}${s.class ? ` — ${s.class}` : ""}`,
+              }))}
+              placeholder={unpicked.length ? "Add a child…" : "No other children to add"}
+              disabled={unpicked.length === 0}
+            />
+          </Field>
+
+          {namedChildren && (
+            <ul className="yd-chip-list">
+              {(picked || []).map(id => (
+                <li key={id} className="yd-chip">
+                  <span>
+                    {studentById[id]?.studentName || id}
+                    {studentById[id]?.class ? ` · ${studentById[id].class}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeChild(id)}
+                    aria-label={`Remove ${studentById[id]?.studentName || id}`}
+                  >
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <FormGrid>
-            <Field label="In effect from" hint="Optional">
+            <Field label="In effect from" required={!isEdit} hint="When this fee starts being charged">
               <Input
                 type="date"
                 value={form.effectiveFrom}
                 onChange={(e) => set({ effectiveFrom: e.target.value })}
               />
             </Field>
-            <Field label="Until" hint="Optional">
+            <Field label="Until" hint="Optional — leave blank for an open-ended plan">
               <Input
                 type="date"
+                min={form.effectiveFrom || undefined}
                 value={form.effectiveTo}
                 onChange={(e) => set({ effectiveTo: e.target.value })}
               />
