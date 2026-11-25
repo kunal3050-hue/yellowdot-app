@@ -143,19 +143,14 @@ const notif             = require("./services/notificationService");
 
 // ── Auth middleware ────────────────────────────────────────────────
 const { authenticate, authorize, blockUnknown, staffOnly } = require("./middleware/authMiddleware");
-const { enforceTenant } = require("./middleware/tenantMiddleware");
 
 // ── Mount route modules ────────────────────────────────────────────
 // Tenant management (super_admin only — no tenant enforcement needed here)
 app.use(tenantRoutes);
 
-// Tenant status gate — runs on all /api/* requests that carry a resolved user.
-// Auth routes skip this automatically because req.user is not set at that point.
-// super_admin / developer bypass enforcement inside enforceTenant.
-app.use("/api", (req, res, next) => {
-  if (!req.user) return next(); // not yet authenticated — individual routes handle auth
-  return enforceTenant(req, res, next);
-});
+// The tenant status gate now runs inside authenticate() (authMiddleware.js),
+// because authenticate is per-route: an app-level gate here could only ever
+// see req.user === undefined and so never fired. See the note on authenticate.
 
 app.use(authRoutes);           // /api/auth/me, /api/auth/logout, etc.  (has own auth)
 app.use(userRoutes);           // /api/users  (full auth + RBAC inside)

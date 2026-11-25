@@ -9,8 +9,8 @@
  * scope ladder uses (§2c.1), for the same reason: one ordered comparison
  * instead of a matrix nobody maintains.
  *
- * `tenants.subscriptionPlan` already exists and today holds "trial" or a paid
- * plan name (see tenantService.js). Unknown or missing values resolve to
+ * `tenants.subscriptionPlan` already exists and today holds one of
+ * trial / starter / professional / enterprise (see tenantService.js). Unknown or missing values resolve to
  * DEFAULT_PLAN rather than throwing — a billing data problem must never lock a
  * school out of its own software.
  *
@@ -20,9 +20,22 @@
  * seam that licensing switches on later, per feature, deliberately.
  */
 
-const PLAN_ORDER = ["trial", "standard", "premium", "enterprise"];
+// These four names are the ones tenants.subscriptionPlan actually holds —
+// tenantService's documented schema, the TenantDetail dropdown that writes
+// the field, and seedTenant all use them. This file used to rank
+// trial/standard/premium/enterprise instead, so "starter" and "professional"
+// were both unknown and both fell back to DEFAULT_PLAN's rank. Harmless while
+// every catalog entry is minPlan: null, but the day one feature is gated, a
+// professional customer would silently be served the starter tier.
+//
+// Ranks are unchanged by the rename: standard and starter are both 1,
+// premium and professional are both 2.
+const PLAN_ORDER = ["trial", "starter", "professional", "enterprise"];
 
-const DEFAULT_PLAN = "standard";
+// Rank 1, the same rank "standard" held: an unknown or missing plan keeps
+// the generosity the original choice intended — a billing data problem must
+// never lock a school out of its own software.
+const DEFAULT_PLAN = "starter";
 
 /** Rank of a plan; unknown plans fall back to DEFAULT_PLAN's rank. */
 function planRank(plan) {
@@ -41,7 +54,7 @@ function planIncludes(plan, minPlan) {
 
 /**
  * Trial is deliberately NOT the weakest-by-exclusion tier — a trial should
- * show off the product. It ranks lowest only so that `minPlan: "standard"`
+ * show off the product. It ranks lowest only so that `minPlan: "starter"`
  * can fence off features that cost real money to run.
  */
 module.exports = { PLAN_ORDER, DEFAULT_PLAN, planRank, planIncludes };

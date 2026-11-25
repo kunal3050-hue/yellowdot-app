@@ -38,6 +38,10 @@ const roleSvc            = require("../services/roleService");
 
 const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
 
+// tenantMiddleware -> tenantService -> firebaseAdmin never reaches back here,
+// so this import introduces no cycle.
+const { enforceTenant } = require("./tenantMiddleware");
+
 // ── Internal helpers ───────────────────────────────────────────────
 
 /**
@@ -205,7 +209,7 @@ async function _attachLinkedStudent(user, email) {
 
 // ── Middleware ─────────────────────────────────────────────────────
 
-async function authenticate(req, res, next) {
+async function _authenticateOnly(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Authentication required." });
@@ -498,4 +502,48 @@ function requireOwnChild(req, res, next) {
   next();
 }
 
-module.exports = { authenticate, authorize, authorizeRoute, blockUnknown, staffOnly, requireOwnChild };
+/**
+ * Paths that stay reachable for a suspended or cancelled school.
+ *
+ * Without these the client cannot find out WHY it is blocked: /api/auth/me is
+ * the boot call that gates the whole UI, so blocking it makes a suspended
+ * school look broken rather than suspended. sync-user runs at login before a
+ * profile exists, and logout must always work — locking someone out of the
+ * app should not also trap them signed in.
+ *
+ * Everything else, including refresh-permissions and select-center, is gated.
+ */
+const TENANT_GATE_EXEMPT = new Set([
+  "/api/auth/me",
+  "/api/auth/sync-user",
+  "/api/auth/logout",
+]);
+
+/**
+ * authenticate + tenant status gate.
+ *
+ * tenantMiddleware documents its own usage as `app.use(authenticate,
+ * enforceTenant, ...)`, but it was never wired that way. server.js mounted it
+ * as app-level middleware on /api that returned early when req.user was unset
+ * — and because authenticate runs per-route, req.user is ALWAYS unset at that
+ * point, so enforceTenant never ran once. Suspending a school wrote a field
+ * and changed nothing else.
+ *
+ * Composing it here fixes that for every authenticated route at once, present
+ * and future, instead of adding a middleware to 300+ route definitions and
+ * relying on nobody forgetting it on the next one.
+ *
+ * _authenticateOnly has nine separate next() exits; wrapping its callback
+ * catches all of them, which editing each one would not reliably do.
+ */
+async function authenticate(req, res, next) {
+  return _authenticateOnly(req, res, (err) => {
+    if (err) return next(err);
+    // Routes that authenticate optionally can reach here with no user.
+    if (!req.user) return next();
+    if (TENANT_GATE_EXEMPT.has(req.path)) return next();
+    return enforceTenant(req, res, next);
+  });
+}
+
+module.exports = { authenticate, authorize, authorizeRoute, blockUnknown, staffOnly, requireOwnChild, TENANT_GATE_EXEMPT };
