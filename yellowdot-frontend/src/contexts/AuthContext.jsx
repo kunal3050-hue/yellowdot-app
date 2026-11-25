@@ -63,6 +63,10 @@ export function AuthProvider({ children }) {
   const [loading,        setLoading]       = useState(true);  // always starts loading (SplashScreen needs true→false)
   const [devRole,        setDevRoleState]  = useState(null);
   const [profileMissing, setProfileMissing] = useState(false);
+  // Set when the school itself is suspended/cancelled/past trial, as opposed
+  // to anything about this user. /api/auth/me is exempt from the tenant gate
+  // precisely so it can report this instead of the app just failing.
+  const [tenantBlocked, setTenantBlocked] = useState(null);
   // True when the profile fetch could not reach the backend at all. Distinct
   // from an auth failure: the session may well be fine, we just cannot ask.
   // While this is set, `loading` stays true so the splash remains mounted and
@@ -91,7 +95,20 @@ export function AuthProvider({ children }) {
           // Backend signals profile-missing: Firebase auth passed but no Firestore
           // staff doc or parent email match was found. Surface this state so
           // ProtectedRoute can redirect to the ProfileIncomplete page.
-          if (data.profileMissing) {
+          // The school's account is not active. Checked before profileMissing:
+          // a suspended school is the more specific explanation, and showing
+          // "ask your administrator to set up your profile" to someone whose
+          // whole school is paused would send them down the wrong path.
+          if (data.tenantBlocked) {
+            console.warn(`[AuthContext] tenantBlocked=${data.tenantBlocked.code} — school account is not active.`);
+            setUser(data.user || null);
+            setPermissions([]);
+            setRoleMatrix({});
+            setFeatures(null);
+            setServerScope(null);
+            setProfileMissing(false);
+            setTenantBlocked(data.tenantBlocked);
+          } else if (data.profileMissing) {
             console.warn("[AuthContext] profileMissing=true — uid exists in Firebase but no Firestore profile.");
             setUser(data.user || null);
             setPermissions([]);
@@ -106,6 +123,7 @@ export function AuthProvider({ children }) {
             setFeatures(data.features ?? null);
             setServerScope(data.scope ?? null);
             setProfileMissing(false);
+            setTenantBlocked(null);
           }
         } catch (err) {
           console.error("[AuthContext] Failed to fetch profile:", err.message);
@@ -133,6 +151,7 @@ export function AuthProvider({ children }) {
           setFeatures(null);
           setServerScope(null);
           setProfileMissing(false);
+          setTenantBlocked(null);
       }
       setLoading(false);
   }, []);
@@ -170,6 +189,7 @@ export function AuthProvider({ children }) {
         setServerScope(null);
         setDevRoleState(null);
         setProfileMissing(false);
+        setTenantBlocked(null);
         setBackendUnreachable(false);
         setLoading(false);
       }
@@ -386,6 +406,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     profileMissing,
+    tenantBlocked,
     backendUnreachable,  // boot fetch could not reach the server; splash shows it
     retryProfile,        // re-attempt that fetch
 

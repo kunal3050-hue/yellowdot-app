@@ -60,11 +60,45 @@ async function resolveFeaturesForUser(user) {
 // Called immediately after every Firebase Auth sign-in.
 router.get("/api/auth/me", authenticate, async (req, res) => {
   try {
+    // ── Tenant blocked early return ──────────────────────────────────────
+    // This route is exempt from the tenant gate on purpose (see
+    // TENANT_GATE_EXEMPT): if the boot call 403s, a suspended school sees a
+    // broken app rather than an explanation. attachTenantStatus puts the
+    // verdict on req.tenantBlock, so answer 200 with the reason and let the
+    // client render it — the same shape profileMissing uses just below, for
+    // the same reason.
+    if (req.tenantBlock) {
+      console.warn(
+        `[AUTH /me] Tenant blocked — uid=${req.user.userId} school=${req.user.schoolId}` +
+        ` code=${req.tenantBlock.code}`,
+      );
+      return res.status(200).json({
+        user: {
+          userId:    req.user.userId,
+          email:     req.user.email,
+          name:      req.user.name || "",
+          photoUrl:  req.user.photoUrl || "",
+          role:      req.user.role,
+          homeRoute: "/account-blocked",
+        },
+        permissions: [],
+        roleMatrix:  {},
+        homeRoute:   "/account-blocked",
+        tenantBlocked: {
+          code:       req.tenantBlock.code,
+          message:    req.tenantBlock.error,
+          contact:    req.tenantBlock.contact || null,
+          schoolName: req.tenant?.schoolName || "",
+        },
+      });
+    }
+
     // ── Profile-missing early return ─────────────────────────────────────────
     // authMiddleware sets profileMissing=true when Firebase auth succeeds but
     // no matching Firestore staff doc or parent link was found.
     // Return a structured 200 so the frontend can show a user-friendly message
     // instead of a generic 403 "access denied" screen.
+
     if (req.user.profileMissing || req.user.role === "unknown") {
       console.warn(
         `[AUTH /me] Profile missing — uid=${req.user.userId} email=${req.user.email}` +

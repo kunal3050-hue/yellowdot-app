@@ -129,3 +129,62 @@ test("the boot call stays reachable so a blocked school learns why", () => {
   assert.equal(TENANT_GATE_EXEMPT.has("/api/students"), false,
     "ordinary data routes must be gated");
 });
+
+// ── Telling the client why, not just refusing ───────────────────────────────
+
+const { evaluateTenant, attachTenantStatus } = require("../middleware/tenantMiddleware");
+
+async function evaluate(user, tenant) {
+  const svc = require("../services/tenantService");
+  const original = svc.getById;
+  svc.getById = async () => tenant;
+  try {
+    return await evaluateTenant(user);
+  } finally {
+    svc.getById = original;
+    tenantMw.invalidateTenantCache(user.schoolId);
+  }
+}
+
+test("evaluateTenant reports the reason without answering the request", async () => {
+  const { block } = await evaluate(staff("e-susp"), { status: "suspended", contactEmail: "head@example.test" });
+  assert.equal(block.code, "TENANT_SUSPENDED");
+  assert.equal(block.contact, "head@example.test");
+});
+
+test("evaluateTenant returns no block for a healthy school", async () => {
+  const { block } = await evaluate(staff("e-ok"), { status: "active" });
+  assert.equal(block, null);
+});
+
+test("attachTenantStatus lets the request through and leaves the verdict on req", async () => {
+  // This is what makes /api/auth/me able to explain the block: it is exempt
+  // from being refused, but still learns that the school is blocked.
+  const svc = require("../services/tenantService");
+  const original = svc.getById;
+  svc.getById = async () => ({ status: "suspended", schoolName: "Example School" });
+  try {
+    const req = { user: staff("a-susp"), path: "/api/auth/me" };
+    let passed = false;
+    await attachTenantStatus(req, res(), () => { passed = true; });
+    assert.equal(passed, true, "the exempt path must not be refused");
+    assert.equal(req.tenantBlock.code, "TENANT_SUSPENDED");
+    assert.equal(req.tenant.schoolName, "Example School");
+  } finally {
+    svc.getById = original;
+    tenantMw.invalidateTenantCache("a-susp");
+  }
+});
+
+test("a blocked school still gets a 200 from the boot call", () => {
+  // Pinned as source, because the handler needs Firestore to run. If /api/auth/me
+  // ever 403s instead, the app shows an outage rather than an explanation.
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const src = fs.readFileSync(path.join(__dirname, "..", "routes/authRoutes.js"), "utf8");
+  const i = src.indexOf("if (req.tenantBlock)");
+  assert.notEqual(i, -1, "/api/auth/me must branch on req.tenantBlock");
+  const window = src.slice(i, i + 600);
+  assert.match(window, /res\.status\(200\)/, "the block must be reported as a structured 200");
+  assert.match(window, /tenantBlocked/, "the payload must name the block for the client");
+});
