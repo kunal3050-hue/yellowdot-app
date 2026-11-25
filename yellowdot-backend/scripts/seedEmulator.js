@@ -249,7 +249,7 @@ async function seedTenant() {
     schoolName: "KUE BOXS Demo Preschool",
     slug: "demo",
     status: "active",
-    subscriptionPlan: "premium",
+    subscriptionPlan: "professional",
     // Three-layer flags (§2c.2): tenant overrides on top of platform defaults.
     features: { DAILY_CARE: true, CHILD_JOURNEY: true, LIVE_DASHBOARD: true },
     branches: [{ branchId: CENTER_ID, name: "North Centre", centerId: CENTER_ID }],
