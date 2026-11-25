@@ -132,21 +132,31 @@ export default function FeePlans() {
     {
       key: "classes", label: "Applies to", width: 200, sortable: false,
       filterable: true, filterType: "multiselect", filterOptions: classOptions,
-      render: (v) => (
-        v?.length
-          ? (
-            <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }} title={v.join(", ")}>
-              {v.slice(0, 2).map(c => <Badge key={c} variant="neutral">{c}</Badge>)}
-              {v.length > 2 && (
-                <span style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>+{v.length - 2}</span>
-              )}
-            </span>
-          )
-          : <span style={{ color: "var(--yd-text-muted)" }}>Every class</span>
-      ),
+      // Three states, not two: named children, specific classes, or everyone.
+      // A plan that names children ignores its class list, so showing the
+      // classes for one would say the opposite of what it does.
+      render: (v, row) => {
+        const named = row.studentIds?.length || 0;
+        if (named > 0) {
+          return (
+            <Badge variant="yellow">
+              {named === 1 ? "1 named child" : `${named} named children`}
+            </Badge>
+          );
+        }
+        if (!v?.length) return <span style={{ color: "var(--yd-text-muted)" }}>Every class</span>;
+        return (
+          <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }} title={v.join(", ")}>
+            {v.slice(0, 2).map(c => <Badge key={c} variant="neutral">{c}</Badge>)}
+            {v.length > 2 && (
+              <span style={{ fontSize: 11, color: "var(--yd-text-muted)" }}>+{v.length - 2}</span>
+            )}
+          </span>
+        );
+      },
     },
     {
-      key: "effectiveFrom", hidden: true, label: "From", width: 120, sortable: true,
+      key: "effectiveFrom", label: "From", width: 120, sortable: true,
       render: (v) => (v ? prettyDate(v) : "—"),
     },
     {

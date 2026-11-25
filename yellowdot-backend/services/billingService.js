@@ -98,6 +98,8 @@ const PAYMENT_MODES = Object.freeze([
 
 const MAX_LINES      = 20;
 const MAX_GENERATION = 500;
+/** Children a single plan may name before it should have been a class rule. */
+const MAX_PLAN_STUDENTS = 100;
 
 class BillingError extends Error {
   constructor(message, { status = 400, code = "BILLING_INVALID" } = {}) {
@@ -123,6 +125,9 @@ function toPlan(snap) {
     amount:        money(d.amount),
     cadence:       d.cadence       || "monthly",
     classes:       Array.isArray(d.classes) ? d.classes : [],
+    // Named children. When non-empty this plan applies to EXACTLY these
+    // children and `classes` is ignored — see _planApplies().
+    studentIds:    Array.isArray(d.studentIds) ? d.studentIds : [],
     effectiveFrom: d.effectiveFrom || "",
     effectiveTo:   d.effectiveTo   || "",
     active:        d.active !== false,
@@ -252,7 +257,13 @@ async function listPlans({ schoolId = SCHOOL_ID, activeOnly = false, classId, fe
   const snap = await planCol().where("schoolId", "==", schoolId).get();
   let list = snap.docs.map(toPlan);
   if (activeOnly) list = list.filter(p => p.active);
-  if (classId)    list = list.filter(p => p.classes.length === 0 || p.classes.includes(classId));
+  // A plan that names children is not a class rule, so it never matches a
+  // class filter — otherwise one with no `classes` would surface under every
+  // class as though it applied to all of them.
+  if (classId) {
+    list = list.filter(p => p.studentIds.length === 0
+      && (p.classes.length === 0 || p.classes.includes(classId)));
+  }
   if (feeType)    list = list.filter(p => p.feeType === feeType);
   return list.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -298,6 +309,22 @@ function _validatePlanInput(data, { partial = false } = {}) {
     out.classes = data.classes.map(c => String(c).trim()).filter(Boolean);
   }
 
+  // Named children. A plan can target whole classes, or a specific list of
+  // children — a sibling on a bespoke rate, one child on transport, a
+  // negotiated fee. Deduplicated, because the same child selected twice would
+  // otherwise read as two targets in the UI without changing anything.
+  if (data.studentIds !== undefined) {
+    if (!Array.isArray(data.studentIds)) throw invalid("studentIds must be an array of student ids.");
+    const ids = [...new Set(data.studentIds.map(s => String(s).trim()).filter(Boolean))];
+    if (ids.length > MAX_PLAN_STUDENTS) {
+      throw invalid(
+        `A fee plan can name at most ${MAX_PLAN_STUDENTS} children. ` +
+        "Target a class instead of listing them individually.",
+      );
+    }
+    out.studentIds = ids;
+  }
+
   for (const field of ["effectiveFrom", "effectiveTo"]) {
     if (data[field] !== undefined) {
       const v = String(data[field] || "").trim();
@@ -305,8 +332,20 @@ function _validatePlanInput(data, { partial = false } = {}) {
       out[field] = v;
     }
   }
+
+  // A start date is required when creating a plan: without one there is no
+  // answer to "since when has this been charged?", and a plan added halfway
+  // through a year would otherwise look like it had always applied.
+  //
+  // Deliberately NOT enforced on update (`partial`), because plans created
+  // before this rule have no effectiveFrom and editing an unrelated field on
+  // one should not force a date to be invented for it.
+  if (!partial && !out.effectiveFrom) {
+    throw invalid("A fee plan needs a start date.");
+  }
+
   if (out.effectiveFrom && out.effectiveTo && out.effectiveTo < out.effectiveFrom) {
-    throw invalid("effectiveTo cannot be before effectiveFrom.");
+    throw invalid("The end date cannot be before the start date.");
   }
 
   if (data.notes  !== undefined) out.notes  = String(data.notes || "").slice(0, 500);
@@ -327,6 +366,7 @@ async function createPlan(data = {}, ctx = {}) {
     amount:        fields.amount,
     cadence:       fields.cadence,
     classes:       fields.classes       || [],
+    studentIds:    fields.studentIds    || [],
     effectiveFrom: fields.effectiveFrom || "",
     effectiveTo:   fields.effectiveTo   || "",
     active:        fields.active !== false,
@@ -647,8 +687,18 @@ async function generateForPeriod({
   // staff member asks for that child's invoice to be raised again.
   const alreadyBilled = new Set(existing.filter(i => !i.voided).map(i => i.studentId));
 
-  const planApplies = (plan, cls) => {
-    if (plan.classes.length > 0 && !plan.classes.includes(cls)) return false;
+  const planApplies = (plan, cls, studentId) => {
+    // Named children win outright. A plan listing specific children is a
+    // bespoke arrangement — a negotiated rate, one child on transport — so it
+    // applies to exactly those children and the class list is ignored rather
+    // than intersected. Intersecting would make "this child, whatever class
+    // they move to" impossible to express, which is the case the feature is
+    // for.
+    if (plan.studentIds.length > 0) {
+      if (!plan.studentIds.includes(studentId)) return false;
+    } else if (plan.classes.length > 0 && !plan.classes.includes(cls)) {
+      return false;
+    }
     if (plan.effectiveFrom && due < plan.effectiveFrom) return false;
     if (plan.effectiveTo   && due > plan.effectiveTo)   return false;
     return true;
@@ -671,7 +721,7 @@ async function generateForPeriod({
       continue;
     }
 
-    const matching = monthlyPlans.filter(p => planApplies(p, cls));
+    const matching = monthlyPlans.filter(p => planApplies(p, cls, studentId));
     if (matching.length === 0) {
       unmatched.push({ studentId, studentName: name, class: cls });
       continue;
@@ -1380,7 +1430,7 @@ async function updateSettings(data = {}, ctx = {}) {
 module.exports = {
   BillingError,
   FEE_TYPES, CADENCES, PAYMENT_MODES,
-  MAX_LINES, MAX_GENERATION,
+  MAX_LINES, MAX_GENERATION, MAX_PLAN_STUDENTS,
   // plans
   listPlans, getPlan, createPlan, updatePlan, deactivatePlan,
   // invoices

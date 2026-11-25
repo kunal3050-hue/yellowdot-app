@@ -708,8 +708,11 @@
    Capped rather than full-bleed: a form is read down a single column, and
    label-to-field distance across a 1440px row is harder to scan, not easier. */
 
+/* Widened from 760px: at that cap the form left most of a desktop pane empty
+   while its own two-column grids stayed cramped. 1100px lets the paired
+   fields breathe without the label-to-field distance getting hard to scan. */
 .yd-form-page {
-  max-width: 760px;
+  max-width: 1100px;
 }
 
 .yd-form-page__note {
@@ -766,4 +769,46 @@
   .yd-form-page div[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ── Chips: the children a fee plan names ────────────────────────────────── */
+
+.yd-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+  color: var(--yd-text-primary);
+  background: var(--yd-yellow-light, #FFF9E0);
+  border: 1px solid var(--yd-yellow);
+  border-radius: 9999px;
+}
+
+.yd-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  color: var(--yd-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.yd-chip button:hover {
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
 }
