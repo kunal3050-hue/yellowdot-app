@@ -24,6 +24,7 @@ export const authModule = defineModule({
   routes: [
     { path: "/login",              public: true },
     { path: "/profile-incomplete", public: true },
+    { path: "/account-blocked",    public: true },
     { path: "/unauthorized",       public: true },
     { path: "/select-center",      public: true },
     { path: "/impersonate",        public: true },

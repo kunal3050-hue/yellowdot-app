@@ -20,6 +20,7 @@ const SelectCenter        = lazy(() => import("./pages/auth/SelectCenter"));
 const Profile             = lazy(() => import("./pages/auth/Profile"));
 const SecuritySettings    = lazy(() => import("./pages/auth/SecuritySettings"));
 const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"));
+const AccountBlocked      = lazy(() => import("./pages/auth/AccountBlocked"));
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
@@ -153,6 +154,7 @@ function App() {
 
             {/* ── Profile incomplete (Firebase auth OK, but no Firestore profile) */}
             <Route path="/profile-incomplete" element={<ProfileIncomplete />} />
+            <Route path="/account-blocked" element={<AccountBlocked />} />
 
             <Route
               path="/unauthorized"

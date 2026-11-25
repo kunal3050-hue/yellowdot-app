@@ -40,7 +40,7 @@ const DEFAULT_SCHOOL_ID  = process.env.SCHOOL_ID || "yd-main";
 
 // tenantMiddleware -> tenantService -> firebaseAdmin never reaches back here,
 // so this import introduces no cycle.
-const { enforceTenant } = require("./tenantMiddleware");
+const { enforceTenant, attachTenantStatus } = require("./tenantMiddleware");
 
 // ── Internal helpers ───────────────────────────────────────────────
 
@@ -541,7 +541,7 @@ async function authenticate(req, res, next) {
     if (err) return next(err);
     // Routes that authenticate optionally can reach here with no user.
     if (!req.user) return next();
-    if (TENANT_GATE_EXEMPT.has(req.path)) return next();
+    if (TENANT_GATE_EXEMPT.has(req.path)) return attachTenantStatus(req, res, next);
     return enforceTenant(req, res, next);
   });
 }

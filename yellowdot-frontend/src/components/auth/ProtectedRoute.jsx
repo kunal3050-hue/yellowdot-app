@@ -8,6 +8,7 @@ import { isBypassRole } from "../../config/permissions";
  * Permission evaluation order (immutable):
  *   0. Loading session        → show spinner
  *   1. Not authenticated      → /login
+ *   1c. School not active     → /account-blocked
  *   2. isBypassRole(role)     → GRANT immediately (developer / super_admin never blocked)
  *   3. Multi-center, no seat  → /select-center
  *   4. routeKey + can()=false → /unauthorized
@@ -17,7 +18,7 @@ import { isBypassRole } from "../../config/permissions";
  * are never accidentally redirected anywhere other than their intended page.
  */
 export default function ProtectedRoute({ children, routeKey }) {
-  const { isAuthenticated, loading, can, user, role, profileMissing } = useAuth();
+  const { isAuthenticated, loading, can, user, role, profileMissing, tenantBlocked } = useAuth();
   const location = useLocation();
 
   // ── 0. Loading ───────────────────────────────────────────────────────
@@ -42,6 +43,14 @@ export default function ProtectedRoute({ children, routeKey }) {
   // found. Show the ProfileIncomplete page instead of a generic 403.
   if (profileMissing && location.pathname !== "/profile-incomplete") {
     return <Navigate to="/profile-incomplete" replace />;
+  }
+
+  // ── 1c. The school itself is not active ─────────────────────────────
+  // Suspended, cancelled, or past the end of its trial. Checked before the
+  // bypass below only for symmetry — the backend never reports a block for
+  // super_admin or developer, so they cannot land here anyway.
+  if (tenantBlocked && location.pathname !== "/account-blocked") {
+    return <Navigate to="/account-blocked" replace />;
   }
 
   // ── 2. Bypass roles (developer / super_admin) ────────────────────────
