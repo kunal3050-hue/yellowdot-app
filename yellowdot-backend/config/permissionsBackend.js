@@ -104,6 +104,8 @@ const ROLE_HOME = {
   center_admin: "/",
   reception:    "/",
   parent:       "/parent-home",
+  // The console, not the school dashboard — a platform_admin has no school.
+  platform_admin: "/platform/tenants",
 };
 
 module.exports = { BYPASS_ROLES, ROLE_PERMISSIONS, ROLE_HOME, isBypassRole };

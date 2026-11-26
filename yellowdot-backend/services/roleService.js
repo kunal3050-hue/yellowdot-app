@@ -32,6 +32,27 @@ const nowISO = () => new Date().toISOString();
 const STATIC_ROLE_PERMS = {
   developer:    ["*"],
   super_admin:  ["*"],
+
+  // Runs the operator console (/platform/*) and nothing else. Deliberately
+  // NOT a bypass role and deliberately NOT "*": the whole point is an account
+  // that can manage which schools are live without being able to read inside
+  // any of them.
+  //
+  // Static, like `parent` below, rather than a SYSTEM_ROLES entry with an
+  // editable Firestore matrix. Two reasons:
+  //   1. RolesPermissions.jsx builds its module list from SIDEBAR_GROUPS, and
+  //      `tenant_management` is a sidebar item id — so the school roles editor
+  //      can already write that key into a custom role document. Routing this
+  //      grant through MODULE_ROUTE_MAP would retroactively activate any such
+  //      grant already sitting in Firestore.
+  //   2. Whoever holds roles_permissions.manage could then edit it. The
+  //      permission deciding who can suspend a school does not belong in a
+  //      school's own roles UI.
+  //
+  // Impersonation is excluded on purpose (docs/platform-access-model.md §4.1):
+  // it is the only action in the console that reads children's records, so it
+  // stays a separate capability rather than something "manage" implies.
+  platform_admin: ["profile", "tenant-management"],
   admin: [
     "dashboard","students","attendance","nap-tracker","food-menu","food-consumption",
     "parent-checkin","pickup-authorization","pickup-history",
@@ -225,6 +246,7 @@ function invalidateCacheAll() {
 async function getPermissionsForRole(roleId, schoolId) {
   if (roleId === "developer" || roleId === "super_admin") return ["*"];
   if (roleId === "parent") return STATIC_ROLE_PERMS.parent;
+  if (roleId === "platform_admin") return STATIC_ROLE_PERMS.platform_admin;
 
   const key    = _cacheKey(roleId, schoolId);
   const cached = _cache.get(key);
@@ -242,6 +264,10 @@ async function getPermissionsForRole(roleId, schoolId) {
 async function getRoleMatrix(roleId, schoolId) {
   if (roleId === "developer" || roleId === "super_admin") return { _bypass: true };
   if (roleId === "parent") return {};
+  // Empty like parent's: the console gates on role, not on granular actions,
+  // and an invented matrix here would be a second source of truth for the
+  // same grant.
+  if (roleId === "platform_admin") return {};
 
   const key    = _cacheKey(roleId, schoolId);
   const cached = _cache.get(key);

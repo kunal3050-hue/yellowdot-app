@@ -48,7 +48,12 @@ export const UNREACHABLE_ROUTEKEYS = [
   "staff-attendance", "staff-shifts", "staff-leave", "staff-leave-types",
   "staff-payroll", "staff-payroll-process",
   "staff-performance", "staff-performance-manage",
-  "tenant-management",   // super-admin only in practice, and they bypass — lowest impact
+  // Still unreachable via a role MATRIX, which is what this list records:
+  // `tenant_management` has no MODULE_ROUTE_MAP entry, so deriveRouteKeys()
+  // can never produce this key from a role document. It is now granted
+  // statically instead — STATIC_ROLE_PERMS.platform_admin in roleService.js —
+  // deliberately, so the school roles editor cannot widen it.
+  "tenant-management",
   "dev-tools",           // developer only, and they bypass — no user impact
 ];
 
