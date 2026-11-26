@@ -41,8 +41,18 @@ export function isBypassRole(role) {
  * runs authorize("super_admin", "developer") of its own, and that is the
  * check that actually decides.
  */
+export const PLATFORM_CONSOLE_ROLES = new Set([
+  "developer",
+  "super_admin",
+  // Scoped to reading the platform and suspending a school — no create, no
+  // plan changes, no delete, no impersonation. The backend enforces that
+  // split per route (tenantRoutes.js `platformOps`); this only decides who
+  // gets through the console's front door.
+  "platform_admin",
+]);
+
 export function canUsePlatformConsole(role) {
-  return isBypassRole(role);
+  return PLATFORM_CONSOLE_ROLES.has(role);
 }
 
 // ── Route keys (must match backend ROLE_PERMISSIONS keys exactly) ─────────────
