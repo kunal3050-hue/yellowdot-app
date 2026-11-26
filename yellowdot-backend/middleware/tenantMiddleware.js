@@ -50,6 +50,19 @@ async function evaluateTenant(user) {
     return { tenant: null, block: null, trialDaysLeft: null };
   }
 
+  // A platform operator belongs to no school, so there is no tenant whose
+  // status could apply to them. Without this they would fall into the
+  // !schoolId branch below and be refused outright — and the refusal would
+  // bite hardest exactly when it matters, since un-suspending a school is
+  // done from the console this would lock them out of.
+  //
+  // This is not a bypass in the super_admin sense: it grants nothing. It says
+  // the tenant question does not apply. What a platform operator may actually
+  // do is still decided by their permissions and by authorize() on each route.
+  if (user?.isPlatform || role === "platform_admin") {
+    return { tenant: null, block: null, trialDaysLeft: null };
+  }
+
   if (!schoolId) {
     return {
       tenant: null,

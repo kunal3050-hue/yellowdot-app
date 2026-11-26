@@ -312,6 +312,65 @@ async function _authenticateOnly(req, res, next) {
       console.log(`[AUTH-DEBUG] Email fallback miss — no users doc with email=${email}`);
     }
 
+
+    // ── 1c. Platform operator — platformUsers directory ───────────────────────
+    // A platform operator is staff of the PLATFORM, not of any school, so they
+    // get their own collection rather than a users/{uid} doc. Three concrete
+    // reasons, all of which bite otherwise (docs/platform-access-model.md §3.2):
+    // schoolId falls back to DEFAULT_SCHOOL_ID here, so they would silently
+    // join whichever school that names; enforceTenant would then let that
+    // school's suspension lock them out of the console used to un-suspend it;
+    // and firestore.rules keys on me().schoolId, so a users doc would grant
+    // SDK-level read access to that school's documents.
+    //
+    // Checked AFTER the users collection, not before as the design document
+    // first proposed. Resolving platform identity first would mean anyone who
+    // holds both docs loses their school identity — which is precisely the
+    // lockout fixed in e24e37d. School identity always wins; a pure platform
+    // operator simply has no users doc. The conflict is logged rather than
+    // silently resolved, because it means someone's intent is unclear.
+    {
+      let platformDoc = await db.collection("platformUsers").doc(uid).get();
+
+      // Email fallback so an operator can be provisioned before they first
+      // sign in, when their uid is not yet known — same reason the users
+      // collection has one.
+      if (!platformDoc.exists && email) {
+        const snap = await db.collection("platformUsers")
+          .where("email", "==", email).limit(1).get();
+        if (!snap.empty) platformDoc = snap.docs[0];
+      }
+
+      if (platformDoc.exists) {
+        const d = platformDoc.data() || {};
+        const role = d.role || "platform_admin";
+
+        if (d.status && d.status !== "active") {
+          console.warn(`[AUTH-DEBUG] platformUsers/${platformDoc.id} status=${d.status} — denying`);
+          return res.status(403).json({
+            error: "This operator account is not active.",
+            code:  "PLATFORM_ACCOUNT_INACTIVE",
+          });
+        }
+
+        // No schoolId, deliberately. It is the absence of one that keeps a
+        // platform operator out of every school's data, and enforceTenant
+        // recognises platform roles rather than demanding a tenant.
+        req.user = {
+          userId:      platformDoc.id,
+          email:       d.email || email || "",
+          name:        d.name || decoded.name || "",
+          photoUrl:    d.photoUrl || decoded.picture || "",
+          role,
+          isPlatform:  true,
+          permissions: await roleSvc.getPermissionsForRole(role, null),
+          roleMatrix:  await roleSvc.getRoleMatrix(role, null),
+        };
+        console.log(`[AUTH-DEBUG] Platform operator resolved — uid=${platformDoc.id} role=${role}`);
+        return next();
+      }
+    }
+
     // ── 2. Parent — email match in students collection ────────────────────────
     if (email) {
       // AUTH STEP 4 — parent lookup
