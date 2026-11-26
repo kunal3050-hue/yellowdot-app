@@ -28,6 +28,23 @@ export function isBypassRole(role) {
   return BYPASS_ROLES.has(role);
 }
 
+/**
+ * May this role use the platform operator console?
+ *
+ * Separate from isBypassRole on purpose. Today the answer is the same,
+ * because it is the only thing the system can express: `tenant-management`
+ * is listed in knownGaps as unreachable for every non-bypass role, and both
+ * bypass roles hold "*". Naming the question independently means granting a
+ * narrower platform role later is a change here, not a hunt through routes.
+ *
+ * Whatever this allows must also be granted on the backend — /api/tenants
+ * runs authorize("super_admin", "developer") of its own, and that is the
+ * check that actually decides.
+ */
+export function canUsePlatformConsole(role) {
+  return isBypassRole(role);
+}
+
 // ── Route keys (must match backend ROLE_PERMISSIONS keys exactly) ─────────────
 export const ROUTES = {
   DASHBOARD:             "dashboard",

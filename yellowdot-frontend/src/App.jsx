@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import { useIsMobile } from "./hooks/useIsMobile";
 
@@ -7,8 +7,10 @@ import { useIsMobile } from "./hooks/useIsMobile";
 import { AuthProvider }  from "./contexts/AuthContext";
 import { InstallProvider } from "./contexts/InstallContext";
 import ProtectedRoute    from "./components/auth/ProtectedRoute";
+import PlatformRoute     from "./components/auth/PlatformRoute";
 import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
+import PlatformLayout    from "./layouts/PlatformLayout";
 import { parentRoutes } from "./modules/parent";
 import DevRoleSwitch     from "./components/DevRoleSwitch";
 import InstallPrompt     from "./components/InstallPrompt";
@@ -21,6 +23,7 @@ const Profile             = lazy(() => import("./pages/auth/Profile"));
 const SecuritySettings    = lazy(() => import("./pages/auth/SecuritySettings"));
 const ProfileIncomplete   = lazy(() => import("./pages/auth/ProfileIncomplete"));
 const AccountBlocked      = lazy(() => import("./pages/auth/AccountBlocked"));
+const PlatformLogin       = lazy(() => import("./pages/platform/PlatformLogin"));
 const Unauthorized        = lazy(() => import("./pages/Unauthorized"));
 
 const LiveDashboard       = lazy(() => import("./pages/LiveDashboard"));
@@ -131,6 +134,18 @@ const TenantDetail        = lazy(() => import("./pages/superadmin/TenantDetail")
 const PlatformAnalytics   = lazy(() => import("./pages/superadmin/PlatformAnalytics"));
 const AuditLogs           = lazy(() => import("./pages/superadmin/AuditLogs"));
 const ImpersonateLogin    = lazy(() => import("./pages/superadmin/ImpersonateLogin"));
+
+/**
+ * /super-admin/tenants/:tenantId -> /platform/tenants/:tenantId
+ *
+ * <Navigate to="..."> takes a literal path, so the one redirect that carries
+ * a param needs to read it. Without this, a bookmarked link to a specific
+ * school would land on the list instead of that school.
+ */
+function NavigateTenantDetail() {
+  const { tenantId } = useParams();
+  return <Navigate to={`/platform/tenants/${tenantId}`} replace />;
+}
 
 function App() {
   return (
@@ -767,47 +782,48 @@ function App() {
             <Route path="/staff/performance/awards"   element={<ProtectedRoute routeKey="staff-performance"><MainLayout><AwardsPromotions /></MainLayout></ProtectedRoute>} />
             <Route path="/staff/performance/timeline" element={<ProtectedRoute routeKey="staff-performance"><MainLayout><PerformanceTimelinePage /></MainLayout></ProtectedRoute>} />
 
-            {/* ── Super Admin ───────────────────────────────────────────────── */}
+            {/* ── Platform operator console ─────────────────────────────────
+                These manage preschools ACROSS tenants — which are live, what
+                plan they are on, suspending them. They used to render inside
+                MainLayout, so platform work happened while wearing one
+                school's sidebar, branding and tenant switcher. Now they have
+                their own door, their own shell and their own guard.
+
+                PlatformRoute, not ProtectedRoute: the school guard routes
+                through school concerns (pick a centre, finish your profile,
+                your school is suspended) and the last of those would be
+                actively wrong here, since un-suspending a school is done
+                from this console. */}
+            <Route path="/platform/login" element={<PlatformLogin />} />
             <Route
-              path="/super-admin/tenants"
-              element={
-                <ProtectedRoute routeKey="tenant-management">
-                  <MainLayout><TenantList /></MainLayout>
-                </ProtectedRoute>
-              }
+              path="/platform/tenants"
+              element={<PlatformRoute><PlatformLayout><TenantList /></PlatformLayout></PlatformRoute>}
             />
             <Route
-              path="/super-admin/tenants/new"
-              element={
-                <ProtectedRoute routeKey="tenant-management">
-                  <MainLayout><TenantCreate /></MainLayout>
-                </ProtectedRoute>
-              }
+              path="/platform/tenants/new"
+              element={<PlatformRoute><PlatformLayout><TenantCreate /></PlatformLayout></PlatformRoute>}
             />
             <Route
-              path="/super-admin/tenants/:tenantId"
-              element={
-                <ProtectedRoute routeKey="tenant-management">
-                  <MainLayout><TenantDetail /></MainLayout>
-                </ProtectedRoute>
-              }
+              path="/platform/tenants/:tenantId"
+              element={<PlatformRoute><PlatformLayout><TenantDetail /></PlatformLayout></PlatformRoute>}
             />
             <Route
-              path="/super-admin/analytics"
-              element={
-                <ProtectedRoute routeKey="tenant-management">
-                  <MainLayout><PlatformAnalytics /></MainLayout>
-                </ProtectedRoute>
-              }
+              path="/platform/analytics"
+              element={<PlatformRoute><PlatformLayout><PlatformAnalytics /></PlatformLayout></PlatformRoute>}
             />
             <Route
-              path="/super-admin/audit"
-              element={
-                <ProtectedRoute routeKey="tenant-management">
-                  <MainLayout><AuditLogs /></MainLayout>
-                </ProtectedRoute>
-              }
+              path="/platform/audit"
+              element={<PlatformRoute><PlatformLayout><AuditLogs /></PlatformLayout></PlatformRoute>}
             />
+
+            {/* The old paths stay as redirects. They are in the sidebar, in
+                browser history and quite possibly in a bookmark; silently
+                404ing them would look like the console had been removed. */}
+            <Route path="/super-admin/tenants"            element={<Navigate to="/platform/tenants" replace />} />
+            <Route path="/super-admin/tenants/new"        element={<Navigate to="/platform/tenants/new" replace />} />
+            <Route path="/super-admin/tenants/:tenantId"  element={<NavigateTenantDetail />} />
+            <Route path="/super-admin/analytics"          element={<Navigate to="/platform/analytics" replace />} />
+            <Route path="/super-admin/audit"              element={<Navigate to="/platform/audit" replace />} />
 
             {/* Public impersonation landing — exchanges custom token */}
             <Route path="/impersonate" element={<ImpersonateLogin />} />

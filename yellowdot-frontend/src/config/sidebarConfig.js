@@ -525,28 +525,17 @@ export const SIDEBAR_GROUPS = [
     collapsible: true,
     defaultOpen: true,
     superAdminOnly: true,  // handled in Sidebar.jsx same as devOnly
+    // One doorway, not three. The console has its own shell and its own nav;
+    // listing its pages here as well would put cross-tenant actions back in
+    // the school sidebar, which is the thing being undone.
     items: [
       {
         id:       "tenant_management",
-        label:    "Preschools",
-        path:     "/super-admin/tenants",
+        label:    "Platform Console",
+        path:     "/platform/tenants",
         routeKey: ROUTES.TENANT_MANAGEMENT,
         icon:     "Building2",
-        matchPaths: ["/super-admin/tenants/"],
-      },
-      {
-        id:       "tenant_analytics",
-        label:    "Platform Analytics",
-        path:     "/super-admin/analytics",
-        routeKey: ROUTES.TENANT_MANAGEMENT,
-        icon:     "BarChart2",
-      },
-      {
-        id:       "tenant_audit",
-        label:    "Audit Logs",
-        path:     "/super-admin/audit",
-        routeKey: ROUTES.TENANT_MANAGEMENT,
-        icon:     "ScrollText",
+        matchPaths: ["/platform/"],
       },
     ],
   },
