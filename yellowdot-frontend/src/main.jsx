@@ -39,8 +39,35 @@ registerSW({
     console.info("[YD PWA] App is ready to work offline.");
   },
   onRegisteredSW(swUrl, r) {
-    // Poll for updates every 60 min when the app is open
-    if (r) setInterval(() => r.update(), 60 * 60 * 1000);
+    if (!r) return;
+
+    // A service worker update check happens on a full page load, or when
+    // something calls registration.update(). Client-side navigation inside the
+    // SPA does neither, so a staff member who leaves the tab open was waiting
+    // up to an hour to see a deploy — long enough that a shipped fix looks
+    // like it did not work.
+    //
+    // The worker itself is fine: it calls skipWaiting() and clientsClaim(), so
+    // once a new version IS found it takes over immediately, and
+    // registerType:"autoUpdate" reloads the page. The gap was only in how
+    // often we went looking.
+    //
+    // Checking when the tab regains focus is the useful trigger: it is the
+    // moment someone comes back to the app, and — since autoUpdate reloads the
+    // page when the new worker takes control — it is a far safer moment to
+    // reload than mid-keystroke during attendance.
+    const check = () => { r.update().catch(() => {}); };
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") check();
+    });
+    window.addEventListener("online", check);
+
+    // Backstop for a tab left visible and untouched all day (a wall display,
+    // the office desktop). Fifteen minutes rather than sixty: the request is a
+    // conditional GET of one small file, and the old interval was the reason a
+    // deploy could sit unseen for an hour.
+    setInterval(check, 15 * 60 * 1000);
   },
 });
 
