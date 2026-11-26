@@ -871,7 +871,20 @@ function RootRedirect() {
   // `role` is the *effective* role (devRole-aware, see AuthContext), so a
   // Super Admin using the Role Switcher to preview as another role still
   // lands on that role's normal experience for testing, exactly as before.
-  if (role === "super_admin") return <Navigate to="/super-admin/analytics" replace />;
+  // NOTE (2026-11-26): this used to send a Super Admin to
+  // /super-admin/analytics, for the reason above. a164e4d then moved the
+  // platform pages to /platform/* and left /super-admin/* as redirects — so
+  // this line became `/` -> /super-admin/analytics -> /platform/analytics,
+  // and a Super Admin could no longer reach the school app at all by normal
+  // navigation. Every visit to the root landed in the operator console.
+  //
+  // The premise above also no longer holds. It was written when the platform
+  // pages were buried at the bottom of the school sidebar, so the front door
+  // had to point at them. They now have their own door (/platform/login),
+  // their own shell and a sidebar link of their own, which is the whole point
+  // of separating them — so the school app's front door goes to the school.
+  // A Super Admin reaches the console deliberately, which is how it should
+  // read for an action set that includes suspending a school.
   // Staff Home plan (2026-07-31): Staff Home is now THE landing page for
   // every Staff login, desktop included — same as Parent Home is the one
   // landing page for every Parent login regardless of window size.
