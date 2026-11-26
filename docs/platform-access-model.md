@@ -83,26 +83,44 @@ does **not** hold `"*"`. That distinction is the entire point: a bypass role
 cannot be scoped, so adding one would reproduce the problem with a new name.
 
 ```js
-{
-  roleId:      "platform_admin",
-  name:        "Platform Admin",
-  description: "Runs the operator console. No access to any school's data.",
-  isSystem:    true,
-  homeRoute:   "/platform/tenants",
-  permissions: {
-    tenant_management: { view: true, manage: true },
-  },
+// roleService.js — alongside the existing parent short-circuit
+STATIC_ROLE_PERMS.platform_admin = ["profile", "tenant-management"];
+
+async function getPermissionsForRole(roleId, schoolId) {
+  if (roleId === "developer" || roleId === "super_admin") return ["*"];
+  if (roleId === "parent")         return STATIC_ROLE_PERMS.parent;
+  if (roleId === "platform_admin") return STATIC_ROLE_PERMS.platform_admin;  // new
+  ...
 }
 ```
 
-And the missing map entry, which is what makes the above mean anything:
+**Static, not a Firestore matrix — and not a `MODULE_ROUTE_MAP` entry.** The
+first draft of this document proposed adding
+`MODULE_ROUTE_MAP.tenant_management = ["tenant-management"]` and granting the
+role through the normal editable matrix. Two things found while checking that
+make it the wrong route:
 
-```js
-MODULE_ROUTE_MAP.tenant_management = ["tenant-management"];
-```
+1. **It would not be the no-op it looks like.** `RolesPermissions.jsx` builds
+   its module list from `SIDEBAR_GROUPS`, and `tenant_management` is a sidebar
+   item id — so the editor can already write
+   `tenant_management: { view: true }` into a custom role document. Today that
+   produces nothing, because the map has no entry. Adding the entry would
+   retroactively activate any such grant already sitting in Firestore. No role
+   in code has it, but role documents are data, and production Firestore
+   cannot be read from here to confirm none does.
+2. **A school admin should not be able to edit the platform role.** Anything
+   reached through the matrix is editable by whoever holds
+   `roles_permissions.manage` in the roles UI. The permission that governs who
+   can suspend schools does not belong in that surface.
 
-That one line also closes the `knownGaps` entry, which can then be deleted
-rather than carried.
+The static path avoids both: the grant is defined in code, cannot be widened
+from the school UI, and nothing latent in Firestore changes meaning. `parent`
+already works exactly this way.
+
+Note that the `knownGaps` entry stays accurate under this design and should
+**not** be deleted — `tenant-management` remains unreachable *via a role
+matrix*, which is what that file documents. Worth amending its comment to say
+the key is granted statically instead.
 
 ### 3.2 Where platform staff live
 
@@ -132,12 +150,12 @@ Each of these is a place the current design will bite if missed.
 
 | # | File | Change |
 |---|---|---|
-| 1 | `services/roleService.js` | add `platform_admin` to `SYSTEM_ROLES`; add `tenant_management` to `MODULE_ROUTE_MAP` |
+| 1 | `services/roleService.js` | add `platform_admin` to `SYSTEM_ROLES` and `STATIC_ROLE_PERMS`, plus the short-circuit in `getPermissionsForRole` |
 | 2 | `middleware/authMiddleware.js` | resolve `platformUsers` before the school lookup |
 | 3 | `middleware/tenantMiddleware.js` | `evaluateTenant` must return no block for platform roles — they have no tenant, and the `!schoolId` branch currently 403s |
 | 4 | `routes/tenantRoutes.js` | `authorize("super_admin", "developer", "platform_admin")` |
 | 5 | `src/config/permissions.js` | widen `canUsePlatformConsole()` — the seam already exists |
-| 6 | `src/platform/registry/knownGaps.js` | remove `tenant-management`; it becomes reachable |
+| 6 | `src/platform/registry/knownGaps.js` | keep the entry, amend the comment — the key is granted statically, still not via any matrix |
 | 7 | `scripts/seedEmulator.js` | grant the role locally, or it is invisible to every non-bypass account in dev |
 
 Point 3 is the easiest to overlook and the most damaging: a platform admin who
@@ -157,10 +175,13 @@ cannot sign in because they have no school.
 
 ## 4. Decisions that are yours
 
-1. **Can a platform admin impersonate?** It is the only action here that reads
-   children's records. Recommendation: no by default, as a separate
-   `tenant_management.impersonate` action granted explicitly. It is already
-   audit-logged either way (`tenantService.logImpersonation`).
+1. ~~**Can a platform admin impersonate?**~~ **DECIDED 2026-11-26: no.**
+   Impersonation stays a separate capability and is *not* implied by managing
+   tenants — it is the only action in this console that reads children's
+   records. A `platform_admin` does not get it. If it is ever granted, it
+   should be an explicit, separately-named permission rather than part of
+   `manage`. It remains audit-logged either way
+   (`tenantService.logImpersonation`).
 2. **Can a platform admin suspend?** Suspension now genuinely cuts a school
    off. Reasonable either as part of `manage` or as its own action.
 3. **Can a platform admin create and delete schools?** `DELETE /api/tenants/:id`
@@ -176,14 +197,14 @@ cannot sign in because they have no school.
 
 ## 5. Suggested order
 
-1. `MODULE_ROUTE_MAP` entry + delete the `knownGaps` line. Small, and it makes
-   the routeKey grantable — everything else builds on it.
-2. `platform_admin` in `SYSTEM_ROLES`, with tests that it resolves to exactly
-   `["profile", "tenant-management"]` and **not** `"*"`.
-3. `platformUsers` lookup and the `enforceTenant` exemption, with a test that a
+1. `platform_admin` in `SYSTEM_ROLES` + `STATIC_ROLE_PERMS` + the
+   `getPermissionsForRole` short-circuit, with tests that it resolves to
+   exactly `["profile", "tenant-management"]` and **not** `"*"`, and that no
+   other role's resolved permissions change.
+2. `platformUsers` lookup and the `enforceTenant` exemption, with a test that a
    platform admin is unaffected by any school's suspension.
-4. Widen `authorize()` on the tenant routes and `canUsePlatformConsole()`.
-5. Only then, a UI for managing platform staff.
+3. Widen `authorize()` on the tenant routes and `canUsePlatformConsole()`.
+4. Only then, a UI for managing platform staff.
 
-Steps 1–4 are the model. Step 5 is the feature, and is not worth starting
+Steps 1–3 are the model. Step 4 is the feature, and is not worth starting
 before the model holds.
