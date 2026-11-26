@@ -885,6 +885,17 @@ function RootRedirect() {
   // of separating them — so the school app's front door goes to the school.
   // A Super Admin reaches the console deliberately, which is how it should
   // read for an action set that includes suspending a school.
+  //
+  // Landing them on Staff Home (the fall-through below) was the first attempt
+  // and was also wrong: it is a phone-shaped home screen with a bottom tab
+  // bar, deliberately so for staff on their feet, and it carries none of the
+  // management surface. Someone who runs the school needs the sidebar —
+  // Students, Staff, Academics, Daily Ops — not "Your day".
+  //
+  // Control Center is that hub, it renders in MainLayout, and it is a real
+  // page rather than a path that forwards somewhere else. That last part is
+  // what broke this the first time: the target must not itself be a redirect.
+  if (role === "super_admin") return <Navigate to="/quick-navigation" replace />;
   // Staff Home plan (2026-07-31): Staff Home is now THE landing page for
   // every Staff login, desktop included — same as Parent Home is the one
   // landing page for every Parent login regardless of window size.
