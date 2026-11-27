@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
 import pickupHistoryService from "../services/pickupHistoryService";
-import { PLATFORM_NAME } from "../config/environment";
 
 // -- SVG Icons (no emoji - encoding-safe) ----------------------------------
 const Svg = ({ d, size = 16, ...p }) => (
@@ -112,57 +110,6 @@ function SelfieModal({ entryId, onClose }) {
 }
 
 // -- Mini sidebar -----------------------------------------------------------
-function PickupSidebar({ active }) {
-  const links = [
-    { to: "/pickup-authorization", label: "Authorized Persons", icon: <IconShield />,  key: "auth"    },
-    { to: "/pickup-history",       label: "Pickup History",     icon: <IconHistory />, key: "history" },
-    { to: "/attendance",           label: "Attendance",         icon: <IconCalendar/>, key: "attend"  },
-  ];
-
-  return (
-    <div className="w-[220px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen">
-      {/* Brand */}
-      <div className="px-5 py-6 border-b border-gray-100">
-        <Link to="/">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
-              <span className="text-white font-black text-sm">{PLATFORM_NAME.charAt(0)}</span>
-            </div>
-            <div>
-              <div className="text-sm font-black text-gray-900 leading-none">{PLATFORM_NAME}</div>
-              <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Nav */}
-      <div className="p-3 border-b border-gray-100 space-y-0.5">
-        {links.map(l => (
-          <Link key={l.key} to={l.to}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              active === l.key
-                ? "bg-gray-900 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}>
-            <span className={`flex-shrink-0 ${active === l.key ? "opacity-90" : "opacity-50"}`}>{l.icon}</span>
-            {l.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* Today quick stats */}
-      <div className="p-4 flex-1">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Today</p>
-        <div className="space-y-2" id="sidebar-stats">
-          {/* Populated from parent */}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// -- History event card -----------------------------------------------------
 function EventCard({ entry, onViewSelfie }) {
   const cfg = STATUS_CONFIG[entry.approvalStatus] || STATUS_CONFIG["Authorized"];
 
@@ -281,47 +228,13 @@ export default function PickupHistory() {
   const blocked    = entries.filter(e => e.approvalStatus === "Unauthorized").length;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-full bg-gray-50 overflow-hidden">
       {seeEntryId && (
         <SelfieModal entryId={seeEntryId} onClose={() => setSeeEntry(null)} />
       )}
 
       {/* Sidebar */}
-      <div className="w-[220px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen">
-        {/* Brand */}
-        <div className="px-5 py-6 border-b border-gray-100">
-          <Link to="/">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
-                <span className="text-white font-black text-sm">{PLATFORM_NAME.charAt(0)}</span>
-              </div>
-              <div>
-                <div className="text-sm font-black text-gray-900 leading-none">{PLATFORM_NAME}</div>
-                <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Nav */}
-        <div className="p-3 border-b border-gray-100 space-y-0.5">
-          {[
-            { to: "/pickup-authorization", label: "Authorized Persons", icon: <IconShield />  },
-            { to: "/pickup-history",       label: "Pickup History",     icon: <IconHistory />, active: true },
-            { to: "/attendance",           label: "Attendance",         icon: <IconCalendar/>  },
-          ].map(l => (
-            <Link key={l.to} to={l.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                l.active
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-              }`}>
-              <span className={l.active ? "opacity-80" : "opacity-40"}>{l.icon}</span>
-              {l.label}
-            </Link>
-          ))}
-        </div>
-
+      <div className="w-[220px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full">
         {/* Quick stats */}
         <div className="p-4 flex-1">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Today</p>
