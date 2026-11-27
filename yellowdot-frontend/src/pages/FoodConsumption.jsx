@@ -21,7 +21,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import foodMenuService        from "../services/foodMenuService";
 import foodConsumptionService from "../services/foodConsumptionService";
 import { api } from "../services/authService";
@@ -747,10 +746,9 @@ export default function FoodConsumption() {
   // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
-      <Sidebar />
+    <div className="min-w-0">
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="min-w-0">
 
         {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
         <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1]
@@ -830,7 +828,7 @@ export default function FoodConsumption() {
         </div>
 
         {/* ── MAIN SCROLL AREA ──────────────────────────────────────────── */}
-        <div className="flex-1 overflow-auto px-6 md:px-10 py-5 space-y-5">
+        <div className="px-6 md:px-10 py-5 space-y-5">
 
           {/* Tracking area */}
           {showSkeleton || showMenuSkeleton ? (

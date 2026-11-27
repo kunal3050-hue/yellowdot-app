@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Sidebar from "../components/Sidebar";
 import communicationService from "../services/communicationService";
 import academicsService from "../services/academicsService";
 
@@ -318,7 +317,7 @@ function AnnouncementModal({ initial, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4 bg-white">
+        <div className="px-7 py-5 space-y-4 bg-white">
           {/* Type selector */}
           <div>
             <label className="block text-[11px] font-semibold text-[#8b7228] uppercase tracking-wide mb-2">Type</label>
@@ -500,9 +499,8 @@ export default function Announcements() {
     .filter(a => !search || a.title.toLowerCase().includes(search.toLowerCase()) || (a.body || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+    <div className="min-w-0">
+      <div className="min-w-0">
 
         {/* Header */}
         <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
