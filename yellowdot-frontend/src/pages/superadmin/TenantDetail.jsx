@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { tenantService } from "../../services/tenantService";
+import { useAuth } from "../../contexts/AuthContext";
+import { canManageTenants, canImpersonateTenant, canSetTenantStatus } from "../../config/permissions";
 
 const STATUS_COLORS = {
   active:    { bg: "#DCFCE7", text: "#15803D" },
@@ -12,6 +14,16 @@ const STATUS_COLORS = {
 export default function TenantDetail() {
   const { tenantId } = useParams();
   const navigate = useNavigate();
+
+  // The backend splits these routes across two guards (tenantRoutes.js), so
+  // the page does too. A platform_admin may read everything here and suspend
+  // a school; everything else answers 403 for them, and an enabled button
+  // that 403s reads as the product being broken rather than as the action
+  // not being theirs.
+  const { role } = useAuth();
+  const mayManage     = canManageTenants(role);
+  const mayImpersonate = canImpersonateTenant(role);
+  const maySetStatus  = canSetTenantStatus(role);
 
   const [tenant, setTenant]   = useState(null);
   const [logs, setLogs]       = useState([]);
@@ -170,9 +182,9 @@ export default function TenantDetail() {
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn label="Impersonate" onClick={handleImpersonate} color="#1D4ED8" bg="#DBEAFE" />
-          {tenant.status !== "active" && <Btn label="Activate" onClick={() => handleStatus("active")} color="#15803D" bg="#DCFCE7" />}
-          {tenant.status === "active" && <Btn label="Suspend" onClick={() => handleStatus("suspended")} color="#DC2626" bg="#FEE2E2" />}
+          {mayImpersonate && <Btn label="Impersonate" onClick={handleImpersonate} color="#1D4ED8" bg="#DBEAFE" />}
+          {maySetStatus && tenant.status !== "active" && <Btn label="Activate" onClick={() => handleStatus("active")} color="#15803D" bg="#DCFCE7" />}
+          {maySetStatus && tenant.status === "active" && <Btn label="Suspend" onClick={() => handleStatus("suspended")} color="#DC2626" bg="#FEE2E2" />}
         </div>
       </div>
 
@@ -200,7 +212,7 @@ export default function TenantDetail() {
       {tab === "overview" && (
         <div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            {editing ? (
+            {!mayManage ? null : editing ? (
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn label={saving ? "Saving…" : "Save"} onClick={handleSave} color="#15803D" bg="#DCFCE7" />
                 <Btn label="Cancel" onClick={() => setEditing(false)} color="#78716C" bg="#F5F0E8" />
@@ -274,12 +286,13 @@ export default function TenantDetail() {
                     <div style={{ fontWeight: 600, color: "#1C1917" }}>{b.name}</div>
                     <div style={{ fontSize: 12, color: "#78716C", marginTop: 2 }}>{b.address || "No address"}</div>
                   </div>
-                  <Btn label="Remove" onClick={() => handleRemoveBranch(b.branchId)} color="#DC2626" bg="#FEE2E2" />
+                  {mayManage && <Btn label="Remove" onClick={() => handleRemoveBranch(b.branchId)} color="#DC2626" bg="#FEE2E2" />}
                 </div>
               ))}
             </div>
           )}
 
+          {mayManage && <>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: "#A8906A", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Add Branch</h3>
           <form onSubmit={handleAddBranch} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <input required placeholder="Branch name *" value={newBranch.name} onChange={e => setNewBranch(f => ({ ...f, name: e.target.value }))} style={{ ...iStyle, flex: 1, minWidth: 180 }} />
@@ -288,6 +301,7 @@ export default function TenantDetail() {
               {addingBranch ? "Adding…" : "Add"}
             </button>
           </form>
+          </>}
         </div>
       )}
 
@@ -308,6 +322,7 @@ export default function TenantDetail() {
             </div>
           ))}
 
+          {mayManage && <>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: "#A8906A", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, marginTop: 24 }}>Add / Update Year</h3>
           <form onSubmit={handleAddYear} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
@@ -330,6 +345,7 @@ export default function TenantDetail() {
               {addingYear ? "Saving…" : "Save Year"}
             </button>
           </form>
+          </>}
         </div>
       )}
 
