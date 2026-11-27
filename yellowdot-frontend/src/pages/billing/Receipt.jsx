@@ -68,8 +68,11 @@ export default function Receipt() {
     );
   }
 
-  const { payment, invoice, settings } = data;
-  const schoolName = settings?.schoolName || "KUE BOXS Care";
+  const { payment, invoice, settings, school = {} } = data;
+  const schoolName = school.name || settings?.schoolName || "KUE BOXS Care";
+  // Shown as one line; either half may be missing on a school that has not
+  // filled in its contact details, and an empty separator reads as a defect.
+  const contactLine = [school.phone, school.email].filter(Boolean).join("  ·  ");
 
   return (
     <PageShell
@@ -98,15 +101,29 @@ export default function Receipt() {
       {/* The printable document. Everything outside it is hidden by the
           print stylesheet in styles/billing.css. */}
       <article className={`yd-receipt ${payment.reversed ? "is-reversed" : ""}`}>
-        <header className="yd-receipt__head">
-          <div>
-            <div className="yd-receipt__school">{schoolName}</div>
-            <div className="yd-receipt__kind">Receipt</div>
+
+        {/* Letterhead. A receipt leaves the building — it is printed, filed,
+            and sometimes produced months later — so it has to say who issued
+            it without the reader needing any other context. Every line is
+            optional and simply drops when a school has not set it. */}
+        <header className="yd-receipt__letterhead">
+          <div className="yd-receipt__brand">
+            {school.logo && (
+              <img className="yd-receipt__logo" src={school.logo} alt="" aria-hidden="true" />
+            )}
+            <div className="yd-receipt__issuer">
+              <div className="yd-receipt__school">{schoolName}</div>
+              {school.address && <div className="yd-receipt__contact">{school.address}</div>}
+              {contactLine && <div className="yd-receipt__contact">{contactLine}</div>}
+            </div>
           </div>
+
           <div className="yd-receipt__ref">
-            <div className="yd-receipt__ref-label">Receipt no.</div>
-            <div className="yd-receipt__ref-value">{payment.receiptNumber}</div>
-            <div className="yd-receipt__ref-date">{prettyDate(payment.paymentDate)}</div>
+            <div className="yd-receipt__kind">Receipt</div>
+            <dl className="yd-receipt__refgrid">
+              <dt>No.</dt><dd>{payment.receiptNumber}</dd>
+              <dt>Date</dt><dd>{prettyDate(payment.paymentDate)}</dd>
+            </dl>
           </div>
         </header>
 
@@ -125,6 +142,7 @@ export default function Receipt() {
           </div>
         </section>
 
+        {/* The one number the reader is looking for. */}
         <section className="yd-receipt__amount">
           <div className="yd-receipt__label">Amount received</div>
           <div className="yd-receipt__big">{inr(payment.amount)}</div>
@@ -172,9 +190,23 @@ export default function Receipt() {
           {settings?.receiptFooter && (
             <p className="yd-receipt__footer-note">{settings.receiptFooter}</p>
           )}
-          <p className="yd-receipt__meta">
-            Recorded by {payment.receivedBy || "school staff"}
-            {payment.notes ? ` · ${payment.notes}` : ""}
+
+          <div className="yd-receipt__signoff">
+            <div className="yd-receipt__meta">
+              Recorded by {payment.receivedBy || "school staff"}
+              {payment.notes ? ` · ${payment.notes}` : ""}
+            </div>
+            {/* Printed only. On screen it is noise; on paper a receipt with
+                nowhere to sign gets handed back. */}
+            <div className="yd-receipt__sign">
+              <span className="yd-receipt__signline" />
+              <span className="yd-receipt__signlabel">Authorised signatory</span>
+            </div>
+          </div>
+
+          <p className="yd-receipt__issued">
+            Computer-generated receipt · {schoolName}
+            {payment.reversed ? " · This payment was reversed and this receipt is void." : ""}
           </p>
         </footer>
       </article>

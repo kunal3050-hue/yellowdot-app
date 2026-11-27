@@ -29,7 +29,7 @@
   margin: 0 0 16px;
   font-size: 13px;
   line-height: 1.55;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-modal-note {
@@ -38,7 +38,7 @@
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
   background: var(--yd-surface-raised);
   border: 1px solid var(--yd-border);
 }
@@ -65,7 +65,7 @@
 .yd-aging {
   margin-bottom: 16px;
   padding: 14px 16px;
-  background: var(--yd-surface-card);
+  background: var(--yd-surface);
   border: 1px solid var(--yd-border);
   border-radius: 12px;
 }
@@ -89,7 +89,7 @@
   font-size: 12px;
 }
 
-.yd-aging__label { color: var(--yd-text-secondary); }
+.yd-aging__label { color: var(--yd-text-soft); }
 
 .yd-aging__track {
   height: 7px;
@@ -111,7 +111,7 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 /* ── The billing-run preview ─────────────────────────────────────────────── */
@@ -130,7 +130,7 @@
   font-size: 24px;
   font-weight: 700;
   line-height: 1.1;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   font-variant-numeric: tabular-nums;
 }
 
@@ -143,7 +143,7 @@
 .yd-run-preview__meta {
   margin: 0 0 16px;
   font-size: 12.5px;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-run-preview__section { margin-bottom: 16px; }
@@ -174,7 +174,7 @@
   overflow-y: auto;
   border: 1px solid var(--yd-border);
   border-radius: 10px;
-  background: var(--yd-surface-card);
+  background: var(--yd-surface);
 }
 
 .yd-run-preview__list li {
@@ -191,7 +191,7 @@
 
 .yd-run-preview__name {
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -206,7 +206,7 @@
 .yd-run-preview__amount {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 .yd-run-preview__actions {
@@ -239,14 +239,14 @@
 
 .yd-invoice-line__total {
   font-size: 13px;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-invoice-line__total strong {
   margin-left: 6px;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 @media (max-width: 720px) {
@@ -320,7 +320,7 @@
 
 .yd-invoice-lines td {
   padding: 9px 8px;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   border-bottom: 1px solid var(--yd-border);
 }
 
@@ -329,20 +329,20 @@
 .yd-invoice-lines tfoot td {
   padding: 7px 8px;
   border-bottom: none;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-invoice-lines__total td {
   padding-top: 11px;
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   border-top: 1px solid var(--yd-border);
 }
 
 .yd-invoice-lines__balance td {
   font-size: 15px;
   font-weight: 700;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   border-top: 1px solid var(--yd-border);
 }
 
@@ -351,7 +351,7 @@
   padding: 9px 12px;
   border-radius: 8px;
   font-size: 12.5px;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
   background: var(--yd-surface-raised);
 }
 
@@ -362,7 +362,7 @@
   margin: 0 0 12px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 .yd-invoice-detail__payments h3 {
@@ -389,7 +389,7 @@
 .yd-invoice-detail__qr-meta {
   margin: 12px 0 0;
   font-size: 13px;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-invoice-detail__qr-hint {
@@ -440,7 +440,7 @@
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 .yd-payment-list__meta {
@@ -470,14 +470,14 @@
   margin-bottom: 16px;
   font-size: 12.5px;
   line-height: 1.5;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
   background: var(--yd-yellow-light, #FFF9E0);
   border: 1px solid var(--yd-yellow);
 }
 
 .yd-payee-nudge > svg { flex-shrink: 0; color: var(--yd-yellow-dark); }
 .yd-payee-nudge > div { flex: 1; min-width: 0; }
-.yd-payee-nudge strong { color: var(--yd-text-primary); }
+.yd-payee-nudge strong { color: var(--yd-charcoal); }
 
 /* ── The receipt ─────────────────────────────────────────────────────────── */
 
@@ -494,59 +494,110 @@
 
 .yd-receipt {
   position: relative;
-  max-width: 640px;
+  max-width: 680px;
   margin: 0 auto;
-  padding: 28px 30px;
-  background: var(--yd-surface-card);
+  padding: 0 0 26px;
+  background: var(--yd-surface);
   border: 1px solid var(--yd-border);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: var(--yd-elevation-small);
   overflow: hidden;
 }
 
-.yd-receipt__head {
+/* A band of the brand colour across the top. It is the one piece of styling
+   that survives a black-and-white print as a visible edge, and on screen it
+   stops the document reading as an untitled white box. */
+.yd-receipt::before {
+  content: "";
+  display: block;
+  height: 5px;
+  background: var(--yd-yellow);
+}
+
+/* ── Letterhead ──────────────────────────────────────────────────────────── */
+
+.yd-receipt__letterhead {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding-bottom: 18px;
-  border-bottom: 2px solid var(--yd-text-primary);
+  gap: 24px;
+  padding: 24px 30px 18px;
+  border-bottom: 1px solid var(--yd-border);
 }
 
+.yd-receipt__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.yd-receipt__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: var(--yd-bg-sunken);
+}
+
+.yd-receipt__issuer { min-width: 0; }
+
 .yd-receipt__school {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--yd-text-primary);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--yd-charcoal);
+}
+
+/* Address and contact. Muted on purpose — needed for a receipt to stand on
+   its own, but not what the reader is looking for. */
+.yd-receipt__contact {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--yd-text-soft);
+}
+
+.yd-receipt__ref {
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .yd-receipt__kind {
-  margin-top: 2px;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--yd-text-muted);
+  margin-bottom: 8px;
 }
 
-.yd-receipt__ref { text-align: right; }
+/* A two-column definition list rather than stacked divs, so the label and the
+   value stay aligned when the receipt number changes length. */
+.yd-receipt__refgrid {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 10px;
+  margin: 0;
+  justify-content: end;
+}
 
-.yd-receipt__ref-label {
-  font-size: 10px;
-  letter-spacing: 0.06em;
+.yd-receipt__refgrid dt {
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--yd-text-muted);
+  text-align: right;
 }
 
-.yd-receipt__ref-value {
-  font-size: 14px;
+.yd-receipt__refgrid dd {
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--yd-text-primary);
-}
-
-.yd-receipt__ref-date {
-  margin-top: 2px;
-  font-size: 11.5px;
-  color: var(--yd-text-muted);
+  color: var(--yd-charcoal);
+  text-align: right;
 }
 
 .yd-receipt__watermark {
@@ -567,7 +618,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  padding: 18px 0;
+  padding: 20px 30px 18px;
 }
 
 .yd-receipt__label {
@@ -582,7 +633,7 @@
   margin-top: 3px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
 
 .yd-receipt__sub {
@@ -591,11 +642,14 @@
   color: var(--yd-text-muted);
 }
 
+/* The figure the reader came for. Tinted rather than outlined so it still
+   reads as the focal block on a monochrome print. */
 .yd-receipt__amount {
-  padding: 16px 18px;
-  margin-bottom: 18px;
-  background: var(--yd-surface-raised);
-  border-radius: 10px;
+  margin: 0 30px 20px;
+  padding: 18px 20px;
+  background: var(--yd-yellow-light);
+  border: 1px solid var(--yd-yellow);
+  border-radius: 12px;
 }
 
 .yd-receipt__big {
@@ -604,8 +658,10 @@
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
 }
+
+.yd-receipt__breakdown { padding: 0 30px; }
 
 .yd-receipt__breakdown table {
   width: 100%;
@@ -616,12 +672,12 @@
 
 .yd-receipt__breakdown td {
   padding: 6px 0;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
   border-bottom: 1px solid var(--yd-border);
 }
 
 .yd-receipt__breakdown tfoot td {
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   border-bottom: none;
 }
 
@@ -632,15 +688,51 @@
 }
 
 .yd-receipt__foot {
-  margin-top: 22px;
-  padding-top: 14px;
+  margin: 22px 30px 0;
+  padding-top: 16px;
   border-top: 1px solid var(--yd-border);
+}
+
+/* Who recorded it, and room to sign. Side by side on paper; the signature
+   half is hidden on screen, where it is only clutter. */
+.yd-receipt__signoff {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.yd-receipt__sign { display: none; }
+
+.yd-receipt__signline {
+  display: block;
+  width: 170px;
+  border-bottom: 1px solid var(--yd-charcoal);
+  margin-bottom: 5px;
+}
+
+.yd-receipt__signlabel {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--yd-text-muted);
+}
+
+/* The line that makes an unsigned printout defensible. */
+.yd-receipt__issued {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--yd-border);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--yd-text-muted);
+  text-align: center;
 }
 
 .yd-receipt__footer-note {
   margin: 0 0 6px;
   font-size: 12px;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
 }
 
 .yd-receipt__meta {
@@ -686,6 +778,45 @@
   .yd-receipt__aside,
   .yd-receipt-reversed { display: none !important; }
 
+  /* The card's own chrome is the browser's job on screen and the paper's job
+     in print — the top band, shadow and rounding would just be ink. */
+  .yd-receipt::before { display: none !important; }
+
+  /* The letterhead carries the address and contact, so it earns a rule under
+     it on paper the way a letterhead does. */
+  .yd-receipt__letterhead {
+    padding: 0 0 14px;
+    border-bottom: 2px solid #000;
+  }
+
+  .yd-receipt__parties   { padding: 16px 0 14px; }
+  .yd-receipt__breakdown { padding: 0; }
+  .yd-receipt__foot      { margin: 18px 0 0; }
+
+  /* Keep the amount legible without a fill: printers render a light tint as
+     grey mush, and a border says "this is the figure" just as well. */
+  .yd-receipt__amount {
+    margin: 0 0 16px;
+    background: transparent !important;
+    border: 1.5px solid #000 !important;
+  }
+
+  /* Only on paper. A receipt handed over with nowhere to sign gets handed
+     back; on screen it is a line that does nothing. */
+  .yd-receipt__sign { display: block !important; }
+
+  .yd-receipt__signline { border-bottom-color: #000; }
+
+  /* Keep each band whole across a page break rather than splitting a figure
+     from its label. */
+  .yd-receipt__letterhead,
+  .yd-receipt__amount,
+  .yd-receipt__foot { break-inside: avoid; }
+
+  .yd-receipt__contact,
+  .yd-receipt__issued,
+  .yd-receipt__signlabel { color: #000; }
+
   /* Keep the reversal visible on paper: a printed receipt for money that went
      back must say so, or it reads as valid proof of payment. */
   .yd-receipt__watermark {
@@ -721,7 +852,7 @@
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--yd-text-secondary);
+  color: var(--yd-text-soft);
   background: var(--yd-surface-raised);
   border: 1px solid var(--yd-border);
 }
@@ -788,7 +919,7 @@
   gap: 6px;
   padding: 4px 6px 4px 10px;
   font-size: 12px;
-  color: var(--yd-text-primary);
+  color: var(--yd-charcoal);
   background: var(--yd-yellow-light, #FFF9E0);
   border: 1px solid var(--yd-yellow);
   border-radius: 9999px;

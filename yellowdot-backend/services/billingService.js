@@ -61,6 +61,7 @@
 const { db } = require("../firebaseAdmin");
 const audit  = require("./billingAuditService");
 const M      = require("./billingMoney");
+const tenantSvc = require("./tenantService");
 
 const {
   money, sumMoney, addMoney, subtractMoney,
@@ -1149,12 +1150,48 @@ async function reversePayment(paymentId, reason, ctx = {}) {
   return { payment: toPayment(result.payment), invoice: toInvoice(result.invoice) };
 }
 
+/**
+ * The letterhead a receipt is printed on.
+ *
+ * Billing settings only carry a schoolName, a UPI payee and a footer line.
+ * The address, logo and contact details a printed receipt needs live on the
+ * tenant document, so they are read from there and merged.
+ *
+ * Everything is optional and the receipt renders without any of it — a school
+ * that has not filled in its address should still be able to issue a receipt,
+ * so a missing field drops its line rather than printing an empty label. The
+ * billing settings' schoolName wins over the tenant's when set, because it is
+ * the one a school edits for exactly this purpose.
+ */
+async function getReceiptLetterhead({ schoolId, settings }) {
+  let tenant = null;
+  try {
+    tenant = await tenantSvc.getById(schoolId);
+  } catch (err) {
+    // A receipt must still print if the tenant lookup fails. The school name
+    // from billing settings is enough for a valid document.
+    console.warn(`[billing] letterhead lookup failed for ${schoolId}: ${err.message}`);
+  }
+
+  const addressLine = [tenant?.address, tenant?.city, tenant?.country]
+    .map(s => (s || "").trim()).filter(Boolean).join(", ");
+
+  return {
+    name:    settings?.schoolName || tenant?.schoolName || "",
+    logo:    tenant?.logo         || "",
+    address: addressLine,
+    phone:   tenant?.contactPhone || "",
+    email:   tenant?.contactEmail || "",
+  };
+}
+
 /** The receipt for one payment — the payment, its invoice, the school's details. */
 async function getReceipt(paymentId, { schoolId = SCHOOL_ID } = {}) {
   const payment  = await getPayment(paymentId, { schoolId });
   const invoice  = await getInvoice(payment.invoiceId, { schoolId });
   const settings = await getSettings({ schoolId });
-  return { payment, invoice, settings };
+  const school   = await getReceiptLetterhead({ schoolId, settings });
+  return { payment, invoice, settings, school };
 }
 
 // ── Rollups ──────────────────────────────────────────────────────────────────
