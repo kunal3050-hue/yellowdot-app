@@ -756,47 +756,92 @@
    "Save as PDF" both print exactly what is on screen. */
 
 @media print {
-  body * { visibility: hidden !important; }
+  /* Why this does not use the `visibility: hidden` trick any more.
+     ────────────────────────────────────────────────────────────────────────
+     It used to: everything in body hidden, the receipt and its children made
+     visible again, and the receipt absolutely positioned at the page origin.
+     That printed a blank page.
 
-  .yd-receipt,
-  .yd-receipt * { visibility: visible !important; }
+     Two reasons, and the second is caused by the first. `visibility: hidden`
+     hides an element but it still takes up space, so the sidebar and topbar
+     went on occupying the page and pushed the receipt off it — which is why
+     the absolute positioning was there, to escape them. But the receipt sits
+     inside .yd-page and .yd-content (both overflow:hidden) and .yd-scroll-area
+     (a scroll container), and Chrome does not reliably paint an
+     absolutely-positioned box out of that chain when printing.
 
-  .yd-receipt {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: #fff;
-    color: #000;
-  }
+     So: remove the chrome with `display: none`, which takes its space with it,
+     unwrap the fixed-height scrolling shell into normal flow, and let the
+     receipt print as an ordinary block. Nothing is positioned, nothing is
+     clipped, and there is no stacking context to escape. */
 
+  /* 1. The app chrome, gone — space included. */
+  .yd-sidebar,
+  .yd-tb,
+  .yd-shell-top,
+  .yd-shell-kpis,
+  .yd-shell-footer,
+  .yd-toast-container,
+  .yd-overlay,
+  .yd-modal-overlay,
+  .yd-drawer-overlay,
   .yd-receipt__aside,
   .yd-receipt-reversed { display: none !important; }
 
-  /* The card's own chrome is the browser's job on screen and the paper's job
-     in print — the top band, shadow and rounding would just be ink. */
+  /* 2. The shell is a 100vh flex column that scrolls. On paper the page is
+        the scroller, so unwrap it. */
+  .yd-page,
+  .yd-content {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .yd-scroll-area {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .yd-shell,
+  .yd-shell-content {
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  /* 3. The document itself, in normal flow. */
+  .yd-receipt {
+    position: static !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  /* The brand band is pure ink. */
   .yd-receipt::before { display: none !important; }
 
   /* The letterhead carries the address and contact, so it earns a rule under
      it on paper the way a letterhead does. */
   .yd-receipt__letterhead {
-    padding: 0 0 14px;
-    border-bottom: 2px solid #000;
+    padding: 0 0 14px !important;
+    border-bottom: 2px solid #000 !important;
   }
 
-  .yd-receipt__parties   { padding: 16px 0 14px; }
-  .yd-receipt__breakdown { padding: 0; }
-  .yd-receipt__foot      { margin: 18px 0 0; }
+  .yd-receipt__parties   { padding: 16px 0 14px !important; }
+  .yd-receipt__breakdown { padding: 0 !important; }
+  .yd-receipt__foot      { margin: 18px 0 0 !important; }
 
   /* Keep the amount legible without a fill: printers render a light tint as
      grey mush, and a border says "this is the figure" just as well. */
   .yd-receipt__amount {
-    margin: 0 0 16px;
+    margin: 0 0 16px !important;
     background: transparent !important;
     border: 1.5px solid #000 !important;
   }
@@ -804,8 +849,7 @@
   /* Only on paper. A receipt handed over with nowhere to sign gets handed
      back; on screen it is a line that does nothing. */
   .yd-receipt__sign { display: block !important; }
-
-  .yd-receipt__signline { border-bottom-color: #000; }
+  .yd-receipt__signline { border-bottom-color: #000 !important; }
 
   /* Keep each band whole across a page break rather than splitting a figure
      from its label. */
@@ -813,19 +857,27 @@
   .yd-receipt__amount,
   .yd-receipt__foot { break-inside: avoid; }
 
+  .yd-receipt__school,
+  .yd-receipt__value,
+  .yd-receipt__big,
+  .yd-receipt__refgrid dd,
+  .yd-receipt__breakdown tfoot td { color: #000 !important; }
+
   .yd-receipt__contact,
   .yd-receipt__issued,
-  .yd-receipt__signlabel { color: #000; }
+  .yd-receipt__signlabel,
+  .yd-receipt__label,
+  .yd-receipt__sub { color: #333 !important; }
 
   /* Keep the reversal visible on paper: a printed receipt for money that went
      back must say so, or it reads as valid proof of payment. */
   .yd-receipt__watermark {
-    visibility: visible !important;
+    display: block !important;
     opacity: 0.16;
-    color: #000;
+    color: #000 !important;
   }
 
-  @page { size: A4; margin: 18mm; }
+  @page { size: A4; margin: 16mm; }
 }
 
 /* ── Form pages ──────────────────────────────────────────────────────────── */
