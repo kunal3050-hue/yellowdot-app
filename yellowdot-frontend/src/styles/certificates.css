@@ -301,9 +301,32 @@
 .yd-cert-print-root { display: none; }
 
 @media print {
-  @page { size: A4 landscape; margin: 0; }
+  /* ── Everything here is conditioned on a certificate actually being printed ──
+     This block is in a stylesheet main.jsx loads on every page, so until now
+     it applied to every print in the app. Two rules did real damage:
 
-  html, body {
+       body > *:not(.yd-cert-print-root) { display: none !important; }
+       @page { size: A4 landscape; margin: 0; }
+
+     #root is a direct child of body and is not .yd-cert-print-root, so the
+     first hid the entire application whenever anything was printed. Ctrl+P on
+     the billing receipt — or any other page — produced a blank sheet, and the
+     cause was nowhere near the page being printed. The second silently turned
+     every print in the app landscape with no margins.
+
+     The hiding rule is now gated on `body:has(.yd-cert-print-root)`, so it
+     only fires when the certificate print portal is in the document. If a
+     browser does not support :has(), the selector is invalid and dropped —
+     which degrades certificate printing rather than breaking every other
+     page, the right way round.
+
+     The page size moves to a named page applied to the certificate sheet
+     itself, which is what named pages are for; an unnamed @page is global and
+     cannot be conditioned on content. */
+
+  @page cert-landscape { size: A4 landscape; margin: 0; }
+
+  body:has(.yd-cert-print-root) {
     background: var(--yd-white) !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -311,7 +334,7 @@
 
   /* Everything that is not the print portal — app shell, sidebar, the open
      preview dialog and its backdrop — is not part of the certificate. */
-  body > *:not(.yd-cert-print-root) { display: none !important; }
+  body:has(.yd-cert-print-root) > *:not(.yd-cert-print-root) { display: none !important; }
 
   .yd-cert-print-root {
     display: block !important;
@@ -330,6 +353,7 @@
 
   /* Exactly one physical page per certificate, at true A4 landscape. */
   .yd-cert-print-root .yd-cert-sheet {
+    page: cert-landscape;
     width: 297mm !important;
     height: 210mm !important;
     max-width: none !important;

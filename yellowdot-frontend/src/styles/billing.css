@@ -756,6 +756,12 @@
    "Save as PDF" both print exactly what is on screen. */
 
 @media print {
+  /* Every selector below is scoped to `body:has(.yd-receipt)`.
+     billing.css is imported in main.jsx, so it loads on every page — an
+     unscoped rule here would reshape the print output of the whole app.
+     That is not hypothetical: certificates.css carried an unscoped
+     `body > *:not(.yd-cert-print-root) { display: none }` and silently made
+     Ctrl+P produce a blank sheet on every page in the application. */
   /* Why this does not use the `visibility: hidden` trick any more.
      ────────────────────────────────────────────────────────────────────────
      It used to: everything in body hidden, the receipt and its children made
@@ -776,42 +782,42 @@
      clipped, and there is no stacking context to escape. */
 
   /* 1. The app chrome, gone — space included. */
-  .yd-sidebar,
-  .yd-tb,
-  .yd-shell-top,
-  .yd-shell-kpis,
-  .yd-shell-footer,
-  .yd-toast-container,
-  .yd-overlay,
-  .yd-modal-overlay,
-  .yd-drawer-overlay,
-  .yd-receipt__aside,
+  body:has(.yd-receipt) .yd-sidebar,
+  body:has(.yd-receipt) .yd-tb,
+  body:has(.yd-receipt) .yd-shell-top,
+  body:has(.yd-receipt) .yd-shell-kpis,
+  body:has(.yd-receipt) .yd-shell-footer,
+  body:has(.yd-receipt) .yd-toast-container,
+  body:has(.yd-receipt) .yd-overlay,
+  body:has(.yd-receipt) .yd-modal-overlay,
+  body:has(.yd-receipt) .yd-drawer-overlay,
+  body:has(.yd-receipt) .yd-receipt__aside,
   .yd-receipt-reversed { display: none !important; }
 
   /* 2. The shell is a 100vh flex column that scrolls. On paper the page is
         the scroller, so unwrap it. */
-  .yd-page,
-  .yd-content {
+  body:has(.yd-receipt) .yd-page,
+  body:has(.yd-receipt) .yd-content {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
   }
 
-  .yd-scroll-area {
+  body:has(.yd-receipt) .yd-scroll-area {
     height: auto !important;
     overflow: visible !important;
     padding: 0 !important;
   }
 
-  .yd-shell,
-  .yd-shell-content {
+  body:has(.yd-receipt) .yd-shell,
+  body:has(.yd-receipt) .yd-shell-content {
     display: block !important;
     gap: 0 !important;
   }
 
   /* 3. The document itself, in normal flow. */
-  .yd-receipt {
+  body:has(.yd-receipt) .yd-receipt {
     position: static !important;
     max-width: none !important;
     margin: 0 !important;
@@ -829,7 +835,7 @@
 
   /* The letterhead carries the address and contact, so it earns a rule under
      it on paper the way a letterhead does. */
-  .yd-receipt__letterhead {
+  body:has(.yd-receipt) .yd-receipt__letterhead {
     padding: 0 0 14px !important;
     border-bottom: 2px solid #000 !important;
   }
@@ -840,7 +846,7 @@
 
   /* Keep the amount legible without a fill: printers render a light tint as
      grey mush, and a border says "this is the figure" just as well. */
-  .yd-receipt__amount {
+  body:has(.yd-receipt) .yd-receipt__amount {
     margin: 0 0 16px !important;
     background: transparent !important;
     border: 1.5px solid #000 !important;
@@ -853,25 +859,25 @@
 
   /* Keep each band whole across a page break rather than splitting a figure
      from its label. */
-  .yd-receipt__letterhead,
-  .yd-receipt__amount,
+  body:has(.yd-receipt) .yd-receipt__letterhead,
+  body:has(.yd-receipt) .yd-receipt__amount,
   .yd-receipt__foot { break-inside: avoid; }
 
-  .yd-receipt__school,
-  .yd-receipt__value,
-  .yd-receipt__big,
-  .yd-receipt__refgrid dd,
+  body:has(.yd-receipt) .yd-receipt__school,
+  body:has(.yd-receipt) .yd-receipt__value,
+  body:has(.yd-receipt) .yd-receipt__big,
+  body:has(.yd-receipt) .yd-receipt__refgrid dd,
   .yd-receipt__breakdown tfoot td { color: #000 !important; }
 
-  .yd-receipt__contact,
-  .yd-receipt__issued,
-  .yd-receipt__signlabel,
-  .yd-receipt__label,
+  body:has(.yd-receipt) .yd-receipt__contact,
+  body:has(.yd-receipt) .yd-receipt__issued,
+  body:has(.yd-receipt) .yd-receipt__signlabel,
+  body:has(.yd-receipt) .yd-receipt__label,
   .yd-receipt__sub { color: #333 !important; }
 
   /* Keep the reversal visible on paper: a printed receipt for money that went
      back must say so, or it reads as valid proof of payment. */
-  .yd-receipt__watermark {
+  body:has(.yd-receipt) .yd-receipt__watermark {
     display: block !important;
     opacity: 0.16;
     color: #000 !important;
