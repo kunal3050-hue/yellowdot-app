@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { tenantService } from "../../services/tenantService";
+import { useAuth } from "../../contexts/AuthContext";
+import { canManageTenants, canImpersonateTenant, canSetTenantStatus } from "../../config/permissions";
 
 const STATUS_COLORS = {
   active:    { bg: "#DCFCE7", text: "#15803D" },
@@ -31,6 +33,13 @@ function StatusBadge({ status }) {
 
 export default function TenantList() {
   const navigate = useNavigate();
+  // Mirrors the backend's two guards on tenantRoutes.js: a platform_admin
+  // reads the list and may suspend, but may not create or impersonate.
+  const { role } = useAuth();
+  const mayManage      = canManageTenants(role);
+  const mayImpersonate = canImpersonateTenant(role);
+  const maySetStatus   = canSetTenantStatus(role);
+
   const [tenants, setTenants]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
@@ -91,7 +100,7 @@ export default function TenantList() {
             Manage all preschool tenants on the platform
           </p>
         </div>
-        <button
+        {mayManage && <button
           onClick={() => navigate("/super-admin/tenants/new")}
           style={{
             background: "#F5C518", color: "#1C1917",
@@ -101,7 +110,7 @@ export default function TenantList() {
           }}
         >
           + New Preschool
-        </button>
+        </button>}
       </div>
 
       {/* Filters */}
@@ -152,13 +161,15 @@ export default function TenantList() {
         <div style={{ textAlign: "center", padding: 60, color: "#A8906A" }}>Loading…</div>
       ) : tenants.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: "#78716C" }}>
-          No preschools found.{" "}
-          <button
-            onClick={() => navigate("/super-admin/tenants/new")}
-            style={{ background: "none", border: "none", color: "#F5C518", fontWeight: 700, cursor: "pointer" }}
-          >
-            Create one
-          </button>
+          No preschools found.
+          {mayManage && <>{" "}
+            <button
+              onClick={() => navigate("/super-admin/tenants/new")}
+              style={{ background: "none", border: "none", color: "#F5C518", fontWeight: 700, cursor: "pointer" }}
+            >
+              Create one
+            </button>
+          </>}
         </div>
       ) : (
         <div style={{ border: "1.5px solid #F5F0E8", borderRadius: 12, overflow: "hidden" }}>
@@ -205,7 +216,7 @@ export default function TenantList() {
                   </td>
                   <td style={{ padding: "14px 16px" }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: "flex", gap: 6 }}>
-                      {t.status !== "active" && (
+                      {maySetStatus && t.status !== "active" && (
                         <ActionBtn
                           label="Activate"
                           color="#15803D"
@@ -213,7 +224,7 @@ export default function TenantList() {
                           onClick={() => handleStatusChange(t.tenantId, "active")}
                         />
                       )}
-                      {t.status === "active" && (
+                      {maySetStatus && t.status === "active" && (
                         <ActionBtn
                           label="Suspend"
                           color="#DC2626"
@@ -221,12 +232,14 @@ export default function TenantList() {
                           onClick={() => handleStatusChange(t.tenantId, "suspended")}
                         />
                       )}
-                      <ActionBtn
-                        label="Impersonate"
-                        color="#1D4ED8"
-                        bg="#DBEAFE"
-                        onClick={() => handleImpersonate(t.tenantId, t.schoolName)}
-                      />
+                      {mayImpersonate && (
+                        <ActionBtn
+                          label="Impersonate"
+                          color="#1D4ED8"
+                          bg="#DBEAFE"
+                          onClick={() => handleImpersonate(t.tenantId, t.schoolName)}
+                        />
+                      )}
                     </div>
                   </td>
                 </tr>

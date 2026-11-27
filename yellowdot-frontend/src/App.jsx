@@ -8,6 +8,7 @@ import { AuthProvider }  from "./contexts/AuthContext";
 import { InstallProvider } from "./contexts/InstallContext";
 import ProtectedRoute    from "./components/auth/ProtectedRoute";
 import PlatformRoute     from "./components/auth/PlatformRoute";
+import { canManageTenants } from "./config/permissions";
 import Login             from "./pages/auth/Login";
 import MainLayout        from "./layouts/MainLayout";
 import PlatformLayout    from "./layouts/PlatformLayout";
@@ -801,7 +802,14 @@ function App() {
             />
             <Route
               path="/platform/tenants/new"
-              element={<PlatformRoute><PlatformLayout><TenantCreate /></PlatformLayout></PlatformRoute>}
+              element={
+                /* Creating a school is POST /api/tenants, which the backend
+                   guards with superAdminOnly — so this route is refused at
+                   the door rather than rendering a form that 403s. */
+                <PlatformRoute requires={canManageTenants}>
+                  <PlatformLayout><TenantCreate /></PlatformLayout>
+                </PlatformRoute>
+              }
             />
             <Route
               path="/platform/tenants/:tenantId"

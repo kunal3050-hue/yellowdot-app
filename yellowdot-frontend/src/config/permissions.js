@@ -55,6 +55,50 @@ export function canUsePlatformConsole(role) {
   return PLATFORM_CONSOLE_ROLES.has(role);
 }
 
+/**
+ * What a role may DO once inside the console.
+ *
+ * `canUsePlatformConsole` is the front door; this is the split behind it.
+ * tenantRoutes.js guards its routes with two lists, and these mirror that
+ * split one for one:
+ *
+ *   platformOps     list · detail · analytics · audit logs · set status
+ *   superAdminOnly  create · update · delete · impersonate · branches ·
+ *                   academic years
+ *
+ * The backend is what actually decides — these only keep the UI honest. A
+ * button that is shown and then 403s is worse than no button: it reads as
+ * the product being broken rather than the action not being yours. Keep the
+ * two in step; if a route moves between the backend lists, it moves here.
+ */
+const PLATFORM_WRITE_ROLES = new Set(["developer", "super_admin"]);
+
+/** Suspend or re-activate a school. Granted to platform_admin. */
+export function canSetTenantStatus(role) {
+  return canUsePlatformConsole(role);
+}
+
+/**
+ * Create, edit, delete a school, change its plan, manage its branches and
+ * academic years. Not granted to platform_admin.
+ */
+export function canManageTenants(role) {
+  return PLATFORM_WRITE_ROLES.has(role);
+}
+
+/**
+ * Sign in as one of a school's users.
+ *
+ * Deliberately its own question rather than part of canManageTenants, even
+ * though the two currently answer the same. It is the only action in this
+ * console that reads children's records, and the access model records a
+ * decision that it stays separate so it can be granted — or refused — on its
+ * own terms later.
+ */
+export function canImpersonateTenant(role) {
+  return PLATFORM_WRITE_ROLES.has(role);
+}
+
 // ── Route keys (must match backend ROLE_PERMISSIONS keys exactly) ─────────────
 export const ROUTES = {
   DASHBOARD:             "dashboard",

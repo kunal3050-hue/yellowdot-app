@@ -204,6 +204,14 @@ cannot sign in because they have no school.
 2. `platformUsers` lookup and the `enforceTenant` exemption, with a test that a
    platform admin is unaffected by any school's suspension.
 3. Widen `authorize()` on the tenant routes and `canUsePlatformConsole()`.
+   **Done 2026-11-27**, including the UI side. The console's buttons now
+   mirror the backend's two guards rather than offering everything to
+   everyone: `canSetTenantStatus` (platform_admin yes) and
+   `canManageTenants` / `canImpersonateTenant` (super_admin, developer only)
+   in `src/config/permissions.js`. `/platform/tenants/new` is refused at the
+   route via `PlatformRoute requires={...}`, since creating a school is the
+   page's whole purpose. If a route moves between `platformOps` and
+   `superAdminOnly` in `tenantRoutes.js`, those three helpers move with it.
 4. Only then, a UI for managing platform staff.
 
 Steps 1–3 are the model. Step 4 is the feature, and is not worth starting
