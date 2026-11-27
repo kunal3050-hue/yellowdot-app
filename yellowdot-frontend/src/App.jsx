@@ -536,7 +536,7 @@ function App() {
               path="/pickup-history"
               element={
                 <ProtectedRoute routeKey="pickup-history">
-                  <PickupHistory />
+                  <MainLayout><PickupHistory /></MainLayout>
                 </ProtectedRoute>
               }
             />

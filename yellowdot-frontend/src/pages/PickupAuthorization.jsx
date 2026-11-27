@@ -9,11 +9,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
 import pickupAuthorizationService from "../services/pickupAuthorizationService";
 import { api } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
-import { PLATFORM_NAME } from "../config/environment";
 
 const RELATIONS = ["Father","Mother","Grandmother","Grandfather","Uncle","Aunt","Driver","Guardian","Other"];
 
@@ -577,7 +575,7 @@ export default function PickupAuthorization() {
   const inactiveCount   = persons.filter(p => p.status === "Inactive").length;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-full bg-gray-50 overflow-hidden">
       <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss}/>
 
       {/* Modals */}
@@ -600,42 +598,7 @@ export default function PickupAuthorization() {
       )}
 
       {/* -- Sidebar ------------------------------------------------- */}
-      <div className="w-[240px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen">
-
-        {/* Brand */}
-        <div className="px-5 py-6 border-b border-gray-100 flex-shrink-0">
-          <Link to="/">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center">
-                <span className="text-white font-black text-sm">{PLATFORM_NAME.charAt(0)}</span>
-              </div>
-              <div>
-                <div className="text-sm font-black text-gray-900 leading-none">{PLATFORM_NAME}</div>
-                <div className="text-[10px] text-gray-400 font-medium mt-0.5">Child Safety</div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Nav links */}
-        <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-0.5">
-          {[
-            { to: "/pickup-authorization", label: "Authorized Persons", active: true,
-              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1L2 4v4c0 3.3 2.6 6.4 6 7 3.4-.6 6-3.7 6-7V4L8 1z"/></svg> },
-            { to: "/pickup-history", label: "Pickup History",
-              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8a7 7 0 107 7"/><path d="M1 4v4h4"/><path d="M8 5v3.5l2.5 1.5"/></svg> },
-            { to: "/attendance", label: "Attendance",
-              icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="2"/><path d="M5 1v3M11 1v3M1.5 7h13"/><path d="M5 10l2 2 4-3"/></svg> },
-          ].map(l => (
-            <Link key={l.to} to={l.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                l.active ? "bg-yd-yellow text-yd-navy" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-              }`}>
-              <span className={l.active ? "opacity-80" : "opacity-40"}>{l.icon}</span>
-              {l.label}
-            </Link>
-          ))}
-        </div>
+      <div className="w-[240px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full">
 
         {/* Student search */}
         <div className="p-3 border-b border-gray-100 flex-shrink-0">

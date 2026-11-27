@@ -19,7 +19,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Link }          from "react-router-dom";
 import { QRCodeCanvas }  from "qrcode.react";
 import { Html5Qrcode }   from "html5-qrcode";
 import attendanceService from "../services/attendanceService";
@@ -193,15 +192,7 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
     { label:"Via QR",  val:summary.qrScanned, bg:"bg-yd-yellow-soft   text-yd-navy"   },
   ];
   return (
-    <div className="w-[230px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen shadow-lg">
-
-      {/* Brand */}
-      <div className="p-5 border-b border-gray-100 flex-shrink-0">
-        <Link to="/" className="block">
-          <h1 className="text-2xl font-black text-[var(--yd-yellow)] leading-none">KUE BOXS<br/>Care</h1>
-          <p className="text-gray-400 text-[10px] font-medium mt-1 uppercase tracking-wider">Attendance</p>
-        </Link>
-      </div>
+    <div className="w-[230px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full shadow-lg">
 
       {/* Nav */}
       <div className="p-3 border-b border-gray-100 flex-shrink-0">
@@ -241,26 +232,6 @@ function Sidebar({ view, setView, date, setDate, cls, setCls, batch, setBatch, s
             ))}
           </select>
         </div>
-      </div>
-
-      {/* Child Safety shortcuts */}
-      <div className="p-3 border-b border-gray-100 flex-shrink-0 space-y-1.5">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-1">Child Safety</p>
-        <Link to="/parent-checkin"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-yd-yellow text-yd-navy
-                     text-sm font-bold hover:bg-yd-yellow-dark transition-colors shadow-yd w-full">
-          <span>📱</span> Parent Check-In
-        </Link>
-        <Link to="/pickup-authorization"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50
-                     text-sm font-semibold transition-colors w-full border border-gray-100">
-          <span>🔐</span> Pickup Auth
-        </Link>
-        <Link to="/pickup-history"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50
-                     text-sm font-semibold transition-colors w-full border border-gray-100">
-          <span>📋</span> Pickup History
-        </Link>
       </div>
 
       {/* Live stats */}
@@ -1257,7 +1228,7 @@ export default function Attendance() {
   }, [fetchSummary]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-yd-bg">
+    <div className="flex h-full overflow-hidden bg-yd-bg">
       <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss}/>
 
       <Sidebar
