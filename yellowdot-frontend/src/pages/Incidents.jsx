@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Sidebar from "../components/Sidebar";
 import incidentService from "../services/incidentService";
 import { uploadIncidentPhotos } from "../services/storageService";
 import { api } from "../services/authService";
@@ -669,10 +668,9 @@ export default function Incidents() {
   });
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
-      <Sidebar />
+    <div className="min-w-0">
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="min-w-0">
         {/* Header */}
         <header className="flex-shrink-0 px-8 py-5 border-b border-[#F1F1F1] flex items-center justify-between gap-4"
           style={{ background: "rgba(255,255,255,0.95)", backdropFilter: "blur(18px)", boxShadow: "0 1px 12px rgba(180,140,0,0.07)" }}>
@@ -739,7 +737,7 @@ export default function Incidents() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="px-8 py-6">
           {loading ? (
             <div className="flex flex-col gap-3">
               {[1,2,3].map(i => <div key={i} className="h-32 rounded-3xl bg-[#f8f4e8] animate-pulse" />)}

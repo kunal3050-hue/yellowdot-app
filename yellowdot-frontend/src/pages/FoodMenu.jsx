@@ -11,7 +11,6 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Sidebar           from "../components/Sidebar";
 import MenuEntryModal, { MEAL_TYPES } from "../components/food/MenuEntryModal";
 import DeleteConfirmModal from "../components/food/DeleteConfirmModal";
 import foodMenuService    from "../services/foodMenuService";
@@ -352,10 +351,9 @@ export default function FoodMenu() {
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      <Sidebar />
+    <div className="min-w-0">
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="min-w-0">
 
         {/* ── STICKY HEADER ──────────────────────────────────────── */}
         <div className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-b border-[#F1F1F1] shadow-[0_1px_12px_rgba(180,140,0,0.07)] z-20">
@@ -428,7 +426,7 @@ export default function FoodMenu() {
         </div>
 
         {/* ── TABLE SECTION ───────────────────────────────────────── */}
-        <div className="flex-1 overflow-auto px-6 md:px-10 py-7">
+        <div className="px-6 md:px-10 py-7">
           <div className="max-w-[1400px] mx-auto overflow-x-auto">
           <div className="bg-white rounded-3xl border border-[#F1F1F1] overflow-hidden min-w-[900px]"
             style={{ boxShadow: "0 10px 30px rgba(212,170,31,0.08), 0 2px 8px rgba(212,170,31,0.05)" }}>

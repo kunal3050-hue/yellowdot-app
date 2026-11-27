@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Sidebar from "../components/Sidebar";
 import ptmService from "../services/ptmService";
 import academicsService from "../services/academicsService";
 
@@ -495,7 +494,7 @@ function SlotsModal({ ptm, teachers, onClose }) {
         </div>
 
         {/* Slots list */}
-        <div className="flex-1 overflow-y-auto px-7 py-4">
+        <div className="px-7 py-4">
           {loading ? (
             <p className="text-sm text-[#9a7a18] text-center py-8">Loading slots…</p>
           ) : slots.length === 0 ? (
@@ -822,10 +821,9 @@ export default function PTM() {
   const completed = filtered.filter(p => ptmStatus(p.meetingDate) === "completed");
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
-      <Sidebar />
+    <div className="min-w-0">
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="min-w-0">
         {/* Header */}
         <header className="flex-shrink-0 px-8 py-5 border-b border-[#F1F1F1] flex items-center justify-between gap-4"
           style={{ background: "rgba(255,255,255,0.95)", backdropFilter: "blur(18px)", boxShadow: "0 1px 12px rgba(180,140,0,0.07)" }}>

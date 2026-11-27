@@ -470,7 +470,7 @@ function App() {
               path="/food-menu"
               element={
                 <ProtectedRoute routeKey="food-menu">
-                  <FoodMenu />
+                  <MainLayout><FoodMenu /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -478,7 +478,7 @@ function App() {
               path="/food-consumption"
               element={
                 <ProtectedRoute routeKey="food-consumption">
-                  <FoodConsumption />
+                  <MainLayout><FoodConsumption /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -606,7 +606,7 @@ function App() {
               path="/holidays"
               element={
                 <ProtectedRoute routeKey="holidays">
-                  <Holidays />
+                  <MainLayout><Holidays /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -614,7 +614,7 @@ function App() {
               path="/notices"
               element={
                 <ProtectedRoute routeKey="notices">
-                  <Notices />
+                  <MainLayout><Notices /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -622,7 +622,7 @@ function App() {
               path="/announcements"
               element={
                 <ProtectedRoute routeKey="announcements">
-                  <Announcements />
+                  <MainLayout><Announcements /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -630,7 +630,7 @@ function App() {
               path="/events"
               element={
                 <ProtectedRoute routeKey="events">
-                  <Events />
+                  <MainLayout><Events /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -638,7 +638,7 @@ function App() {
               path="/ptm"
               element={
                 <ProtectedRoute routeKey="ptm">
-                  <PTM />
+                  <MainLayout><PTM /></MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -646,7 +646,7 @@ function App() {
               path="/incidents"
               element={
                 <ProtectedRoute routeKey="incidents">
-                  <Incidents />
+                  <MainLayout><Incidents /></MainLayout>
                 </ProtectedRoute>
               }
             />
