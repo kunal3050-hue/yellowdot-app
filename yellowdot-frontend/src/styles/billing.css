@@ -792,7 +792,7 @@
   body:has(.yd-receipt) .yd-modal-overlay,
   body:has(.yd-receipt) .yd-drawer-overlay,
   body:has(.yd-receipt) .yd-receipt__aside,
-  .yd-receipt-reversed { display: none !important; }
+  body:has(.yd-receipt) .yd-receipt-reversed { display: none !important; }
 
   /* 2. The shell is a 100vh flex column that scrolls. On paper the page is
         the scroller, so unwrap it. */
@@ -818,7 +818,7 @@
 
   /* 3. The document itself, in normal flow. */
   body:has(.yd-receipt) .yd-receipt {
-    position: static !important;
+    position: relative !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -826,64 +826,98 @@
     border-radius: 0 !important;
     box-shadow: none !important;
     background: #fff !important;
-    color: #000 !important;
     overflow: visible !important;
+
+    /* Print this as it looks on screen. Browsers strip background colours by
+       default; this is the opt-out, and it covers the brand band, the tinted
+       amount block and the yellow rules. Without it the reader has to find
+       Chrome's "Background graphics" checkbox. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page: receipt-a4;
   }
 
-  /* The brand band is pure ink. */
-  .yd-receipt::before { display: none !important; }
+  body:has(.yd-receipt) .yd-receipt * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* The brand band is deliberately NOT hidden here. It was, on the grounds
+     that it is pure ink; it is also the one element that makes a printed
+     receipt recognisably this school's at a glance. */
 
   /* The letterhead carries the address and contact, so it earns a rule under
      it on paper the way a letterhead does. */
   body:has(.yd-receipt) .yd-receipt__letterhead {
     padding: 0 0 14px !important;
-    border-bottom: 2px solid #000 !important;
+    border-bottom: 2px solid var(--yd-yellow) !important;
   }
 
-  .yd-receipt__parties   { padding: 16px 0 14px !important; }
-  .yd-receipt__breakdown { padding: 0 !important; }
-  .yd-receipt__foot      { margin: 18px 0 0 !important; }
+  body:has(.yd-receipt) .yd-receipt__parties   { padding: 16px 0 14px !important; }
+  body:has(.yd-receipt) .yd-receipt__breakdown { padding: 0 !important; }
+  body:has(.yd-receipt) .yd-receipt__foot      { margin: 18px 0 0 !important; }
 
-  /* Keep the amount legible without a fill: printers render a light tint as
-     grey mush, and a border says "this is the figure" just as well. */
+  /* Keeps its tint on paper. The earlier version stripped it on the theory
+     that a light fill prints as grey mush; on a colour printer it does not,
+     and the block is what the eye goes to first. */
   body:has(.yd-receipt) .yd-receipt__amount {
     margin: 0 0 16px !important;
-    background: transparent !important;
-    border: 1.5px solid #000 !important;
   }
 
   /* Only on paper. A receipt handed over with nowhere to sign gets handed
      back; on screen it is a line that does nothing. */
-  .yd-receipt__sign { display: block !important; }
-  .yd-receipt__signline { border-bottom-color: #000 !important; }
+  body:has(.yd-receipt) .yd-receipt__sign { display: block !important; }
+  body:has(.yd-receipt) .yd-receipt__signline { border-bottom-color: var(--yd-charcoal) !important; }
+
+  /* A receipt leaves the building, so it must not depend on the theme the app
+     happened to be in. tokens.css carries a `.dark` palette (not wired to
+     anything today, but it is there); under it --yd-text-soft is #94A3B8 and
+     the surfaces are dark, which on a white sheet would print light grey text
+     on white. Pinning the light values on the receipt scope makes the printed
+     document the same whatever the screen is doing. Values copied from the
+     :root block of tokens.css. */
+  body:has(.yd-receipt) .yd-receipt {
+    --yd-charcoal: #0F172A;
+    --yd-text-soft: #64748B;
+    --yd-text-muted: #94A3B8;
+    --yd-surface: #FFFFFF;
+    --yd-surface-raised: #FFFFFF;
+    --yd-bg-sunken: #F5F5F5;
+    --yd-border: #E8E8E8;
+    --yd-danger: #EF4444;
+    --yd-danger-soft: #FEF2F2;
+    --yd-danger-border: #FECACA;
+    --yd-yellow: #F4C400;
+    --yd-yellow-light: #FFF9E0;
+  }
+
+  /* The one thing worth changing from the screen palette: the small muted
+     labels are #94A3B8, which is fine on a backlit screen and faint at 10px
+     on paper. Darkened one step to --yd-text-soft. Everything else prints
+     exactly as it looks on screen. */
+  body:has(.yd-receipt) .yd-receipt__label,
+  body:has(.yd-receipt) .yd-receipt__sub,
+  body:has(.yd-receipt) .yd-receipt__contact,
+  body:has(.yd-receipt) .yd-receipt__meta,
+  body:has(.yd-receipt) .yd-receipt__signlabel,
+  body:has(.yd-receipt) .yd-receipt__issued {
+    color: var(--yd-text-soft) !important;
+  }
 
   /* Keep each band whole across a page break rather than splitting a figure
      from its label. */
   body:has(.yd-receipt) .yd-receipt__letterhead,
   body:has(.yd-receipt) .yd-receipt__amount,
-  .yd-receipt__foot { break-inside: avoid; }
+  body:has(.yd-receipt) .yd-receipt__foot { break-inside: avoid; }
 
-  body:has(.yd-receipt) .yd-receipt__school,
-  body:has(.yd-receipt) .yd-receipt__value,
-  body:has(.yd-receipt) .yd-receipt__big,
-  body:has(.yd-receipt) .yd-receipt__refgrid dd,
-  .yd-receipt__breakdown tfoot td { color: #000 !important; }
-
-  body:has(.yd-receipt) .yd-receipt__contact,
-  body:has(.yd-receipt) .yd-receipt__issued,
-  body:has(.yd-receipt) .yd-receipt__signlabel,
-  body:has(.yd-receipt) .yd-receipt__label,
-  .yd-receipt__sub { color: #333 !important; }
-
-  /* Keep the reversal visible on paper: a printed receipt for money that went
-     back must say so, or it reads as valid proof of payment. */
   body:has(.yd-receipt) .yd-receipt__watermark {
     display: block !important;
     opacity: 0.16;
-    color: #000 !important;
   }
 
-  @page { size: A4; margin: 16mm; }
+  /* Named, not a bare `@page`. An unnamed one applies to every print in the
+     application — certificates.css already shipped that mistake once. */
+  @page receipt-a4 { size: A4; margin: 16mm; }
 }
 
 /* ── Form pages ──────────────────────────────────────────────────────────── */
