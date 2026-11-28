@@ -479,404 +479,452 @@
 .yd-payee-nudge > div { flex: 1; min-width: 0; }
 .yd-payee-nudge strong { color: var(--yd-charcoal); }
 
-/* ── The receipt ─────────────────────────────────────────────────────────── */
+/* ── The billing document (invoice + receipt) ──────────────────────────────
+   One stylesheet for both. The shapes are the brand's: a gold masthead with a
+   white lobe carrying the document's name, gold column heads over the priced
+   table, and a gold contact strip closing the page.
 
-.yd-receipt-reversed {
-  margin-bottom: 16px;
-  padding: 11px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--yd-danger);
-  background: var(--yd-danger-soft);
-  border: 1px solid var(--yd-danger-border);
-}
+   Everything is ordinary flow. Nothing is absolutely positioned except the
+   watermark, which is anchored to .yd-doc itself — the previous receipt was
+   positioned out of a clipped scroll container and printed a blank page.      */
 
-.yd-receipt {
+.yd-doc {
   position: relative;
-  max-width: 680px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 0 0 26px;
   background: var(--yd-surface);
   border: 1px solid var(--yd-border);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: var(--yd-elevation-small);
   overflow: hidden;
-}
-
-/* A band of the brand colour across the top. It is the one piece of styling
-   that survives a black-and-white print as a visible edge, and on screen it
-   stops the document reading as an untitled white box. */
-.yd-receipt::before {
-  content: "";
-  display: block;
-  height: 5px;
-  background: var(--yd-yellow);
-}
-
-/* ── Letterhead ──────────────────────────────────────────────────────────── */
-
-.yd-receipt__letterhead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 24px 30px 18px;
-  border-bottom: 1px solid var(--yd-border);
-}
-
-.yd-receipt__brand {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-
-.yd-receipt__logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  object-fit: contain;
-  flex-shrink: 0;
-  background: var(--yd-bg-sunken);
-}
-
-.yd-receipt__issuer { min-width: 0; }
-
-.yd-receipt__school {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
   color: var(--yd-charcoal);
 }
 
-/* Address and contact. Muted on purpose — needed for a receipt to stand on
-   its own, but not what the reader is looking for. */
-.yd-receipt__contact {
-  margin-top: 2px;
-  font-size: 11.5px;
-  line-height: 1.5;
+/* ── Masthead ───────────────────────────────────────────────────────────── */
+
+.yd-doc__head {
+  display: flex;
+  align-items: stretch;
+  background: var(--yd-yellow);
+  min-height: 118px;
+}
+
+.yd-doc__brand {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 12px 22px 34px;
+}
+
+.yd-doc__logo {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  object-fit: contain;
+  background: var(--yd-charcoal);
+}
+
+/* Fallback mark when a school has uploaded no logo. An empty square reads as
+   a broken image; an initial reads as deliberate. */
+.yd-doc__logo--letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--yd-yellow);
+}
+
+.yd-doc__brandname {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--yd-charcoal);
+}
+
+/* The lobe. Its curved left edge is the one shape that makes the masthead
+   read as this template rather than a plain coloured bar. */
+.yd-doc__lobe {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 34px 0 46px;
+  background: var(--yd-surface);
+  border-radius: 150px 0 0 150px;
+}
+
+.yd-doc__kind {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--yd-charcoal);
+}
+
+/* ── Bill-to and the reference block ────────────────────────────────────── */
+
+.yd-doc__parties {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 30px 34px 26px;
+}
+
+.yd-doc__billto-h {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--yd-charcoal);
+}
+
+.yd-doc__billto-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--yd-charcoal);
+}
+
+.yd-doc__billto-line {
+  margin: 3px 0 0;
+  font-size: 13.5px;
   color: var(--yd-text-soft);
 }
 
-.yd-receipt__ref {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.yd-receipt__kind {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--yd-text-muted);
-  margin-bottom: 8px;
-}
-
-/* A two-column definition list rather than stacked divs, so the label and the
-   value stay aligned when the receipt number changes length. */
-.yd-receipt__refgrid {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 2px 10px;
+.yd-doc__meta {
   margin: 0;
-  justify-content: end;
-}
-
-.yd-receipt__refgrid dt {
-  font-size: 10.5px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--yd-text-muted);
   text-align: right;
+  font-size: 13.5px;
 }
 
-.yd-receipt__refgrid dd {
+.yd-doc__meta-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.yd-doc__meta-row dt { color: var(--yd-text-soft); }
+
+.yd-doc__meta-row dd {
   margin: 0;
-  font-size: 13px;
   font-weight: 700;
+  color: var(--yd-charcoal);
+}
+
+/* ── The priced table ───────────────────────────────────────────────────── */
+
+.yd-doc__items { padding: 0 34px; }
+
+.yd-doc__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.yd-doc__table thead th {
+  padding: 13px 16px;
+  background: var(--yd-yellow);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--yd-charcoal);
+  white-space: nowrap;
+}
+
+.yd-doc__table thead th:first-child { border-radius: 10px 0 0 10px; text-align: left; }
+.yd-doc__table thead th:last-child  { border-radius: 0 10px 10px 0; }
+
+.yd-doc__table tbody td {
+  padding: 15px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--yd-border);
+  vertical-align: top;
+}
+
+.yd-doc__table tbody tr:last-child td { border-bottom: none; }
+
+.yd-doc__c-desc { text-align: left; }
+.yd-doc__c-num  { text-align: right; font-variant-numeric: tabular-nums; }
+th.yd-doc__c-num { text-align: right; }
+
+/* A line's qualifier — the period it covers, the reason for a credit —
+   belongs with the line, not in a column of its own. */
+.yd-doc__rowsub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--yd-text-soft);
+}
+
+/* ── Totals ─────────────────────────────────────────────────────────────── */
+
+.yd-doc__sums {
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px 34px 0;
+}
+
+.yd-doc__sumlist { margin: 0; min-width: 290px; }
+
+.yd-doc__sum {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 7px 16px;
+  font-size: 14px;
+}
+
+.yd-doc__sum dt { color: var(--yd-text-soft); }
+
+.yd-doc__sum dd {
+  margin: 0;
   font-variant-numeric: tabular-nums;
   color: var(--yd-charcoal);
-  text-align: right;
 }
 
-.yd-receipt__watermark {
+.yd-doc__sum.is-ruled {
+  border-top: 2px solid var(--yd-charcoal);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+
+.yd-doc__sum.is-strong dt,
+.yd-doc__sum.is-strong dd {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--yd-charcoal);
+}
+
+/* ── The headline figure ────────────────────────────────────────────────── */
+
+.yd-doc__highlight {
+  margin: 20px 34px 0;
+  padding: 18px 22px;
+  background: var(--yd-yellow-light);
+  border: 1px solid var(--yd-yellow);
+  border-radius: 14px;
+}
+
+.yd-doc__highlight-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--yd-text-soft);
+}
+
+.yd-doc__highlight-value {
+  margin: 4px 0 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--yd-charcoal);
+}
+
+.yd-doc__highlight-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--yd-text-soft);
+}
+
+/* ── Terms and signature ────────────────────────────────────────────────── */
+
+.yd-doc__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  padding: 30px 34px 10px;
+}
+
+.yd-doc__aside {
+  font-size: 13.5px;
+  color: var(--yd-text-soft);
+  max-width: 58%;
+}
+
+.yd-doc__aside h3 {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--yd-charcoal);
+}
+
+.yd-doc__aside p { margin: 0 0 2px; }
+.yd-doc__aside-group { margin-bottom: 18px; }
+.yd-doc__aside-group:last-child { margin-bottom: 0; }
+
+/* Screen hides the signature block: there it is a rule that does nothing.
+   Print brings it back. */
+.yd-doc__sign { display: none; text-align: right; min-width: 210px; }
+
+.yd-doc__signline {
+  display: block;
+  border-bottom: 1px solid var(--yd-charcoal);
+  margin-bottom: 8px;
+  height: 42px;
+}
+
+.yd-doc__signname { display: block; font-size: 14px; font-weight: 800; }
+.yd-doc__signrole { display: block; font-size: 12.5px; color: var(--yd-text-soft); }
+
+.yd-doc__note {
+  margin: 0;
+  padding: 0 34px 22px;
+  font-size: 12px;
+  color: var(--yd-text-soft);
+}
+
+/* ── Contact strip ──────────────────────────────────────────────────────── */
+
+.yd-doc__strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 28px;
+  padding: 15px 34px;
+  background: var(--yd-yellow);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--yd-charcoal);
+}
+
+/* ── Voided / reversed ──────────────────────────────────────────────────── */
+
+.yd-doc__watermark {
   position: absolute;
   top: 46%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-18deg);
-  font-size: 58px;
+  font-size: 72px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--yd-danger);
-  opacity: 0.1;
+  opacity: 0.12;
   pointer-events: none;
   user-select: none;
+  white-space: nowrap;
 }
 
-.yd-receipt__parties {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  padding: 20px 30px 18px;
-}
-
-.yd-receipt__label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--yd-text-muted);
-}
-
-.yd-receipt__value {
-  margin-top: 3px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--yd-charcoal);
-}
-
-.yd-receipt__sub {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--yd-text-muted);
-}
-
-/* The figure the reader came for. Tinted rather than outlined so it still
-   reads as the focal block on a monochrome print. */
-.yd-receipt__amount {
-  margin: 0 30px 20px;
-  padding: 18px 20px;
-  background: var(--yd-yellow-light);
-  border: 1px solid var(--yd-yellow);
+.yd-doc-flag {
+  max-width: 820px;
+  margin: 0 auto 14px;
+  padding: 11px 16px;
   border-radius: 12px;
+  background: var(--yd-danger-soft);
+  border: 1px solid var(--yd-danger-border);
+  color: var(--yd-danger);
+  font-size: 13.5px;
 }
 
-.yd-receipt__big {
-  margin: 4px 0 2px;
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  color: var(--yd-charcoal);
-}
-
-.yd-receipt__breakdown { padding: 0 30px; }
-
-.yd-receipt__breakdown table {
-  width: 100%;
-  margin-top: 8px;
-  border-collapse: collapse;
-  font-size: 12.5px;
-}
-
-.yd-receipt__breakdown td {
-  padding: 6px 0;
-  color: var(--yd-text-soft);
-  border-bottom: 1px solid var(--yd-border);
-}
-
-.yd-receipt__breakdown tfoot td {
-  color: var(--yd-charcoal);
-  border-bottom: none;
-}
-
-.yd-receipt__balance td {
-  padding-top: 8px;
-  font-weight: 700;
-  border-top: 1px solid var(--yd-border);
-}
-
-.yd-receipt__foot {
-  margin: 22px 30px 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--yd-border);
-}
-
-/* Who recorded it, and room to sign. Side by side on paper; the signature
-   half is hidden on screen, where it is only clutter. */
-.yd-receipt__signoff {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.yd-receipt__sign { display: none; }
-
-.yd-receipt__signline {
-  display: block;
-  width: 170px;
-  border-bottom: 1px solid var(--yd-charcoal);
-  margin-bottom: 5px;
-}
-
-.yd-receipt__signlabel {
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--yd-text-muted);
-}
-
-/* The line that makes an unsigned printout defensible. */
-.yd-receipt__issued {
-  margin: 14px 0 0;
-  padding-top: 10px;
-  border-top: 1px dashed var(--yd-border);
-  font-size: 10px;
-  letter-spacing: 0.03em;
-  color: var(--yd-text-muted);
-  text-align: center;
-}
-
-.yd-receipt__footer-note {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--yd-text-soft);
-}
-
-.yd-receipt__meta {
-  margin: 0;
-  font-size: 10.5px;
-  color: var(--yd-text-muted);
-}
-
-.yd-receipt__aside {
+.yd-doc-aside {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 18px;
+  max-width: 820px;
+  margin: 18px auto 0;
 }
 
-/* ── Print ───────────────────────────────────────────────────────────────── */
-/* One rendering path, not two. The deleted implementation had a server PDF
-   endpoint that returned a literal 501 while the client faked its own PDFs
-   with jsPDF in two different places; here Ctrl+P and the browser's own
-   "Save as PDF" both print exactly what is on screen. */
+@media (max-width: 720px) {
+  .yd-doc__head     { flex-direction: column; min-height: 0; }
+  .yd-doc__lobe     { border-radius: 0; padding: 14px 34px; justify-content: flex-start; }
+  .yd-doc__kind     { font-size: 26px; }
+  .yd-doc__parties  { flex-direction: column; }
+  .yd-doc__meta,
+  .yd-doc__meta-row { text-align: left; justify-content: flex-start; }
+  .yd-doc__foot     { flex-direction: column; align-items: stretch; }
+  .yd-doc__aside    { max-width: none; }
+  .yd-doc__items    { overflow-x: auto; }
+}
+
+/* ── Print ─────────────────────────────────────────────────────────────────
+   Every selector is scoped to `body:has(.yd-doc)`. billing.css is imported in
+   main.jsx, so it loads on every page and an unscoped rule here would reshape
+   the print output of the whole application — certificates.css shipped exactly
+   that mistake and made Ctrl+P produce a blank sheet everywhere.
+
+   The chrome goes with `display: none`, never `visibility: hidden`: hidden
+   elements still occupy space, which is what pushed the old receipt off the
+   page and forced an absolute positioning that then failed to print at all.  */
 
 @media print {
-  /* Every selector below is scoped to `body:has(.yd-receipt)`.
-     billing.css is imported in main.jsx, so it loads on every page — an
-     unscoped rule here would reshape the print output of the whole app.
-     That is not hypothetical: certificates.css carried an unscoped
-     `body > *:not(.yd-cert-print-root) { display: none }` and silently made
-     Ctrl+P produce a blank sheet on every page in the application. */
-  /* Why this does not use the `visibility: hidden` trick any more.
-     ────────────────────────────────────────────────────────────────────────
-     It used to: everything in body hidden, the receipt and its children made
-     visible again, and the receipt absolutely positioned at the page origin.
-     That printed a blank page.
 
-     Two reasons, and the second is caused by the first. `visibility: hidden`
-     hides an element but it still takes up space, so the sidebar and topbar
-     went on occupying the page and pushed the receipt off it — which is why
-     the absolute positioning was there, to escape them. But the receipt sits
-     inside .yd-page and .yd-content (both overflow:hidden) and .yd-scroll-area
-     (a scroll container), and Chrome does not reliably paint an
-     absolutely-positioned box out of that chain when printing.
-
-     So: remove the chrome with `display: none`, which takes its space with it,
-     unwrap the fixed-height scrolling shell into normal flow, and let the
-     receipt print as an ordinary block. Nothing is positioned, nothing is
-     clipped, and there is no stacking context to escape. */
-
-  /* 1. The app chrome, gone — space included. */
-  body:has(.yd-receipt) .yd-sidebar,
-  body:has(.yd-receipt) .yd-tb,
-  body:has(.yd-receipt) .yd-shell-top,
-  body:has(.yd-receipt) .yd-shell-kpis,
-  body:has(.yd-receipt) .yd-shell-footer,
-  body:has(.yd-receipt) .yd-toast-container,
-  body:has(.yd-receipt) .yd-overlay,
-  body:has(.yd-receipt) .yd-modal-overlay,
-  body:has(.yd-receipt) .yd-drawer-overlay,
-  body:has(.yd-receipt) .yd-receipt__aside,
-  body:has(.yd-receipt) .yd-receipt-reversed { display: none !important; }
+  /* 1. App chrome, gone — space included. */
+  body:has(.yd-doc) .yd-sidebar,
+  body:has(.yd-doc) .yd-tb,
+  body:has(.yd-doc) .yd-shell-top,
+  body:has(.yd-doc) .yd-shell-kpis,
+  body:has(.yd-doc) .yd-shell-footer,
+  body:has(.yd-doc) .yd-toast-container,
+  body:has(.yd-doc) .yd-overlay,
+  body:has(.yd-doc) .yd-modal-overlay,
+  body:has(.yd-doc) .yd-drawer-overlay,
+  body:has(.yd-doc) .yd-doc-aside { display: none !important; }
 
   /* 2. The shell is a 100vh flex column that scrolls. On paper the page is
         the scroller, so unwrap it. */
-  body:has(.yd-receipt) .yd-page,
-  body:has(.yd-receipt) .yd-content {
+  body:has(.yd-doc) .yd-page,
+  body:has(.yd-doc) .yd-content {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
   }
 
-  body:has(.yd-receipt) .yd-scroll-area {
+  body:has(.yd-doc) .yd-scroll-area {
     height: auto !important;
     overflow: visible !important;
     padding: 0 !important;
   }
 
-  body:has(.yd-receipt) .yd-shell,
-  body:has(.yd-receipt) .yd-shell-content {
+  body:has(.yd-doc) .yd-shell,
+  body:has(.yd-doc) .yd-shell-content {
     display: block !important;
     gap: 0 !important;
   }
 
-  /* 3. The document itself, in normal flow. */
-  body:has(.yd-receipt) .yd-receipt {
+  /* 3. The document itself, in normal flow. `relative`, not `static`, so the
+        watermark keeps its positioning anchor. */
+  body:has(.yd-doc) .yd-doc {
     position: relative !important;
     max-width: none !important;
     margin: 0 !important;
-    padding: 0 !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    background: #fff !important;
     overflow: visible !important;
+    page: doc-a4;
 
-    /* Print this as it looks on screen. Browsers strip background colours by
-       default; this is the opt-out, and it covers the brand band, the tinted
-       amount block and the yellow rules. Without it the reader has to find
-       Chrome's "Background graphics" checkbox. */
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    page: receipt-a4;
-  }
-
-  body:has(.yd-receipt) .yd-receipt * {
+    /* Print it as it looks on screen. Browsers drop background colours by
+       default; this is the opt-out, and without it the reader has to find
+       Chrome's "Background graphics" checkbox before any gold appears. */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* The brand band is deliberately NOT hidden here. It was, on the grounds
-     that it is pure ink; it is also the one element that makes a printed
-     receipt recognisably this school's at a glance. */
-
-  /* The letterhead carries the address and contact, so it earns a rule under
-     it on paper the way a letterhead does. */
-  body:has(.yd-receipt) .yd-receipt__letterhead {
-    padding: 0 0 14px !important;
-    border-bottom: 2px solid var(--yd-yellow) !important;
+  body:has(.yd-doc) .yd-doc * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  body:has(.yd-receipt) .yd-receipt__parties   { padding: 16px 0 14px !important; }
-  body:has(.yd-receipt) .yd-receipt__breakdown { padding: 0 !important; }
-  body:has(.yd-receipt) .yd-receipt__foot      { margin: 18px 0 0 !important; }
-
-  /* Keeps its tint on paper. The earlier version stripped it on the theory
-     that a light fill prints as grey mush; on a colour printer it does not,
-     and the block is what the eye goes to first. */
-  body:has(.yd-receipt) .yd-receipt__amount {
-    margin: 0 0 16px !important;
-  }
-
-  /* Only on paper. A receipt handed over with nowhere to sign gets handed
-     back; on screen it is a line that does nothing. */
-  body:has(.yd-receipt) .yd-receipt__sign { display: block !important; }
-  body:has(.yd-receipt) .yd-receipt__signline { border-bottom-color: var(--yd-charcoal) !important; }
-
-  /* A receipt leaves the building, so it must not depend on the theme the app
-     happened to be in. tokens.css carries a `.dark` palette (not wired to
-     anything today, but it is there); under it --yd-text-soft is #94A3B8 and
-     the surfaces are dark, which on a white sheet would print light grey text
-     on white. Pinning the light values on the receipt scope makes the printed
-     document the same whatever the screen is doing. Values copied from the
-     :root block of tokens.css. */
-  body:has(.yd-receipt) .yd-receipt {
+  /* 4. A document that leaves the building must not depend on the theme the
+        app happened to be in. tokens.css carries a `.dark` palette under which
+        --yd-text-soft is #94A3B8 and the surfaces are dark, which on a white
+        sheet prints light grey on white. Light values pinned here, copied from
+        the :root block of tokens.css. */
+  body:has(.yd-doc) .yd-doc {
     --yd-charcoal: #0F172A;
     --yd-text-soft: #64748B;
     --yd-text-muted: #94A3B8;
@@ -891,35 +939,25 @@
     --yd-yellow-light: #FFF9E0;
   }
 
-  /* The one thing worth changing from the screen palette: the small muted
-     labels are #94A3B8, which is fine on a backlit screen and faint at 10px
-     on paper. Darkened one step to --yd-text-soft. Everything else prints
-     exactly as it looks on screen. */
-  body:has(.yd-receipt) .yd-receipt__label,
-  body:has(.yd-receipt) .yd-receipt__sub,
-  body:has(.yd-receipt) .yd-receipt__contact,
-  body:has(.yd-receipt) .yd-receipt__meta,
-  body:has(.yd-receipt) .yd-receipt__signlabel,
-  body:has(.yd-receipt) .yd-receipt__issued {
-    color: var(--yd-text-soft) !important;
-  }
+  /* 5. Only on paper. A document handed over with nowhere to sign gets handed
+        back; on screen it is a rule that does nothing. */
+  body:has(.yd-doc) .yd-doc__sign { display: block !important; }
 
-  /* Keep each band whole across a page break rather than splitting a figure
-     from its label. */
-  body:has(.yd-receipt) .yd-receipt__letterhead,
-  body:has(.yd-receipt) .yd-receipt__amount,
-  body:has(.yd-receipt) .yd-receipt__foot { break-inside: avoid; }
+  /* 6. Keep each band whole across a page break rather than splitting a figure
+        from its label, and repeat the column heads on a second sheet. */
+  body:has(.yd-doc) .yd-doc__head,
+  body:has(.yd-doc) .yd-doc__parties,
+  body:has(.yd-doc) .yd-doc__highlight,
+  body:has(.yd-doc) .yd-doc__sums,
+  body:has(.yd-doc) .yd-doc__foot,
+  body:has(.yd-doc) .yd-doc__table tr { break-inside: avoid; }
 
-  body:has(.yd-receipt) .yd-receipt__watermark {
-    display: block !important;
-    opacity: 0.16;
-  }
+  body:has(.yd-doc) .yd-doc__table thead { display: table-header-group; }
 
   /* Named, not a bare `@page`. An unnamed one applies to every print in the
      application — certificates.css already shipped that mistake once. */
-  @page receipt-a4 { size: A4; margin: 16mm; }
+  @page doc-a4 { size: A4; margin: 12mm; }
 }
-
 /* ── Form pages ──────────────────────────────────────────────────────────── */
 /* The fee-plan and one-off-invoice forms are routes, not dialogs. Both began
    as modals and outgrew them: each has two or more sections, and the invoice

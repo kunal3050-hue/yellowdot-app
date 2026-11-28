@@ -130,6 +130,12 @@ export async function reversePayment(paymentId, reason) {
   return res.data;
 }
 
+/** The printable bill: the invoice plus the school's letterhead. */
+export async function getInvoiceDocument(invoiceId) {
+  const res = await api({ method: "GET", url: `/api/billing/invoices/${invoiceId}/document` });
+  return res.data;
+}
+
 /** The receipt payload: the payment, its invoice and the school's details. */
 export async function getReceipt(paymentId) {
   const res = await api({ method: "GET", url: `/api/billing/receipts/${paymentId}` });
@@ -170,7 +176,7 @@ export default {
   listPayments,
   recordPayment,
   reversePayment,
-  getReceipt,
+  getReceipt, getInvoiceDocument,
   getSettings,
   updateSettings,
   listAudit,

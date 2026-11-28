@@ -10,15 +10,18 @@
  * The audit flagged a real inconsistency in the deleted implementation: the
  * server's PDF endpoint was a literal `501 Not Implemented`, while the client
  * faked its own PDFs with jsPDF and html2canvas in two different places. This
- * does neither. It is one HTML document with a print stylesheet, so
- * Ctrl+P gives a clean A4 page and the browser's own "Save as PDF" gives a
- * file — no second rendering path to drift from the screen, and no server
- * endpoint promising something it does not do.
+ * does neither. It is one HTML document with a print stylesheet, so Ctrl+P
+ * gives a clean A4 page and the browser's own "Save as PDF" gives a file — no
+ * second rendering path to drift from the screen, and no server endpoint
+ * promising something it does not do.
  *
  * ── A reversed payment still resolves ────────────────────────────────────────
  * A reversed payment keeps its row and its receipt number, because a family may
  * already hold the printed copy. Opening it shows the reversal and its reason
  * rather than 404ing, which is the honest answer to "what happened to this?".
+ *
+ * The layout lives in BillingDocument, shared with the invoice, so the two
+ * read as halves of the same pair.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -27,6 +30,7 @@ import { Printer } from "lucide-react";
 import {
   PageShell, PageHeader, Button, Badge, LoadingPage, PageError,
 } from "../../components/ui";
+import BillingDocument from "../../components/billing/BillingDocument";
 import billingService from "../../services/billingService";
 import { inr, prettyDate, prettyPeriod, labelFor } from "./billingMeta";
 
@@ -70,9 +74,20 @@ export default function Receipt() {
 
   const { payment, invoice, settings, school = {} } = data;
   const schoolName = school.name || settings?.schoolName || "KUE BOXS Care";
-  // Shown as one line; either half may be missing on a school that has not
-  // filled in its contact details, and an empty separator reads as a defect.
-  const contactLine = [school.phone, school.email].filter(Boolean).join("  ·  ");
+
+  // The bill this payment settled, itemised. A receipt that says only "₹12,500
+  // received" leaves the family unable to check it against what they were
+  // billed for, which is the first thing anyone does with a receipt.
+  const rows = [
+    ...(invoice.lines || []).map(line => ({
+      key: line.lineId, label: line.label,
+      price: inr(line.amount), qty: 1, total: inr(line.amount),
+    })),
+    ...(invoice.adjustments || []).map(adj => ({
+      key: adj.adjustmentId, label: "Credit note", sub: adj.reason,
+      price: `−${inr(adj.amount)}`, qty: 1, total: `−${inr(adj.amount)}`,
+    })),
+  ];
 
   return (
     <PageShell
@@ -92,126 +107,61 @@ export default function Receipt() {
       }
     >
       {payment.reversed && (
-        <div className="yd-receipt-reversed" role="status">
+        <div className="yd-doc-flag" role="status">
           <strong>This payment was reversed.</strong> It no longer counts towards what
           the family has paid. Reason: {payment.reversalReason}
         </div>
       )}
 
-      {/* The printable document. Everything outside it is hidden by the
-          print stylesheet in styles/billing.css. */}
-      <article className={`yd-receipt ${payment.reversed ? "is-reversed" : ""}`}>
-
-        {/* Letterhead. A receipt leaves the building — it is printed, filed,
-            and sometimes produced months later — so it has to say who issued
-            it without the reader needing any other context. Every line is
-            optional and simply drops when a school has not set it. */}
-        <header className="yd-receipt__letterhead">
-          <div className="yd-receipt__brand">
-            {school.logo && (
-              <img className="yd-receipt__logo" src={school.logo} alt="" aria-hidden="true" />
+      <BillingDocument
+        kind="Receipt"
+        school={{ ...school, name: schoolName }}
+        watermark={payment.reversed ? "REVERSED" : ""}
+        billTo={{
+          heading: "Received from:",
+          name: payment.studentName || payment.studentId,
+          lines: [invoice.class, `Against ${invoice.invoiceNumber} · ${prettyPeriod(invoice.period)}`],
+        }}
+        meta={[
+          { label: "Receipt No", value: payment.receiptNumber },
+          { label: "Date",       value: prettyDate(payment.paymentDate) },
+          { label: "Method",     value: labelFor(payment.paymentMode) },
+          payment.reference ? { label: "Reference", value: payment.reference } : null,
+        ]}
+        highlight={{
+          label: "Amount received",
+          value: inr(payment.amount),
+          sub: `${labelFor(payment.paymentMode)}${payment.reference ? ` · ${payment.reference}` : ""}`,
+        }}
+        rows={rows}
+        totals={[
+          { label: "Invoice total",     value: inr(invoice.totalAmount) },
+          { label: "Paid to date",      value: inr(invoice.paidAmount) },
+          { label: "Still outstanding", value: inr(invoice.balance), rule: true, strong: true },
+        ]}
+        aside={
+          <>
+            {settings?.receiptFooter && (
+              <div className="yd-doc__aside-group">
+                <h3>Note</h3>
+                <p>{settings.receiptFooter}</p>
+              </div>
             )}
-            <div className="yd-receipt__issuer">
-              <div className="yd-receipt__school">{schoolName}</div>
-              {school.address && <div className="yd-receipt__contact">{school.address}</div>}
-              {contactLine && <div className="yd-receipt__contact">{contactLine}</div>}
+            <div className="yd-doc__aside-group">
+              <h3>Recorded by</h3>
+              <p>{payment.receivedBy || "School staff"}</p>
+              {payment.notes && <p>{payment.notes}</p>}
             </div>
-          </div>
+          </>
+        }
+        signature={{ name: schoolName, role: "Authorised signatory" }}
+        footerNote={
+          `Computer-generated receipt · ${schoolName}` +
+          (payment.reversed ? " · This payment was reversed and this receipt is void." : "")
+        }
+      />
 
-          <div className="yd-receipt__ref">
-            <div className="yd-receipt__kind">Receipt</div>
-            <dl className="yd-receipt__refgrid">
-              <dt>No.</dt><dd>{payment.receiptNumber}</dd>
-              <dt>Date</dt><dd>{prettyDate(payment.paymentDate)}</dd>
-            </dl>
-          </div>
-        </header>
-
-        {payment.reversed && <div className="yd-receipt__watermark" aria-hidden="true">REVERSED</div>}
-
-        <section className="yd-receipt__parties">
-          <div>
-            <div className="yd-receipt__label">Received from</div>
-            <div className="yd-receipt__value">{payment.studentName || payment.studentId}</div>
-            {invoice.class && <div className="yd-receipt__sub">{invoice.class}</div>}
-          </div>
-          <div>
-            <div className="yd-receipt__label">Against</div>
-            <div className="yd-receipt__value">{invoice.invoiceNumber}</div>
-            <div className="yd-receipt__sub">{prettyPeriod(invoice.period)}</div>
-          </div>
-        </section>
-
-        {/* The one number the reader is looking for. */}
-        <section className="yd-receipt__amount">
-          <div className="yd-receipt__label">Amount received</div>
-          <div className="yd-receipt__big">{inr(payment.amount)}</div>
-          <div className="yd-receipt__sub">
-            {labelFor(payment.paymentMode)}
-            {payment.reference ? ` · ${payment.reference}` : ""}
-          </div>
-        </section>
-
-        <section className="yd-receipt__breakdown">
-          <div className="yd-receipt__label">What the bill was for</div>
-          <table>
-            <tbody>
-              {invoice.lines.map(line => (
-                <tr key={line.lineId}>
-                  <td>{line.label}</td>
-                  <td className="yd-num">{inr(line.amount)}</td>
-                </tr>
-              ))}
-              {invoice.adjustments.map(adj => (
-                <tr key={adj.adjustmentId}>
-                  <td>Credit note — {adj.reason}</td>
-                  <td className="yd-num">{inr(adj.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>Invoice total</td>
-                <td className="yd-num">{inr(invoice.totalAmount)}</td>
-              </tr>
-              <tr>
-                <td>Paid to date</td>
-                <td className="yd-num">{inr(invoice.paidAmount)}</td>
-              </tr>
-              <tr className="yd-receipt__balance">
-                <td>Still outstanding</td>
-                <td className="yd-num">{inr(invoice.balance)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </section>
-
-        <footer className="yd-receipt__foot">
-          {settings?.receiptFooter && (
-            <p className="yd-receipt__footer-note">{settings.receiptFooter}</p>
-          )}
-
-          <div className="yd-receipt__signoff">
-            <div className="yd-receipt__meta">
-              Recorded by {payment.receivedBy || "school staff"}
-              {payment.notes ? ` · ${payment.notes}` : ""}
-            </div>
-            {/* Printed only. On screen it is noise; on paper a receipt with
-                nowhere to sign gets handed back. */}
-            <div className="yd-receipt__sign">
-              <span className="yd-receipt__signline" />
-              <span className="yd-receipt__signlabel">Authorised signatory</span>
-            </div>
-          </div>
-
-          <p className="yd-receipt__issued">
-            Computer-generated receipt · {schoolName}
-            {payment.reversed ? " · This payment was reversed and this receipt is void." : ""}
-          </p>
-        </footer>
-      </article>
-
-      <div className="yd-receipt__aside">
+      <div className="yd-doc-aside">
         <Badge variant={payment.reversed ? "danger" : "success"}>
           {payment.reversed ? "Reversed" : "Received"}
         </Badge>

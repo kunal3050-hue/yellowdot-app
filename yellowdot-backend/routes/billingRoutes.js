@@ -283,6 +283,22 @@ router.post("/api/billing/payments/:paymentId/reverse", ...adminGate, async (req
   } catch (err) { sendError(res, err); }
 });
 
+/**
+ * The printable bill. Distinct from GET /invoices/:id, which serves the
+ * management screen - this one carries the school's letterhead, because a
+ * document that leaves the building has to say who issued it.
+ *
+ * Mounted before nothing in particular: "/invoices/:invoiceId" cannot shadow
+ * it, since a path parameter matches exactly one segment.
+ */
+router.get("/api/billing/invoices/:invoiceId/document", ...readGate, async (req, res) => {
+  try {
+    const { schoolId } = resolveCtx(req);
+    const result = await billing.getInvoiceDocument(req.params.invoiceId, { schoolId });
+    res.json({ success: true, ...result });
+  } catch (err) { sendError(res, err); }
+});
+
 router.get("/api/billing/receipts/:paymentId", ...readGate, async (req, res) => {
   try {
     const { schoolId } = resolveCtx(req);
