@@ -246,14 +246,20 @@ export default function InvoiceDetail() {
             icon: <IndianRupee size={14} strokeWidth={2} />,
             onClick: openPayment,
           } : undefined}
-          secondaryActions={canUnwind ? [
+          secondaryActions={[
+            // The printable bill. Anyone who can open this page can print it;
+            // the unwind actions stay behind canUnwind.
+            { key: "print", label: "Print invoice",
+              onClick: () => navigate(`/billing/invoices/${invoiceId}/print`) },
+            ...(canUnwind ? [
             ...(invoice.voided || invoice.balance <= 0 ? [] : [{
               key: "credit", label: "Credit note", onClick: () => { setActionError(""); setAction("credit"); },
             }]),
             ...(invoice.voided ? [] : [{
               key: "void", label: "Void", onClick: () => { setActionError(""); setAction("void"); },
             }]),
-          ] : undefined}
+            ] : []),
+          ]}
         />
       }
     >

@@ -78,6 +78,7 @@ const BillingInvoices      = lazy(() => import("./pages/billing/Invoices"));
 const BillingInvoiceDetail = lazy(() => import("./pages/billing/InvoiceDetail"));
 const BillingFeePlans      = lazy(() => import("./pages/billing/FeePlans"));
 const BillingReceipt       = lazy(() => import("./pages/billing/Receipt"));
+const BillingInvoiceDoc    = lazy(() => import("./pages/billing/InvoiceDocument"));
 const BillingFeePlanForm   = lazy(() => import("./pages/billing/FeePlanForm"));
 const BillingInvoiceForm   = lazy(() => import("./pages/billing/InvoiceForm"));
 const NewObservation      = lazy(() => import("./pages/NewObservation"));
@@ -437,6 +438,17 @@ function App() {
               element={
                 <ProtectedRoute routeKey="billing">
                   <MainLayout><BillingInvoiceDetail /></MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* The printable bill, as distinct from the register page at
+                /billing/invoices/:invoiceId. Same permission: anyone who can
+                see the invoice can print it. */}
+            <Route
+              path="/billing/invoices/:invoiceId/print"
+              element={
+                <ProtectedRoute routeKey="billing">
+                  <MainLayout><BillingInvoiceDoc /></MainLayout>
                 </ProtectedRoute>
               }
             />

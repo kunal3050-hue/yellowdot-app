@@ -1163,7 +1163,7 @@ async function reversePayment(paymentId, reason, ctx = {}) {
  * billing settings' schoolName wins over the tenant's when set, because it is
  * the one a school edits for exactly this purpose.
  */
-async function getReceiptLetterhead({ schoolId, settings }) {
+async function getLetterhead({ schoolId, settings }) {
   let tenant = null;
   try {
     tenant = await tenantSvc.getById(schoolId);
@@ -1185,12 +1185,28 @@ async function getReceiptLetterhead({ schoolId, settings }) {
   };
 }
 
+/**
+ * The printable invoice - the bill itself, plus who issued it.
+ *
+ * Separate from getInvoice because that one answers "what does the register
+ * say", which the management screen needs, while this answers "what goes on
+ * the paper a family is handed". The difference is the letterhead: a document
+ * that leaves the building has to say who issued it without the reader having
+ * any other context.
+ */
+async function getInvoiceDocument(invoiceId, { schoolId = SCHOOL_ID } = {}) {
+  const invoice  = await getInvoice(invoiceId, { schoolId });
+  const settings = await getSettings({ schoolId });
+  const school   = await getLetterhead({ schoolId, settings });
+  return { invoice, settings, school };
+}
+
 /** The receipt for one payment — the payment, its invoice, the school's details. */
 async function getReceipt(paymentId, { schoolId = SCHOOL_ID } = {}) {
   const payment  = await getPayment(paymentId, { schoolId });
   const invoice  = await getInvoice(payment.invoiceId, { schoolId });
   const settings = await getSettings({ schoolId });
-  const school   = await getReceiptLetterhead({ schoolId, settings });
+  const school   = await getLetterhead({ schoolId, settings });
   return { payment, invoice, settings, school };
 }
 
@@ -1475,6 +1491,7 @@ module.exports = {
   generateForPeriod, voidInvoice, addCreditNote,
   // payments
   listPayments, getPayment, recordPayment, reversePayment, getReceipt,
+  getInvoiceDocument,
   // rollups
   getOutstanding, getSummary,
   // parent
